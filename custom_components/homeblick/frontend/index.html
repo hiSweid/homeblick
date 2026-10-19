@@ -1180,6 +1180,18 @@ async function assistAnswer() {
   }
   assistShow();
 }
+// Ansage aus dem Admin-Panel: Text in der Kugel, gesprochen per Browser-Stimme (Stumm/Lautstärke gelten)
+function announce(t) {
+  if (AS.className || mode !== 'normal') return;
+  AS.dataset.k = 'voice'; AS.className = 'listen'; $('.atxt', AS).textContent = t;
+  let ms = 8000 + t.length * 60;
+  if (!CFG.mute && window.speechSynthesis) {
+    const u = new SpeechSynthesisUtterance(t); u.lang = 'de-DE'; u.volume = CFG.volume / 100;
+    u.onend = u.onerror = () => asT = [setTimeout(assistEnd, 2500)];
+    speechSynthesis.speak(u); ms = 60000;   // schließt beim Sprechende; 60 s nur als Sicherung
+  }
+  assistShow(ms);
+}
 function assistShow(ms = 12000) {
   AS.className = 'answer';
   ORB.animate([{ transform: 'translateY(-8cqw) scale(.475)' }], { duration: SD, easing: SPRING, fill: 'forwards' });
@@ -1793,6 +1805,7 @@ if (LIVE) {
       else if (c.action === 'wake') kiosk.wake();
       else if (c.action === 'screenshot') shot().then(image => conn.sendMessagePromise({ type: 'homeblick/shot', display: DISPLAY, image })).catch(console.warn);
       else if (c.action === 'assist') { kiosk.wake(); assistStart(); }
+      else if (c.action === 'announce' && c.message) { kiosk.wake(); announce(c.message); }
     }, { type: 'homeblick/subscribe', display: DISPLAY })).then(() => { wk(); kiosk.report(); conn.addEventListener('ready', () => kiosk.report()); setInterval(() => kiosk.report(), 30000); }).catch(console.warn);
     // Wake Word nur auf Wunsch (CONF.kiosk.wake): Mikrofon bleibt dann dauerhaft offen
     let wkCtl, wkModel;
