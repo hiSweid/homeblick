@@ -5,12 +5,13 @@ export const KIOSK_DEF = { idle: 300, saver: 'bigclock', dim: null, wake: null }
 const mins = s => { const [h, m] = s.split(':'); return h * 60 + +m; };
 export const inWindow = (now, from, to) => from <= to ? now >= from && now < to : now >= from || now < to;   // über Mitternacht erlaubt
 
-// faces: Scroll-Container, conf: () => CONF, busy: () => Bearbeiten/Vollbild/Assist aktiv, touched: () => letzte Berührung (ms)
-export function kioskInit({ faces, conf, busy, touched }) {
+// faces: Scroll-Container, conf: () => CONF, busy: () => Bearbeiten/Vollbild/Assist aktiv, touched: () => letzte Berührung (ms),
+// onState({ face, saver }) bei Änderung (Meldung an HA)
+export function kioskInit({ faces, conf, busy, touched, onState }) {
   const cfg = () => ({ ...KIOSK_DEF, ...conf().kiosk });
   const idx = () => Math.round(faces.scrollLeft / faces.clientWidth);
   const goto = (i, behavior = 'smooth') => faces.scrollTo({ left: i * faces.clientWidth, behavior });
-  let last = Date.now(), back = -1;   // back = Face vor dem Screensaver
+  let last = Date.now(), back = -1, st = {};   // back = Face vor dem Screensaver
 
   // Display wach halten (braucht https/localhost; unter http gibt es kein wakeLock → still ignorieren)
   const lock = () => navigator.wakeLock?.request('screen').catch(() => {});
@@ -33,6 +34,8 @@ export function kioskInit({ faces, conf, busy, touched }) {
     if (idle && back < 0 && !busy() && Date.now() - Math.max(last, touched()) > idle * 1000) {
       sleep();
     }
+    const face = faces.children[idx()]?.className.match(/f-(\w+)/)?.[1] ?? null;
+    if (onState && (face !== st.face || (back >= 0) !== st.saver)) onState(st = { face, saver: back >= 0 });
     const d = dim && inWindow(now.getHours() * 60 + now.getMinutes(), mins(dim.from), mins(dim.to)) && Date.now() - last > 30000;
     veil.style.opacity = d ? dim.level ?? .8 : 0;
   }, 1000);
@@ -40,7 +43,7 @@ export function kioskInit({ faces, conf, busy, touched }) {
   // Face per URL-Fragment (z. B. HA-Automation / Dashboard-Link): #music, #bigclock …
   const byHash = () => { const i = [...faces.children].findIndex(f => f.classList.contains('f-' + location.hash.slice(1))); if (i >= 0) goto(i); };
   addEventListener('hashchange', byHash); if (location.hash) byHash();
-  return { wake, sleep };   // wake: Screensaver beenden (Wake Word, HA-Befehl), sleep: sofort starten
+  return { wake, sleep, report: () => onState?.(st) };   // wake: Screensaver beenden (Wake Word, HA-Befehl), sleep: sofort starten, report: Zustand erneut melden
 }
 
 // Selbsttest: node kiosk.js

@@ -651,11 +651,13 @@ const DEF = { cams: 1, energy: 1, dyn: 2, faces: [   // Flags: Migrationen unten
 ] };
 let conn;   // vor save(): die Migrationen unten rufen save() schon vor der Verbindung
 const KEY = 'homeview.v1';
+// Jedes Display hat seine Kennung (pro Gerät/Browser); in HA: eigenes Gerät mit Entities, eigene Faces und Einstellungen
+const DISPLAY = (() => { try { return localStorage.homeblickDisplay ||= 'd' + Math.random().toString(36).slice(2, 8); } catch { return 'd0'; } })();
 let CONF;
 try { CONF = JSON.parse(localStorage.getItem(KEY)); } catch {}
 if (!CONF?.faces?.length) CONF = structuredClone(DEF);
 // ponytail: Fotos als data-URL im localStorage (~5 MB Limit); bei vielen Fotos → IndexedDB
-const save = () => { try { localStorage.setItem(KEY, JSON.stringify(CONF)); conn?.sendMessagePromise({ type: 'homeblick/set_config', config: CONF }).catch(() => {}); } catch (e) { console.warn('Speichern fehlgeschlagen', e); } };
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(CONF)); conn?.sendMessagePromise({ type: 'homeblick/set_config', display: DISPLAY, config: CONF }).catch(() => {}); } catch (e) { console.warn('Speichern fehlgeschlagen', e); } };
 // Neue Faces (Kameras, Energie) einmalig an gespeicherte Konfigurationen anhängen; danach entscheidet der User (Löschen bleibt gelöscht)
 for (const t of ['cams', 'energy']) if (!CONF[t] && localStorage.getItem(KEY)) { CONF[t] = 1; if (!CONF.faces.some(f => f.type === t)) CONF.faces.push({ type: t, bg: 'black' }); save(); }
 // Dynamische Faces einmalig in gespeicherte Standard-Faces übernehmen (Home orange → Tageszeit + Gute Nacht, Info schwarz → Tageszeit); Swatch stellt zurück
@@ -1683,7 +1685,8 @@ if (!LIVE) {
 camInit($('#cam'), { open, close, hass: HASS });
 if (!LIVE && new URLSearchParams(location.search).has('ring')) setTimeout(() => { ents = { ...ents, 'event.turklingel_doorbell': { ...ents['event.turklingel_doorbell'], state: new Date().toISOString() } }; schedule(); }, 1500);   // Demo-Klingeln wie HA
 timerInit(screen, call);
-const kiosk = kioskInit({ faces, conf: () => CONF, busy: () => mode !== 'normal' || cur || AS.className, touched: () => touched });
+const kiosk = kioskInit({ faces, conf: () => CONF, busy: () => mode !== 'normal' || cur || AS.className, touched: () => touched,
+  onState: st => conn?.sendMessagePromise({ type: 'homeblick/report', display: DISPLAY, ...st }).catch(() => {}) });
 renderAll(0);
 setTimeout(() => { tick(); setInterval(tick, 60000); }, 60050 - Date.now() % 60000);
 setInterval(times, 1000);
@@ -1710,23 +1713,30 @@ if (LIVE) {
       if (location.search.includes('auth_callback')) history.replaceState(null, '', location.pathname + '?live');
       conn = await ha.createConnection({ auth, setupRetry: -1 });
     }
-    // Einstellungen aus HA übernehmen (gilt für alle Displays); ohne gespeicherte Konfiguration bleibt die lokale und wird hochgeladen
-    conn.sendMessagePromise({ type: 'homeblick/get_config' }).then(c => {
-      if (c?.kiosk) CONF.kiosk = c.kiosk;   // Kiosk-Verhalten kommt aus den Integrationsoptionen (HA → Homeblick → Konfigurieren)
-      if (c?.faces?.length) { CONF = c; try { localStorage.setItem(KEY, JSON.stringify(CONF)); } catch {} renderAll(0); }
+    // Display anmelden: eigene Konfiguration + Kiosk-Einstellungen aus HA; ohne gespeicherte Konfiguration bleibt die lokale und wird hochgeladen
+    const hello = conn.sendMessagePromise({ type: 'homeblick/register', display: DISPLAY, name: new URLSearchParams(location.search).get('name') || undefined }).then(c => {
+      CONF.kiosk = c.kiosk;
+      if (c.config?.faces?.length) { CONF = { ...c.config, kiosk: c.kiosk }; try { localStorage.setItem(KEY, JSON.stringify(CONF)); } catch {} renderAll(0); }
       else save();
-    }).catch(() => {}).finally(() => wk());
+    }).catch(console.warn);
     ha.subscribeEntities(conn, e => { ents = e; schedule(); });
-    // Befehle aus HA (Service homeblick.command): Face wählen, neu laden, Screensaver, Assist
-    conn.subscribeMessage(c => {
-      if (c.action === 'face' && c.face) location.hash = c.face;
+    // Befehle und geänderte Einstellungen aus HA (Entities des Displays)
+    hello.then(() => conn.subscribeMessage(c => {
+      if (c.kiosk) { CONF.kiosk = c.kiosk; wk(); }
+      else if (c.action === 'face' && c.face) location.hash = c.face;
       else if (c.action === 'reload') location.reload();
       else if (c.action === 'screensaver') kiosk.sleep();
       else if (c.action === 'wake') kiosk.wake();
       else if (c.action === 'assist') { kiosk.wake(); assistStart(); }
-    }, { type: 'homeblick/subscribe_commands' }).catch(console.warn);
+    }, { type: 'homeblick/subscribe', display: DISPLAY })).then(() => { wk(); kiosk.report(); conn.addEventListener('ready', () => kiosk.report()); }).catch(console.warn);
     // Wake Word nur auf Wunsch (CONF.kiosk.wake): Mikrofon bleibt dann dauerhaft offen
-    const wk = () => { const m = { ...KIOSK_DEF, ...CONF.kiosk }.wake; if (m && voiceOK()) wakeInit({ model: m, onWake: () => { kiosk.wake(); assistStart(); return new Promise(r => { const t = setInterval(() => AS.className || (clearInterval(t), r()), 500); }); } }).catch(e => console.warn('Wake Word', e)); };
+    let wkCtl, wkModel;
+    const wk = async () => {
+      const m = { ...KIOSK_DEF, ...CONF.kiosk }.wake;
+      if (m === wkModel) return;
+      wkModel = m; wkCtl?.stop(); wkCtl = null;
+      if (m && voiceOK()) wkCtl = await wakeInit({ model: m, onWake: () => { kiosk.wake(); assistStart(); return new Promise(r => { const t = setInterval(() => AS.className || (clearInterval(t), r()), 500); }); } }).catch(e => console.warn('Wake Word', e));
+    };
     conn.subscribeMessage(f => { forecast = f.forecast?.[0]; schedule(); }, { type: 'weather/subscribe_forecast', forecast_type: 'daily', entity_id: CFG.weather }).catch(console.warn);
   } catch (err) {
     // In KS heißt ERR_INVALID_AUTH: Teilen aus / keine Custom Page. Kein Reload, sonst Endlosschleife.

@@ -1,0 +1,143 @@
+"""Entities je Display: Steuerung (Face, Screensaver, Neu laden, Assist) und Konfiguration (Screensaver, Dimmen, Wake Word)."""
+from datetime import time
+
+from homeassistant.components.button import ButtonEntity
+from homeassistant.components.number import NumberEntity, NumberMode
+from homeassistant.components.select import SelectEntity
+from homeassistant.components.switch import SwitchEntity
+from homeassistant.components.time import TimeEntity
+from homeassistant.const import EntityCategory
+from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers.dispatcher import async_dispatcher_connect
+from homeassistant.helpers.entity import Entity
+
+from .const import DOMAIN, FACES, PLATFORMS, WAKE
+from .hub import signal
+
+
+class Base(Entity):
+    _attr_has_entity_name = True
+    _attr_should_poll = False
+    live = False   # Steuerung geht nur, solange ein Panel offen ist; Konfiguration immer
+
+    def __init__(self, hub, d, key):
+        self.hub, self.d, self.key = hub, d, key
+        self._attr_unique_id = f"{d.id}_{key}"
+        self._attr_translation_key = key
+        self._attr_device_info = DeviceInfo(identifiers={(DOMAIN, d.id)}, name=d.name, manufacturer="Homeblick", model="Display")
+        if not self.live:
+            self._attr_entity_category = EntityCategory.CONFIG
+
+    @property
+    def available(self) -> bool:
+        return self.d.connected or not self.live
+
+    async def async_added_to_hass(self) -> None:
+        self.async_on_remove(async_dispatcher_connect(self.hass, signal(self.d.id), self.async_write_ha_state))
+
+
+class Live(Base):
+    live = True
+
+
+# ---- Steuerung ----
+class FaceSelect(Live, SelectEntity):
+    _attr_options = FACES
+
+    def __init__(self, hub, d):
+        super().__init__(hub, d, "face")
+
+    @property
+    def current_option(self):
+        return self.d.face if self.d.face in FACES else None
+
+    async def async_select_option(self, option: str) -> None:
+        self.hub.push(self.d, {"action": "face", "face": option})
+
+
+class ScreensaverSwitch(Live, SwitchEntity):
+    def __init__(self, hub, d):
+        super().__init__(hub, d, "screensaver")
+
+    @property
+    def is_on(self) -> bool:
+        return self.d.saver
+
+    async def async_turn_on(self, **kw) -> None:
+        self.hub.push(self.d, {"action": "screensaver"})
+
+    async def async_turn_off(self, **kw) -> None:
+        self.hub.push(self.d, {"action": "wake"})
+
+
+class ActionButton(Live, ButtonEntity):
+    async def async_press(self) -> None:
+        self.hub.push(self.d, {"action": self.key})
+
+
+# ---- Konfiguration ----
+class SettingSelect(Base, SelectEntity):
+    def __init__(self, hub, d, key, options):
+        super().__init__(hub, d, key)
+        self._attr_options = options
+
+    @property
+    def current_option(self):
+        return self.d.settings[self.key]
+
+    async def async_select_option(self, option: str) -> None:
+        await self.hub.set_setting(self.d, self.key, option)
+
+
+class SettingSwitch(Base, SwitchEntity):
+    @property
+    def is_on(self) -> bool:
+        return self.d.settings[self.key]
+
+    async def async_turn_on(self, **kw) -> None:
+        await self.hub.set_setting(self.d, self.key, True)
+
+    async def async_turn_off(self, **kw) -> None:
+        await self.hub.set_setting(self.d, self.key, False)
+
+
+class SettingNumber(Base, NumberEntity):
+    _attr_mode = NumberMode.BOX
+
+    def __init__(self, hub, d, key, lo, hi, step, unit):
+        super().__init__(hub, d, key)
+        self._attr_native_min_value, self._attr_native_max_value, self._attr_native_step = lo, hi, step
+        self._attr_native_unit_of_measurement = unit
+
+    @property
+    def native_value(self):
+        return self.d.settings[self.key]
+
+    async def async_set_native_value(self, value: float) -> None:
+        await self.hub.set_setting(self.d, self.key, int(value))
+
+
+class SettingTime(Base, TimeEntity):
+    @property
+    def native_value(self) -> time:
+        return time.fromisoformat(self.d.settings[self.key])
+
+    async def async_set_value(self, value: time) -> None:
+        await self.hub.set_setting(self.d, self.key, value.strftime("%H:%M:%S"))
+
+
+# Plattform → Entities eines Displays
+FACTORY = {
+    "select": lambda h, d: [FaceSelect(h, d), SettingSelect(h, d, "saver", FACES), SettingSelect(h, d, "wake", WAKE)],
+    "switch": lambda h, d: [ScreensaverSwitch(h, d), SettingSwitch(h, d, "dim")],
+    "button": lambda h, d: [ActionButton(h, d, "reload"), ActionButton(h, d, "assist")],
+    "number": lambda h, d: [SettingNumber(h, d, "idle", 0, 3600, 10, "s"), SettingNumber(h, d, "dim_level", 10, 95, 5, "%")],
+    "time": lambda h, d: [SettingTime(h, d, "dim_from"), SettingTime(h, d, "dim_to")],
+}
+assert set(FACTORY) == set(PLATFORMS)
+
+
+def setup(platform: str):
+    async def async_setup_entry(hass, entry, async_add_entities):
+        hass.data[DOMAIN].attach(platform, async_add_entities, FACTORY[platform])
+    return async_setup_entry

@@ -1,5 +1,8 @@
 DOMAIN = "homeblick"
 URL = "/homeblick"
 STORE_VERSION = 1
-SIGNAL = f"{DOMAIN}_command"
-ACTIONS = ["face", "reload", "screensaver", "wake", "assist"]
+PLATFORMS = ["select", "switch", "button", "number", "time"]
+FACES = ["bigclock", "analog", "weather", "music", "grid", "calendar", "energy", "info", "cams"]
+WAKE = ["off", "hey_jarvis", "alexa"]
+# Einstellungen je Display (Entities der Kategorie „Konfiguration“)
+DEFAULTS = {"idle": 300, "saver": "bigclock", "dim": False, "dim_from": "22:30:00", "dim_to": "06:00:00", "dim_level": 80, "wake": "off"}
