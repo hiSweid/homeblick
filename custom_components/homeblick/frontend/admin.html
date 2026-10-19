@@ -136,7 +136,7 @@ function view() {
     ${row('Assist-Pipeline', sSelect('pipeline', [['', 'Standard von Home Assistant'], ...pipelines], s.pipeline))}
   </div>
   <div class="card"><h2>Wetter</h2>
-    ${row('Wetter-Entity', sSelect('weather', weathers.length ? weathers : [[s.weather, s.weather]], s.weather))}
+    ${row('Wetter-Entity', sSelect('weather', weathers.some(w => w[0] === s.weather) ? weathers : [...weathers, [s.weather, s.weather + ' (nicht gefunden)']], s.weather))}
     ${row('Ortsname', sInput('place', s.place))}
   </div>`;
 }

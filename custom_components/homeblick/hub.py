@@ -72,6 +72,8 @@ class Hub:
     async def remove(self, id: str) -> None:
         self.displays.pop(id, None)
         self.configs.pop(id, None)
+        if not self.displays:   # Vorlage nur für die Umstellung vom alten Einzel-Display; ohne Displays nicht weiterreichen
+            self.default = None
         await self._save()
 
     def config(self, id: str) -> dict | None:
