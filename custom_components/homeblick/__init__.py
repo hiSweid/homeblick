@@ -36,8 +36,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         )
         hass.data[f"{DOMAIN}_static"] = True
     frontend.async_register_built_in_panel(
-        hass, "iframe", "Homeblick", "mdi:monitor-dashboard", DOMAIN,
-        {"url": f"{URL}/index.html?live"}, require_admin=False,
+        hass,
+        component_name="iframe",
+        sidebar_title="Homeblick",
+        sidebar_icon="mdi:monitor-dashboard",
+        frontend_url_path=DOMAIN,
+        config={"url": f"{URL}/index.html?live"},
+        require_admin=False,
     )
     return True
 
