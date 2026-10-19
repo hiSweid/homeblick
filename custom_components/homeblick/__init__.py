@@ -8,7 +8,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.device_registry import DeviceEntry
 
-from .const import DOMAIN, PLATFORMS, URL
+from .const import DEFAULTS, DOMAIN, FACES, PLATFORMS, URL, WAKE
 from .hub import Hub
 
 DISPLAY = {vol.Required("display"): str}
@@ -57,10 +57,83 @@ def report(hass, connection, msg):
         connection.send_result(msg["id"])
 
 
+# ---- Einstellungsseite (admin.html, nur Administratoren) ----
+_time = vol.Match(r"^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$")
+SETTINGS = vol.Schema({
+    vol.Optional("idle"): vol.All(int, vol.Range(min=0, max=3600)),
+    vol.Optional("saver"): vol.In(FACES),
+    vol.Optional("dim"): bool,
+    vol.Optional("dim_from"): _time,
+    vol.Optional("dim_to"): _time,
+    vol.Optional("dim_level"): vol.All(int, vol.Range(min=10, max=95)),
+    vol.Optional("wake"): vol.In(WAKE),
+    vol.Optional("pipeline"): str,
+    vol.Optional("weather"): vol.Match(r"^weather\.\w+$"),
+    vol.Optional("place"): vol.All(str, vol.Length(max=40)),
+})
+assert set(DEFAULTS) == {k.schema for k in SETTINGS.schema}
+
+
+@websocket_api.require_admin
+@websocket_api.websocket_command({vol.Required("type"): "homeblick/displays"})
+@callback
+def displays(hass, connection, msg):
+    hub = hass.data[DOMAIN]
+    connection.send_result(msg["id"], [
+        {"id": d.id, "name": d.name, "connected": d.connected, "face": d.face, "saver": d.saver, "settings": d.settings,
+         "faces": [{"type": f.get("type"), "bg": f.get("bg")} for f in (hub.config(d.id) or {}).get("faces", [])]}
+        for d in hub.displays.values()])
+
+
+@websocket_api.require_admin
+@websocket_api.websocket_command({vol.Required("type"): "homeblick/get_config", **DISPLAY})
+@callback
+def get_config(hass, connection, msg):
+    if _display(hass, connection, msg):
+        connection.send_result(msg["id"], {"config": hass.data[DOMAIN].config(msg["display"])})
+
+
+@websocket_api.require_admin
+@websocket_api.websocket_command({vol.Required("type"): "homeblick/update", **DISPLAY, vol.Optional("name"): vol.All(str, vol.Length(min=1, max=60)), vol.Optional("settings", default={}): SETTINGS})
+@websocket_api.async_response
+async def update(hass, connection, msg):
+    if d := _display(hass, connection, msg):
+        await hass.data[DOMAIN].update(d, msg.get("name"), msg["settings"])
+        connection.send_result(msg["id"])
+
+
+@websocket_api.require_admin
+@websocket_api.websocket_command({vol.Required("type"): "homeblick/admin_config", **DISPLAY, vol.Required("config"): dict})
+@websocket_api.async_response
+async def admin_config(hass, connection, msg):
+    if _display(hass, connection, msg):
+        await hass.data[DOMAIN].set_config(msg["display"], {k: v for k, v in msg["config"].items() if k != "kiosk"}, push=True)
+        connection.send_result(msg["id"])
+
+
+@websocket_api.require_admin
+@websocket_api.websocket_command({vol.Required("type"): "homeblick/command", **DISPLAY, vol.Required("action"): vol.In(["face", "reload", "screensaver", "wake", "assist"]), vol.Optional("face"): vol.In(FACES)})
+@callback
+def command(hass, connection, msg):
+    if d := _display(hass, connection, msg):
+        hass.data[DOMAIN].push(d, {k: msg[k] for k in ("action", "face") if k in msg})
+        connection.send_result(msg["id"])
+
+
+@websocket_api.require_admin
+@websocket_api.websocket_command({vol.Required("type"): "homeblick/remove", **DISPLAY})
+@websocket_api.async_response
+async def remove(hass, connection, msg):
+    """Display samt Konfiguration löschen (Entities des Geräts räumt der Nutzer über das Gerät in HA auf)."""
+    if _display(hass, connection, msg):
+        await hass.data[DOMAIN].remove(msg["display"])
+        connection.send_result(msg["id"])
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hub = hass.data[DOMAIN] = Hub(hass)
     await hub.load()
-    for cmd in (register, set_config, subscribe, report):
+    for cmd in (register, set_config, subscribe, report, displays, get_config, update, admin_config, command, remove):
         websocket_api.async_register_command(hass, cmd)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
@@ -78,11 +151,21 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         config={"url": f"{URL}/index.html?live"},
         require_admin=False,
     )
+    frontend.async_register_built_in_panel(
+        hass,
+        component_name="iframe",
+        sidebar_title="Homeblick Einstellungen",
+        sidebar_icon="mdi:tune-variant",
+        frontend_url_path=f"{DOMAIN}-settings",
+        config={"url": f"{URL}/admin.html"},
+        require_admin=True,
+    )
     return True
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     frontend.async_remove_panel(hass, DOMAIN)
+    frontend.async_remove_panel(hass, f"{DOMAIN}-settings")
     return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
 

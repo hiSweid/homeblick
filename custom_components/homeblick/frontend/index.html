@@ -548,7 +548,8 @@ import { camInit, camShow, camHide, camFace, camTile, doorbell } from './doorbel
 import { loadEvents, eventsHTML } from './events.js';
 // Ohne Parameter: Demo-Daten. Echtes HA nur mit ?live
 const LIVE = new URLSearchParams(location.search).has('live');
-const CFG = { hass: '', weather: 'weather.home', place: 'Home' };   // ponytail: Wetter-Entity/Ort fest; später in den Einstellungen wählbar
+const CFG = { hass: '', weather: 'weather.home', place: 'Home', pipeline: '' };   // Wetter, Ort, Assist-Pipeline: je Display in der Einstellungsseite (applyK)
+const applyK = k => { for (const x of ['weather', 'place', 'pipeline']) if (k?.[x] != null) CFG[x] = k[x]; };
 const HASS = /^\/(local|homeblick)\//.test(location.pathname) ? location.origin : CFG.hass;   // unter /local/ ist die Seite selbst der HA-Origin
 
 const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -1142,6 +1143,7 @@ async function assistVoice() {
   AS.dataset.k = 'voice'; $('.atxt', AS).textContent = '';
   const say = t => { $('.atxt', AS).textContent = t; };
   voice = await voiceRun(conn, {
+    pipeline: CFG.pipeline,
     base: location.origin === 'null' ? '' : location.origin,
     onThink: () => { if (AS.className === 'listen') AS.className = 'think'; },
     onAnswer: t => { say(t || 'Erledigt.'); assistShow(60000); },   // schließt beim TTS-Ende (onEnd); 60 s nur als Sicherung
@@ -1719,14 +1721,15 @@ if (LIVE) {
     }
     // Display anmelden: eigene Konfiguration + Kiosk-Einstellungen aus HA; ohne gespeicherte Konfiguration bleibt die lokale und wird hochgeladen
     const hello = conn.sendMessagePromise({ type: 'homeblick/register', display: DISPLAY, name: new URLSearchParams(location.search).get('name') || undefined }).then(c => {
-      CONF.kiosk = c.kiosk;
+      CONF.kiosk = c.kiosk; applyK(c.kiosk);
       if (c.config?.faces?.length) { CONF = { ...c.config, kiosk: c.kiosk }; try { localStorage.setItem(KEY, JSON.stringify(CONF)); } catch {} renderAll(0); }
       else save();
     }).catch(console.warn);
     ha.subscribeEntities(conn, e => { ents = e; schedule(); });
     // Befehle und geänderte Einstellungen aus HA (Entities des Displays)
     hello.then(() => conn.subscribeMessage(c => {
-      if (c.kiosk) { CONF.kiosk = c.kiosk; wk(); }
+      if (c.kiosk) { const w = [CFG.weather, CFG.place]; CONF.kiosk = c.kiosk; applyK(c.kiosk); if ([CFG.weather, CFG.place] + '' !== w + '') return location.reload(); wk(); }
+      else if (c.config?.faces?.length) { const i = curIdx(); CONF = { ...c.config, kiosk: CONF.kiosk }; try { localStorage.setItem(KEY, JSON.stringify(CONF)); } catch {} renderAll(Math.min(i, CONF.faces.length - 1)); }
       else if (c.action === 'face' && c.face) location.hash = c.face;
       else if (c.action === 'reload') location.reload();
       else if (c.action === 'screensaver') kiosk.sleep();
@@ -1741,7 +1744,7 @@ if (LIVE) {
       wkModel = m; wkCtl?.stop(); wkCtl = null;
       if (m && voiceOK()) wkCtl = await wakeInit({ model: m, onWake: () => { kiosk.wake(); assistStart(); return new Promise(r => { const t = setInterval(() => AS.className || (clearInterval(t), r()), 500); }); } }).catch(e => console.warn('Wake Word', e));
     };
-    conn.subscribeMessage(f => { forecast = f.forecast?.[0]; schedule(); }, { type: 'weather/subscribe_forecast', forecast_type: 'daily', entity_id: CFG.weather }).catch(console.warn);
+    hello.then(() => conn.subscribeMessage(f => { forecast = f.forecast?.[0]; schedule(); }, { type: 'weather/subscribe_forecast', forecast_type: 'daily', entity_id: CFG.weather })).catch(console.warn);
   } catch (err) {
     // In KS heißt ERR_INVALID_AUTH: Teilen aus / keine Custom Page. Kein Reload, sonst Endlosschleife.
     if (KS) console.error('KS: „Share Home Assistant connection“ einschalten bzw. Seite als Custom Page eintragen', err);

@@ -1,5 +1,6 @@
 """Displays: je Display eigene Konfiguration, Einstellungen und Entities; Verbindung zu den offenen Panels."""
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.storage import Store
 
@@ -28,6 +29,7 @@ class Display:
         return {
             "idle": s["idle"], "saver": s["saver"],
             "wake": None if s["wake"] == "off" else f"{s['wake']}_v0.1",
+            "pipeline": s["pipeline"], "weather": s["weather"], "place": s["place"],
             "dim": {"from": s["dim_from"], "to": s["dim_to"], "level": s["dim_level"] / 100} if s["dim"] else None,
         }
 
@@ -75,16 +77,27 @@ class Hub:
     def config(self, id: str) -> dict | None:
         return self.configs.get(id) or self.default
 
-    async def set_config(self, id: str, config: dict) -> None:
+    async def set_config(self, id: str, config: dict, push: bool = False) -> None:
+        """push=True: Änderung kommt von der Einstellungsseite → das offene Panel baut sich neu auf."""
         self.configs[id] = config
         self.default = self.default or config   # erstes Display liefert die Vorlage für weitere
         await self._save()
+        if push:
+            self.push(self.displays[id], {"config": config})
 
-    async def set_setting(self, d: Display, key: str, value) -> None:
-        d.settings[key] = value
+    async def update(self, d: Display, name: str | None, settings: dict) -> None:
+        """Einstellungen (mehrere auf einmal) und Name ändern; offene Panels bekommen sie sofort."""
+        d.settings.update(settings)
+        if name and name != d.name:
+            d.name = name
+            if dev := dr.async_get(self.hass).async_get_device(identifiers={(DOMAIN, d.id)}):
+                dr.async_get(self.hass).async_update_device(dev.id, name=name)
         await self._save()
         self.push(d, {"kiosk": d.kiosk()})
         self.notify(d)
+
+    async def set_setting(self, d: Display, key: str, value) -> None:
+        await self.update(d, None, {key: value})
 
     @callback
     def push(self, d: Display, msg: dict) -> None:

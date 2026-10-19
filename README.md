@@ -24,6 +24,8 @@ Each browser/tablet is its own **display** (a device in Home Assistant, created 
 - Control: **Face** (select), **Screensaver** (switch), **Reload** and **Assist** (buttons) – use them in automations, dashboards or voice like any other entity.
 - Configuration: screensaver delay and face, night dimming (on, from, until, level) and wake word (opt-in, keeps the microphone open: `hey_jarvis` or `alexa`).
 
+**Settings page** (sidebar → *Homeblick Einstellungen*, admins only): one tab per display with online status and remote actions (show face, reload, Assist, screensaver), the faces it shows (order, background, style, grid tiles and their entities), screensaver, night dimming, wake word, Assist pipeline, weather entity/place; copy the setup of one display to another. Changes reach the open display immediately.
+
 Also: `#music`, `#bigclock`, … in the URL switches to that face; the screen is kept awake via the Wake Lock API.
 
 ## Voice (Assist)

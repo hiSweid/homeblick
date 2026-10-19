@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Homeblick Einstellungen</title>
+<style>
+:root{--bg:#eef2f4;--fg:#1d2a30;--mut:#5d6f77;--card:#ffffffb8;--line:#1d2a3014;--acc:#92abb1;--ok:#8fc7a3;--warn:#e6a9a0}
+@media(prefers-color-scheme:dark){:root{--bg:#141b1e;--fg:#e8eff1;--mut:#9bb0b7;--card:#ffffff12;--line:#ffffff18}}
+*{box-sizing:border-box}
+body{margin:0;background:linear-gradient(160deg,var(--bg),color-mix(in srgb,var(--acc) 35%,var(--bg)));min-height:100vh;color:var(--fg);font:15px/1.5 system-ui,sans-serif}
+main{max-width:860px;margin:0 auto;padding:16px}
+h1{font-size:22px;margin:4px 0 14px}
+h2{font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);margin:0 0 10px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;margin-bottom:14px;backdrop-filter:blur(12px)}
+.tabs{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;margin-bottom:10px}
+.tabs button{white-space:nowrap}
+.row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:6px 0}
+.row>label{flex:1 1 180px;color:var(--mut)}
+input,select,button{font:inherit;color:inherit;background:#ffffff66;border:1px solid var(--line);border-radius:10px;padding:6px 10px;min-height:34px}
+@media(prefers-color-scheme:dark){input,select,button{background:#ffffff10}}
+input[type=checkbox],input[type=range]{accent-color:var(--acc)}
+input[type=checkbox]{width:20px;height:20px;min-height:0}
+input[type=text],input:not([type]){min-width:0}
+button{cursor:pointer}
+button.on{background:var(--acc);color:#0e1a1e;border-color:transparent}
+button.danger{color:#a4483c}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--warn);display:inline-block;margin-right:6px}
+.dot.on{background:var(--ok)}
+.face{border-top:1px solid var(--line);padding:8px 0}
+.face:first-of-type{border-top:0}
+.tiles{margin:8px 0 4px 12px;padding-left:10px;border-left:2px solid var(--line)}
+.tile{display:grid;grid-template-columns:1fr 1fr 1.6fr auto;gap:6px;margin-bottom:6px}
+.tile input{width:100%}
+.mut{color:var(--mut);font-size:13px}
+#toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:8px 16px;border-radius:20px;opacity:0;transition:opacity .3s;pointer-events:none}
+#toast.show{opacity:.92}
+@media(max-width:600px){.tile{grid-template-columns:1fr 1fr}.tile input:nth-child(3){grid-column:1/3}}
+</style>
+</head>
+<body>
+<main>
+  <h1>Homeblick Einstellungen</h1>
+  <div class="tabs" id="tabs"></div>
+  <div id="view"></div>
+</main>
+<div id="toast"></div>
+<datalist id="ents"></datalist>
+<script type="module">
+// Einstellungsseite: ein Tab je Display (wie der Kiosk-Wechsler in Kiosk Satellite). Läuft als Admin-Panel in HA
+// (gleicher Login wie das Panel, Tokens im localStorage).
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const TYPES = { grid: 'Smart Home', music: 'Musik', bigclock: 'Uhr digital', analog: 'Uhr analog', calendar: 'Kalender', weather: 'Wetter', energy: 'Energie', info: 'Info', cams: 'Kameras' };
+const NEWBG = { grid: 150, music: 'black', bigclock: 205, analog: 340, calendar: 'white', weather: 212, energy: 'black', info: 'black', cams: 'black' };
+const BG = [['auto', 'Tageszeit'], ['black', 'Schwarz'], ['white', 'Weiß'], [30, 'Orange'], [5, 'Rot'], [340, 'Rosa'], [285, 'Violett'], [250, 'Blau'], [205, 'Türkis'], [212, 'Himmelblau'], [150, 'Grün']];
+const STYLES = { bigclock: [['stack', 'Gestapelt'], ['line', 'Zeile']], analog: [['numbers', 'Zahlen'], ['ticks', 'Striche'], ['minimal', 'Minimal']] };
+const ACTIONS = { reload: 'Neu laden', assist: 'Assist starten', screensaver: 'Bildschirmschoner', wake: 'Aufwecken' };
+
+let conn, displays = [], sel, cfg, open = new Set(), pipelines = [], weathers = [];
+const call = (type, p = {}) => conn.sendMessagePromise({ type: 'homeblick/' + type, ...p });
+
+// ---- Verbindung ----
+async function connect() {
+  const ha = await import('https://cdn.jsdelivr.net/npm/home-assistant-js-websocket@9.7.1/+esm');
+  const auth = await ha.getAuth({ hassUrl: location.origin, saveTokens: t => localStorage.hassTokens = JSON.stringify(t), loadTokens: async () => JSON.parse(localStorage.hassTokens || 'null') });
+  if (location.search.includes('auth_callback')) history.replaceState(null, '', location.pathname);
+  return ha.createConnection({ auth, setupRetry: -1 });
+}
+
+let tt;
+const toast = (t, bad) => { const e = $('#toast'); e.textContent = t; e.style.background = bad ? '#a4483c' : ''; e.classList.add('show'); clearTimeout(tt); tt = setTimeout(() => e.classList.remove('show'), 1800); };
+const guard = p => p.then(() => toast('Gespeichert'), e => toast(e?.message || 'Fehler', true));
+
+// ---- Speichern: Einstellungen sofort, Faces leicht verzögert (Tippen in Textfeldern) ----
+let st;
+const saveCfg = () => { clearTimeout(st); st = setTimeout(() => guard(call('admin_config', { display: sel, config: cfg })), 500); };
+const cur = () => displays.find(d => d.id === sel);
+
+// ---- Ansicht ----
+const opt = (list, v) => list.map(([k, n]) => `<option value="${k}"${String(k) === String(v) ? ' selected' : ''}>${esc(n)}</option>`).join('');
+const row = (label, ctl) => `<div class="row"><label>${label}</label>${ctl}</div>`;
+const sInput = (k, v, extra = '') => `<input data-s="${k}" value="${esc(v)}" ${extra}>`;
+const sSelect = (k, list, v) => `<select data-s="${k}">${opt(list, v)}</select>`;
+
+function tileHTML(t, fi, ti) {
+  return `<div class="tile" data-fi="${fi}" data-ti="${ti}">
+    <input data-t="title" value="${esc(t.title)}" placeholder="Titel"><input data-t="sub" value="${esc(t.sub)}" placeholder="Untertitel">
+    <input data-t="e" list="ents" value="${esc(t.e)}" placeholder="${t.kind === 'clock' ? 'Uhr (keine Entity)' : 'Entity'}" ${t.kind === 'clock' ? 'disabled' : ''}>
+    <span><button data-a="tup">↑</button> <button data-a="tdown">↓</button> <button data-a="tdel" class="danger">✕</button></span></div>`;
+}
+
+function faceHTML(f, i) {
+  const photo = typeof f.bg === 'object' && f.bg;
+  const bg = photo ? `<option selected>Foto</option>` : opt(BG, f.bg);
+  const sty = STYLES[f.type];
+  return `<div class="face" data-fi="${i}">
+    <div class="row"><b style="flex:1 1 120px">${esc(TYPES[f.type] || f.type)}</b>
+      <select data-f="bg" ${photo ? 'disabled' : ''}>${bg}</select>
+      ${sty ? `<select data-f="style">${opt(sty, f.style || sty[0][0])}${f.style === 'depth' ? '<option value="depth" selected>Tiefe</option>' : ''}</select>` : ''}
+      ${f.type === 'grid' ? `<button data-a="tiles" class="${open.has(i) ? 'on' : ''}">Kacheln (${f.tiles?.length || 0})</button>` : ''}
+      <span><button data-a="up">↑</button> <button data-a="down">↓</button> <button data-a="del" class="danger">✕</button></span></div>
+    ${f.type === 'grid' && open.has(i) ? `<div class="tiles">${(f.tiles || []).map((t, j) => tileHTML(t, i, j)).join('')}<button data-a="tadd">+ Kachel</button> <span class="mut">Entity z. B. light.küche; Thermostat/Uhr-Kacheln behalten ihre Funktion.</span></div>` : ''}
+  </div>`;
+}
+
+function view() {
+  const d = cur(), s = d?.settings;
+  $('#tabs').innerHTML = displays.map(x => `<button data-d="${esc(x.id)}" class="${x.id === sel ? 'on' : ''}"><span class="dot ${x.connected ? 'on' : ''}"></span>${esc(x.name)}</button>`).join('');
+  if (!d) return $('#view').innerHTML = `<div class="card">Noch kein Display angemeldet. Öffne Homeblick einmal auf dem Gerät (am besten mit <code>?display=kueche&amp;name=Küche</code>).</div>`;
+  const faces = cfg?.faces;
+  $('#view').innerHTML = `
+  <div class="card"><h2>Display</h2>
+    ${row('Name', sInput('name', d.name))}
+    <div class="row"><label id="stat">${status(d)}</label>
+      <select id="faceSel"><option value="">Face anzeigen …</option>${opt(Object.entries(TYPES), '')}</select>
+      ${Object.entries(ACTIONS).map(([k, n]) => `<button data-c="${k}" ${d.connected ? '' : 'disabled'}>${n}</button>`).join('')}</div>
+    <div class="row"><label>Konfiguration übernehmen von</label><select id="copy"><option value="">— Display wählen —</option>${displays.filter(x => x.id !== sel).map(x => `<option value="${esc(x.id)}">${esc(x.name)}</option>`).join('')}</select>
+      <button data-a="rm" class="danger">Display entfernen</button></div>
+  </div>
+  <div class="card"><h2>Anzeige – was dieses Display zeigt</h2>
+    ${faces ? faces.map(faceHTML).join('') + `<div class="row"><select id="add"><option value="">+ Face hinzufügen …</option>${opt(Object.entries(TYPES), '')}</select></div>`
+            : '<span class="mut">Dieses Display hat noch keine Konfiguration hochgeladen – öffne Homeblick einmal auf dem Gerät.</span>'}
+  </div>
+  <div class="card"><h2>Bildschirmschoner</h2>
+    ${row('Nach Inaktivität (Sekunden, 0 = aus)', sInput('idle', s.idle, 'type=number min=0 max=3600 step=10'))}
+    ${row('Face im Bildschirmschoner', sSelect('saver', Object.entries(TYPES), s.saver))}
+  </div>
+  <div class="card"><h2>Nachtmodus</h2>
+    ${row('Nachts abdunkeln', `<input type=checkbox data-s="dim" ${s.dim ? 'checked' : ''}>`)}
+    ${row('Von', sInput('dim_from', s.dim_from.slice(0, 5), 'type=time'))}${row('Bis', sInput('dim_to', s.dim_to.slice(0, 5), 'type=time'))}
+    ${row('Stärke (%)', sInput('dim_level', s.dim_level, 'type=range min=10 max=95 step=5'))}
+  </div>
+  <div class="card"><h2>Sprache (Assist)</h2>
+    ${row('Wake Word <span class="mut">(hält das Mikrofon dauerhaft offen, braucht https)</span>', sSelect('wake', [['off', 'Aus'], ['hey_jarvis', 'Hey Jarvis'], ['alexa', 'Alexa']], s.wake))}
+    ${row('Assist-Pipeline', sSelect('pipeline', [['', 'Standard von Home Assistant'], ...pipelines], s.pipeline))}
+  </div>
+  <div class="card"><h2>Wetter</h2>
+    ${row('Wetter-Entity', sSelect('weather', weathers.length ? weathers : [[s.weather, s.weather]], s.weather))}
+    ${row('Ortsname', sInput('place', s.place))}
+  </div>`;
+}
+const status = d => `<span class="dot ${d.connected ? 'on' : ''}"></span>${d.connected ? 'online' : 'offline'}${d.connected && d.face ? ' · zeigt ' + esc(TYPES[d.face] || d.face) + (d.saver ? ' (Bildschirmschoner)' : '') : ''}`;
+
+// ---- Laden ----
+async function select(id) {
+  sel = id; open.clear();
+  cfg = id ? (await call('get_config', { display: id })).config : null;
+  view();
+}
+async function reload() {
+  displays = await call('displays');
+  if (!displays.some(d => d.id === sel)) sel = displays[0]?.id;
+  await select(sel);
+}
+
+// ---- Eingaben ----
+const faceOf = e => cfg.faces[+e.closest('[data-fi]').dataset.fi];
+const swap = (a, i, j) => j >= 0 && j < a.length && ([a[i], a[j]] = [a[j], a[i]]);
+document.addEventListener('change', e => {
+  const t = e.target, d = cur();
+  if (t.dataset.s) {
+    const k = t.dataset.s;
+    let v = t.type === 'checkbox' ? t.checked : t.type === 'number' || t.type === 'range' ? +t.value : t.value;
+    if (t.type === 'time') v += ':00';
+    if (k === 'name') { if (!v.trim()) return; guard(call('update', { display: sel, name: v.trim() }).then(() => { d.name = v.trim(); view(); })); return; }
+    d.settings[k] = v; guard(call('update', { display: sel, settings: { [k]: v } }));
+  } else if (t.dataset.f) {
+    const f = faceOf(t), v = t.value;
+    f[t.dataset.f] = t.dataset.f === 'bg' ? (isNaN(v) ? v : +v) : v; saveCfg();
+  } else if (t.dataset.t) {
+    faceOf(t).tiles[+t.closest('[data-ti]').dataset.ti][t.dataset.t] = t.value.trim(); saveCfg();
+  } else if (t.id === 'faceSel' && t.value) { guard(call('command', { display: sel, action: 'face', face: t.value })); t.value = ''; }
+  else if (t.id === 'add' && t.value) { cfg.faces.push({ type: t.value, bg: NEWBG[t.value], ...(t.value === 'grid' && { tiles: [{ kind: 'clock' }] }) }); saveCfg(); view(); }
+  else if (t.id === 'copy' && t.value) copyFrom(t.value);
+});
+document.addEventListener('click', async e => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  if (b.dataset.d) return select(b.dataset.d);
+  if (b.dataset.c) return guard(call('command', { display: sel, action: b.dataset.c }));
+  const a = b.dataset.a;
+  if (a === 'rm') {
+    if (confirm(`„${cur().name}“ aus Homeblick entfernen? Das Gerät in Home Assistant bitte danach unter Geräte löschen.`)) { await guard(call('remove', { display: sel })); sel = null; reload(); }
+    return;
+  }
+  if (!a) return;
+  const el = b.closest('[data-fi]'), i = +el.dataset.fi, f = cfg.faces[i], tiles = f.tiles, j = +b.closest('[data-ti]')?.dataset.ti;
+  if (a === 'tiles') open.has(i) ? open.delete(i) : open.add(i);
+  else if (a === 'tadd') tiles.push({ e: '', title: 'Neu', sub: '' });
+  else if (a === 'tup' || a === 'tdown') swap(tiles, j, j + (a === 'tup' ? -1 : 1));
+  else if (a === 'tdel') tiles.splice(j, 1);
+  else if (a === 'up' || a === 'down') { const n = i + (a === 'up' ? -1 : 1); swap(cfg.faces, i, n); if (open.delete(i)) open.add(n); }
+  else if (a === 'del') { if (cfg.faces.length < 2) return toast('Mindestens ein Face', true); if (!confirm(`„${TYPES[f.type]}“ löschen?`)) return; cfg.faces.splice(i, 1); open.clear(); }
+  saveCfg(); view();
+});
+
+async function copyFrom(id) {
+  const src = displays.find(x => x.id === id);
+  if (!confirm(`Faces und Einstellungen von „${src.name}“ auf „${cur().name}“ übertragen? Bisherige Faces gehen verloren.`)) return view();
+  const { config } = await call('get_config', { display: id });
+  if (!config) return toast('Quelle hat noch keine Konfiguration', true);
+  const { place, weather, pipeline, ...s } = src.settings;   // alles außer Gerätespezifischem übernehmen
+  await guard(call('admin_config', { display: sel, config }).then(() => call('update', { display: sel, settings: s })));
+  await reload();
+}
+
+// ---- Start ----
+try {
+  conn = await connect();
+  const [states, pl] = await Promise.all([conn.sendMessagePromise({ type: 'get_states' }), conn.sendMessagePromise({ type: 'assist_pipeline/pipeline/list' }).catch(() => null)]);
+  $('#ents').innerHTML = states.map(x => `<option value="${esc(x.entity_id)}">${esc(x.attributes.friendly_name || '')}</option>`).join('');
+  weathers = states.filter(x => x.entity_id.startsWith('weather.')).map(x => [x.entity_id, x.attributes.friendly_name || x.entity_id]);
+  pipelines = pl?.pipelines?.map(p => [p.id, p.name]) || [];
+  await reload();
+  setInterval(async () => {   // Status der Displays nachführen, ohne die Formulare neu zu zeichnen
+    if (document.querySelector(':focus')?.matches('input,select')) return;
+    const n = await call('displays').catch(() => null);
+    if (!n) return;
+    n.forEach(x => { const o = displays.find(d => d.id === x.id); if (o) Object.assign(o, { connected: x.connected, face: x.face, saver: x.saver }); });
+    if (n.length !== displays.length) return reload();
+    $('#stat') && (cur() && ($('#stat').innerHTML = status(cur())));
+    document.querySelectorAll('#tabs .dot').forEach((e, i) => e.classList.toggle('on', displays[i].connected));
+  }, 5000);
+} catch (e) { $('#view').innerHTML = `<div class="card">Keine Verbindung zu Home Assistant (${esc(e?.message || e)}). Die Seite braucht ein Administrator-Konto.</div>`; }
+</script>
+</body>
+</html>
