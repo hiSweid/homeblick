@@ -243,6 +243,8 @@ input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:tr
 .dial.minimal :is(.hh,.mm){width:5%}
 .dial.minimal :is(.ss,.pin){background:#ff9f0a}
 .dsvg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
+.dsvg{animation:drv .8s cubic-bezier(.34,1.5,.64,1) both}
+@keyframes drv{from{opacity:0;transform:translateY(10%);filter:blur(10px)}}
 .dt{font:500 74px 'Roboto Flex',sans-serif;font-stretch:25%;text-anchor:middle}
 .dg{fill:#ffffff38}
 .dsvg feFlood{flood-color:#fff}
@@ -763,18 +765,23 @@ function calHTML() {
 // Tiefe (Video 15,4 s): Glasziffern = verwischtes Hintergrundbild in die Ziffern geclippt + heller Rand; freigestellte Person davor
 let dN = 0;
 function depthHTML(f) {
-  const id = 'dc' + ++dN, b = bgOf(f), src = b?.photo ? b.blur : typeof b === 'number' ? svgData(wp(b, 5)) : '';
+  const b = bgOf(f), src = b?.photo ? b.blur : typeof b === 'number' ? svgData(wp(b, 5)) : '';
   // Video: Ziffern 5,6–59 % hoch, Paare um 21/76 % zentriert; Roboto Flex (wdth 25) ist noch zu breit → gestaucht
-  const K = .9, t = c => `<text class="dt${c}" y="59" transform="scale(${K} 1)"><tspan x="${21 / K}" data-bind="dh"></tspan><tspan x="${76 / K}" data-bind="dm"></tspan></text>`;
-  // Glaskante als Filter (Alpha minus erodiertes Alpha) statt stroke: die variable Schrift hat überlappende Konturen (Querbalken der 4)
-  return `<svg class="dsvg" viewBox="0 0 100 100" preserveAspectRatio="none"><clipPath id="${id}">${t('')}</clipPath>`
-    + `<filter id="${id}g" x="-5%" y="-5%" width="110%" height="110%"><feColorMatrix in="SourceAlpha" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 9 0" result="a"/>`
-    + `<feMorphology in="a" operator="erode" radius=".28" result="e"/><feComposite in="a" in2="e" operator="out" result="r"/>`
-    + `<feGaussianBlur in="r" stdDeviation=".9" result="b"/><feComposite in="b" in2="a" operator="in" result="g"/><feFlood flood-opacity=".75"/><feComposite in2="r" operator="in" result="rc"/>`
-    + `<feFlood flood-opacity=".3"/><feComposite in2="g" operator="in" result="gc"/>`
-    + `<feMerge><feMergeNode in="SourceGraphic"/><feMergeNode in="gc"/><feMergeNode in="rc"/></feMerge></filter>`
-    + (src ? `<image href="${src}" width="100" height="100" preserveAspectRatio="none" clip-path="url(#${id})"/>` : '')
-    + t(' dg').replace('<text', `<text filter="url(#${id}g)"`) + `</svg>` + (f.bg?.fg ? `<div class="dfg" style="background-image:url(${f.bg.fg})"></div>` : '');
+  // Reveal: jede Ziffer eigene Ebene (die anderen visibility:hidden, Platz bleibt), links → rechts versetzt mit Feder
+  const K = .9, tsp = (p, k) => [0, 1].map(j => `<tspan data-bind="d${p}${j}"${p + j === ['h0', 'h1', 'm0', 'm1'][k] ? '' : ' visibility="hidden"'}></tspan>`).join('');
+  const layer = k => {
+    const id = 'dc' + ++dN, t = c => `<text class="dt${c}" y="59" transform="scale(${K} 1)"><tspan x="${21 / K}">${tsp('h', k)}</tspan><tspan x="${76 / K}">${tsp('m', k)}</tspan></text>`;
+    // Glaskante als Filter (Alpha minus erodiertes Alpha) statt stroke: die variable Schrift hat überlappende Konturen (Querbalken der 4)
+    return `<svg class="dsvg" style="animation-delay:${k * 100}ms" viewBox="0 0 100 100" preserveAspectRatio="none"><clipPath id="${id}">${t('')}</clipPath>`
+      + `<filter id="${id}g" x="-5%" y="-5%" width="110%" height="110%"><feColorMatrix in="SourceAlpha" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 9 0" result="a"/>`
+      + `<feMorphology in="a" operator="erode" radius=".28" result="e"/><feComposite in="a" in2="e" operator="out" result="r"/>`
+      + `<feGaussianBlur in="r" stdDeviation=".9" result="b"/><feComposite in="b" in2="a" operator="in" result="g"/><feFlood flood-opacity=".75"/><feComposite in2="r" operator="in" result="rc"/>`
+      + `<feFlood flood-opacity=".3"/><feComposite in2="g" operator="in" result="gc"/>`
+      + `<feMerge><feMergeNode in="SourceGraphic"/><feMergeNode in="gc"/><feMergeNode in="rc"/></feMerge></filter>`
+      + (src ? `<image href="${src}" width="100" height="100" preserveAspectRatio="none" clip-path="url(#${id})"/>` : '')
+      + t(' dg').replace('<text', `<text filter="url(#${id}g)"`) + `</svg>`;
+  };
+  return [0, 1, 2, 3].map(layer).join('') + (f.bg?.fg ? `<div class="dfg" style="background-image:url(${f.bg.fg})"></div>` : '');
 }
 // Foto auf Uhr-Face: Person freistellen; gefunden → gleich Stil „Tiefe“
 async function addCut(f) {
@@ -860,7 +867,7 @@ function tick() {
   hands = hands.filter(([, a]) => a.effect.target.isConnected || a.cancel());
   for (const [per, a] of hands) a.currentTime = (s % per) * 1000;
   const hm = d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
-  bind('time', hm); rollBind('hh', hm.slice(0, 2)); rollBind('mm', hm.slice(3, 5)); bind('dh', hm.slice(0, 2)); bind('dm', hm.slice(3, 5));
+  bind('time', hm); rollBind('hh', hm.slice(0, 2)); rollBind('mm', hm.slice(3, 5)); [...hm.slice(0, 2)].forEach((c, i) => bind('dh' + i, c)); [...hm.slice(3, 5)].forEach((c, i) => bind('dm' + i, c));
   bind('wd', d.toLocaleDateString('de-DE', { weekday: 'short' }));
   bind('mo', d.toLocaleDateString('de-DE', { month: 'short' }));
   bind('day', d.getDate());
