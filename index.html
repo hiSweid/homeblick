@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Homeblick</title>
+<meta name="description" content="A smooth, glassy wall-display UI for Home Assistant with evcc energy data. Work in progress.">
+<style>
+:root{--bg:#eef2f4;--fg:#1d2a30;--mut:#5d6f77;--card:#ffffffb8;--acc:#92abb1}
+@media(prefers-color-scheme:dark){:root{--bg:#141b1e;--fg:#e8eff1;--mut:#9bb0b7;--card:#ffffff12}}
+*{box-sizing:border-box}
+body{margin:0;background:linear-gradient(160deg,var(--bg),color-mix(in srgb,var(--acc) 35%,var(--bg)));min-height:100vh;color:var(--fg);font:17px/1.55 system-ui,sans-serif}
+main{max-width:640px;margin:0 auto;padding:12vh 16px 8vh}
+h1{font-size:clamp(2.4rem,9vw,3.6rem);margin:0 0 .2em;letter-spacing:-.02em}
+p.lead{font-size:1.2rem;color:var(--mut);margin:0 0 2em}
+.card{background:var(--card);backdrop-filter:blur(18px);border-radius:22px;padding:20px 22px;margin:0 0 14px}
+.card h2{font-size:1rem;margin:0 0 .3em}
+.card p,li{margin:0;color:var(--mut)}
+ul{margin:0;padding-left:1.1em}
+.tag{display:inline-block;font-size:.8rem;padding:2px 10px;border-radius:99px;background:var(--acc);color:#fff;margin-bottom:1em}
+a{color:inherit}
+small{color:var(--mut)}
+</style>
+</head>
+<body>
+<main>
+<span class="tag">Work in progress</span>
+<h1>Homeblick</h1>
+<p class="lead">A fluid, glassy wall-display for Home Assistant. Tiles, faces, weather, energy and voice, built for a square tablet on the wall.</p>
+
+<div class="card"><h2>What it is</h2>
+<p>A web UI with configurable faces (grid, music, clock, weather, calendar, energy, timer, doorbell camera) that runs as a Home Assistant panel or on a kiosk device. Spring, FLIP and press animations throughout.</p></div>
+
+<div class="card"><h2>Planned</h2>
+<ul>
+<li>HACS custom integration with config flow, no add-on and no token needed</li>
+<li>Settings stored in Home Assistant, shared between all displays</li>
+<li>evcc energy data via the existing evcc integration</li>
+</ul></div>
+
+<div class="card"><h2>Status</h2>
+<p>Early prototype. Not yet installable.</p></div>
+
+<p><small>Home Assistant and evcc are trademarks of their respective owners.</small></p>
+</main>
+</body>
+</html>
