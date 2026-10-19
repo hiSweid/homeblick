@@ -150,6 +150,7 @@ input::-webkit-calendar-picker-indicator{display:none!important}
   <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></symbol>
   <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></symbol>
   <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
   <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
 </defs></svg>
 
@@ -247,7 +248,7 @@ function liveHTML(d) {
 function listHTML() {
   const rows = displays.map(d => `<button class="row ${d.id === sel ? 'sel-row' : ''}" data-d="${esc(d.id)}">${ico('disp')}<span class="l two"><b>${esc(d.name)}</b><small>${esc(stat(d))}</small></span><span class="dot ${d.connected ? 'on' : ''}"></span>${svg('chev')}</button>`).join('');
   const on = displays.filter(x => x.connected).length, dis = on ? '' : 'disabled';
-  const allGrp = displays.length > 1 ? grp(`Alle Displays · ${on} online`, `<div class="quick">${[['reload', 'Neu laden', 'refresh'], ['assist', 'Assist', 'mic'], ['screensaver', 'Ruhemodus', 'moon'], ['wake', 'Aufwecken', 'sun']].map(([c, n, i]) => `<button class="q" data-all="${c}" ${dis}><span class="qi">${svg(i, '')}</span>${n}</button>`).join('')}</div>`
+  const allGrp = displays.length > 1 ? grp(`Alle Displays · ${on} online`, `<div class="quick">${[['reload', 'Neu laden', 'refresh'], ['assist', 'Assist', 'mic'], ['stop', 'Abbrechen', 'x'], ['screensaver', 'Ruhemodus', 'moon'], ['wake', 'Aufwecken', 'sun']].map(([c, n, i]) => `<button class="q" data-all="${c}" ${dis}><span class="qi">${svg(i, '')}</span>${n}</button>`).join('')}</div>`
     + pick('Face anzeigen', 'allface', [['', 'Wählen …'], ...TYPES], '', 'data-allface')
     + `<button class="row btn" data-alls="1"><span class="l">Nachtmodus auf allen an</span></button><button class="row btn" data-alls="0"><span class="l">Nachtmodus auf allen aus</span></button>`, 'Befehle gehen an alle Displays, die gerade geöffnet sind.') : '';
   return `<div class="lt">Homeblick</div><div class="lsub">Displays im Haus</div>` +
@@ -268,7 +269,7 @@ const pages = {
     const body = `
       <div class="hero">${ico('disp')}<h2 data-live="name">${esc(d.name)}</h2><p data-live="stat">${esc(stat(d))}</p></div>
       ${grp('', field('Name', 'name', d.name))}
-      <div class="sec"><div class="grp"><div class="quick">${[['reload', 'Neu laden', 'refresh'], ['assist', 'Assist', 'mic'], ['screensaver', 'Ruhemodus', 'moon'], ['wake', 'Aufwecken', 'sun']].map(([c, n, i]) => `<button class="q" data-c="${c}" ${d.connected ? '' : 'disabled'}><span class="qi">${svg(i, '')}</span>${n}</button>`).join('')}</div>
+      <div class="sec"><div class="grp"><div class="quick">${[['reload', 'Neu laden', 'refresh'], ['assist', 'Assist', 'mic'], ['stop', 'Abbrechen', 'x'], ['screensaver', 'Ruhemodus', 'moon'], ['wake', 'Aufwecken', 'sun']].map(([c, n, i]) => `<button class="q" data-c="${c}" ${d.connected ? '' : 'disabled'}><span class="qi">${svg(i, '')}</span>${n}</button>`).join('')}</div>
         ${pick('Face anzeigen', 'show', [['', 'Wählen …'], ...TYPES], '', 'data-show')}</div><div class="sf">Die Steuerung geht, solange das Display geöffnet ist.</div></div>
       ${grp('Ansage', field('Text', 'say', '', 'placeholder="Das Essen ist fertig" maxlength="300"', 'data-say') + `<button class="row btn c" data-a="say" ${d.connected ? '' : 'disabled style="opacity:.4"'}>Auf dem Display ansagen</button>`, 'Erscheint als Text und wird mit der Browser-Stimme gesprochen (außer bei „Antworten stumm“).')}
       ${grp('Vorschau', `<button class="row btn c" data-a="shot" ${d.connected ? '' : 'disabled style="opacity:.4"'}>Bildschirmfoto aufnehmen</button>${shots[d.id] ? `<img class="shot" src="${shots[d.id]}" alt="">` : ''}`, 'Bilder von fremden Servern, Kamera-Video und WebGL fehlen im Foto.')}

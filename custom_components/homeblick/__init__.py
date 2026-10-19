@@ -137,7 +137,7 @@ async def admin_config(hass, connection, msg):
 
 
 @websocket_api.require_admin
-@websocket_api.websocket_command({vol.Required("type"): "homeblick/command", **DISPLAY, vol.Required("action"): vol.In(["face", "reload", "screensaver", "wake", "assist", "screenshot", "announce"]), vol.Optional("face"): vol.In(FACES), vol.Optional("message"): vol.All(str, vol.Length(min=1, max=300))})
+@websocket_api.websocket_command({vol.Required("type"): "homeblick/command", **DISPLAY, vol.Required("action"): vol.In(["face", "reload", "screensaver", "wake", "assist", "screenshot", "announce", "stop"]), vol.Optional("face"): vol.In(FACES), vol.Optional("message"): vol.All(str, vol.Length(min=1, max=300))})
 @callback
 def command(hass, connection, msg):
     if d := _display(hass, connection, msg):

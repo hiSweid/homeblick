@@ -1812,6 +1812,7 @@ if (LIVE) {
       else if (c.action === 'wake') kiosk.wake();
       else if (c.action === 'screenshot') shot().then(image => conn.sendMessagePromise({ type: 'homeblick/shot', display: DISPLAY, image })).catch(console.warn);
       else if (c.action === 'assist') { kiosk.wake(); assistStart(); }
+      else if (c.action === 'stop') { try { speechSynthesis.cancel(); } catch {} assistEnd(); }
       else if (c.action === 'announce' && c.message) { kiosk.wake(); announce(c.message); }
     }, { type: 'homeblick/subscribe', display: DISPLAY })).then(() => { wk(); kiosk.report(); conn.addEventListener('ready', () => kiosk.report()); setInterval(() => kiosk.report(), 30000); }).catch(console.warn);
     // Wake Word nur auf Wunsch (CONF.kiosk.wake): Mikrofon bleibt dann dauerhaft offen
