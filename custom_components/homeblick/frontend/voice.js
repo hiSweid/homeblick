@@ -25,7 +25,7 @@ export async function voiceRun(conn, h) {
   let mic, unsub, audio, id, sent = false, dead = false;
   const cleanup = () => { dead = true; mic?.stop(); unsub?.(); audio?.pause(); clearTimeout(cap); };
   const endAudio = () => { if (sent || id == null) return; sent = true; conn.socket.send(new Uint8Array([id])); mic?.stop(); };
-  const cap = setTimeout(endAudio, 15000);   // ponytail: Zeitlimit statt eigener VAD; HA meldet das Sprechende meist früher (stt-vad-end)
+  const cap = setTimeout(endAudio, (h.listen || 15) * 1000);   // ponytail: Zeitlimit statt eigener VAD; HA meldet das Sprechende meist früher (stt-vad-end)
   const fail = m => { cleanup(); h.onError(m); };
   try {
     mic = await openMic(f => { if (id != null && !sent && !dead) conn.socket.send(pcm16(id, f)); });
@@ -36,7 +36,9 @@ export async function voiceRun(conn, h) {
       else if (ev.type === 'stt-end') { endAudio(); h.onThink(d.stt_output?.text); }
       else if (ev.type === 'intent-end') h.onAnswer(d.intent_output?.response?.speech?.plain?.speech || '');
       else if (ev.type === 'tts-end') {
+        if (h.mute) { cleanup(); return h.onEnd(); }   // stumm: Text erscheint, kein Ton
         audio = new Audio(h.base + d.tts_output.url);
+        audio.volume = (h.volume ?? 100) / 100;
         audio.onended = audio.onerror = () => { cleanup(); h.onEnd(); };
         audio.play().catch(() => { cleanup(); h.onEnd(); });
       } else if (ev.type === 'error') fail(d.message || d.code);

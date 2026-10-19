@@ -55,6 +55,9 @@
       },
       "dim": {
         "name": "Night dimming"
+      },
+      "mute": {
+        "name": "Mute replies"
       }
     },
     "button": {
@@ -71,6 +74,12 @@
       },
       "dim_level": {
         "name": "Dim level"
+      },
+      "listen": {
+        "name": "Listening timeout"
+      },
+      "volume": {
+        "name": "Reply volume"
       }
     },
     "time": {

@@ -68,6 +68,9 @@ SETTINGS = vol.Schema({
     vol.Optional("dim_level"): vol.All(int, vol.Range(min=10, max=95)),
     vol.Optional("wake"): vol.In(WAKE),
     vol.Optional("pipeline"): str,
+    vol.Optional("mute"): bool,
+    vol.Optional("listen"): vol.All(int, vol.Range(min=3, max=60)),
+    vol.Optional("volume"): vol.All(int, vol.Range(min=0, max=100)),
     vol.Optional("weather"): vol.Match(r"^weather\.\w+$"),
     vol.Optional("place"): vol.All(str, vol.Length(max=40)),
 })

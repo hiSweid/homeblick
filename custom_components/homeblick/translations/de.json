@@ -55,6 +55,9 @@
       },
       "dim": {
         "name": "Nachts dimmen"
+      },
+      "mute": {
+        "name": "Antworten stumm"
       }
     },
     "button": {
@@ -71,6 +74,12 @@
       },
       "dim_level": {
         "name": "Dimmstufe"
+      },
+      "listen": {
+        "name": "Aufnahme-Zeitlimit"
+      },
+      "volume": {
+        "name": "Lautstärke Antworten"
       }
     },
     "time": {

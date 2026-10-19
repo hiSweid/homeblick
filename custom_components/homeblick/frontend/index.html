@@ -548,8 +548,8 @@ import { camInit, camShow, camHide, camFace, camTile, doorbell } from './doorbel
 import { loadEvents, eventsHTML } from './events.js';
 // Ohne Parameter: Demo-Daten. Echtes HA nur mit ?live
 const LIVE = new URLSearchParams(location.search).has('live');
-const CFG = { hass: '', weather: 'weather.home', place: 'Home', pipeline: '' };   // Wetter, Ort, Assist-Pipeline: je Display in der Einstellungsseite (applyK)
-const applyK = k => { for (const x of ['weather', 'place', 'pipeline']) if (k?.[x] != null) CFG[x] = k[x]; };
+const CFG = { hass: '', weather: 'weather.home', place: 'Home', pipeline: '', mute: false, listen: 15, volume: 100 };   // Wetter, Ort, Assist-Pipeline: je Display in der Einstellungsseite (applyK)
+const applyK = k => { for (const x of ['weather', 'place', 'pipeline', 'mute', 'listen', 'volume']) if (k?.[x] != null) CFG[x] = k[x]; };
 const HASS = /^\/(local|homeblick)\//.test(location.pathname) ? location.origin : CFG.hass;   // unter /local/ ist die Seite selbst der HA-Origin
 
 const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -1143,7 +1143,7 @@ async function assistVoice() {
   AS.dataset.k = 'voice'; $('.atxt', AS).textContent = '';
   const say = t => { $('.atxt', AS).textContent = t; };
   voice = await voiceRun(conn, {
-    pipeline: CFG.pipeline,
+    pipeline: CFG.pipeline, mute: CFG.mute, listen: CFG.listen, volume: CFG.volume,
     base: location.origin === 'null' ? '' : location.origin,
     onThink: () => { if (AS.className === 'listen') AS.className = 'think'; },
     onAnswer: t => { say(t || 'Erledigt.'); assistShow(60000); },   // schließt beim TTS-Ende (onEnd); 60 s nur als Sicherung

@@ -29,7 +29,7 @@ class Display:
         return {
             "idle": s["idle"], "saver": s["saver"],
             "wake": None if s["wake"] == "off" else f"{s['wake']}_v0.1",
-            "pipeline": s["pipeline"], "weather": s["weather"], "place": s["place"],
+            "pipeline": s["pipeline"], "mute": s["mute"], "listen": s["listen"], "volume": s["volume"], "weather": s["weather"], "place": s["place"],
             "dim": {"from": s["dim_from"], "to": s["dim_to"], "level": s["dim_level"] / 100} if s["dim"] else None,
         }
 
