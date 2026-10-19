@@ -2,243 +2,463 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Homeblick Einstellungen</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#eef2f4;--fg:#1d2a30;--mut:#5d6f77;--card:#ffffffb8;--line:#1d2a3014;--acc:#92abb1;--ok:#8fc7a3;--warn:#e6a9a0}
-@media(prefers-color-scheme:dark){:root{--bg:#141b1e;--fg:#e8eff1;--mut:#9bb0b7;--card:#ffffff12;--line:#ffffff18}}
-*{box-sizing:border-box}
-body{margin:0;background:linear-gradient(160deg,var(--bg),color-mix(in srgb,var(--acc) 35%,var(--bg)));min-height:100vh;color:var(--fg);font:15px/1.5 system-ui,sans-serif}
-main{max-width:860px;margin:0 auto;padding:16px}
-h1{font-size:22px;margin:4px 0 14px}
-h2{font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);margin:0 0 10px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;margin-bottom:14px;backdrop-filter:blur(12px)}
-.tabs{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;margin-bottom:10px}
-.tabs button{white-space:nowrap}
-.row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:6px 0}
-.row>label{flex:1 1 180px;color:var(--mut)}
-input,select,button{font:inherit;color:inherit;background:#ffffff66;border:1px solid var(--line);border-radius:10px;padding:6px 10px;min-height:34px}
-@media(prefers-color-scheme:dark){input,select,button{background:#ffffff10}}
-input[type=checkbox],input[type=range]{accent-color:var(--acc)}
-input[type=checkbox]{width:20px;height:20px;min-height:0}
-input[type=text],input:not([type]){min-width:0}
-button{cursor:pointer}
-button.on{background:var(--acc);color:#0e1a1e;border-color:transparent}
-button.danger{color:#a4483c}
-.dot{width:10px;height:10px;border-radius:50%;background:var(--warn);display:inline-block;margin-right:6px}
-.dot.on{background:var(--ok)}
-.face{border-top:1px solid var(--line);padding:8px 0}
-.face:first-of-type{border-top:0}
-.tiles{margin:8px 0 4px 12px;padding-left:10px;border-left:2px solid var(--line)}
-.tile{display:grid;grid-template-columns:1fr 1fr 1.6fr auto;gap:6px;margin-bottom:6px}
-.tile input{width:100%}
-.mut{color:var(--mut);font-size:13px}
-#toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:8px 16px;border-radius:20px;opacity:0;transition:opacity .3s;pointer-events:none}
-#toast.show{opacity:.92}
-@media(max-width:600px){.tile{grid-template-columns:1fr 1fr}.tile input:nth-child(3){grid-column:1/3}}
+/* Optik: iOS-Einstellungen (inset grouped, Large Title, Push-Navigation, Sheet/Alert), Federn und Press wie im Display.
+   Maße nach iOS-Konventionen; HomeView liefert dafür keine Vorlage (nur Display-Screens). */
+:root{--bg:#f2f2f7;--grp:#ffffffc7;--fg:#000;--sec:#3c3c4399;--sep:#3c3c432e;--blue:#007aff;--green:#34c759;--red:#ff3b30;--fill:#78788029;--glass:#f2f2f7b8;
+  --wall:radial-gradient(60vmax 45vmax at 8% -8%,#b9dcff99,#0000),radial-gradient(50vmax 40vmax at 100% 6%,#ffd3e699,#0000),radial-gradient(60vmax 50vmax at 60% 110%,#d6f5dd99,#0000),#f2f2f7}
+@media(prefers-color-scheme:dark){:root{--bg:#000;--grp:#1c1c1ec7;--fg:#fff;--sec:#ebebf599;--sep:#54545899;--blue:#0a84ff;--green:#30d158;--red:#ff453a;--fill:#7878805c;--glass:#000000b8;
+  --wall:radial-gradient(60vmax 45vmax at 8% -8%,#1c3a5c99,#0000),radial-gradient(50vmax 40vmax at 100% 6%,#4a233a99,#0000),radial-gradient(60vmax 50vmax at 60% 110%,#1d3d2699,#0000),#000}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;margin:0}
+body{background:var(--wall) fixed;color:var(--fg);font:400 17px/1.3 -apple-system,BlinkMacSystemFont,"SF Pro Text",Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;-webkit-text-size-adjust:100%;overflow:hidden}
+button,input,select{font:inherit;color:inherit;border:0;background:none;padding:0;outline:0;margin:0}
+button{cursor:pointer;text-align:inherit}
+svg{display:block}
+
+/* Layout: schmal = Liste → Detail (Push), breit = Seitenleiste + Detail */
+#app{position:fixed;inset:0;display:grid;grid-template-columns:100%}
+#side{overflow-y:auto;padding:max(env(safe-area-inset-top),20px) 16px 40px}
+#pane{position:fixed;inset:0;background:var(--wall) fixed;transform:translateX(100%);transition:transform var(--sd) var(--spring);overflow:hidden}
+#app[data-open="1"] #pane{transform:none}
+@media(min-width:820px){
+  #app{grid-template-columns:340px 1fr}
+  #side{border-right:.5px solid var(--sep)}
+  #pane{position:relative;transform:none;transition:none}
+}
+.lt{font:700 34px/1.15 -apple-system,Inter,system-ui,sans-serif;letter-spacing:.2px;margin:18px 4px 2px}
+.lsub{color:var(--sec);margin:0 4px 18px}
+
+/* Seiten im Detail-Bereich */
+.page{position:absolute;inset:0;display:flex;flex-direction:column;background:var(--wall) fixed;transition:transform var(--sd) var(--spring),opacity .3s}
+.page.under{transform:translateX(-28%);opacity:.55;pointer-events:none}
+.nav{flex:none;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;min-height:52px;padding:env(safe-area-inset-top) 8px 0;background:var(--glass);backdrop-filter:blur(24px) saturate(1.8);-webkit-backdrop-filter:blur(24px) saturate(1.8);border-bottom:.5px solid var(--sep);z-index:2}
+.nav .ttl{font-weight:600;max-width:46vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.back{display:flex;align-items:center;gap:2px;color:var(--blue);padding:10px 8px}
+.back svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;transform:scaleX(-1)}
+.body{flex:1;overflow-y:auto;padding:12px 16px calc(40px + env(safe-area-inset-bottom));max-width:760px;width:100%;margin:0 auto}
+
+/* Gruppen und Zeilen */
+.sec{margin:0 0 26px}
+.sh{display:flex;justify-content:space-between;align-items:baseline;font-size:13px;text-transform:uppercase;color:var(--sec);margin:0 16px 7px;letter-spacing:.2px}
+.sh button{color:var(--blue);text-transform:none;font-size:15px}
+.sf{font-size:13px;color:var(--sec);margin:7px 16px 0}
+.grp{background:var(--grp);backdrop-filter:blur(24px) saturate(1.6);-webkit-backdrop-filter:blur(24px) saturate(1.6);border-radius:24px;overflow:hidden}
+.row{position:relative;display:flex;align-items:center;gap:12px;min-height:46px;padding:11px 16px;width:100%}
+.row+.row::before,.quick+.row::before,.dep .row:first-child::before{content:"";position:absolute;left:16px;right:0;top:0;border-top:.5px solid var(--sep)}
+.row .l{flex:1;min-width:0}
+.two{display:flex;flex-direction:column}
+.two small{color:var(--sec);font-size:13px}
+.two b{font-weight:500}
+.row .v{display:flex;align-items:center;gap:6px;color:var(--sec);margin-left:auto;min-width:0}
+.row .val{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row input.r{text-align:right;color:var(--sec);min-width:0;flex:1;width:50%}
+.row input[type=number]{-moz-appearance:textfield}
+.row.btn{color:var(--blue)}.row.red{color:var(--red)}.row.c{justify-content:center}
+.row .go{display:flex;align-items:center;gap:12px;flex:1;min-width:0;text-align:left;padding:0}
+button.row:active,label.row:active{background:var(--fill)}
+.chev{width:14px;height:14px;stroke:var(--sec);fill:none;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round;opacity:.6;flex:none}
+.plus{width:20px;height:20px;stroke:var(--blue);fill:none;stroke-width:2.2;stroke-linecap:round}
+.pick select{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+.sel-row{background:#007aff26}
+.ico{flex:none;width:30px;height:30px;border-radius:8px;display:grid;place-items:center}
+.ico svg{width:19px;height:19px;stroke:#fff;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.dot{width:9px;height:9px;border-radius:50%;background:#8e8e93;flex:none}.dot.on{background:var(--green)}
+.dep{display:grid;grid-template-rows:1fr;transition:grid-template-rows var(--sd) var(--spring)}
+.dep.off{grid-template-rows:0fr}.dep>div{overflow:hidden}
+
+/* Schalter, Regler, Segment */
+.sw{position:relative;width:51px;height:31px;flex:none}
+.sw input{position:absolute;inset:0;opacity:0;width:100%;height:100%;margin:0;cursor:pointer;z-index:1}
+.sw i{position:absolute;inset:0;border-radius:16px;background:var(--fill);transition:background .3s}
+.sw i::after{content:"";position:absolute;left:2px;top:2px;width:27px;height:27px;border-radius:50%;background:#fff;box-shadow:0 2px 6px #0003;transition:transform var(--sd) var(--spring)}
+.sw input:checked+i{background:var(--green)}.sw input:checked+i::after{transform:translateX(20px)}
+input[type=range]{-webkit-appearance:none;appearance:none;width:150px;height:28px;background:none;flex:none}
+input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:2px;background:var(--fill)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:27px;height:27px;border-radius:50%;background:#fff;margin-top:-11.5px;box-shadow:0 2px 8px #0004}
+input[type=time]{color:var(--sec);text-align:right}
+input::-webkit-calendar-picker-indicator{display:none!important}
+.seg{display:flex;background:var(--fill);border-radius:10px;padding:2px;margin:12px 16px}
+.seg button{flex:1;text-align:center;padding:6px 4px;border-radius:8px;font-size:15px;transition:background .25s,box-shadow .25s}
+.seg button.on{background:#fff;color:#000;font-weight:600;box-shadow:0 2px 6px #0002}
+
+/* Schnellaktionen (Press = Scale wie auf dem Display) */
+.quick{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:14px}
+.q{display:flex;flex-direction:column;align-items:center;gap:7px;font-size:13px;text-align:center;transition:scale var(--sd) var(--spring)}
+.q:active{scale:.94;transition:scale .12s ease-out}
+.q:disabled{opacity:.35;pointer-events:none}
+.qi{width:54px;height:54px;border-radius:50%;background:var(--fill);display:grid;place-items:center}
+.qi svg{width:26px;height:26px;stroke:var(--blue);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+
+/* Hero / Face-Vorschau / Farben */
+.hero{display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 0 24px}
+.hero .ico{width:72px;height:72px;border-radius:19px;margin-bottom:8px}.hero .ico svg{width:42px;height:42px}
+.hero h2{margin:0;font:700 26px/1.2 -apple-system,Inter,system-ui,sans-serif}.hero p{margin:0;color:var(--sec)}
+.prev{height:120px;border-radius:24px;display:grid;place-items:center;margin:4px 0 26px;transition:background .4s}
+.prev .ico{width:54px;height:54px;border-radius:15px;background:#ffffff38!important;backdrop-filter:blur(16px)}.prev .ico svg{width:30px;height:30px}
+.sw-grid{display:flex;flex-wrap:wrap;gap:12px 14px;padding:14px 16px}
+.sw-grid button{display:flex;flex-direction:column;align-items:center;gap:5px;font-size:12px;color:var(--sec);width:58px;transition:scale var(--sd) var(--spring)}
+.sw-grid button:active{scale:.92;transition:scale .12s}
+.sw-grid i{width:38px;height:38px;border-radius:50%;box-shadow:inset 0 0 0 .5px #0003;transition:box-shadow .25s}
+.sw-grid .on i{box-shadow:inset 0 0 0 .5px #0003,0 0 0 2.5px var(--bg),0 0 0 4.5px var(--blue)}
+.sw-grid .on{color:var(--fg)}
+.minus{width:22px;height:22px;border-radius:50%;background:var(--red);flex:none;display:grid;place-items:center}
+.minus::after{content:"";width:11px;height:2px;background:#fff;border-radius:1px}
+.arrows{display:flex;gap:4px}.arrows button{width:30px;height:30px;display:grid;place-items:center;border-radius:50%}
+.arrows button:active{background:var(--fill)}.arrows svg{width:16px;height:16px;stroke:var(--blue);fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.shot{display:block;width:calc(100% - 24px);margin:0 12px 12px;border-radius:16px;border:.5px solid var(--sep)}
+.tilecard{margin-bottom:14px}
+.tilebar{display:flex;align-items:center;justify-content:space-between;padding:6px 10px 6px 16px;min-height:46px;position:relative}
+.tilebar::before{content:"";position:absolute;left:16px;right:0;top:0;border-top:.5px solid var(--sep)}
+
+/* Sheet, Alert, Toast */
+#ov{position:fixed;inset:0;z-index:20;background:#0006;display:flex;opacity:0;transition:opacity .25s}
+#ov.in{opacity:1}
+#ov.alert{align-items:center;justify-content:center}
+#ov.sheet{align-items:flex-end;justify-content:center;padding:0 10px calc(10px + env(safe-area-inset-bottom))}
+.al{width:min(300px,86vw);border-radius:28px;background:var(--glass);backdrop-filter:blur(40px) saturate(1.8);-webkit-backdrop-filter:blur(40px) saturate(1.8);text-align:center;overflow:hidden;transform:scale(1.12);transition:transform var(--sd) var(--spring)}
+#ov.in .al{transform:none}
+.al h4{margin:0;padding:20px 18px 4px;font-size:17px;font-weight:600}.al p{margin:0;padding:0 18px 18px;font-size:13px}
+.ab{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;border-top:.5px solid var(--sep)}
+.ab button{padding:14px 6px;text-align:center;color:var(--blue)}.ab button+button{border-left:.5px solid var(--sep);font-weight:600}
+.ab button.red{color:var(--red)}.ab button:active{background:var(--fill)}
+.shs{width:min(560px,100%);transform:translateY(110%);transition:transform var(--sd) var(--spring)}
+#ov.in .shs{transform:none}
+.shs .grp{margin-bottom:10px;background:var(--glass);backdrop-filter:blur(40px) saturate(1.8);-webkit-backdrop-filter:blur(40px) saturate(1.8)}
+#toast{position:fixed;top:max(env(safe-area-inset-top),12px);left:50%;transform:translate(-50%,-220%);opacity:0;z-index:30;padding:9px 18px;border-radius:22px;background:var(--glass);backdrop-filter:blur(24px) saturate(1.8);-webkit-backdrop-filter:blur(24px) saturate(1.8);font-size:15px;font-weight:500;box-shadow:0 6px 24px #0002;transition:transform var(--sd) var(--spring),opacity .2s}
+#toast.show{transform:translate(-50%,6px);opacity:1}#toast.bad{color:var(--red)}
 </style>
 </head>
 <body>
-<main>
-  <h1>Homeblick Einstellungen</h1>
-  <div class="tabs" id="tabs"></div>
-  <div id="view"></div>
-</main>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></symbol>
+  <symbol id="i-updown" viewBox="0 0 24 24"><path d="M7 9l5-5 5 5M7 15l5 5 5-5"/></symbol>
+  <symbol id="i-up" viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="2"/><rect x="13" y="4" width="7" height="7" rx="2"/><rect x="4" y="13" width="7" height="7" rx="2"/><rect x="13" y="13" width="7" height="7" rx="2"/></symbol>
+  <symbol id="i-music" viewBox="0 0 24 24"><path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3.5 2"/></symbol>
+  <symbol id="i-cal" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M4 10h16M9 3v4M15 3v4"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6L7 7M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4"/></symbol>
+  <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 3L5 14h6l-1 7 8-11h-6z"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5M12 8v.01"/></symbol>
+  <symbol id="i-cam" viewBox="0 0 24 24"><rect x="3" y="6.5" width="12" height="11" rx="3"/><path d="M15 10.5l6-3v9l-6-3"/></symbol>
+  <symbol id="i-disp" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="12" rx="3"/><path d="M9 20h6M12 16.5V20"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></symbol>
+  <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+</defs></svg>
+
+<div id="app" data-open="0">
+  <aside id="side"></aside>
+  <main id="pane"></main>
+</div>
 <div id="toast"></div>
 <datalist id="ents"></datalist>
+
 <script type="module">
-// Einstellungsseite: ein Tab je Display (wie der Kiosk-Wechsler in Kiosk Satellite). Läuft als Admin-Panel in HA
+// Einstellungsseite: Seitenleiste mit allen Displays → Display → Face (Kacheln). Läuft als Admin-Panel in HA
 // (gleicher Login wie das Panel, Tokens im localStorage).
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const TYPES = { grid: 'Smart Home', music: 'Musik', bigclock: 'Uhr digital', analog: 'Uhr analog', calendar: 'Kalender', weather: 'Wetter', energy: 'Energie', info: 'Info', cams: 'Kameras' };
+
+// Feder wie im Display (SwiftUI .spring(response .5, damping .86)) → CSS linear()
+function spring(response = .5, damping = .86, n = 48) {
+  const w = 2 * Math.PI / response, z = damping, wd = w * Math.sqrt(1 - z * z), T = -Math.log(.001) / (z * w);
+  const x = t => 1 - Math.exp(-z * w * t) * (Math.cos(wd * t) + z * w / wd * Math.sin(wd * t));
+  return [`linear(${Array.from({ length: n + 1 }, (_, i) => +x(i / n * T).toFixed(4)).join()})`, Math.round(T * 1000)];
+}
+const [SPRING, SD] = spring();
+document.documentElement.style.setProperty('--spring', SPRING);
+document.documentElement.style.setProperty('--sd', SD + 'ms');
+
+const FACE = {
+  grid: ['Smart Home', '#ff9500', 'grid'], music: ['Musik', '#ff2d55', 'music'], bigclock: ['Uhr digital', '#636366', 'clock'], analog: ['Uhr analog', '#5856d6', 'clock'],
+  calendar: ['Kalender', '#ff3b30', 'cal'], weather: ['Wetter', '#32ade6', 'sun'], energy: ['Energie', '#34c759', 'bolt'], info: ['Info', '#30b0c7', 'info'], cams: ['Kameras', '#8e8e93', 'cam'],
+};
+const TYPES = Object.entries(FACE).map(([k, v]) => [k, v[0]]);
 const NEWBG = { grid: 150, music: 'black', bigclock: 205, analog: 340, calendar: 'white', weather: 212, energy: 'black', info: 'black', cams: 'black' };
-const BG = [['auto', 'Tageszeit'], ['black', 'Schwarz'], ['white', 'Weiß'], [30, 'Orange'], [5, 'Rot'], [340, 'Rosa'], [285, 'Violett'], [250, 'Blau'], [205, 'Türkis'], [212, 'Himmelblau'], [150, 'Grün']];
+const BG = [['auto', 'Tageszeit'], ['black', 'Schwarz'], ['white', 'Weiß'], [30, 'Orange'], [5, 'Rot'], [340, 'Rosa'], [285, 'Violett'], [250, 'Blau'], [205, 'Türkis'], [212, 'Himmel'], [150, 'Grün']];
 const STYLES = { bigclock: [['stack', 'Gestapelt'], ['line', 'Zeile']], analog: [['numbers', 'Zahlen'], ['ticks', 'Striche'], ['minimal', 'Minimal']] };
-const SHOT = 'screenshot';
-const ACTIONS = { reload: 'Neu laden', assist: 'Assist starten', screensaver: 'Bildschirmschoner', wake: 'Aufwecken' };
+const WAKE = [['off', 'Aus'], ['hey_jarvis', 'Hey Jarvis'], ['alexa', 'Alexa']];
+const bgCss = bg => bg === 'auto' ? 'linear-gradient(135deg,#ffb36b,#5a6bb5)' : bg === 'black' ? '#1c1c1e' : bg === 'white' ? '#f2f2f7' : typeof bg === 'number' ? `linear-gradient(135deg,hsl(${bg} 75% 66%),hsl(${bg + 25} 70% 52%))` : '#8e8e93';
+const bgName = bg => BG.find(b => String(b[0]) === String(bg))?.[1] || 'Foto';
+const bgVal = v => /^\d+$/.test(v) ? +v : v;
 
-let lastShot, conn, displays = [], sel, cfg, open = new Set(), pipelines = [], weathers = [];
+const ico = (id, c = '#007aff') => `<span class="ico" style="background:${c}"><svg><use href="#i-${id}"/></svg></span>`;
+const svg = (id, cls = 'chev') => `<svg class="${cls}"><use href="#i-${id}"/></svg>`;
+const opt = (list, v) => list.map(([k, n]) => `<option value="${esc(k)}"${String(k) === String(v) ? ' selected' : ''}>${esc(n)}</option>`).join('');
+const grp = (h, rows, f = '') => `<div class="sec">${h ? `<div class="sh">${h}</div>` : ''}<div class="grp">${rows}</div>${f ? `<div class="sf">${f}</div>` : ''}</div>`;
+const pick = (label, key, list, v, attr = 'data-s') => `<label class="row pick"><span class="l">${label}</span><span class="v"><span class="val">${esc(list.find(x => String(x[0]) === String(v))?.[1] ?? v)}</span>${svg('updown')}</span><select ${attr}="${key}">${opt(list, v)}</select></label>`;
+const toggle = (label, key, on) => `<div class="row"><span class="l">${label}</span><label class="sw"><input type="checkbox" data-s="${key}" ${on ? 'checked' : ''}><i></i></label></div>`;
+const slider = (label, key, lo, hi, step, v) => `<div class="row"><span class="l">${label}</span><span class="v"><input type="range" data-s="${key}" min="${lo}" max="${hi}" step="${step}" value="${v}"><span class="val" style="min-width:42px;text-align:right">${v} %</span></span></div>`;
+const field = (label, key, v, extra = '', attr = 'data-s') => `<label class="row"><span class="l">${label}</span><input class="r" ${attr}="${key}" value="${esc(v)}" ${extra}></label>`;
+
+const shots = {};   // letztes Bildschirmfoto je Display
+let conn, displays = [], sel = null, cfg = null, editing = false, pipelines = [], weathers = [];
+let stack = [];   // Seiten im Detail-Bereich: { t: 'display' } | { t: 'face', i }
 const call = (type, p = {}) => conn.sendMessagePromise({ type: 'homeblick/' + type, ...p });
+const cur = () => displays.find(d => d.id === sel);
+const wide = () => matchMedia('(min-width:820px)').matches;
 
-// ---- Verbindung ----
+// ---- Rückmeldung ----
+let tt;
+function toast(t, bad) { const e = $('#toast'); e.textContent = t; e.classList.toggle('bad', !!bad); e.classList.add('show'); clearTimeout(tt); tt = setTimeout(() => e.classList.remove('show'), 1600); }
+const guard = p => p.then(r => (toast('Gespeichert'), r), e => (toast(e?.message || 'Fehler', true), Promise.reject(e)));
+// Alert / Sheet; löst mit dem data-r der angetippten Schaltfläche auf (null = Hintergrund)
+function overlay(kind, inner) {
+  return new Promise(res => {
+    const o = Object.assign(document.createElement('div'), { id: 'ov', className: kind, innerHTML: inner });
+    const done = v => { o.classList.remove('in'); setTimeout(() => o.remove(), 300); res(v); };
+    o.onclick = e => { const b = e.target.closest('[data-r]'); if (b) done(b.dataset.r); else if (e.target === o) done(null); };
+    document.body.append(o); requestAnimationFrame(() => o.classList.add('in'));
+  });
+}
+const ask = async (title, msg, ok, danger = true) => await overlay('alert', `<div class="al"><h4>${esc(title)}</h4><p>${esc(msg)}</p><div class="ab"><button data-r="">Abbrechen</button><button data-r="1" class="${danger ? 'red' : ''}">${esc(ok)}</button></div></div>`) === '1';
+
+// ---- Speichern: Einstellungen sofort, Faces leicht verzögert ----
+let st;
+const saveCfg = () => { clearTimeout(st); st = setTimeout(() => guard(call('admin_config', { display: sel, config: cfg })).catch(() => {}), 500); };
+
+// ---- Anzeigeteile ----
+const ago = iso => {
+  if (!iso) return '–';
+  const s = (Date.now() - new Date(iso)) / 1000;
+  return s < 90 ? 'gerade eben' : s < 3600 ? `vor ${Math.round(s / 60)} Min` : s < 86400 ? `vor ${Math.round(s / 3600)} Std` : `vor ${Math.round(s / 86400)} Tagen`;
+};
+const stat = d => d.connected ? `Online${d.face ? ' · ' + (FACE[d.face]?.[0] || d.face) + (d.saver ? ' (Bildschirmschoner)' : '') : ''}` : `Offline${d.seen ? ' · ' + ago(d.seen) : ''}`;
+
+function liveHTML(d) {
+  const i = d.info || {}, row = (l, v, on) => `<div class="row"><span class="l">${l}</span><span class="v">${on != null ? `<span class="dot ${on ? 'on' : ''}"></span>` : ''}${v}</span></div>`;
+  return grp('Laufend', d.seen ? [
+    row('Verbindung', d.connected ? 'Online' : 'Offline', d.connected),
+    row('Mikrofon', i.mic ? 'Verfügbar' : i.secure === false ? 'Braucht https' : 'Nicht verfügbar', !!i.mic),
+    row('Wake Word', i.wake ? 'Hört zu · ' + esc(i.wake.replace(/_v.*/, '')) : 'Aus', !!i.wake),
+    row('Bildschirm wach', i.wakelock ? 'Aktiv' : i.secure === false ? 'Braucht https' : 'Aus', !!i.wakelock),
+    row('Fenster', i.w ? `${i.w} × ${i.h}${i.visible === false ? ' · verdeckt' : ''}` : '–'),
+    row('Zuletzt gesehen', ago(d.seen)),
+  ].join('') : row('Noch nie verbunden', '–'), 'Zustand des geöffneten Displays, alle 30 Sekunden aktualisiert.');
+}
+
+function listHTML() {
+  const rows = displays.map(d => `<button class="row ${d.id === sel ? 'sel-row' : ''}" data-d="${esc(d.id)}">${ico('disp')}<span class="l two"><b>${esc(d.name)}</b><small>${esc(stat(d))}</small></span><span class="dot ${d.connected ? 'on' : ''}"></span>${svg('chev')}</button>`).join('');
+  const on = displays.filter(x => x.connected).length, dis = on ? '' : 'disabled';
+  const allGrp = displays.length > 1 ? grp(`Alle Displays · ${on} online`, `<div class="quick">${[['reload', 'Neu laden', 'refresh'], ['assist', 'Assist', 'mic'], ['screensaver', 'Ruhemodus', 'moon'], ['wake', 'Aufwecken', 'sun']].map(([c, n, i]) => `<button class="q" data-all="${c}" ${dis}><span class="qi">${svg(i, '')}</span>${n}</button>`).join('')}</div>`
+    + pick('Face anzeigen', 'allface', [['', 'Wählen …'], ...TYPES], '', 'data-allface')
+    + `<button class="row btn" data-alls="1"><span class="l">Nachtmodus auf allen an</span></button><button class="row btn" data-alls="0"><span class="l">Nachtmodus auf allen aus</span></button>`, 'Befehle gehen an alle Displays, die gerade geöffnet sind.') : '';
+  return `<div class="lt">Homeblick</div><div class="lsub">Displays im Haus</div>` +
+    (displays.length ? grp('Displays', rows, 'Ein Display legt sich an, sobald Homeblick einmal auf dem Gerät geöffnet wurde.') + allGrp
+      : grp('', `<div class="row"><span class="l">Noch kein Display angemeldet</span></div>`, 'Öffne Homeblick auf dem Gerät, am besten mit <code>?display=kueche&amp;name=Küche</code> hinter der Adresse.'));
+}
+
+// ---- Seiten ----
+const pages = {
+  display() {
+    const d = cur(), s = d.settings, faces = cfg?.faces;
+    const face = (f, i) => {
+      const meta = FACE[f.type] || [f.type, '#8e8e93', 'grid'];
+      return `<div class="row" data-fi="${i}">${editing ? `<button data-a="del" aria-label="Entfernen"><span class="minus"></span></button>` : ''}
+        <button class="go" data-a="face">${ico(meta[2], meta[1])}<span class="l two"><b>${esc(meta[0])}</b><small>${esc(bgName(f.bg))}${f.type === 'grid' ? ` · ${f.tiles?.length || 0} Kacheln` : ''}</small></span></button>
+        ${editing ? `<span class="arrows"><button data-a="up" aria-label="Nach oben">${svg('up', '')}</button><button data-a="down" aria-label="Nach unten">${svg('down', '')}</button></span>` : svg('chev')}</div>`;
+    };
+    const body = `
+      <div class="hero">${ico('disp')}<h2 data-live="name">${esc(d.name)}</h2><p data-live="stat">${esc(stat(d))}</p></div>
+      ${grp('', field('Name', 'name', d.name))}
+      <div class="sec"><div class="grp"><div class="quick">${[['reload', 'Neu laden', 'refresh'], ['assist', 'Assist', 'mic'], ['screensaver', 'Ruhemodus', 'moon'], ['wake', 'Aufwecken', 'sun']].map(([c, n, i]) => `<button class="q" data-c="${c}" ${d.connected ? '' : 'disabled'}><span class="qi">${svg(i, '')}</span>${n}</button>`).join('')}</div>
+        ${pick('Face anzeigen', 'show', [['', 'Wählen …'], ...TYPES], '', 'data-show')}</div><div class="sf">Die Steuerung geht, solange das Display geöffnet ist.</div></div>
+      ${grp('Vorschau', `<button class="row btn c" data-a="shot" ${d.connected ? '' : 'disabled style="opacity:.4"'}>Bildschirmfoto aufnehmen</button>${shots[d.id] ? `<img class="shot" src="${shots[d.id]}" alt="">` : ''}`, 'Bilder von fremden Servern, Kamera-Video und WebGL fehlen im Foto.')}
+      ${grp(`<span>Anzeige</span>${faces ? `<button data-a="edit">${editing ? 'Fertig' : 'Bearbeiten'}</button>` : ''}`,
+        faces ? faces.map(face).join('') + `<button class="row btn" data-a="add">${svg('plus', 'plus')}<span class="l">Face hinzufügen</span></button>` : `<div class="row"><span class="l" style="color:var(--sec)">Noch keine Konfiguration. Öffne Homeblick einmal auf dem Gerät.</span></div>`,
+        'Tippe ein Face, um Hintergrund, Stil und Kacheln einzustellen. Änderungen erscheinen sofort auf dem Display.')}
+      ${grp('Bildschirmschoner', field('Nach Inaktivität (s)', 'idle', s.idle, 'type="number" inputmode="numeric" min="0" max="3600" step="10"') + pick('Face', 'saver', TYPES, s.saver), '0 schaltet den Bildschirmschoner aus.')}
+      ${grp('Helligkeit', slider('Helligkeit', 'bright', 10, 100, 5, s.bright), 'Software-Abdunklung, keine Hardware-Helligkeit.')}
+      ${grp('Nachtmodus', toggle('Nachts abdunkeln', 'dim', s.dim) + `<div class="dep ${s.dim ? '' : 'off'}" id="dimdep"><div>
+        <label class="row"><span class="l">Von</span><input type="time" data-s="dim_from" value="${esc(s.dim_from.slice(0, 5))}"></label>
+        <label class="row"><span class="l">Bis</span><input type="time" data-s="dim_to" value="${esc(s.dim_to.slice(0, 5))}"></label>
+        ${slider('Stärke', 'dim_level', 10, 95, 5, s.dim_level)}</div></div>`, 'Ein Tipp hellt das Display für 30 Sekunden auf.')}
+      ${grp('Sprache', pick('Wake Word', 'wake', WAKE, s.wake) + toggle('Antworten stumm', 'mute', s.mute) + toggle('Wake Word unterbricht Antwort', 'barge', s.barge) + slider('Lautstärke der Antworten', 'volume', 0, 100, 5, s.volume) + field('Aufnahme-Zeitlimit (s)', 'listen', s.listen, 'type="number" inputmode="numeric" min="3" max="60"') + pick('Assist-Pipeline', 'pipeline', [['', 'Standard von Home Assistant'], ...pipelines], s.pipeline), 'Ein Wake Word hält das Mikrofon dauerhaft offen und braucht https. „Stumm“ zeigt Antworten nur als Text.')}
+      ${grp('Wetter', pick('Wetter-Entity', 'weather', weathers.some(w => w[0] === s.weather) ? weathers : [...weathers, [s.weather, s.weather + ' (nicht gefunden)']], s.weather) + field('Ortsname', 'place', s.place))}
+      <div id="liveGrp">${liveHTML(d)}</div>
+      ${grp('Verwalten', pick('Konfiguration übernehmen von', 'copy', [['', 'Display wählen …'], ...displays.filter(x => x.id !== sel).map(x => [x.id, x.name])], '', 'data-copy') + `<button class="row red c" data-a="rm">Display entfernen</button>`)}`;
+    return { back: wide() ? null : 'Displays', title: d.name, body };
+  },
+
+  face(e) {
+    const f = cfg.faces[e.i], meta = FACE[f.type] || [f.type, '#8e8e93', 'grid'], d = cur();
+    const photo = f.bg && typeof f.bg === 'object', sty = STYLES[f.type];
+    const tile = (t, j) => `<div class="grp tilecard" data-ti="${j}">
+        ${field('Titel', 'title', t.title, '', 'data-t')}${field('Untertitel', 'sub', t.sub, '', 'data-t')}
+        ${t.kind === 'clock' ? `<div class="row"><span class="l">Analoguhr</span><span class="v">ohne Entity</span></div>` : field('Entity', 'e', t.e, 'list="ents" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="light.küche"', 'data-t')}
+        <div class="tilebar"><span class="arrows"><button data-a="tup" aria-label="Nach oben">${svg('up', '')}</button><button data-a="tdown" aria-label="Nach unten">${svg('down', '')}</button></span><button data-a="tdel" style="color:var(--red);padding:8px 10px">Entfernen</button></div></div>`;
+    const body = `
+      <div class="prev" style="background:${bgCss(f.bg)}">${ico(meta[2], meta[1])}</div>
+      ${photo ? '' : grp('Hintergrund', `<div class="sw-grid">${BG.map(([v, n]) => `<button data-a="bg" data-v="${v}" class="${String(v) === String(f.bg) ? 'on' : ''}"><i style="background:${bgCss(v)}"></i>${n}</button>`).join('')}</div>`)}
+      ${sty ? `<div class="sec"><div class="sh">Stil</div><div class="grp"><div class="seg">${sty.concat(f.style === 'depth' ? [['depth', 'Tiefe']] : []).map(([v, n]) => `<button data-a="style" data-v="${v}" class="${(f.style || sty[0][0]) === v ? 'on' : ''}">${n}</button>`).join('')}</div></div></div>` : ''}
+      ${f.type === 'grid' ? `<div class="sec"><div class="sh"><span>Kacheln</span></div>${(f.tiles || []).map(tile).join('')}<div class="grp"><button class="row btn" data-a="tadd">${svg('plus', 'plus')}<span class="l">Kachel hinzufügen</span></button></div>
+        <div class="sf">Kacheln folgen der Reihenfolge von oben links. Nachtvarianten bleiben erhalten.</div></div>` : ''}
+      ${grp('', `<button class="row btn c" data-c="face" ${d.connected ? '' : 'disabled style="opacity:.4"'}>Auf dem Display anzeigen</button><button class="row red c" data-a="delface">Face entfernen</button>`)}`;
+    return { back: d.name, title: meta[0], body };
+  },
+};
+
+// ---- Seitenstapel (Push/Pop mit Feder) ----
+const pane = () => $('#pane');
+function fill(el, e) {
+  const p = pages[e.t](e), sc = el.querySelector('.body')?.scrollTop || 0;
+  el.innerHTML = `<header class="nav"><div>${p.back ? `<button class="back" data-a="back">${svg('chev', '')}<span>${esc(p.back)}</span></button>` : ''}</div><b class="ttl">${esc(p.title)}</b><div></div></header><div class="body">${p.body}</div>`;
+  el.querySelector('.body').scrollTop = sc;
+}
+const top = () => pane().lastElementChild;
+const refresh = () => stack.forEach((e, i) => fill(pane().children[i], e));
+function push(e, animate = true) {
+  const el = Object.assign(document.createElement('section'), { className: 'page' });
+  fill(el, e); if (stack.length) pane().children[stack.length - 1].classList.add('under');
+  stack.push(e); pane().append(el);
+  if (animate) el.animate([{ transform: 'translateX(100%)' }, { transform: 'none' }], { duration: SD, easing: SPRING });
+}
+async function pop() {
+  const el = top(), n = stack.length;
+  if (n < 2) return;
+  stack.pop(); pane().children[n - 2].classList.remove('under'); fill(pane().children[n - 2], stack.at(-1));
+  await el.animate([{ transform: 'none' }, { transform: 'translateX(100%)' }], { duration: 320, easing: 'cubic-bezier(.3,.7,.3,1)' }).finished.catch(() => {});
+  el.remove();
+}
+function renderSide() { const sc = $('#side').scrollTop; $('#side').innerHTML = listHTML(); $('#side').scrollTop = sc; }
+
+async function open(id) {
+  sel = id; editing = false;
+  cfg = (await call('get_config', { display: id })).config;
+  pane().replaceChildren(); stack = [];
+  push({ t: 'display' }, false);
+  if (!wide()) $('#app').dataset.open = '1'; else pane().firstElementChild.animate([{ opacity: 0 }, { opacity: 1 }], 200);
+  renderSide();
+}
+async function reload() {
+  displays = await call('displays');
+  if (wide() && !displays.some(d => d.id === sel)) sel = displays[0]?.id ?? null;
+  renderSide();
+  if (sel && displays.some(d => d.id === sel)) await open(sel); else { sel = null; pane().replaceChildren(); stack = []; $('#app').dataset.open = '0'; }
+}
+
+// ---- Eingaben ----
+const swap = (a, i, j) => j >= 0 && j < a.length && ([a[i], a[j]] = [a[j], a[i]]);
+document.addEventListener('input', e => {
+  const t = e.target;
+  if (t.type === 'range') t.closest('.v').querySelector('.val').textContent = t.value + ' %';
+});
+document.addEventListener('change', async e => {
+  const t = e.target, d = cur();
+  if (t.closest('.pick') && t.tagName === 'SELECT') t.closest('.pick').querySelector('.val').textContent = t.selectedOptions[0].text;
+  if (t.dataset.s) {
+    const k = t.dataset.s;
+    let v = t.type === 'checkbox' ? t.checked : t.type === 'number' || t.type === 'range' ? +t.value : t.value;
+    if (t.type === 'time') v += ':00';
+    if (k === 'name') {
+      v = v.trim(); if (!v) return;
+      await guard(call('update', { display: sel, name: v })); d.name = v; renderSide();
+      pane().querySelectorAll('[data-live=name]').forEach(x => x.textContent = v);
+      pane().querySelectorAll('.ttl').forEach((x, i) => stack[i].t === 'display' && (x.textContent = v)); return;
+    }
+    if (k === 'dim') $('#dimdep').classList.toggle('off', !v);
+    d.settings[k] = v; guard(call('update', { display: sel, settings: { [k]: v } })).catch(() => {});
+  } else if (t.dataset.t) { cfg.faces[stack.at(-1).i].tiles[+t.closest('[data-ti]').dataset.ti][t.dataset.t] = t.value.trim(); saveCfg(); }
+  else if (t.dataset.allface !== undefined) { if (t.value) all({ action: 'face', face: t.value }); t.value = ''; t.closest('.pick').querySelector('.val').textContent = 'Wählen …'; }
+  else if (t.dataset.show !== undefined) { if (t.value) guard(call('command', { display: sel, action: 'face', face: t.value })).catch(() => {}); t.value = ''; t.closest('.pick').querySelector('.val').textContent = 'Wählen …'; }
+  else if (t.dataset.copy !== undefined && t.value) copyFrom(t.value, t);
+});
+document.addEventListener('click', async e => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  if (b.dataset.d) return open(b.dataset.d);
+  if (b.dataset.all) return all({ action: b.dataset.all });
+  if (b.dataset.alls !== undefined) { const v = !!+b.dataset.alls; return guard(Promise.all(displays.map(x => (x.settings.dim = v, call('update', { display: x.id, settings: { dim: v } })))).then(() => { const d = cur(); if (d) refresh(); })).catch(() => {}); }
+  const onFace = stack.at(-1)?.t === 'face';
+  if (b.dataset.c) return guard(call('command', { display: sel, action: b.dataset.c, ...(b.dataset.c === 'face' && { face: cfg.faces[stack.at(-1).i].type }) })).catch(() => {});
+  const a = b.dataset.a;
+  if (!a) return;
+  if (a === 'back') { if (stack.length > 1) return pop(); $('#app').dataset.open = '0'; return; }
+  if (a === 'edit') { editing = !editing; return refresh(); }
+  if (a === 'add') {
+    const r = await overlay('sheet', `<div class="shs"><div class="grp">${TYPES.map(([k, n]) => `<button class="row" data-r="${k}">${ico(FACE[k][2], FACE[k][1])}<span class="l">${n}</span></button>`).join('')}</div><div class="grp"><button class="row c btn" data-r="">Abbrechen</button></div></div>`);
+    if (r) { cfg.faces.push({ type: r, bg: NEWBG[r], ...(r === 'grid' && { tiles: [{ kind: 'clock' }] }) }); saveCfg(); refresh(); }
+    return;
+  }
+  if (a === 'rm') {
+    if (await ask(`„${cur().name}“ entfernen?`, 'Faces und Einstellungen gehen verloren. Das Gerät in Home Assistant bitte danach unter Geräte löschen.', 'Entfernen')) { await guard(call('remove', { display: sel })); sel = null; await reload(); }
+    return;
+  }
+  if (a === 'shot') {
+    b.disabled = true;
+    try {
+      await call('command', { display: sel, action: 'screenshot' });
+      for (let i = 0; i < 10; i++) {   // das Display antwortet asynchron
+        await new Promise(r => setTimeout(r, 500));
+        const { image } = await call('get_shot', { display: sel });
+        if (image && image !== shots[sel]) { shots[sel] = image; refresh(); return; }
+      }
+      toast('Keine Antwort vom Display', true);
+    } catch (e) { toast(e?.message || 'Fehler', true); }
+    b.disabled = false; return;
+  }
+  if (a === 'face') return push({ t: 'face', i: +b.closest('[data-fi]').dataset.fi });
+  if (!onFace) {   // Face-Liste
+    const i = +b.closest('[data-fi]')?.dataset.fi, F = cfg.faces;
+    if (a === 'up' || a === 'down') swap(F, i, i + (a === 'up' ? -1 : 1));
+    else if (a === 'del') { if (F.length < 2) return toast('Mindestens ein Face', true); if (!await ask(`„${FACE[F[i].type]?.[0]}“ entfernen?`, 'Das Face verschwindet vom Display.', 'Entfernen')) return; F.splice(i, 1); }
+    saveCfg(); return refresh();
+  }
+  // Face-Seite
+  const i = stack.at(-1).i, f = cfg.faces[i], tiles = f.tiles, j = +b.closest('[data-ti]')?.dataset.ti;
+  if (a === 'bg') f.bg = bgVal(b.dataset.v);
+  else if (a === 'style') f.style = b.dataset.v;
+  else if (a === 'tadd') tiles.push({ e: '', title: 'Neu', sub: '' });
+  else if (a === 'tup' || a === 'tdown') swap(tiles, j, j + (a === 'tup' ? -1 : 1));
+  else if (a === 'tdel') tiles.splice(j, 1);
+  else if (a === 'delface') {
+    if (cfg.faces.length < 2) return toast('Mindestens ein Face', true);
+    if (!await ask(`„${FACE[f.type]?.[0]}“ entfernen?`, 'Das Face verschwindet vom Display.', 'Entfernen')) return;
+    cfg.faces.splice(i, 1); saveCfg(); return pop();
+  }
+  saveCfg(); fill(top(), stack.at(-1));
+});
+
+// Gruppenaktion: Befehl an alle Displays, die gerade ein Panel offen haben
+const all = p => guard(Promise.all(displays.filter(x => x.connected).map(x => call('command', { display: x.id, ...p })))).catch(() => {});
+
+async function copyFrom(id, selEl) {
+  const src = displays.find(x => x.id === id);
+  const ok = await ask(`Von „${src.name}“ übernehmen?`, `Faces und Einstellungen ersetzen die von „${cur().name}“. Wetter-Ort und Assist-Pipeline bleiben.`, 'Übernehmen');
+  selEl.value = ''; selEl.closest('.pick').querySelector('.val').textContent = 'Display wählen …';
+  if (!ok) return;
+  const { config } = await call('get_config', { display: id });
+  if (!config) return toast('Quelle hat noch keine Konfiguration', true);
+  const { place, weather, pipeline, ...s } = src.settings;
+  await guard(call('admin_config', { display: sel, config }).then(() => call('update', { display: sel, settings: s }))).catch(() => {});
+  await reload();
+}
+
+// ---- Verbindung & Start ----
 async function connect() {
   const ha = await import('https://cdn.jsdelivr.net/npm/home-assistant-js-websocket@9.7.1/+esm');
   const auth = await ha.getAuth({ hassUrl: location.origin, saveTokens: t => localStorage.hassTokens = JSON.stringify(t), loadTokens: async () => JSON.parse(localStorage.hassTokens || 'null') });
   if (location.search.includes('auth_callback')) history.replaceState(null, '', location.pathname);
   return ha.createConnection({ auth, setupRetry: -1 });
 }
-
-let tt;
-const toast = (t, bad) => { const e = $('#toast'); e.textContent = t; e.style.background = bad ? '#a4483c' : ''; e.classList.add('show'); clearTimeout(tt); tt = setTimeout(() => e.classList.remove('show'), 1800); };
-const guard = p => p.then(() => toast('Gespeichert'), e => toast(e?.message || 'Fehler', true));
-
-// ---- Speichern: Einstellungen sofort, Faces leicht verzögert (Tippen in Textfeldern) ----
-let st;
-const saveCfg = () => { clearTimeout(st); st = setTimeout(() => guard(call('admin_config', { display: sel, config: cfg })), 500); };
-const cur = () => displays.find(d => d.id === sel);
-
-// ---- Ansicht ----
-const opt = (list, v) => list.map(([k, n]) => `<option value="${k}"${String(k) === String(v) ? ' selected' : ''}>${esc(n)}</option>`).join('');
-const row = (label, ctl) => `<div class="row"><label>${label}</label>${ctl}</div>`;
-const sInput = (k, v, extra = '') => `<input data-s="${k}" value="${esc(v)}" ${extra}>`;
-const sSelect = (k, list, v) => `<select data-s="${k}">${opt(list, v)}</select>`;
-
-function tileHTML(t, fi, ti) {
-  return `<div class="tile" data-fi="${fi}" data-ti="${ti}">
-    <input data-t="title" value="${esc(t.title)}" placeholder="Titel"><input data-t="sub" value="${esc(t.sub)}" placeholder="Untertitel">
-    <input data-t="e" list="ents" value="${esc(t.e)}" placeholder="${t.kind === 'clock' ? 'Uhr (keine Entity)' : 'Entity'}" ${t.kind === 'clock' ? 'disabled' : ''}>
-    <span><button data-a="tup">↑</button> <button data-a="tdown">↓</button> <button data-a="tdel" class="danger">✕</button></span></div>`;
+async function poll() {   // Status nachführen, ohne Formulare neu zu zeichnen
+  const n = await call('displays').catch(() => null);
+  if (!n) return;
+  if (n.length !== displays.length) return reload();
+  n.forEach(x => Object.assign(displays.find(d => d.id === x.id) || {}, { connected: x.connected, face: x.face, saver: x.saver, info: x.info, seen: x.seen }));
+  renderSide();
+  const d = cur(); if (!d) return;
+  pane().querySelectorAll('[data-live=stat]').forEach(x => x.textContent = stat(d));
+  const lg = $('#liveGrp'); if (lg) lg.innerHTML = liveHTML(d);
+  pane().querySelectorAll('.q,[data-c=face]').forEach(x => x.disabled = !d.connected);
 }
-
-function faceHTML(f, i) {
-  const photo = typeof f.bg === 'object' && f.bg;
-  const bg = photo ? `<option selected>Foto</option>` : opt(BG, f.bg);
-  const sty = STYLES[f.type];
-  return `<div class="face" data-fi="${i}">
-    <div class="row"><b style="flex:1 1 120px">${esc(TYPES[f.type] || f.type)}</b>
-      <select data-f="bg" ${photo ? 'disabled' : ''}>${bg}</select>
-      ${sty ? `<select data-f="style">${opt(sty, f.style || sty[0][0])}${f.style === 'depth' ? '<option value="depth" selected>Tiefe</option>' : ''}</select>` : ''}
-      ${f.type === 'grid' ? `<button data-a="tiles" class="${open.has(i) ? 'on' : ''}">Kacheln (${f.tiles?.length || 0})</button>` : ''}
-      <span><button data-a="up">↑</button> <button data-a="down">↓</button> <button data-a="del" class="danger">✕</button></span></div>
-    ${f.type === 'grid' && open.has(i) ? `<div class="tiles">${(f.tiles || []).map((t, j) => tileHTML(t, i, j)).join('')}<button data-a="tadd">+ Kachel</button> <span class="mut">Entity z. B. light.küche; Thermostat/Uhr-Kacheln behalten ihre Funktion.</span></div>` : ''}
-  </div>`;
-}
-
-function view() {
-  const d = cur(), s = d?.settings;
-  $('#tabs').innerHTML = displays.map(x => `<button data-d="${esc(x.id)}" class="${x.id === sel ? 'on' : ''}"><span class="dot ${x.connected ? 'on' : ''}"></span>${esc(x.name)}</button>`).join('');
-  if (!d) return $('#view').innerHTML = `<div class="card">Noch kein Display angemeldet. Öffne Homeblick einmal auf dem Gerät (am besten mit <code>?display=kueche&amp;name=Küche</code>).</div>`;
-  const faces = cfg?.faces;
-  $('#view').innerHTML = `
-  ${displays.length > 1 ? `<div class="card"><h2>Alle Displays (${displays.filter(x => x.connected).length} online)</h2>
-    <div class="row"><select id="allFace"><option value="">Face auf allen anzeigen …</option>${opt(Object.entries(TYPES), '')}</select>
-      ${Object.entries(ACTIONS).map(([k, n]) => `<button data-all="${k}">${n}</button>`).join('')}</div>
-    <div class="row"><label>Nachtmodus</label><button data-alls="dim:1">Auf allen an</button><button data-alls="dim:0">Auf allen aus</button></div></div>` : ''}
-  <div class="card"><h2>Display</h2>
-    ${row('Name', sInput('name', d.name))}
-    <div class="row"><label id="stat">${status(d)}</label>
-      <select id="faceSel"><option value="">Face anzeigen …</option>${opt(Object.entries(TYPES), '')}</select>
-      ${Object.entries(ACTIONS).map(([k, n]) => `<button data-c="${k}" ${d.connected ? '' : 'disabled'}>${n}</button>`).join('')}</div>
-    <div class="row"><label>Konfiguration übernehmen von</label><select id="copy"><option value="">— Display wählen —</option>${displays.filter(x => x.id !== sel).map(x => `<option value="${esc(x.id)}">${esc(x.name)}</option>`).join('')}</select>
-      <button data-a="rm" class="danger">Display entfernen</button></div>
-  </div>
-  <div class="card"><h2>Vorschau</h2>
-    <div class="row"><button data-a="shot" ${d.connected ? '' : 'disabled'}>Bildschirmfoto aufnehmen</button><span class="mut">Bilder von fremden Servern, Kamera-Video und WebGL fehlen im Foto.</span></div>
-    <img id="shotImg" alt="" style="display:none;max-width:100%;border-radius:12px;border:1px solid var(--line)"></div>
-  <div class="card"><h2>Anzeige – was dieses Display zeigt</h2>
-    ${faces ? faces.map(faceHTML).join('') + `<div class="row"><select id="add"><option value="">+ Face hinzufügen …</option>${opt(Object.entries(TYPES), '')}</select></div>`
-            : '<span class="mut">Dieses Display hat noch keine Konfiguration hochgeladen – öffne Homeblick einmal auf dem Gerät.</span>'}
-  </div>
-  <div class="card"><h2>Bildschirmschoner</h2>
-    ${row('Nach Inaktivität (Sekunden, 0 = aus)', sInput('idle', s.idle, 'type=number min=0 max=3600 step=10'))}
-    ${row('Face im Bildschirmschoner', sSelect('saver', Object.entries(TYPES), s.saver))}
-  </div>
-  <div class="card"><h2>Helligkeit</h2>
-    ${row('Helligkeit (%) <span class="mut">(Software-Abdunklung, keine Hardware-Helligkeit)</span>', sInput('bright', s.bright, 'type=range min=10 max=100 step=5'))}</div>
-  <div class="card"><h2>Nachtmodus</h2>
-    ${row('Nachts abdunkeln', `<input type=checkbox data-s="dim" ${s.dim ? 'checked' : ''}>`)}
-    ${row('Von', sInput('dim_from', s.dim_from.slice(0, 5), 'type=time'))}${row('Bis', sInput('dim_to', s.dim_to.slice(0, 5), 'type=time'))}
-    ${row('Stärke (%)', sInput('dim_level', s.dim_level, 'type=range min=10 max=95 step=5'))}
-  </div>
-  <div class="card"><h2>Sprache (Assist)</h2>
-    ${row('Wake Word <span class="mut">(hält das Mikrofon dauerhaft offen, braucht https)</span>', sSelect('wake', [['off', 'Aus'], ['hey_jarvis', 'Hey Jarvis'], ['alexa', 'Alexa']], s.wake))}
-    ${row('Antworten stumm <span class="mut">(Text ohne Ton)</span>', `<input type=checkbox data-s="mute" ${s.mute ? 'checked' : ''}>`)}
-    ${row('Wake Word unterbricht Antwort <span class="mut">(Barge-in)</span>', `<input type=checkbox data-s="barge" ${s.barge ? 'checked' : ''}>`)}
-    ${row('Lautstärke der Antworten (%)', sInput('volume', s.volume, 'type=range min=0 max=100 step=5'))}
-    ${row('Aufnahme-Zeitlimit (Sekunden)', sInput('listen', s.listen, 'type=number min=3 max=60'))}
-    ${row('Assist-Pipeline', sSelect('pipeline', [['', 'Standard von Home Assistant'], ...pipelines], s.pipeline))}
-  </div>
-  <div class="card"><h2>Wetter</h2>
-    ${row('Wetter-Entity', sSelect('weather', weathers.some(w => w[0] === s.weather) ? weathers : [...weathers, [s.weather, s.weather + ' (nicht gefunden)']], s.weather))}
-    ${row('Ortsname', sInput('place', s.place))}
-  </div>`;
-}
-const status = d => `<span class="dot ${d.connected ? 'on' : ''}"></span>${d.connected ? 'online' : 'offline'}${d.connected && d.face ? ' · zeigt ' + esc(TYPES[d.face] || d.face) + (d.saver ? ' (Bildschirmschoner)' : '') : ''}`;
-
-// ---- Laden ----
-async function select(id) {
-  sel = id; open.clear();
-  cfg = id ? (await call('get_config', { display: id })).config : null;
-  view();
-}
-async function reload() {
-  displays = await call('displays');
-  if (!displays.some(d => d.id === sel)) sel = displays[0]?.id;
-  await select(sel);
-}
-
-// ---- Eingaben ----
-const faceOf = e => cfg.faces[+e.closest('[data-fi]').dataset.fi];
-const swap = (a, i, j) => j >= 0 && j < a.length && ([a[i], a[j]] = [a[j], a[i]]);
-document.addEventListener('change', e => {
-  const t = e.target, d = cur();
-  if (t.dataset.s) {
-    const k = t.dataset.s;
-    let v = t.type === 'checkbox' ? t.checked : t.type === 'number' || t.type === 'range' ? +t.value : t.value;
-    if (t.type === 'time') v += ':00';
-    if (k === 'name') { if (!v.trim()) return; guard(call('update', { display: sel, name: v.trim() }).then(() => { d.name = v.trim(); view(); })); return; }
-    d.settings[k] = v; guard(call('update', { display: sel, settings: { [k]: v } }));
-  } else if (t.dataset.f) {
-    const f = faceOf(t), v = t.value;
-    f[t.dataset.f] = t.dataset.f === 'bg' ? (isNaN(v) ? v : +v) : v; saveCfg();
-  } else if (t.dataset.t) {
-    faceOf(t).tiles[+t.closest('[data-ti]').dataset.ti][t.dataset.t] = t.value.trim(); saveCfg();
-  } else if (t.id === 'allFace' && t.value) { all({ action: 'face', face: t.value }); t.value = ''; }
-  else if (t.id === 'faceSel' && t.value) { guard(call('command', { display: sel, action: 'face', face: t.value })); t.value = ''; }
-  else if (t.id === 'add' && t.value) { cfg.faces.push({ type: t.value, bg: NEWBG[t.value], ...(t.value === 'grid' && { tiles: [{ kind: 'clock' }] }) }); saveCfg(); view(); }
-  else if (t.id === 'copy' && t.value) copyFrom(t.value);
-});
-document.addEventListener('click', async e => {
-  const b = e.target.closest('button');
-  if (!b) return;
-  if (b.dataset.d) return select(b.dataset.d);
-  if (b.dataset.all) return all({ action: b.dataset.all });
-  if (b.dataset.alls) { const [k, v] = b.dataset.alls.split(':'); return guard(Promise.all(displays.map(x => (x.settings[k] = !!+v, call('update', { display: x.id, settings: { [k]: !!+v } })))).then(view)); }
-  if (b.dataset.c) return guard(call('command', { display: sel, action: b.dataset.c }));
-  const a = b.dataset.a;
-  if (a === 'shot') {
-    b.disabled = true;
-    try {
-      await call('command', { display: sel, action: SHOT });
-      for (let i = 0; i < 10; i++) {   // Display antwortet asynchron
-        await new Promise(r => setTimeout(r, 500));
-        const { image } = await call('get_shot', { display: sel });
-        if (image && image !== lastShot) { lastShot = image; const im = $('#shotImg'); im.src = image; im.style.display = 'block'; break; }
-        if (i === 9) toast('Keine Antwort vom Display', true);
-      }
-    } catch (e) { toast(e?.message || 'Fehler', true); }
-    b.disabled = false; return;
-  }
-  if (a === 'rm') {
-    if (confirm(`„${cur().name}“ aus Homeblick entfernen? Das Gerät in Home Assistant bitte danach unter Geräte löschen.`)) { await guard(call('remove', { display: sel })); sel = null; reload(); }
-    return;
-  }
-  if (!a) return;
-  const el = b.closest('[data-fi]'), i = +el.dataset.fi, f = cfg.faces[i], tiles = f.tiles, j = +b.closest('[data-ti]')?.dataset.ti;
-  if (a === 'tiles') open.has(i) ? open.delete(i) : open.add(i);
-  else if (a === 'tadd') tiles.push({ e: '', title: 'Neu', sub: '' });
-  else if (a === 'tup' || a === 'tdown') swap(tiles, j, j + (a === 'tup' ? -1 : 1));
-  else if (a === 'tdel') tiles.splice(j, 1);
-  else if (a === 'up' || a === 'down') { const n = i + (a === 'up' ? -1 : 1); swap(cfg.faces, i, n); if (open.delete(i)) open.add(n); }
-  else if (a === 'del') { if (cfg.faces.length < 2) return toast('Mindestens ein Face', true); if (!confirm(`„${TYPES[f.type]}“ löschen?`)) return; cfg.faces.splice(i, 1); open.clear(); }
-  saveCfg(); view();
-});
-
-// Gruppenaktion: Befehl an alle Displays, die gerade ein Panel offen haben
-const all = p => guard(Promise.all(displays.filter(x => x.connected).map(x => call('command', { display: x.id, ...p }))));
-
-async function copyFrom(id) {
-  const src = displays.find(x => x.id === id);
-  if (!confirm(`Faces und Einstellungen von „${src.name}“ auf „${cur().name}“ übertragen? Bisherige Faces gehen verloren.`)) return view();
-  const { config } = await call('get_config', { display: id });
-  if (!config) return toast('Quelle hat noch keine Konfiguration', true);
-  const { place, weather, pipeline, ...s } = src.settings;   // alles außer Gerätespezifischem übernehmen
-  await guard(call('admin_config', { display: sel, config }).then(() => call('update', { display: sel, settings: s })));
-  await reload();
-}
-
-// ---- Start ----
 try {
   conn = await connect();
   const [states, pl] = await Promise.all([conn.sendMessagePromise({ type: 'get_states' }), conn.sendMessagePromise({ type: 'assist_pipeline/pipeline/list' }).catch(() => null)]);
@@ -246,16 +466,9 @@ try {
   weathers = states.filter(x => x.entity_id.startsWith('weather.')).map(x => [x.entity_id, x.attributes.friendly_name || x.entity_id]);
   pipelines = pl?.pipelines?.map(p => [p.id, p.name]) || [];
   await reload();
-  setInterval(async () => {   // Status der Displays nachführen, ohne die Formulare neu zu zeichnen
-    if (document.querySelector(':focus')?.matches('input,select')) return;
-    const n = await call('displays').catch(() => null);
-    if (!n) return;
-    n.forEach(x => { const o = displays.find(d => d.id === x.id); if (o) Object.assign(o, { connected: x.connected, face: x.face, saver: x.saver }); });
-    if (n.length !== displays.length) return reload();
-    $('#stat') && (cur() && ($('#stat').innerHTML = status(cur())));
-    document.querySelectorAll('#tabs .dot').forEach((e, i) => e.classList.toggle('on', displays[i].connected));
-  }, 5000);
-} catch (e) { $('#view').innerHTML = `<div class="card">Keine Verbindung zu Home Assistant (${esc(e?.message || e)}). Die Seite braucht ein Administrator-Konto.</div>`; }
+  setInterval(() => { if (!document.hidden && !document.querySelector('input:focus,#ov')) poll(); }, 5000);
+  matchMedia('(min-width:820px)').addEventListener('change', () => reload());
+} catch (e) { $('#side').innerHTML = `<div class="lt">Homeblick</div>` + grp('', `<div class="row"><span class="l">Keine Verbindung zu Home Assistant (${esc(e?.message || e)}). Die Seite braucht ein Administrator-Konto.</span></div>`); }
 </script>
 </body>
 </html>

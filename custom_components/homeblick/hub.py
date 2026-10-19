@@ -17,6 +17,8 @@ class Display:
         self.settings = {**DEFAULTS, **(settings or {})}
         self.face: str | None = None   # vom Panel gemeldet
         self.saver = False
+        self.info: dict = {}   # vom Panel gemeldet: Mikro, Wake Word, Wake Lock, Auflösung …
+        self.seen: str | None = None   # letzte Meldung (ISO)
         self.shot: str | None = None   # letztes Bildschirmfoto (data-URL), nur im Speicher
         self.links: list = []   # offene Panels (Callbacks)
 

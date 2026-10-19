@@ -7,6 +7,7 @@ from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.device_registry import DeviceEntry
+from homeassistant.util import dt as dt_util
 
 from .const import DEFAULTS, DOMAIN, FACES, PLATFORMS, URL, WAKE
 from .hub import Hub
@@ -48,11 +49,12 @@ def subscribe(hass, connection, msg):
         connection.send_result(msg["id"])
 
 
-@websocket_api.websocket_command({vol.Required("type"): "homeblick/report", **DISPLAY, vol.Required("face"): vol.Any(str, None), vol.Required("saver"): bool})
+@websocket_api.websocket_command({vol.Required("type"): "homeblick/report", **DISPLAY, vol.Required("face"): vol.Any(str, None), vol.Required("saver"): bool, vol.Optional("info"): dict})
 @callback
 def report(hass, connection, msg):
     if d := _display(hass, connection, msg):
-        d.face, d.saver = msg["face"], msg["saver"]
+        d.face, d.saver, d.seen = msg["face"], msg["saver"], dt_util.utcnow().isoformat()
+        d.info = msg.get("info", d.info)
         hass.data[DOMAIN].notify(d)
         connection.send_result(msg["id"])
 
@@ -94,7 +96,7 @@ assert set(DEFAULTS) == {k.schema for k in SETTINGS.schema}
 def displays(hass, connection, msg):
     hub = hass.data[DOMAIN]
     connection.send_result(msg["id"], [
-        {"id": d.id, "name": d.name, "connected": d.connected, "face": d.face, "saver": d.saver, "settings": d.settings,
+        {"id": d.id, "name": d.name, "connected": d.connected, "face": d.face, "saver": d.saver, "settings": d.settings, "info": d.info, "seen": d.seen,
          "faces": [{"type": f.get("type"), "bg": f.get("bg")} for f in (hub.config(d.id) or {}).get("faces", [])]}
         for d in hub.displays.values()])
 

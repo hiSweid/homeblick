@@ -14,7 +14,8 @@ export function kioskInit({ faces, conf, busy, touched, onState }) {
   let last = Date.now(), back = -1, st = {};   // back = Face vor dem Screensaver
 
   // Display wach halten (braucht https/localhost; unter http gibt es kein wakeLock → still ignorieren)
-  const lock = () => navigator.wakeLock?.request('screen').catch(() => {});
+  let wl;
+  const lock = () => navigator.wakeLock?.request('screen').then(l => wl = l).catch(() => {});
   lock(); document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && lock());
 
   // Dimmen/Helligkeit: schwarze Folie; Tippen hellt für 30 s auf
@@ -43,7 +44,7 @@ export function kioskInit({ faces, conf, busy, touched, onState }) {
   // Face per URL-Fragment (z. B. HA-Automation / Dashboard-Link): #music, #bigclock …
   const byHash = () => { const i = [...faces.children].findIndex(f => f.classList.contains('f-' + location.hash.slice(1))); if (i >= 0) goto(i); };
   addEventListener('hashchange', byHash); if (location.hash) byHash();
-  return { wake, sleep, report: () => onState?.(st) };   // wake: Screensaver beenden (Wake Word, HA-Befehl), sleep: sofort starten, report: Zustand erneut melden
+  return { wake, sleep, report: () => onState?.(st), wakeLock: () => !!wl && !wl.released };   // wake: Screensaver beenden (Wake Word, HA-Befehl), sleep: sofort starten, report: Zustand erneut melden
 }
 
 // Selbsttest: node kiosk.js

@@ -1746,7 +1746,10 @@ camInit($('#cam'), { open, close, hass: HASS });
 if (!LIVE && new URLSearchParams(location.search).has('ring')) setTimeout(() => { ents = { ...ents, 'event.turklingel_doorbell': { ...ents['event.turklingel_doorbell'], state: new Date().toISOString() } }; schedule(); }, 1500);   // Demo-Klingeln wie HA
 timerInit(screen, call);
 const kiosk = kioskInit({ faces, conf: () => CONF, busy: () => mode !== 'normal' || cur || AS.className, touched: () => touched,
-  onState: st => conn?.sendMessagePromise({ type: 'homeblick/report', display: DISPLAY, ...st }).catch(() => {}) });
+  onState: st => conn?.sendMessagePromise({ type: 'homeblick/report', display: DISPLAY, ...st, info: info() }).catch(() => {}) });
+// Laufender Zustand für die Einstellungsseite (Mikro braucht https, Wake Word hält es offen, Wake Lock hält den Bildschirm an)
+const INFO = { wake: null };
+const info = () => ({ secure: isSecureContext, mic: voiceOK(), wake: INFO.wake, wakelock: kiosk.wakeLock(), visible: document.visibilityState === 'visible', w: innerWidth, h: innerHeight });
 renderAll(0);
 setTimeout(() => { tick(); setInterval(tick, 60000); }, 60050 - Date.now() % 60000);
 setInterval(times, 1000);
@@ -1790,13 +1793,13 @@ if (LIVE) {
       else if (c.action === 'wake') kiosk.wake();
       else if (c.action === 'screenshot') shot().then(image => conn.sendMessagePromise({ type: 'homeblick/shot', display: DISPLAY, image })).catch(console.warn);
       else if (c.action === 'assist') { kiosk.wake(); assistStart(); }
-    }, { type: 'homeblick/subscribe', display: DISPLAY })).then(() => { wk(); kiosk.report(); conn.addEventListener('ready', () => kiosk.report()); }).catch(console.warn);
+    }, { type: 'homeblick/subscribe', display: DISPLAY })).then(() => { wk(); kiosk.report(); conn.addEventListener('ready', () => kiosk.report()); setInterval(() => kiosk.report(), 30000); }).catch(console.warn);
     // Wake Word nur auf Wunsch (CONF.kiosk.wake): Mikrofon bleibt dann dauerhaft offen
     let wkCtl, wkModel;
     const wk = async () => {
       const m = { ...KIOSK_DEF, ...CONF.kiosk }.wake;
       if (m === wkModel) return;
-      wkModel = m; wkCtl?.stop(); wkCtl = null;
+      wkModel = m; wkCtl?.stop(); wkCtl = null; INFO.wake = null;
       if (m && voiceOK()) wkCtl = await wakeInit({ model: m, onWake: () => {
         kiosk.wake();
         // Barge-in: Wake Word während der Antwort bricht sie ab und hört neu zu
@@ -1804,6 +1807,7 @@ if (LIVE) {
         assistStart();
         return new Promise(r => { const t = setInterval(() => (!AS.className || (CFG.barge && AS.className === 'answer')) && (clearInterval(t), r()), 300); });
       } }).catch(e => console.warn('Wake Word', e));
+      INFO.wake = wkCtl ? m : null; kiosk.report();
     };
     hello.then(() => conn.subscribeMessage(f => { forecast = f.forecast?.[0]; schedule(); }, { type: 'weather/subscribe_forecast', forecast_type: 'daily', entity_id: CFG.weather })).catch(console.warn);
   } catch (err) {
