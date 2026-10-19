@@ -1,15 +1,18 @@
 """Entities je Display: Steuerung (Face, Screensaver, Neu laden, Assist) und Konfiguration (Screensaver, Dimmen, Wake Word)."""
 from datetime import time
 
+from homeassistant.components.binary_sensor import BinarySensorDeviceClass, BinarySensorEntity
 from homeassistant.components.button import ButtonEntity
 from homeassistant.components.number import NumberEntity, NumberMode
 from homeassistant.components.select import SelectEntity
+from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.components.time import TimeEntity
 from homeassistant.const import EntityCategory
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity import Entity
+from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN, FACES, PLATFORMS, WAKE
 from .hub import signal
@@ -75,6 +78,34 @@ class ActionButton(Live, ButtonEntity):
         self.hub.push(self.d, {"action": self.key})
 
 
+class Online(Live, BinarySensorEntity):
+    _attr_device_class = BinarySensorDeviceClass.CONNECTIVITY
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, hub, d):
+        super().__init__(hub, d, "online")
+
+    available = True   # gerade offline ist ein gültiger Zustand
+
+    @property
+    def is_on(self) -> bool:
+        return self.d.connected
+
+
+class Seen(Live, SensorEntity):
+    _attr_device_class = SensorDeviceClass.TIMESTAMP
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, hub, d):
+        super().__init__(hub, d, "seen")
+
+    available = True
+
+    @property
+    def native_value(self):
+        return dt_util.parse_datetime(self.d.seen) if self.d.seen else None
+
+
 # ---- Konfiguration ----
 class SettingSelect(Base, SelectEntity):
     def __init__(self, hub, d, key, options):
@@ -133,6 +164,8 @@ FACTORY = {
     "button": lambda h, d: [ActionButton(h, d, "reload"), ActionButton(h, d, "assist")],
     "number": lambda h, d: [SettingNumber(h, d, "idle", 0, 3600, 10, "s"), SettingNumber(h, d, "dim_level", 10, 95, 5, "%"),
                          SettingNumber(h, d, "listen", 3, 60, 1, "s"), SettingNumber(h, d, "volume", 0, 100, 5, "%"), SettingNumber(h, d, "bright", 10, 100, 5, "%")],
+    "binary_sensor": lambda h, d: [Online(h, d)],
+    "sensor": lambda h, d: [Seen(h, d)],
     "time": lambda h, d: [SettingTime(h, d, "dim_from"), SettingTime(h, d, "dim_to")],
 }
 assert set(FACTORY) == set(PLATFORMS)

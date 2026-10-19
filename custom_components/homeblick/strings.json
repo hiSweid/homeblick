@@ -95,6 +95,16 @@
       "dim_to": {
         "name": "Dim until"
       }
+    },
+    "binary_sensor": {
+      "online": {
+        "name": "Online"
+      }
+    },
+    "sensor": {
+      "seen": {
+        "name": "Last seen"
+      }
     }
   }
 }

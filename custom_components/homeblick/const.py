@@ -1,7 +1,7 @@
 DOMAIN = "homeblick"
 URL = "/homeblick"
 STORE_VERSION = 1
-PLATFORMS = ["select", "switch", "button", "number", "time"]
+PLATFORMS = ["select", "switch", "button", "number", "time", "binary_sensor", "sensor"]
 FACES = ["bigclock", "analog", "weather", "music", "grid", "calendar", "energy", "info", "cams"]
 WAKE = ["off", "hey_jarvis", "alexa"]
 # Einstellungen je Display (Entities der Kategorie „Konfiguration“)
