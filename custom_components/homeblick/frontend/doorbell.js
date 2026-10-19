@@ -53,7 +53,8 @@ async function feed(box, e, s, cb, vis = 0) {
   // Vollbild: WebRTC (geringste Latenz, später Gegensprechen); Face: MSE reicht und vermeidet den WebRTC/MSE-Wettlauf im Player
   v.mode = vis ? 'mse' : 'webrtc,mse'; v.media = 'video'; v.visibilityThreshold = vis;
   v.src = `${GO2RTC}/api/ws?src=${cam.src}`;
-  const t = setTimeout(() => box._tag === tag && cb('Offline'), 10000);
+  // kein Bild nach 10 s → Player neu aufbauen (nur bei sichtbarer Seite; nach 5 s Pause, bis es klappt)
+  const t = setTimeout(() => { if (box._tag !== tag) return; cb('Offline'); v.remove(); setTimeout(() => box._tag === tag && !document.hidden && feed(box, e, s, cb, vis), 5000); }, 10000);
   v.addEventListener('live', () => { clearTimeout(t); cb('Live'); });
   box.append(v);
 }

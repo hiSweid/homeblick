@@ -1,6 +1,45 @@
 {
   "config": {
-    "step": { "user": { "title": "Homeblick", "description": "Adds the Homeblick wall display panel to the sidebar." } },
-    "abort": { "single_instance_allowed": "Homeblick is already set up." }
+    "step": {
+      "user": {
+        "title": "Homeblick",
+        "description": "Adds the Homeblick wall display panel to the sidebar."
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "Homeblick is already set up."
+    }
+  },
+  "services": {
+    "command": {
+      "name": "Command display",
+      "description": "Control all open Homeblick displays.",
+      "fields": {
+        "action": {
+          "name": "Action",
+          "description": "face, reload, screensaver, wake or assist."
+        },
+        "face": {
+          "name": "Face",
+          "description": "Face type for action \"face\", e.g. music or bigclock."
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Kiosk behaviour",
+        "data": {
+          "idle": "Screensaver after (seconds, 0 = off)",
+          "saver": "Screensaver face",
+          "dim": "Dim at night",
+          "dim_from": "Dim from",
+          "dim_to": "Dim until",
+          "dim_level": "Dim level",
+          "wake": "Wake word (keeps the microphone open)"
+        }
+      }
+    }
   }
 }

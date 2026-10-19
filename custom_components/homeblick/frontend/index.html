@@ -370,6 +370,7 @@ input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:tr
 #assist.answer .ans>*{opacity:1;transform:none}
 #assist.answer .ans>:nth-child(2){transition-delay:.07s}
 #assist.answer .ans>:nth-child(3){transition-delay:.14s}
+#assist[data-k=voice] :is(.acard,.apill,.acal){display:none}
 #assist .atxt{left:8.6cqw;right:8cqw;top:13.2cqw;font-size:5.6cqw;line-height:1.25}
 #assist .acard{left:4.5cqw;right:4.5cqw;top:40cqw;bottom:-6cqw;padding:2.6cqw;border:.25cqw solid #e5e5ea;border-radius:5.8cqw;background:#fff}
 #assist .asky{position:relative;height:44cqw;border-radius:4.2cqw;overflow:hidden;background:linear-gradient(#3b86dc,#a3cdf3);color:#fff}
@@ -538,6 +539,10 @@ input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:tr
 import { weatherFace, weather, COND } from './weather.js';
 import { cutout } from './depth.js';
 import { energyFace, energy, energyDemo } from './energy.js';
+import { kioskInit, KIOSK_DEF } from './kiosk.js';
+import { wakeInit } from './wake.js';
+import { parseLRC, findLyrics } from './lyrics.js';
+import { voiceOK, voiceRun } from './voice.js';
 import { timerInit, timers, timerDemo, timerShow } from './timer.js';
 import { camInit, camShow, camHide, camFace, camTile, doorbell } from './doorbell.js';
 import { loadEvents, eventsHTML } from './events.js';
@@ -1023,11 +1028,6 @@ const DEMO_LYR = ['Abendlicht fällt auf die Dächer', 'Die Straßen werden stil
   'Der Tag legt sich zur Ruhe', 'Wie ein Hund vorm warmen Ofen', 'Wir reden nicht, wir hören nur', 'Wie die letzten Vögel rufen', '',
   'Bleib noch kurz, das Licht ist golden', 'Bleib noch kurz, es wird bald blau', 'Alles, was wir heute wollten', 'Passt in diesen einen Raum'];
 const DEMO_LINES = Array.from({ length: 52 }, (_, k) => ({ t: +(2 + k * 4.2).toFixed(1), s: DEMO_LYR[k % DEMO_LYR.length] }));
-const parseLRC = txt => txt.split('\n').flatMap(l => {
-  const m = l.match(/^\[(\d+):(\d+(?:\.\d+)?)\](.*)/);
-  return m ? [{ t: m[1] * 60 + +m[2], s: m[3].trim() }] : [];
-});
-console.assert(JSON.stringify(parseLRC('[00:01.50] a\n[01:02]\nx')) === '[{"t":1.5,"s":"a"},{"t":62,"s":""}]', 'lrc');
 let lyr = { key: null, title: '', lines: [], msg: '' }, lyrIdx, lyrT;
 async function loadLyrics(a) {
   const key = `${a.media_title}|${a.media_artist}`;
@@ -1036,10 +1036,7 @@ async function loadLyrics(a) {
   if (lyr.lines) return;
   let lines = [], msg = '';
   try {
-    const q = new URLSearchParams({ track_name: a.media_title, artist_name: a.media_artist || '' }), d = a.media_duration || 0;
-    const hits = await (await fetch('https://lrclib.net/api/search?' + q)).json();
-    hits.sort((x, y) => Math.abs(x.duration - d) - Math.abs(y.duration - d));
-    const h = hits.find(h => h.syncedLyrics) || hits.find(h => h.plainLyrics || h.instrumental);
+    const h = await findLyrics(a, async u => { const r = await fetch(u); return r.ok ? r.json() : null; });
     if (h?.syncedLyrics) lines = parseLRC(h.syncedLyrics);
     else if (h?.plainLyrics) lines = h.plainLyrics.split('\n').map(s => ({ t: null, s: s.trim() }));
     else if (h?.instrumental) msg = 'Instrumental';
@@ -1110,6 +1107,7 @@ function assistStart(k = '') {
     AS.className = 'listen';
     ORB.animate([{ transform: 'translateY(-6cqw) scale(.55,.72)' }, { transform: 'none' }], { duration: SD, easing: SPRING });
     INK.animate([{ opacity: 1 }, { opacity: 1, offset: .2 }, { opacity: 0 }], { duration: 420, easing: 'ease-out' });
+    if (LIVE && conn && voiceOK()) return assistVoice();
     asT = [setTimeout(() => AS.className = 'think', 2400), setTimeout(assistAnswer, 3100)];
   };
 }
@@ -1125,14 +1123,30 @@ async function assistAnswer() {
       + (forecast ? ` Heute wird es bis zu ${Math.round(forecast.temperature)} Grad warm.` : '');
     $('.ainfo b', AS).textContent = CFG.place;
   }
+  assistShow();
+}
+function assistShow(ms = 12000) {
   AS.className = 'answer';
   ORB.animate([{ transform: 'translateY(-8cqw) scale(.475)' }], { duration: SD, easing: SPRING, fill: 'forwards' });
-  asT.push(setTimeout(assistEnd, 12000));
+  asT.push(setTimeout(assistEnd, ms));
+}
+// Live: echte HA-Assist-Pipeline (voice.js); Antworttext erscheint, TTS läuft, danach schließt die Kugel
+let voice;
+async function assistVoice() {
+  AS.dataset.k = 'voice'; $('.atxt', AS).textContent = '';
+  const say = t => { $('.atxt', AS).textContent = t; };
+  voice = await voiceRun(conn, {
+    base: location.origin === 'null' ? '' : location.origin,
+    onThink: () => { if (AS.className === 'listen') AS.className = 'think'; },
+    onAnswer: t => { say(t || 'Erledigt.'); assistShow(60000); },   // schließt beim TTS-Ende (onEnd); 60 s nur als Sicherung
+    onError: m => { say('Das hat nicht geklappt: ' + m); assistShow(6000); },
+    onEnd: () => { if (AS.className === 'answer') { asT.forEach(clearTimeout); asT = [setTimeout(assistEnd, 4000)]; } else assistEnd(); },
+  });
 }
 // Zurück in die Kamera: Kugel wird schwarz und steigt, Goo-Tropfen verschmilzt mit dem Rand
 function assistEnd() {
   if (!/listen|think|answer/.test(AS.className)) return;
-  asT.forEach(clearTimeout);
+  asT.forEach(clearTimeout); voice?.stop(); voice = null;
   AS.className = 'out';
   INK.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 160, fill: 'forwards' });
   ORB.animate([{ transform: 'translateY(-12cqw) scale(.45)' }], { duration: 180, easing: 'ease-in', fill: 'forwards' }).onfinish = () => {
@@ -1669,6 +1683,7 @@ if (!LIVE) {
 camInit($('#cam'), { open, close, hass: HASS });
 if (!LIVE && new URLSearchParams(location.search).has('ring')) setTimeout(() => { ents = { ...ents, 'event.turklingel_doorbell': { ...ents['event.turklingel_doorbell'], state: new Date().toISOString() } }; schedule(); }, 1500);   // Demo-Klingeln wie HA
 timerInit(screen, call);
+const kiosk = kioskInit({ faces, conf: () => CONF, busy: () => mode !== 'normal' || cur || AS.className, touched: () => touched });
 renderAll(0);
 setTimeout(() => { tick(); setInterval(tick, 60000); }, 60050 - Date.now() % 60000);
 setInterval(times, 1000);
@@ -1697,10 +1712,21 @@ if (LIVE) {
     }
     // Einstellungen aus HA übernehmen (gilt für alle Displays); ohne gespeicherte Konfiguration bleibt die lokale und wird hochgeladen
     conn.sendMessagePromise({ type: 'homeblick/get_config' }).then(c => {
+      if (c?.kiosk) CONF.kiosk = c.kiosk;   // Kiosk-Verhalten kommt aus den Integrationsoptionen (HA → Homeblick → Konfigurieren)
       if (c?.faces?.length) { CONF = c; try { localStorage.setItem(KEY, JSON.stringify(CONF)); } catch {} renderAll(0); }
       else save();
-    }).catch(() => {});
+    }).catch(() => {}).finally(() => wk());
     ha.subscribeEntities(conn, e => { ents = e; schedule(); });
+    // Befehle aus HA (Service homeblick.command): Face wählen, neu laden, Screensaver, Assist
+    conn.subscribeMessage(c => {
+      if (c.action === 'face' && c.face) location.hash = c.face;
+      else if (c.action === 'reload') location.reload();
+      else if (c.action === 'screensaver') kiosk.sleep();
+      else if (c.action === 'wake') kiosk.wake();
+      else if (c.action === 'assist') { kiosk.wake(); assistStart(); }
+    }, { type: 'homeblick/subscribe_commands' }).catch(console.warn);
+    // Wake Word nur auf Wunsch (CONF.kiosk.wake): Mikrofon bleibt dann dauerhaft offen
+    const wk = () => { const m = { ...KIOSK_DEF, ...CONF.kiosk }.wake; if (m && voiceOK()) wakeInit({ model: m, onWake: () => { kiosk.wake(); assistStart(); return new Promise(r => { const t = setInterval(() => AS.className || (clearInterval(t), r()), 500); }); } }).catch(e => console.warn('Wake Word', e)); };
     conn.subscribeMessage(f => { forecast = f.forecast?.[0]; schedule(); }, { type: 'weather/subscribe_forecast', forecast_type: 'daily', entity_id: CFG.weather }).catch(console.warn);
   } catch (err) {
     // In KS heißt ERR_INVALID_AUTH: Teilen aus / keine Custom Page. Kein Reload, sonst Endlosschleife.

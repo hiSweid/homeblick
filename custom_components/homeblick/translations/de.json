@@ -1,6 +1,45 @@
 {
   "config": {
-    "step": { "user": { "title": "Homeblick", "description": "Fügt das Wandpanel Homeblick zur Seitenleiste hinzu." } },
-    "abort": { "single_instance_allowed": "Homeblick ist bereits eingerichtet." }
+    "step": {
+      "user": {
+        "title": "Homeblick",
+        "description": "Fügt das Wandpanel Homeblick zur Seitenleiste hinzu."
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "Homeblick ist bereits eingerichtet."
+    }
+  },
+  "services": {
+    "command": {
+      "name": "Display steuern",
+      "description": "Steuert alle offenen Homeblick-Displays.",
+      "fields": {
+        "action": {
+          "name": "Aktion",
+          "description": "face, reload, screensaver, wake oder assist."
+        },
+        "face": {
+          "name": "Face",
+          "description": "Face-Typ für Aktion „face“, z. B. music oder bigclock."
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Kiosk-Verhalten",
+        "data": {
+          "idle": "Screensaver nach (Sekunden, 0 = aus)",
+          "saver": "Screensaver-Face",
+          "dim": "Nachts dimmen",
+          "dim_from": "Dimmen ab",
+          "dim_to": "Dimmen bis",
+          "dim_level": "Dimmstufe",
+          "wake": "Wake Word (Mikrofon bleibt offen)"
+        }
+      }
+    }
   }
 }
