@@ -1,0 +1,1714 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>HomeView</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Roboto+Flex:opsz,wdth,wght@144,25,500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0}
+html,body{height:100%;overflow:hidden;background:#000;color:#fff;font:400 16px Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
+body{display:grid;place-items:center}
+button,input{font:inherit;color:inherit;background:none;border:0;padding:0;outline:0}
+button{cursor:pointer}
+input{user-select:text;-webkit-user-select:text}
+input::placeholder{color:#ffffff66}
+svg.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+[hidden]{display:none!important}
+
+/* Quadratischer Screen, alle Maße in cqw (1cqw = 1 % Breite) — Werte aus SPEC.md */
+#screen{position:relative;width:min(100vw,100dvh);aspect-ratio:1;container-type:size;overflow:hidden;border-radius:calc(min(100vw,100dvh)*.08);background:#000}
+#faces{position:absolute;inset:0;display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain;transition:transform var(--sd) var(--spring)}
+#faces::-webkit-scrollbar{display:none}
+.face{--pad:1.9cqw;--gap:1.65cqw;--t:calc((100cqw - 2*var(--pad) - 2*var(--gap))/3);--tint:hsl(calc(var(--h,0) - 4) 80% 72% / .85);
+  flex:0 0 100cqw;height:100cqw;scroll-snap-align:center;scroll-snap-stop:always;position:relative;overflow:hidden;
+  background:var(--wp) 0 0/100% 100%;transition:scale var(--sd) var(--spring),border-radius .3s,opacity .3s}
+.face.mono{--tint:#ebebf599}
+.face.light{--tint:#3c3c4399;color:#1c1c1e}
+
+/* ---------- Smart-Home-Raster ---------- */
+.f-grid{display:grid;grid-template:repeat(3,var(--t))/repeat(3,var(--t));gap:var(--gap);padding:var(--pad)}
+/* Glas = vorgerenderte Blur-Wallpaper an der Kachelposition, kein Live-backdrop-filter */
+.tile{position:relative;isolation:isolate;border-radius:4.3cqw;
+  display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:6cqw 1cqw 5.5cqw;text-align:center;
+  background:linear-gradient(165deg,#fff3,#fff1 45%,#fff0 75%),
+    var(--wpb) calc(-1*(var(--pad) + var(--c)*(var(--t) + var(--gap)))) calc(-1*(var(--pad) + var(--r)*(var(--t) + var(--gap))))/100cqw 100cqw;
+  box-shadow:inset 0 .2cqw .1cqw #fff5,inset 0 0 0 .12cqw #fff2,0 .6cqw 2cqw #0003;
+  transition:transform var(--sd) var(--spring),scale .25s,color .3s}
+.tile:active{transform:scale(.96);transition:transform .12s ease-out}
+.tile::before{content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;background:#fffffff2;opacity:0;transition:opacity .3s}
+.tile.on{color:#1c1c1e}.tile.on::before{opacity:1}.tile.on .sub{color:#1c1c1e99}.tile.on .ico{color:var(--accent)}
+[data-e^="light."]{--accent:#ffb300}[data-e^="lock."],[data-e^="cover."]{--accent:#ff9500}[data-e^="media_player."]{--accent:#ff2d55}[data-e^="fan."]{--accent:#30b0c7}
+.tile.on[data-e^="fan."]{--fanplay:running}
+.tile.na{opacity:.45}
+.tile[data-arm] .sub{font-size:0}.tile[data-arm] .sub::after{content:"Nochmal tippen";font-size:3.1cqw}
+.light .tile{background:#fff;box-shadow:0 .4cqw 2cqw #0000001a}.light .tile .sub{color:#3c3c4399}
+.ico{font-size:9.5cqw;transition:color .3s}
+.ttl{font-weight:600;font-size:3.1cqw;line-height:1.3}
+.sub{font-size:3.1cqw;line-height:1.3;color:var(--tint)}
+.tile[data-size="2x2"]{padding:9cqw 2cqw 6cqw}
+.tile[data-size="2x2"] .ico{font-size:20cqw}
+.tile[data-size="2x2"] :is(.ttl,.sub){font-size:4.4cqw}
+.tile[data-size="2x1"]:not(.thermo){flex-direction:row;justify-content:flex-start;gap:4cqw;padding:0 5cqw;text-align:left}
+
+.num{display:grid;justify-items:center;font-weight:500;line-height:1;letter-spacing:-.02em}
+.num>span{grid-area:1/1}
+.thermo{justify-content:flex-start;padding:0}
+.thermo .num{font-size:27cqw;margin-top:13.3cqw}
+.thermo[data-size="2x1"] .num{font-size:13cqw;margin-top:4cqw}
+.thermo[data-size="1x1"] .num{font-size:10cqw;margin-top:5.5cqw}
+/*: Titel/Untertitel im 2×2-Thermostat so groß wie bei 1×1, eine Zeile („Wohnzimmer • 20,5°“) */
+.thermo[data-size="2x2"] :is(.ttl,.sub){font-size:3.1cqw}
+.thermo .sub{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.thermo .foot>div{min-width:0}
+.thermo[data-size="1x1"] .chev{display:none}
+.thermo[data-size="1x1"] .foot{justify-content:center}
+.foot{position:absolute;inset:auto 0 5.5cqw;display:flex;align-items:center;justify-content:space-between;padding:0 4.8cqw}
+.chev{font-size:5cqw;padding:2cqw}
+
+.greet{grid-area:1/1/2/4;display:flex;justify-content:space-between;align-items:flex-start;padding:5cqw 3cqw;font-size:5cqw;font-weight:600;text-transform:uppercase;line-height:1.25}
+.greet>div>div:first-child{opacity:.7;font-weight:500}
+.greet .gw{font-size:8cqw;font-weight:500}
+
+/* ---------- Uhren ---------- */
+.dial{position:relative;border-radius:50%;aspect-ratio:1}
+.f-grid .dial{height:100%;justify-self:center;transition:scale .25s}
+.dial>svg{position:absolute;inset:0;width:100%;height:100%}
+.glass{background:radial-gradient(circle at 50% 20%,#fff3,#fff1 60%,#fff0);box-shadow:inset 0 0 0 .3cqw #fff4,inset 0 .5cqw .8cqw #fff3,0 .6cqw 2cqw #0002}
+.light .glass{background:#fff;box-shadow:0 .4cqw 2cqw #0000001a}
+.hand{position:absolute;left:50%;bottom:50%;transform:translateX(-50%);transform-origin:50% 100%;background:#fff;border-radius:99px}
+.hh{height:27%;width:3.8%}.mm{height:39%;width:3.2%}.ss{height:46%;width:.8%;background:#fffc}
+.pin{position:absolute;left:50%;top:50%;width:4%;height:4%;margin:-2%;border-radius:50%;background:#fff}
+.n{position:absolute;transform:translate(-50%,-50%);font-size:3.6cqw;font-weight:500}
+.light .hand,.light .pin{background:#1c1c1e}.light .dial svg g{stroke:#1c1c1e}
+
+.f-bigclock{display:flex;flex-direction:column;align-items:center;justify-content:center}
+.f-bigclock .dl{font-size:4.2cqw;font-weight:600;opacity:.85;margin-bottom:2cqw}
+.f-bigclock .num{font-size:42cqw;font-weight:600;line-height:.84;letter-spacing:-.04em}
+.f-bigclock .num span{background:linear-gradient(170deg,#fffffff2,#ffffff80 45%,#ffffff40);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 .6cqw 1.5cqw #0003)}
+.f-bigclock.light .num span{background:linear-gradient(170deg,#1c1c1e,#1c1c1e80);-webkit-background-clip:text;background-clip:text}
+
+.f-analog{display:grid;place-items:center}
+.f-analog .dial{width:86cqw}
+.f-analog .n{font-size:8.5cqw;font-weight:600;opacity:.9}
+.f-analog .hh{width:2.6%}.f-analog .mm{width:2%}.f-analog .ss{background:#ff9f0a}
+
+/* ---------- Kalender ---------- */
+.f-calendar{padding:7cqw 6cqw;display:flex;flex-direction:column;gap:3cqw}
+.f-calendar .big{position:absolute;inset:0;display:grid;place-items:center;font-size:85cqw;font-weight:700;letter-spacing:-.06em;color:#ff3b30;opacity:.13}
+.f-calendar header{position:relative;display:flex;justify-content:space-between;font-size:5cqw;font-weight:600}
+.f-calendar header b{color:#ff3b30}
+.f-calendar .days{position:relative;flex:1;display:grid;grid-template-columns:repeat(7,1fr);align-items:center;justify-items:center;font-size:4.8cqw;font-weight:500}
+.f-calendar .days i{font-style:normal;font-weight:700;font-size:3.6cqw;opacity:.5}
+.f-calendar .o{opacity:.3}
+.f-calendar .t{color:#fff;background:#ff3b30;border-radius:50%;width:8.5cqw;height:8.5cqw;display:grid;place-items:center;font-weight:700}
+
+/* ---------- Wetter: Face, Himmel-Animationen und Icons in weather.js ---------- */
+
+/* ---------- Info ---------- */
+/* Maße aus (hell) / hero_endframe (dunkel): Datum + Tag zentriert über der linken Spalte, keine Zifferblatt-Scheibe */
+.f-info{--paper:#92abb1;display:grid;grid-template:1fr 1fr/1fr 1fr;padding:6cqw;gap:4cqw;align-items:end}
+.f-info>div:first-child{text-align:center}
+.f-info .date{font-size:8.5cqw;font-weight:600}.f-info .date b{color:#ff9f0a;font-weight:600}.f-info .date span{color:#8e8e93}
+.f-info .day{font-size:33cqw;font-weight:600;line-height:.85;letter-spacing:-.04em}
+.f-info .dial{width:100%;align-self:start}.f-info .ss{background:#ff9f0a}
+.f-info .wx{position:relative}.f-info .mn{position:absolute;left:-9cqw;top:.3cqw;font-size:6cqw;color:#ff9f0a}
+/* Hell = Graublau: schwarze Zeiger, weißer Sekundenzeiger, Wochentag, Ort und Note weiß */
+.f-info.light .ss{background:#fff}.f-info.light .pin{background:#1c1c1e;box-shadow:0 0 0 .35cqw #fff}
+.f-info.light :is(.date b,.wx .loc,.mn){color:#fff}.f-info.light .date span{color:#343c3f}.f-info.light .np>span{color:#455154}.f-info.light .np button{background:#00000026}.f-info.light .np button span{color:inherit}
+.cover{background:#3a3a3c var(--art) center/cover}
+.np .cover{width:22cqw;aspect-ratio:1;border-radius:2.4cqw}
+.np b,.np span{display:block;font-size:3.3cqw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.np b{margin-top:2cqw;text-transform:uppercase}.np span{color:#8e8e93}
+.np button{display:inline-flex;align-items:center;gap:1.2cqw;margin-top:1.5cqw;font-size:3.8cqw;padding:1.3cqw 3.6cqw;border-radius:9cqw;background:#2c2c2e}
+.wx .loc{color:#ff9f0a;font-size:4cqw;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wx .tmp{font-size:19.5cqw;font-weight:500;line-height:1}
+.wx div{font-size:3.6cqw}
+.f-info .wx .wi{display:block;font-size:5cqw;margin:1cqw 0 .6cqw}
+
+/* ---------- Musik (Maße aus Video t = 36 s) ---------- */
+.f-music{background:#1c1c1e}
+/* ponytail: CSS-Blur auf dem Cover-Layer; ruckelt das beim Wischen auf dem Tablet → vorgerendertes Blur-Bild */
+.f-music .mbg{position:absolute;inset:-15%;background:var(--art) center/cover;filter:blur(60px) brightness(.6) saturate(1.3)}
+.mb,.mpill{position:absolute;top:6cqw;height:8.6cqw;border-radius:9cqw;background:#ffffff1f;box-shadow:inset 0 .15cqw .1cqw #ffffff40,inset 0 0 0 .1cqw #ffffff1a;display:flex;align-items:center;justify-content:space-around;font-size:5cqw}
+.mb{left:6cqw;width:8.6cqw;justify-content:center}
+.mpill{right:6.3cqw;width:18cqw;padding:0 1.5cqw}
+.f-music>.cover{position:absolute;left:18.75cqw;top:18.5cqw;width:62.5cqw;aspect-ratio:1;border-radius:2.8cqw;box-shadow:0 2cqw 6cqw #0005;transform-origin:0 0}
+/* unteres Cover-Drittel weich verwischt unter dem Text (statischer Filter, wird einmal gerastert) */
+.f-music>.cover::after{content:"";position:absolute;inset:0;border-radius:inherit;background:inherit;filter:blur(1.6cqw) brightness(.85);-webkit-mask-image:linear-gradient(#0000 55%,#000 82%);mask-image:linear-gradient(#0000 55%,#000 82%);transform-origin:50% 45%;transition:transform var(--sd) var(--spring)}
+.minfo{position:absolute;left:9cqw;right:16cqw;top:59cqw;text-shadow:0 .2cqw 1.5cqw #0004}
+.minfo b,.minfo span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.minfo b{font-size:6.1cqw;font-weight:600;line-height:1.2}
+.minfo span{font-size:4cqw;line-height:1.25;color:#ffffffa6}
+.more{position:absolute;right:9.6cqw;top:61.8cqw;width:5cqw;height:5cqw;border-radius:50%;background:#ffffffd9;color:#3a3a3c;display:grid;place-items:center;font-size:3.6cqw}
+/* Trefferfläche 5,6 % hoch, sichtbarer Balken 1,1 % (beim Ziehen dicker) */
+.f-music .prog{position:absolute;left:9cqw;right:9cqw;top:72.95cqw;height:5.6cqw;display:flex;align-items:center;touch-action:none;cursor:pointer}
+.prog b{flex:1;height:1.1cqw;border-radius:1cqw;background:#ffffff40;overflow:hidden;transition:height .2s}
+.prog.drag b{height:2.2cqw}
+.prog i{display:block;height:100%;background:#fff;transform-origin:left;transform:scaleX(0)}
+.f-music .times{position:absolute;left:9cqw;right:9cqw;top:78cqw;display:flex;justify-content:space-between;font-size:2.8cqw;color:#ffffff99}
+.f-music .c{position:absolute;top:88cqw;translate:-50% -50%;display:grid;place-items:center;transition:scale var(--sd) var(--spring),opacity .45s,background-color .3s,color .3s}
+.f-music .c:active{scale:.85;transition-duration:.1s}
+.c.lyr{left:12cqw;font-size:6.6cqw;color:#ffffff99}
+.c.prev{left:28.3cqw;font-size:11.9cqw}
+.c.play{left:50cqw;font-size:11cqw}
+.c.next{left:71.5cqw;font-size:11.9cqw}
+.c.queue{left:88cqw;font-size:6.6cqw;color:#ffffff99}
+.c:is(.lyr,.queue){width:10.5cqw;height:10.5cqw;border-radius:50%}
+.ly .c.lyr,.qm .c.queue{color:#fff;background:#ffffff38;--bf:#fff;--qf:#3a3a3c}
+.f-music>:is(.cover,.mb,.mpill,.minfo,.more,.prog,.times,.lyrics,.qlist){transition:opacity .45s,transform var(--sd) var(--spring)}
+/* Liedtext (Video 38 s): Cover/Titel/Fortschritt weg, Zeilen links, aktive weiß, Rest gedimmt + je Abstand stärker verwischt */
+:is(.ly,.qm)>:is(.cover,.minfo,.more,.prog,.times){opacity:0;pointer-events:none}
+:is(.ly,.qm)>.cover{transform:translate(1.9cqw,1.9cqw) scale(.94)}
+:is(.ly,.qm)>.minfo{transform:translateY(-8cqw)}
+.lyrics{position:absolute;inset:0 0 21cqw;overflow:hidden;opacity:0;pointer-events:none;
+  -webkit-mask-image:linear-gradient(#0000 6cqw,#000 24cqw,#000 60cqw,#0000);mask-image:linear-gradient(#0000 6cqw,#000 24cqw,#000 60cqw,#0000)}
+.lyrics{transform:translateY(-6cqw);touch-action:pan-x}
+.ly .lyrics{opacity:1;pointer-events:auto;transform:none}
+/* --o = von Hand gescrollt; nach 3 s federt es zurück zur aktiven Zeile */
+.ll{padding:0 12cqw 0 9cqw;transform:translateY(var(--o,0px));transition:transform var(--sd) var(--spring)}
+.ll.scrub{transition:none}
+/* Zeilen unterhalb der aktiven folgen leicht verzögert → Welle wie bei  */
+/* ponytail: filter-Übergang malt je Zeile auf dem Main-Thread; ruckelt das auf dem Tablet → nur opacity */
+.ll p{font-size:6.6cqw;font-weight:700;line-height:1.2;margin-bottom:3.4cqw;opacity:.35;filter:blur(calc(var(--d,2)*.3cqw));transform:translateY(var(--y,0));
+  transition:opacity .5s,filter .5s,transform var(--sd) var(--spring) calc(var(--w,0)*40ms);cursor:pointer}
+.ll p.on,.ll.plain p{opacity:1}
+.ll:is(.scrub,.plain) p{filter:none}
+/* Instrumental: drei Punkte füllen sich über die Pause, die Gruppe atmet */
+.ll .gap{display:flex;gap:1.8cqw;height:5cqw;align-items:center;transform-origin:0 50%}
+.gap i{width:2.6cqw;height:2.6cqw;border-radius:50%;background:#fff;opacity:.35}
+.gap.on{animation:breathe 2.4s ease-in-out infinite}
+.gap.on i{animation:dotfill calc(var(--gd)/3) linear calc(var(--gd)/3*var(--n) - var(--ge,0s)) both}
+.gap i:nth-child(2){--n:1}.gap i:nth-child(3){--n:2}.gap i:first-child{--n:0}
+.ll.paused .gap,.ll.paused .gap i{animation-play-state:paused}
+@keyframes dotfill{to{opacity:1}}
+@keyframes breathe{50%{scale:1.12}}
+/* Ruhe-Modus: nach IDLE ohne Berührung Cover randlos, Bedienelemente aus; erster Tipp weckt nur */
+/* Video 36 s: am Ende steht nur noch das Cover, auch der Titel blendet aus */
+.amb :is(.mb,.mpill,.more,.prog,.times,.c,.minfo){opacity:0;pointer-events:none}
+.amb:not(.ly,.qm)>.cover{transform:translate(-18.75cqw,-18.5cqw) scale(1.6)}
+.amb:not(.ly,.qm)>.minfo{transform:translateY(4cqw)}
+/* randlos: Blur-Ebene etwas größer, sonst scheint am Bildrand das scharfe Cover durch */
+.amb:not(.ly,.qm)>.cover::after{transform:scale(1.12)}
+
+/* Warteschlange (wie Lyrics-Modus, Liste statt Text) */
+.qlist{position:absolute;inset:17cqw 0 21cqw;overflow-y:auto;scrollbar-width:none;padding:0 6cqw 4cqw;opacity:0;pointer-events:none;transform:translateY(4cqw)}
+.qlist::-webkit-scrollbar{display:none}
+.qm .qlist{opacity:1;pointer-events:auto;transform:none}
+.qhead{display:flex;align-items:center;gap:2cqw;padding:0 3cqw 2cqw;font-weight:700;font-size:5cqw}
+.qhead span{flex:1}
+.tg{position:relative;width:9.5cqw;height:7cqw;border-radius:2.4cqw;background:#ffffff1f;display:grid;place-items:center;font-size:4cqw;color:#ffffffb3;transition:background-color .2s,color .2s}
+.tg.on{background:#fff;color:#1c1c1e}
+.tg small{position:absolute;right:1.2cqw;bottom:.6cqw;font-size:2.2cqw;font-weight:800}
+.qi{display:flex;align-items:center;gap:3cqw;width:100%;padding:1.6cqw 3cqw;border-radius:3cqw;text-align:left;transition:background-color .2s}
+.qi:active{background:#ffffff1a}
+.qi .cover{width:10cqw;aspect-ratio:1;border-radius:1.6cqw;flex:none}
+.qi>div{min-width:0}
+.qi b,.qi small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.qi b{font-size:3.8cqw;font-weight:600}.qi small{font-size:3.2cqw;color:#ffffff8c}
+.qnone{padding:6cqw 3cqw;color:#ffffff8c;font-size:3.8cqw}
+/* Popover: Ausgabe/Lautstärke und „…“-Menü; springt aus dem Button */
+.pop{position:absolute;z-index:3;width:62cqw;padding:2cqw;border-radius:5cqw;background:#2c2c2ef7;box-shadow:0 2cqw 6cqw #0006;font-size:3.8cqw;
+  opacity:0;scale:.4;pointer-events:none;touch-action:none;transition:opacity .2s,scale var(--sd) var(--spring)}
+.pop.open{opacity:1;scale:1;pointer-events:auto}
+.outs{top:16.5cqw;right:6.3cqw;transform-origin:top right}
+.menu{bottom:40cqw;right:9.6cqw;width:56cqw;transform-origin:bottom right}
+.pop h4{font-size:3.2cqw;font-weight:600;color:#ffffff8c;padding:1.4cqw 2.4cqw 1cqw}
+.orow{padding:1.4cqw 2.4cqw}
+.orow>button{display:flex;align-items:center;gap:2.4cqw;width:100%;font-weight:600;text-align:left;margin-bottom:1.6cqw}
+.orow>button>span{flex:1;min-width:0}
+.orow small{display:block;font-weight:400;font-size:3cqw;color:#ffffff8c}
+.ck{width:5.4cqw;height:5.4cqw;border-radius:50%;border:.4cqw solid #ffffff59;display:grid;place-items:center;font-size:3.2cqw;font-style:normal}
+.ck.on{background:#0a84ff;border-color:#0a84ff}
+input[type=range]{-webkit-appearance:none;appearance:none;display:block;width:100%;height:7cqw;margin:0;border-radius:2.2cqw;cursor:pointer;
+  background:linear-gradient(#fff,#fff) 0/var(--v,50%) 100% no-repeat,#ffffff2e}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:1px;height:7cqw;background:transparent}
+input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:transparent}
+.mi{display:flex;align-items:center;gap:3cqw;width:100%;padding:2.4cqw;border-radius:2.4cqw;text-align:left;transition:background-color .2s}
+.mi:active{background:#ffffff1a}
+.mi span{flex:1}.mi small{color:#ffffff8c;font-size:3.4cqw}
+.mi+.mi{border-top:.15cqw solid #ffffff14}
+
+/* ---------- Uhr-Stile ---------- */
+.dclock{border-radius:50%;aspect-ratio:1;display:grid;place-items:center;font-weight:600;font-size:7.6cqw;letter-spacing:-.02em}
+.f-grid .dclock{height:100%;justify-self:center}
+.dclock[data-size="2x2"]{font-size:16cqw}
+.dial.minimal>svg{display:none}
+.dial.minimal :is(.hh,.mm){width:5%}
+.dial.minimal :is(.ss,.pin){background:#ff9f0a}
+.dsvg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
+.dt{font:500 74px 'Roboto Flex',sans-serif;font-stretch:25%;text-anchor:middle}
+.dg{fill:#ffffff38}
+.dsvg feFlood{flood-color:#fff}
+.f-bigclock.light .dg{fill:#0000000f}
+.f-bigclock.light .dsvg feFlood{flood-color:#000}
+.dfg{position:absolute;inset:0;background:0 0/100% 100%;pointer-events:none}
+.f-bigclock .hl{display:flex;align-items:center;font-size:30cqw;font-weight:200;line-height:1;letter-spacing:-.03em}
+.f-bigclock .hl .num{font-size:1em;font-weight:inherit;line-height:1}
+.f-bigclock .hl .num span{background:none;color:inherit;filter:none}
+
+/* Tag ↔ Nacht langsam überblenden (phase() in JS) */
+::view-transition-old(root),::view-transition-new(root){animation-duration:1.4s}
+
+/* ---------- Vollbild-Ansichten ---------- */
+.view{position:absolute;inset:0;z-index:2;transform-origin:0 0;overflow:hidden}
+.x{position:absolute;z-index:1;left:4cqw;top:4cqw;width:8.5cqw;height:8.5cqw;border-radius:50%;background:#fff3;display:grid;place-items:center;font-size:4cqw}
+.top{position:absolute;z-index:1;top:5.6cqw;inset-inline:0;text-align:center;font-weight:600;font-size:3.4cqw;pointer-events:none}
+.top time{position:absolute;right:5cqw}
+#climate{background:var(--cc);transition:background-color .4s;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.5cqw}
+#climate .mode{font-size:4.6cqw;font-weight:500;padding:1.2cqw 4cqw;border-radius:9cqw;background:#ffffff26}
+#climate .row{display:flex;align-items:center;gap:6cqw}
+#climate .num{font-size:26cqw;font-weight:400}
+#climate .chev{font-size:6cqw}
+#climate .meta{font-size:3.4cqw;opacity:.9}
+.pw{position:absolute;right:4cqw;bottom:4cqw;width:10cqw;height:10cqw;border-radius:50%;background:#fff3;display:grid;place-items:center;font-size:5cqw}
+#dimmer{background:#fefced;color:#1c1c1e;touch-action:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2cqw}
+#dimmer .fill{position:absolute;inset:0;background:#f2ca06;transform-origin:bottom;transform:scaleY(var(--p))}
+#dimmer .x{background:#0000000f}
+#dimmer .ico{position:relative;font-size:9cqw;fill:currentColor}
+#dimmer .pct{position:relative;font-size:24cqw;font-weight:500;line-height:1}
+#dimmer small{font-size:8cqw;color:#8e8e93}
+/* Musikauswahl (Video 36 s: hell, Titel mittig, Zurück rund, 3 Spalten) */
+#lib{background:#f2f2f7;color:#1c1c1e}
+#lib .x{background:#0000000f}
+#lib .top{font-size:3.8cqw}
+.lgrid{position:absolute;inset:15cqw 0 0;overflow-y:auto;scrollbar-width:none;padding:1cqw 5cqw 6cqw;display:grid;grid-template-columns:repeat(3,1fr);gap:4cqw 3cqw;align-content:start}
+.lgrid::-webkit-scrollbar{display:none}
+.li{text-align:left;min-width:0;transition:scale var(--sd) var(--spring)}
+.li:active{scale:.95;transition-duration:.1s}
+.li .cover{display:grid;place-items:center;aspect-ratio:1;border-radius:2.6cqw;box-shadow:0 .6cqw 2cqw #0002;color:#fff;font-size:9cqw}
+.li b,.li small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.li b{font-size:3.3cqw;font-weight:600;margin-top:1.6cqw}
+.li small{font-size:3cqw;color:#8e8e93}
+.lnone{grid-column:1/-1;text-align:center;color:#8e8e93;padding-top:20cqw;font-size:3.8cqw}
+
+/* ---------- Bearbeiten: Galerie (lang drücken) → Anpassen → Kachel-Editor ---------- */
+#screen.gallery #faces{transform:scale(.8)}
+.gallery .face,.custom .face{border-radius:7cqw}
+.gallery .face{scale:.94}
+.gallery .face *{pointer-events:none}
+#screen.custom #faces{transform:translateY(-11cqw) scale(.72);overflow:hidden;touch-action:none}
+#screen.custom.tedit #faces{transform:translateY(-29cqw) scale(.4)}
+.custom .face:not(.cur){opacity:0}
+.custom .face.cur [data-ti] *{pointer-events:none}
+@keyframes wig{from{rotate:-.9deg}to{rotate:.9deg}}
+.custom .face.cur [data-ti]{animation:wig .13s ease-in-out infinite alternate}
+.custom .face.cur [data-ti]:nth-child(odd){animation-direction:alternate-reverse}
+[data-ti].lift{z-index:5;scale:1.08;animation:none!important}
+[data-ti].editing{outline:.7cqw solid #0a84ff;outline-offset:.7cqw}
+.del{display:none;position:absolute;z-index:2;left:-1.6cqw;top:-1.6cqw;width:6cqw;height:6cqw;border-radius:50%;background:#3a3a3cf0;color:#fff;place-items:center;font-size:3.4cqw;box-shadow:0 .3cqw 1cqw #0005}
+.custom .face.cur [data-ti] .del{display:grid;pointer-events:auto}
+
+#gal{position:absolute;inset:0;z-index:3;pointer-events:none;opacity:0;transition:opacity .25s}
+.gallery #gal{opacity:1}
+.gallery #gal button{pointer-events:auto}
+.gbtn{width:8cqw;height:8cqw;border-radius:50%;background:#ffffff26;display:grid;place-items:center;font-size:4cqw;transition:background-color .2s}
+.trash{position:absolute;top:2cqw;right:13cqw}
+.gbar{position:absolute;left:0;right:0;bottom:1.8cqw;display:flex;justify-content:center;gap:2cqw}
+.pill{height:8cqw;padding:0 4.5cqw;border-radius:9cqw;background:#ffffff26;font-weight:600;font-size:3.4cqw;display:inline-flex;align-items:center;gap:1.5cqw;white-space:nowrap;transition:background-color .2s}
+.pill.blue{background:#0a84ff}.pill.red{background:#ff3b30}
+[data-arm].pill,[data-arm].gbtn{background:#ff3b30}
+
+.sheet{position:absolute;inset:auto 0 0;z-index:4;display:flex;flex-direction:column;gap:2.4cqw;padding:3cqw 4cqw 3.5cqw;border-radius:6cqw 6cqw 0 0;
+  background:#1c1c1ef0;-webkit-backdrop-filter:blur(30px);backdrop-filter:blur(30px);color:#fff;font-size:3.4cqw;transform:translateY(105%);transition:transform var(--sd) var(--spring)}
+.custom:not(.tedit) #sheet,.custom.tedit #tedit,.picking #picker{transform:none}
+.srow{display:flex;gap:2cqw;align-items:center}
+.srow input,#tedit>input{flex:1;min-width:0;height:8cqw;padding:0 3cqw;border-radius:2.4cqw;background:#ffffff1a}
+#tedit>input{flex:none}   /* Spalte: flex:1 quetschte das Entity-Feld auf die halbe Höhe */
+.sheet.nogrid .gridonly,.sheet.nobg .sws,.styles:empty,#tedit:not(.isclock) .cs,#tedit.isclock .noclock,#tedit:not(.istile) .nt,#tedit:not(.hasn) [data-act=ndel],#tedit:not(.nm) [data-act=ndel],#tedit.nm .kr,#tedit.nm .seg[data-k=size]{display:none}
+.sws{display:flex;gap:2.2cqw;align-items:center}
+.sw{width:7cqw;height:7cqw;border-radius:50%;flex:none;display:grid;place-items:center;font-size:3.6cqw;cursor:pointer}
+.sw.sel{outline:.5cqw solid #fff;outline-offset:.5cqw}
+.seg{display:flex;background:#ffffff1a;border-radius:2.4cqw;padding:.6cqw}
+.seg button{padding:1.4cqw 2.6cqw;border-radius:1.8cqw;transition:background-color .2s}
+.seg button.sel{background:#ffffff40}
+.icons{display:flex;gap:1.2cqw}
+.icons button{width:6.4cqw;height:6.4cqw;border-radius:1.8cqw;background:#ffffff14;display:grid;place-items:center;font-size:3.8cqw}
+.icons button.sel{background:#0a84ff}
+#picker .types{display:grid;grid-template-columns:repeat(4,1fr);gap:2cqw}
+#picker .types button{height:12cqw;border-radius:3cqw;background:#ffffff1a;font-weight:600;font-size:3.2cqw}
+/* ---------- Assist/Siri (Video 15,3–18 s) ----------
+   Tropfen: schwarzer Kreis + Kamerarand im Goo-Filter (Blur + Alpha-Schwelle) → Metaball-Hals, reißt ab (~0,2 s);
+   dann übernimmt die Glaskugel (20 % W, Mitte 50 %/17 %). Antwort: weiße Karte, Kugel klein oben (9,5 % W, y 9 %). */
+#assist{position:absolute;inset:0;z-index:20;pointer-events:none}
+#assist:is(.listen,.think,.answer){pointer-events:auto}
+#assist .goo{position:absolute;left:35cqw;top:-16cqw;width:30cqw;height:46cqw;overflow:visible;visibility:hidden}
+#assist.drop .goo{visibility:visible}
+#assist circle{transform-box:fill-box;transform-origin:center}
+#assist .abg{position:absolute;inset:0;background:#fff;opacity:0;transition:opacity .3s}
+#assist.answer .abg{opacity:1}
+/* Lichtschein der Kugel auf dem Inhalt darunter */
+#assist .bloom{position:absolute;left:29cqw;top:13cqw;width:42cqw;height:34cqw;border-radius:50%;background:radial-gradient(closest-side,#fff,#fff9 30%,#fff3 55%,#fff0);
+  mix-blend-mode:plus-lighter;opacity:0;transition:opacity .4s}
+#assist.listen .bloom{opacity:.6;animation:bloom 1.7s ease-in-out infinite alternate}
+#assist.think .bloom{opacity:.95;animation:bloom .5s ease-in-out infinite alternate}
+@keyframes bloom{from{scale:.88}to{scale:1.12}}
+#assist .orb{position:absolute;left:40cqw;top:7cqw;width:20cqw;height:20cqw;border-radius:50%;overflow:hidden;opacity:0;
+  background:radial-gradient(34% 11% at 50% 10%,#000 70%,#0000),linear-gradient(#141418e6 0 22%,#000c 44%,#0005 58%,#0000 68%);
+  -webkit-backdrop-filter:brightness(1.7) saturate(1.2) blur(.3cqw);backdrop-filter:brightness(1.7) saturate(1.2) blur(.3cqw);
+  box-shadow:inset 0 0 0 .12cqw #ffffff2e,inset 0 -1.6cqw 2.4cqw #fff5,0 0 0 .1cqw #0002,0 1.5cqw 4cqw #0004}
+#assist:is(.listen,.think,.answer,.out) .orb{opacity:1}
+/* weißer Lichtbogen im unteren Drittel, schwingt; Regenbogensaum dreht langsam */
+#assist .hl{position:absolute;left:12%;right:12%;top:30%;height:34%;border-radius:50%;border-bottom:1.7cqw solid #fff;filter:blur(.45cqw) drop-shadow(0 0 .8cqw #fff);
+  animation:hl 2.2s ease-in-out infinite alternate}
+#assist.think .hl{animation-duration:.6s}
+@keyframes hl{0%{transform:rotate(-7deg) scaleX(.9)}50%{transform:translateY(-4%) rotate(3deg) scaleX(1.06)}100%{transform:translateY(3%) rotate(8deg) scaleX(.94)}}
+#assist .iri{position:absolute;inset:0;border-radius:50%;opacity:.3;mix-blend-mode:screen;animation:spin 5s linear infinite;
+  background:conic-gradient(from 100deg,#0000,#ff3cac 8%,#7a5cff 16%,#2bb5ff 24%,#3dffc5 32%,#fff35c 40%,#0000 48%);
+  -webkit-mask:radial-gradient(closest-side,#0000 74%,#000 90%,#0000);mask:radial-gradient(closest-side,#0000 74%,#000 90%,#0000)}
+#assist.answer .iri{opacity:0;transition:opacity .3s}
+@keyframes spin{to{rotate:360deg}}
+#assist .ink{position:absolute;inset:0;background:#000;opacity:0}
+/* Mikrofon-Punkt oben rechts (Video: 94 %/6,4 %) */
+#assist .mic{position:absolute;right:5.4cqw;top:5.8cqw;width:1.3cqw;height:1.3cqw;border-radius:50%;background:#ff9f0a;opacity:0;transition:opacity .3s}
+#assist:is(.listen,.think) .mic{opacity:1}
+/* Antwortkarte (Video 18 s): Text 5,6 % Regular, Karte mit Rand + Innenbild + Glas-Infofeld, blaue Pille */
+#assist .ans{position:absolute;inset:0;color:#1c1c1e;pointer-events:none}
+#assist.answer .ans{pointer-events:auto}
+#assist .ans>*{position:absolute;opacity:0;transform:translateY(3cqw);transition:opacity .35s,transform var(--sd) var(--spring)}
+#assist.answer .ans>*{opacity:1;transform:none}
+#assist.answer .ans>:nth-child(2){transition-delay:.07s}
+#assist.answer .ans>:nth-child(3){transition-delay:.14s}
+#assist .atxt{left:8.6cqw;right:8cqw;top:13.2cqw;font-size:5.6cqw;line-height:1.25}
+#assist .acard{left:4.5cqw;right:4.5cqw;top:40cqw;bottom:-6cqw;padding:2.6cqw;border:.25cqw solid #e5e5ea;border-radius:5.8cqw;background:#fff}
+#assist .asky{position:relative;height:44cqw;border-radius:4.2cqw;overflow:hidden;background:linear-gradient(#3b86dc,#a3cdf3);color:#fff}
+#assist .asky .t{position:absolute;left:5cqw;top:2cqw;font-size:13cqw;font-weight:300}
+#assist .asky .wi{position:absolute;right:5cqw;top:5cqw;font-size:9cqw}
+#assist .ainfo{position:absolute;left:1.6cqw;right:1.6cqw;bottom:1.6cqw;padding:2.6cqw 3.6cqw;border-radius:3.3cqw;background:#ffffffeb;color:#1c1c1e;font-size:3.2cqw;line-height:1.35}
+#assist .ainfo b{display:block;font-size:3.9cqw;font-weight:700}
+#assist .ainfo span{display:block;color:#8e8e93}
+#assist .ainfo em{display:block;font-style:normal;color:#ff9500}
+#assist .apill{left:7.2cqw;right:7.2cqw;top:89.5cqw;height:9cqw;border-radius:9cqw;background:#0a7cff;color:#fff;font-size:4.2cqw;font-weight:600;display:flex;align-items:center;justify-content:center;gap:2cqw}
+#assist.answer .apill:active{scale:.96}
+/* Kalender-Antwort: Liste statt Wetterkarte, läuft unten aus dem Screen; Pillen in events.js */
+#assist .acal{left:4.4cqw;right:4.4cqw;top:35cqw;bottom:0;overflow:hidden}
+#assist:not([data-k=cal]) .acal,#assist[data-k=cal] :is(.acard,.apill){display:none}
+/* Auslöser: Kamera oben Mitte antippen oder herunterziehen */
+#pull{position:absolute;left:30cqw;right:30cqw;top:0;height:3cqw;z-index:19;touch-action:none}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+  <symbol id="intercom" viewBox="0 0 24 24"><clipPath id="icl"><circle cx="12" cy="12" r="10.2"/></clipPath><g clip-path="url(#icl)" fill="currentColor" stroke="none"><rect x="1.62" y="1" width="1.56" height="22"/><rect x="4.82" y="1" width="1.56" height="22"/><rect x="8.02" y="1" width="1.56" height="22"/><rect x="11.22" y="1" width="1.56" height="22"/><rect x="14.42" y="1" width="1.56" height="22"/><rect x="17.62" y="1" width="1.56" height="22"/><rect x="20.82" y="1" width="1.56" height="22"/></g></symbol>
+  <symbol id="moon" viewBox="0 0 24 24"><g fill="currentColor" stroke="none"><path d="M17.6 16.4A7.6 7.6 0 1 1 9.1 5.8a8 8 0 0 0 8.5 10.6z"/><g opacity=".85"><path d="M15.4 2.4l.4 1.1 1.1.4-1.1.4-.4 1.1-.4-1.1-1.1-.4 1.1-.4z"/><path d="M19.4 5.7l.6 1.6 1.6.6-1.6.6-.6 1.6-.6-1.6-1.6-.6 1.6-.6z"/></g></g></symbol>
+  <symbol id="sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.2" fill="currentColor" stroke="none"/><path d="M12 1.8v2.5M12 19.7v2.5M1.8 12h2.5M19.7 12h2.5M4.8 4.8l1.7 1.7M17.5 17.5l1.7 1.7M4.8 19.2l1.7-1.7M17.5 6.5l1.7-1.7"/></symbol>
+  <symbol id="lock" viewBox="0 0 24 24"><rect x="4.5" y="10.5" width="15" height="11.5" rx="2.5" fill="currentColor" stroke="none"/><path d="M7.8 10.5V7.4a4.2 4.2 0 0 1 8.4 0v3.1" stroke-width="2.4"/></symbol>
+  <symbol id="unlock" viewBox="0 0 24 24"><rect x="4.5" y="10.5" width="15" height="11.5" rx="2.5" fill="currentColor" stroke="none"/><path d="M7.8 10.5V7.4a4.2 4.2 0 0 1 8.2-1.4" stroke-width="2.4"/></symbol>
+  <symbol id="bulb" viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.2 1 2v.3h6v-.3c0-.8.4-1.5 1-2A7 7 0 0 0 12 2z" fill="currentColor" stroke="none"/><path d="M9.2 19.3h5.6M10 21.8h4" stroke-width="1.8"/></symbol>
+  <symbol id="video" viewBox="0 0 24 24"><rect x="2.5" y="6.5" width="13" height="11" rx="2.5" fill="currentColor" stroke="none"/><path d="M16.5 10.5l5-3v9l-5-3z" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="timer" viewBox="0 0 24 24"><circle cx="12" cy="13.5" r="8"/><path d="M12 9.5v4l2.6 2M9.5 2.5h5M12 2.5v3"/></symbol>
+  <symbol id="house" viewBox="0 0 24 24"><path d="M3.5 11 12 4l8.5 7M6 9.5V20h12V9.5M10 20v-5h4v5"/></symbol>
+  <symbol id="garage" viewBox="0 0 24 24"><path d="M3 21V9l9-5 9 5v12M6.5 21v-9h11v9M6.5 15h11M6.5 18h11"/></symbol>
+  <symbol id="blind" viewBox="0 0 24 24"><path d="M3.5 4h17M5 4v12h14V4M5 8h14M5 12h14M12 16v4"/></symbol>
+  <!-- Standventilator Flügel drehen per --fanplay (Variablen erben in den <use>-Baum, Selektoren nicht) -->
+  <symbol id="fan" viewBox="0 0 24 24"><g opacity=".55" stroke-width="1.4"><circle cx="12" cy="10.5" r="8.3"/><path d="M12 18.8v2.4M8.6 21.4h6.8"/></g><g style="transform-origin:12px 10.5px;animation:spin 1.4s linear infinite;animation-play-state:var(--fanplay,paused)" fill="currentColor" stroke="none"><path id="fb" d="M11.2 9.4C9.3 8.6 7.9 7 8.3 5.3c.5-1.8 3-2.2 4.3-.9 1.2 1.2 1 3.4-.4 5z"/><use href="#fb" transform="rotate(90 12 10.5)"/><use href="#fb" transform="rotate(180 12 10.5)"/><use href="#fb" transform="rotate(270 12 10.5)"/></g><circle cx="12" cy="10.5" r="1" stroke-width=".9"/></symbol>
+  <symbol id="up" viewBox="0 0 24 24"><path d="M5 15l7-7 7 7"/></symbol>
+  <symbol id="down" viewBox="0 0 24 24"><path d="M5 9l7 7 7-7"/></symbol>
+  <symbol id="x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18" stroke-width="2.6"/></symbol>
+  <symbol id="minus" viewBox="0 0 24 24"><path d="M6 12h12" stroke-width="3"/></symbol>
+  <symbol id="plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke-width="2.6"/></symbol>
+  <symbol id="trash" viewBox="0 0 24 24"><path d="M4 7h16M9.5 7V4.5h5V7M6.5 7l1 13h9l1-13"/></symbol>
+  <symbol id="image" viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="15" rx="3"/><circle cx="9" cy="10" r="1.8"/><path d="M3.5 17l5-4.5 4 3.5 3-2.5 5 4"/></symbol>
+  <symbol id="power" viewBox="0 0 24 24"><path d="M12 3v8M7 6.3a7.5 7.5 0 1 0 10 0" stroke-width="2.4"/></symbol>
+  <symbol id="thermo" viewBox="0 0 24 24"><path d="M10 14.5V5a2 2 0 0 1 4 0v9.5a4 4 0 1 1-4 0z"/></symbol>
+  <symbol id="drop" viewBox="0 0 24 24"><path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/></symbol>
+  <symbol id="wind" viewBox="0 0 24 24"><path d="M3 8.5h11a3 3 0 1 0-3-3M3 12.5h15a3 3 0 1 1-3 3M3 16.5h6"/></symbol>
+  <symbol id="arrow" viewBox="0 0 24 24"><path d="M20 4 4 11l7 2 2 7z" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="cloud" viewBox="0 0 24 24"><path d="M7 18h10a4 4 0 0 0 0-8 5.5 5.5 0 0 0-10.6 1.5A3.3 3.3 0 0 0 7 18z"/></symbol>
+  <symbol id="play" viewBox="0 0 24 24"><path d="M7 4.8v14.4L19 12z" fill="currentColor" stroke-width="1.6"/></symbol>
+  <symbol id="pause" viewBox="0 0 24 24"><rect x="5.2" y="3.5" width="5" height="17" rx="1.6" fill="currentColor" stroke="none"/><rect x="13.8" y="3.5" width="5" height="17" rx="1.6" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="prev" viewBox="0 0 24 24"><path d="M11.5 7v10L3.5 12zM20.5 7v10l-8-5z" fill="currentColor" stroke-width="1.5"/></symbol>
+  <symbol id="next" viewBox="0 0 24 24"><path d="M3.5 7v10l8-5zM12.5 7v10l8-5z" fill="currentColor" stroke-width="1.5"/></symbol>
+  <symbol id="note" viewBox="0 0 24 24"><path d="M9 17.5V6l10-2v11.5"/><circle cx="6.6" cy="17.6" r="2.6" fill="currentColor"/><circle cx="16.6" cy="15.6" r="2.6" fill="currentColor"/></symbol>
+  <symbol id="cast" viewBox="0 0 24 24"><path d="M6.5 16.5a7.5 7.5 0 1 1 11 0M9 14a4 4 0 1 1 6 0"/><path d="M12 14.5l4 5.5H8z" fill="currentColor" stroke-width="1.2"/></symbol>
+  <symbol id="vol" viewBox="0 0 24 24"><path d="M3.5 9.5h3.5L11.5 6v12L7 14.5H3.5z" fill="currentColor" stroke-width="1.2"/><path d="M15 9a4.5 4.5 0 0 1 0 6M17.8 6.5a8 8 0 0 1 0 11"/></symbol>
+  <symbol id="more" viewBox="0 0 24 24"><circle cx="6" cy="12" r="1.9" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.9" fill="currentColor" stroke="none"/><circle cx="18" cy="12" r="1.9" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="quote" viewBox="0 0 24 24"><path d="M5 4.5h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-7.5L7 21v-3.5H5a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2z" style="fill:var(--bf,none)"/><circle cx="9.2" cy="10.2" r="1.7" stroke="none" style="fill:var(--qf,currentColor)"/><circle cx="14.8" cy="10.2" r="1.7" stroke="none" style="fill:var(--qf,currentColor)"/><path d="M10.8 10.4c0 1.7-.7 2.7-2 3.3M16.4 10.4c0 1.7-.7 2.7-2 3.3" stroke-width="1.4" style="stroke:var(--qf,currentColor)"/></symbol>
+  <symbol id="back" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" stroke-width="2.4"/></symbol>
+  <symbol id="fwd" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" stroke-width="2.4"/></symbol>
+  <symbol id="check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" stroke-width="3"/></symbol>
+  <symbol id="shuffle" viewBox="0 0 24 24"><path d="M3 7h3.5c4 0 6.5 10 11 10H21M3 17h3.5c1.8 0 3-1.8 4.2-4M14 9c1-1.3 2.2-2 3.5-2H21M18 4l3 3-3 3M18 14l3 3-3 3"/></symbol>
+  <symbol id="repeat" viewBox="0 0 24 24"><path d="M4 11V9a3 3 0 0 1 3-3h12M16 3l3 3-3 3M20 13v2a3 3 0 0 1-3 3H5M8 21l-3-3 3-3"/></symbol>
+  <symbol id="stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="queue" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1.3" fill="currentColor" stroke="none"/><circle cx="4.5" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="4.5" cy="18" r="1.3" fill="currentColor" stroke="none"/></symbol>
+</svg>
+
+<div id="screen">
+  <div id="faces"></div>
+
+  <section id="climate" class="view" hidden>
+    <button class="x" data-act="close" aria-label="Schließen"><svg class="i"><use href="#x"/></svg></button>
+    <div class="top"><span data-bind="vname"></span><time data-bind="time"></time></div>
+    <button class="mode" data-act="hvac" data-bind="mode" aria-label="Modus wechseln"></button>
+    <div class="row">
+      <button class="chev" data-act="down" aria-label="Kälter"><svg class="i"><use href="#down"/></svg></button>
+      <div class="num"></div>
+      <button class="chev" data-act="up" aria-label="Wärmer"><svg class="i"><use href="#up"/></svg></button>
+    </div>
+    <div class="meta"><svg class="i"><use href="#thermo"/></svg> <span data-bind="cur"></span>&nbsp;&nbsp;<svg class="i"><use href="#drop"/></svg> <span data-bind="hum"></span></div>
+    <button class="pw" data-act="power" aria-label="Ein/Aus"><svg class="i"><use href="#power"/></svg></button>
+  </section>
+
+  <section id="dimmer" class="view" hidden>
+    <div class="fill"></div>
+    <button class="x" data-act="close" aria-label="Schließen"><svg class="i"><use href="#x"/></svg></button>
+    <div class="top" data-bind="vname"></div>
+    <svg class="i ico"><use href="#bulb"/></svg>
+    <div class="pct"><span data-bind="light"></span><small>%</small></div>
+  </section>
+
+  <section id="lib" class="view" hidden>
+    <button class="x" data-act="libback" aria-label="Zurück"><svg class="i"><use href="#x"/></svg></button>
+    <div class="top"><span data-bind="libt"></span><time data-bind="time"></time></div>
+    <div class="lgrid"></div>
+  </section>
+
+  <section id="cam" class="view" hidden></section>   <!-- Inhalt: doorbell.js -->
+
+  <section id="events" class="view" hidden>   <!-- Pillen + Stil: events.js -->
+    <button class="x" data-act="close" aria-label="Schließen"><svg class="i"><use href="#x"/></svg></button>
+    <div class="top"><span>Termine</span><time data-bind="time"></time></div>
+    <div class="evl"></div>
+  </section>
+
+  <div id="gal">
+    <button class="gbtn trash" data-act="delface" aria-label="Ansicht löschen"><svg class="i"><use href="#trash"/></svg></button>
+    <div class="gbar"><button class="gbtn" data-act="mvface" data-v="-1" aria-label="Ansicht nach links"><svg class="i"><use href="#back"/></svg></button><button class="pill" data-act="customize">Anpassen</button><button class="gbtn" data-act="addface" aria-label="Ansicht hinzufügen"><svg class="i"><use href="#plus"/></svg></button><button class="gbtn" data-act="mvface" data-v="1" aria-label="Ansicht nach rechts"><svg class="i"><use href="#fwd"/></svg></button></div>
+  </div>
+
+  <div id="sheet" class="sheet">
+    <div class="sws"></div>
+    <div class="seg styles" style="align-self:flex-start"></div>
+    <div class="srow">
+      <input class="gridonly" data-k="greet" placeholder="Begrüßung: Name" autocomplete="off">
+      <button class="pill gridonly" data-act="addtile"><svg class="i"><use href="#plus"/></svg> Kachel</button>
+      <span style="flex:1"></span>
+      <button class="pill blue" data-act="done">Fertig</button>
+    </div>
+  </div>
+
+  <div id="tedit" class="sheet">
+    <div class="srow">
+      <div class="seg nt" data-k="ph"><button data-act="seg" data-v="day">Tag</button><button data-act="seg" data-v="night">Nacht</button></div>
+      <div class="seg kr" data-k="kind"><button data-act="seg" data-v="tile">Kachel</button><button data-act="seg" data-v="thermo">Thermostat</button><button data-act="seg" data-v="clock">Uhr</button></div>
+      <span style="flex:1"></span>
+      <button class="pill" data-act="ndel">Nacht entfernen</button>
+    </div>
+    <div class="srow cs">
+      <div class="seg" data-k="cs"><button data-act="seg" data-v="ticks">Striche</button><button data-act="seg" data-v="numbers">Zahlen</button><button data-act="seg" data-v="digital">Digital</button></div>
+    </div>
+    <input class="noclock" data-k="e" list="ents" placeholder="Entity, z. B. light.flur" autocomplete="off">
+    <div class="srow noclock"><input data-k="title" placeholder="Titel" autocomplete="off"><input data-k="sub" placeholder="Untertitel" autocomplete="off"></div>
+    <div class="icons noclock"></div>
+    <div class="srow">
+      <div class="seg" data-k="size"><button data-act="seg" data-v="1x1">1×1</button><button data-act="seg" data-v="2x1">2×1</button><button data-act="seg" data-v="2x2">2×2</button></div>
+      <span style="flex:1"></span>
+      <button class="pill red" data-act="tdel">Löschen</button><button class="pill blue" data-act="tdone">Fertig</button>
+    </div>
+  </div>
+
+  <div id="picker" class="sheet">
+    <div class="types"></div>
+    <div class="srow"><button class="pill" data-act="reset">Standard wiederherstellen</button><span style="flex:1"></span><button class="pill blue" data-act="pclose">Abbrechen</button></div>
+  </div>
+  <datalist id="ents"></datalist>
+
+  <button id="pull" data-act="assist" aria-label="Assist"></button>
+  <div id="assist">
+    <div class="abg"></div>
+    <div class="bloom"></div>
+    <div class="ans">
+      <p class="atxt"></p>
+      <div class="acard"><div class="asky"><div class="t" data-bind="wxt"></div><i class="wi" data-wxi></i>
+        <div class="ainfo"><b></b><span data-bind="wxc"></span><em data-bind="wxhl"></em></div></div></div>
+      <button class="apill" data-act="go" data-v="weather"><svg class="i"><use href="#sun"/></svg>Wetter öffnen</button>
+      <div class="acal"></div>
+    </div>
+    <div class="orb"><i class="hl"></i><i class="iri"></i><i class="ink"></i></div>
+    <svg class="goo" viewBox="0 -16 30 46" aria-hidden="true">
+      <filter id="goo" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.2"/><feColorMatrix values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 24 -10"/></filter>
+      <g filter="url(#goo)"><rect x="-10" y="-16" width="50" height="15"/><circle cx="15" cy="0" r="10"/></g>
+    </svg>
+    <i class="mic"></i>
+  </div>
+</div>
+
+<script type="module">
+import { weatherFace, weather, COND } from './weather.js';
+import { cutout } from './depth.js';
+import { energyFace, energy, energyDemo } from './energy.js';
+import { timerInit, timers, timerDemo, timerShow } from './timer.js';
+import { camInit, camShow, camHide, camFace, camTile, doorbell } from './doorbell.js';
+import { loadEvents, eventsHTML } from './events.js';
+// Ohne Parameter: Demo-Daten. Echtes HA nur mit ?live
+const LIVE = new URLSearchParams(location.search).has('live');
+const CFG = { hass: '', weather: 'weather.home', place: 'Home' };   // ponytail: Wetter-Entity/Ort fest; später in den Einstellungen wählbar
+const HASS = /^\/(local|homeblick)\//.test(location.pathname) ? location.origin : CFG.hass;   // unter /local/ ist die Seite selbst der HA-Origin
+
+const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const root = document.documentElement, screen = $('#screen'), faces = $('#faces');
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => `&#${c.charCodeAt(0)};`);
+const bind = (k, v) => { v = String(v); for (const e of $$(`[data-bind=${k}]`)) if (e.textContent !== v) e.textContent = v; };
+const shake = el => el.animate([{ translate: '0' }, { translate: '-1.2cqw' }, { translate: '1.2cqw' }, { translate: '0' }], { duration: 280 });
+
+// Feder wie SwiftUI .spring(response, dampingFraction) → CSS linear(), läuft im Compositor
+function spring(response = .5, damping = .86, n = 48) {
+  const w = 2 * Math.PI / response, z = damping, wd = w * Math.sqrt(1 - z * z), T = -Math.log(.001) / (z * w);
+  const x = t => 1 - Math.exp(-z * w * t) * (Math.cos(wd * t) + z * w / wd * Math.sin(wd * t));
+  const p = Array.from({ length: n + 1 }, (_, i) => +x(i / n * T).toFixed(4));
+  console.assert(p[0] === 0 && Math.abs(p[n] - 1) < .005 && Math.max(...p) < 1.05, 'spring', p);
+  return [`linear(${p.join()})`, Math.round(T * 1000)];
+}
+const [SPRING, SD] = spring();
+root.style.setProperty('--spring', SPRING);
+root.style.setProperty('--sd', SD + 'ms');
+
+// Eigene abstrakte Wallpaper pro Farbton; Blur-Version wird einmal gerastert und als Glas benutzt
+const svgData = s => 'data:image/svg+xml,' + encodeURIComponent(s);
+const svgUrl = s => `url("${svgData(s)}")`;
+const wp = (h, blur = 0) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="none">
+<defs>
+<linearGradient id="g" x2="1" y2="1"><stop stop-color="hsl(${h},70%,62%)"/><stop offset=".55" stop-color="hsl(${h - 6},78%,38%)"/><stop offset="1" stop-color="hsl(${h - 12},75%,16%)"/></linearGradient>
+<linearGradient id="r" x2="1"><stop stop-color="hsl(${h + 6},90%,75%)" stop-opacity=".55"/><stop offset="1" stop-color="hsl(${h},90%,60%)" stop-opacity="0"/></linearGradient>
+<filter id="b" x="0" y="0" width="1" height="1"><feGaussianBlur stdDeviation="${blur}" edgeMode="duplicate"/></filter>
+</defs>
+<g ${blur ? 'filter="url(#b)"' : ''}>
+<rect width="100" height="100" fill="url(#g)"/>
+<circle cx="110" cy="-20" r="80" fill="url(#r)"/>
+<circle cx="-30" cy="60" r="70" fill="url(#r)" opacity=".7"/>
+<circle cx="70" cy="140" r="75" fill="url(#r)" opacity=".25"/>
+<circle cx="-10" cy="108" r="48" fill="hsl(${h - 14},70%,14%)" opacity=".55"/>
+<path d="M40-10C30 40 60 70 110 80" stroke="hsl(${h + 8},95%,80%)" stroke-opacity=".3" stroke-width="10" fill="none"/>
+</g></svg>`;
+const wallCache = {};
+const wall = h => wallCache[h] ||= [svgUrl(wp(h)), svgUrl(wp(h, 5))];
+// Dynamische Faces:
+// Nacht = Sonne unter dem Horizont (sun.sun), ohne sun.sun nach Uhrzeit; ?tod=night|day erzwingt
+const TOD = new URLSearchParams(location.search).get('tod');
+const isNight = () => TOD ? TOD === 'night' : ents['sun.sun'] ? ents['sun.sun'].state === 'below_horizon' : (h => h < 6.5 || h >= 19.5)(new Date().getHours() + new Date().getMinutes() / 60);
+// bg 'auto': Tag/Nacht — Home orange/violett, Widget hell/dunkel (faces_enhanced/hero_endframe)
+const AUTO = { info: ['white', 'black'], calendar: ['white', 'black'] };
+const bgOf = f => f.bg === 'auto' ? (AUTO[f.type] || [30, 240])[+isNight()] : f.bg;
+// bg: Farbton (Zahl) | 'black' | 'white' | { photo, blur }
+function applyBg(el, bg) {
+  const hue = typeof bg === 'number';
+  el.classList.toggle('light', bg === 'white');
+  el.classList.toggle('mono', !hue && bg !== 'white');
+  if (hue) { const [a, b] = wall(bg); el.style.setProperty('--h', bg); el.style.setProperty('--wp', a); el.style.setProperty('--wpb', b); }
+  else if (bg?.photo) { el.style.setProperty('--wp', `url(${bg.photo})`); el.style.setProperty('--wpb', `url(${bg.blur})`); }
+  else { el.style.setProperty('--wp', 'none'); el.style.setProperty('--wpb', 'none'); el.style.backgroundColor = bg === 'white' ? 'var(--paper,#f2f2f7)' : '#000'; }
+}
+// Foto quadratisch zuschneiden + eine stark verkleinerte Blur-Version fürs Glas
+async function photoBg(file) {
+  const img = await createImageBitmap(file), s = Math.min(img.width, img.height);
+  const cut = (size, blur = 0) => {
+    const c = document.createElement('canvas'), x = c.getContext('2d'), m = blur * 3;
+    c.width = c.height = size;
+    if (blur) x.filter = `blur(${blur}px)`;
+    x.drawImage(img, (img.width - s) / 2, (img.height - s) / 2, s, s, -m, -m, size + 2 * m, size + 2 * m);
+    return c.toDataURL('image/jpeg', .85);
+  };
+  return { photo: cut(1080), blur: cut(256, 12) };
+}
+
+// ---------- Konfiguration (localStorage) ----------
+// night: Variante der Kachel nach Sonnenuntergang; bg 'auto' = Farbe nach Tageszeit
+// Nachts: „Gute Nacht“ am Kameraplatz, Intercom an der Stelle von „Guten Morgen“; noop = Tippen ohne Funktion (kein Editor)
+const NIGHT_SCENE = { e: 'scene.gute_nacht', icon: 'moon', title: 'Gute Nacht', sub: 'Szene' };
+const NIGHT_INTERCOM = { e: '', noop: true, icon: 'intercom', title: 'Intercom', sub: 'Überall' };
+const DEF = { cams: 1, energy: 1, dyn: 2, faces: [   // Flags: Migrationen unten gelten nur für ältere gespeicherte Konfigurationen
+  { type: 'grid', bg: 'auto', tiles: [
+    { kind: 'thermo', e: 'climate.wohnzimmer_ac_mqtt_hvac', title: 'Thermostat', sub: 'Wohnzimmer', w: 2, h: 2 },
+    { kind: 'clock' },
+    { e: 'camera.turklingel', title: 'Türklingel', sub: 'Haustür', night: NIGHT_SCENE },
+    { e: 'scene.guten_morgen', icon: 'sun', title: 'Guten Morgen', sub: 'Szene', night: NIGHT_INTERCOM },
+    { e: 'lock.eingangstur', title: 'Türschloss', sub: 'Haustür' },
+    { e: 'light.flur', title: 'Licht', sub: 'Flur' },
+  ] },
+  { type: 'music', bg: 'black' },
+  { type: 'bigclock', bg: 205 },
+  { type: 'grid', bg: 250, tiles: [
+    { e: 'light.wohnzimmer', title: 'Licht', sub: 'Wohnzimmer' },
+    { e: 'light.kuche', title: 'Licht', sub: 'Küche' },
+    { kind: 'clock' },
+    { e: 'cover.garagentor', title: 'Tor', sub: 'Garage' },
+    { e: 'timer.kuche', title: 'Timer', sub: 'Küche' },
+    { e: 'lock.eingangstur', title: 'Türschloss', sub: 'Haustür' },
+    { kind: 'thermo', e: 'climate.wohnzimmer_ac_mqtt_hvac', title: 'Thermostat', sub: 'Wohnzimmer' },
+  ] },
+  { type: 'weather', bg: 212 },
+  { type: 'energy', bg: 'black' },
+  { type: 'calendar', bg: 'white' },
+  { type: 'analog', bg: 340 },
+  { type: 'info', bg: 'auto' },
+  { type: 'cams', bg: 'black' },
+] };
+let conn;   // vor save(): die Migrationen unten rufen save() schon vor der Verbindung
+const KEY = 'homeview.v1';
+let CONF;
+try { CONF = JSON.parse(localStorage.getItem(KEY)); } catch {}
+if (!CONF?.faces?.length) CONF = structuredClone(DEF);
+// ponytail: Fotos als data-URL im localStorage (~5 MB Limit); bei vielen Fotos → IndexedDB
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(CONF)); conn?.sendMessagePromise({ type: 'homeblick/set_config', config: CONF }).catch(() => {}); } catch (e) { console.warn('Speichern fehlgeschlagen', e); } };
+// Neue Faces (Kameras, Energie) einmalig an gespeicherte Konfigurationen anhängen; danach entscheidet der User (Löschen bleibt gelöscht)
+for (const t of ['cams', 'energy']) if (!CONF[t] && localStorage.getItem(KEY)) { CONF[t] = 1; if (!CONF.faces.some(f => f.type === t)) CONF.faces.push({ type: t, bg: 'black' }); save(); }
+// Dynamische Faces einmalig in gespeicherte Standard-Faces übernehmen (Home orange → Tageszeit + Gute Nacht, Info schwarz → Tageszeit); Swatch stellt zurück
+if (!CONF.dyn && localStorage.getItem(KEY)) {
+  CONF.dyn = 1;
+  for (const f of CONF.faces) {
+    const gm = f.tiles?.find(t => t.e === 'scene.guten_morgen' && !t.night);
+    if (gm) { gm.night = { ...NIGHT_SCENE }; if (f.bg === 30) f.bg = 'auto'; }
+    if (f.type === 'info' && f.bg === 'black') f.bg = 'auto';
+  }
+  save();
+}
+// v2: Nachts wandert „Gute Nacht“ an den Kameraplatz, Intercom an den Platz von „Guten Morgen“ (nur unveränderte Standard-Kacheln)
+if ((CONF.dyn || 0) < 2) {
+  CONF.dyn = 2;
+  for (const f of CONF.faces) {
+    const gm = f.tiles?.find(t => t.e === 'scene.guten_morgen' && t.night?.e === 'scene.gute_nacht'), cam = f.tiles?.find(t => t.e === 'camera.turklingel' && !t.night);
+    if (gm && cam) { cam.night = { ...NIGHT_SCENE }; gm.night = { ...NIGHT_INTERCOM }; }
+  }
+  save();
+}
+
+const ICON = { light: 'bulb', lock: 'lock', cover: 'garage', camera: 'video', climate: 'thermo', scene: 'sun', script: 'sun', media_player: 'play', fan: 'fan', timer: 'timer' };
+const ICONS = ['bulb', 'lock', 'garage', 'blind', 'video', 'sun', 'moon', 'intercom', 'house', 'fan', 'thermo', 'drop', 'note', 'power'];
+const TYPES = { grid: 'Smart Home', music: 'Musik', bigclock: 'Uhr digital', analog: 'Uhr analog', calendar: 'Kalender', weather: 'Wetter', energy: 'Energie', info: 'Info', cams: 'Kameras' };
+const STYLES = { bigclock: [['stack', 'Gestapelt'], ['line', 'Zeile'], ['depth', 'Tiefe']], analog: [['numbers', 'Zahlen'], ['ticks', 'Striche'], ['minimal', 'Minimal']] };
+const NEWBG = { grid: 150, music: 'black', bigclock: 205, analog: 340, calendar: 'white', weather: 212, info: 'black', cams: 'black' };
+const HUES = [30, 5, 340, 285, 250, 205, 150];
+
+// 3er-Raster packen: jede Kachel an die erste freie Stelle von oben links (wie iOS-Widgets)
+const rows = f => f.greet ? 2 : 3;
+function pack(tiles, n) {
+  const used = new Set();
+  return tiles.map(t => {
+    const w = t.w || 1, h = t.h || 1;
+    for (let r = 0; r + h <= n; r++) for (let c = 0; c + w <= 3; c++) {
+      const cells = [];
+      for (let y = r; y < r + h; y++) for (let x = c; x < c + w; x++) cells.push(y * 3 + x);
+      if (cells.every(k => !used.has(k))) { cells.forEach(k => used.add(k)); return [r, c]; }
+    }
+    return null;
+  });
+}
+console.assert(JSON.stringify(pack([{ w: 2, h: 2 }, {}, {}, {}, {}, {}], 3)) === '[[0,0],[0,2],[1,2],[2,0],[2,1],[2,2]]' && pack([{ w: 2, h: 2 }, { w: 2, h: 2 }], 3)[1] === null, 'pack');
+const placed = f => pack(f.tiles, rows(f)).filter(Boolean).length;
+function place(el, f) {
+  const off = f.greet ? 1 : 0, spots = pack(f.tiles, rows(f));
+  for (const t of $$('[data-ti]', el)) {
+    const s = spots[f.tiles.indexOf(t._t)], d = t._t;
+    t.hidden = !s;
+    if (!s) continue;
+    t.style.gridArea = `${s[0] + 1 + off} / ${s[1] + 1} / span ${d.h || 1} / span ${d.w || 1}`;
+    t.style.setProperty('--r', s[0] + off); t.style.setProperty('--c', s[1]);
+  }
+}
+
+// ---------- Ansichten bauen ----------
+const svg = (id, cls = '') => `<svg class="i ${cls}"><use href="#${id}"/></svg>`;
+const chev = d => `<button class="chev" data-act="${d}">${svg(d)}</button>`;
+const kindOf = t => t.kind || (t.e?.startsWith('climate.') ? 'thermo' : 'tile');
+const iconOf = t => { const d = t.e?.split('.')[0]; return t.icon || (d === 'cover' && st(t.e).attributes.device_class !== 'garage' ? 'blind' : ICON[d]) || 'house'; };
+function tileEl(c) {
+  const t = c.night && (c === editT ? edNight : isNight()) ? { ...c, ...c.night } : c;
+  const el = document.createElement('div'), kind = kindOf(t), label = `<div><div class="ttl">${esc(t.title)}</div><div class="sub">${esc(t.sub)}</div></div>`;
+  el._t = c; el.dataset.ti = ''; el.dataset.size = `${t.w || 1}x${t.h || 1}`;
+  // Touch: Halten → Ziehen darf nicht die Faces scrollen (Geste begann im Normalmodus). Nur an Kacheln, damit Wischen sonst nicht blockiert
+  el.addEventListener('touchmove', e => drag && e.preventDefault(), { passive: false });
+  if (t.e) el.dataset.e = t.e;
+  if (t.noop) el.dataset.noop = '';
+  if (kind === 'clock') {
+    el.className = t.cs === 'digital' ? 'dclock glass' : `dial glass${t.cs === 'numbers' ? ' nums' : ''}`;
+    if (t.cs === 'digital') el.innerHTML = '<span data-bind="time"></span>';
+  }
+  else if (kind === 'thermo') { el.className = 'tile thermo'; el.innerHTML = `<div class="num" data-temp="${esc(t.e)}"></div><div class="foot">${chev('down')}${label}${chev('up')}</div>`; }
+  else { el.className = 'tile'; el.innerHTML = (t.e?.startsWith('camera.') ? '<div class="feed"></div>' : '') + svg(iconOf(t), 'ico') + label; }   // Livebild: camTile in render()
+  if (c === editT) el.classList.add('editing');
+  el.insertAdjacentHTML('beforeend', `<button class="del" data-act="deltile" aria-label="Kachel entfernen">${svg('minus')}</button>`);
+  return el;
+}
+function calHTML() {
+  const d = new Date(), y = d.getFullYear(), m = d.getMonth(), first = (new Date(y, m, 1).getDay() + 6) % 7;
+  const n = Math.ceil((first + new Date(y, m + 1, 0).getDate()) / 7) * 7;
+  const days = Array.from({ length: n }, (_, i) => {
+    const x = new Date(y, m, i - first + 1);
+    return `<span class="${x.getMonth() !== m ? 'o' : x.getDate() === d.getDate() ? 't' : ''}">${x.getDate()}</span>`;
+  }).join('');
+  return `<div class="big">${d.getDate()}</div><header><b>${d.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' })}</b><time data-bind="time"></time></header>
+<div class="days">${'MDMDFSS'.split('').map(c => `<i>${c}</i>`).join('')}${days}</div>`;
+}
+// Tiefe (Video 15,4 s): Glasziffern = verwischtes Hintergrundbild in die Ziffern geclippt + heller Rand; freigestellte Person davor
+let dN = 0;
+function depthHTML(f) {
+  const id = 'dc' + ++dN, b = bgOf(f), src = b?.photo ? b.blur : typeof b === 'number' ? svgData(wp(b, 5)) : '';
+  // Video: Ziffern 5,6–59 % hoch, Paare um 21/76 % zentriert; Roboto Flex (wdth 25) ist noch zu breit → gestaucht
+  const K = .9, t = c => `<text class="dt${c}" y="59" transform="scale(${K} 1)"><tspan x="${21 / K}" data-bind="dh"></tspan><tspan x="${76 / K}" data-bind="dm"></tspan></text>`;
+  // Glaskante als Filter (Alpha minus erodiertes Alpha) statt stroke: die variable Schrift hat überlappende Konturen (Querbalken der 4)
+  return `<svg class="dsvg" viewBox="0 0 100 100" preserveAspectRatio="none"><clipPath id="${id}">${t('')}</clipPath>`
+    + `<filter id="${id}g" x="-5%" y="-5%" width="110%" height="110%"><feColorMatrix in="SourceAlpha" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 9 0" result="a"/>`
+    + `<feMorphology in="a" operator="erode" radius=".28" result="e"/><feComposite in="a" in2="e" operator="out" result="r"/>`
+    + `<feGaussianBlur in="r" stdDeviation=".9" result="b"/><feComposite in="b" in2="a" operator="in" result="g"/><feFlood flood-opacity=".75"/><feComposite in2="r" operator="in" result="rc"/>`
+    + `<feFlood flood-opacity=".3"/><feComposite in2="g" operator="in" result="gc"/>`
+    + `<feMerge><feMergeNode in="SourceGraphic"/><feMergeNode in="gc"/><feMergeNode in="rc"/></feMerge></filter>`
+    + (src ? `<image href="${src}" width="100" height="100" preserveAspectRatio="none" clip-path="url(#${id})"/>` : '')
+    + t(' dg').replace('<text', `<text filter="url(#${id}g)"`) + `</svg>` + (f.bg?.fg ? `<div class="dfg" style="background-image:url(${f.bg.fg})"></div>` : '');
+}
+// Foto auf Uhr-Face: Person freistellen; gefunden → gleich Stil „Tiefe“
+async function addCut(f) {
+  const fg = await cutout(f.bg.photo).catch(e => (console.warn('Freistellen', e), null));
+  if (!fg) return false;
+  f.bg.fg = fg; f.style = 'depth'; return true;
+}
+const FACE = {
+  grid: (el, f) => {
+    if (f.greet) el.insertAdjacentHTML('beforeend', `<div class="greet"><div><div data-bind="greet"></div><div>${esc(f.greet)}</div></div><div class="gw" data-act="go" data-v="weather" data-bind="wxt"></div></div>`);
+    for (const t of f.tiles) el.append(tileEl(t));
+    place(el, f);
+  },
+  music: el => el.innerHTML = `<div class="mbg"></div>
+<div class="lyrics"><div class="ll"></div></div>
+<div class="qlist"></div>
+<button class="mb" data-act="lib" aria-label="Musikauswahl">${svg('note')}</button>
+<div class="mpill"><button data-act="outs" aria-label="Ausgabe">${svg('cast')}</button><button data-act="vol" aria-label="Lautstärke">${svg('vol')}</button></div>
+<div class="cover"></div>
+<div class="minfo"><b data-bind="npt"></b><span data-bind="npa"></span></div>
+<button class="more" data-act="menu" aria-label="Mehr">${svg('more')}</button>
+<div class="prog"><b><i></i></b></div>
+<div class="times"><span data-bind="npe"></span><span data-bind="npr"></span></div>
+<button class="c lyr" data-act="lyrics" aria-label="Liedtext">${svg('quote')}</button>
+<button class="c prev" data-act="prev" aria-label="Zurück">${svg('prev')}</button>
+<button class="c play" data-act="play" aria-label="Abspielen/Pause">${svg('play')}</button>
+<button class="c next" data-act="next" aria-label="Weiter">${svg('next')}</button>
+<button class="c queue" data-act="queue" aria-label="Warteschlange">${svg('queue')}</button>
+<div class="pop outs"></div><div class="pop menu"></div>`,
+  bigclock: (el, f) => el.innerHTML = f.style === 'depth' ? depthHTML(f) : `<div class="dl" data-bind="dlong"></div>` + (f.style === 'line'
+    ? `<div class="hl"><div class="num" data-bind="hh"></div>:<div class="num" data-bind="mm"></div></div>`
+    : `<div class="num" data-bind="hh"></div><div class="num" data-bind="mm"></div>`),
+  analog: (el, f) => el.innerHTML = `<div class="dial ${{ ticks: '', minimal: 'minimal' }[f.style] ?? 'nums'}"></div>`,
+  calendar: el => { el.innerHTML = calHTML(); el.dataset.act = 'events'; },
+  weather: el => weatherFace(el),
+  energy: el => energyFace(el),
+  cams: el => camFace(el),
+  info: el => el.innerHTML = `<div><div class="date"><b data-bind="wd"></b> <span data-bind="mo"></span></div><div class="day" data-bind="day"></div></div>
+<div class="dial nums mt"></div>
+<div class="np"><div class="cover" data-act="go" data-v="music"></div><b data-bind="npt"></b><span data-bind="npa"></span><button data-act="play">${svg('play')} <span data-bind="npb"></span></button></div>
+<div class="wx" data-act="go" data-v="weather">${svg('note', 'mn')}<div class="loc">${esc(CFG.place)} ${svg('arrow')}</div><div class="tmp" data-bind="wxt"></div><div><i class="wi" data-wxi></i> <span data-bind="wxc"></span></div><div data-bind="wxhl"></div></div>`,
+};
+function buildFace(f) {
+  const el = document.createElement('div');
+  el.className = `face f-${f.type}`;
+  applyBg(el, bgOf(f));
+  FACE[f.type](el, f);
+  initDials(el);
+  return el;
+}
+
+// Uhren: Zeiger per WAAPI (Compositor, volle Bildrate), Zeit wird minütlich nachgestellt
+const ticks = `<svg viewBox="-50 -50 100 100"><g stroke="#fff" stroke-width="3.6" stroke-linecap="round">${
+  Array.from({ length: 12 }, (_, i) => `<line y1="-45" y2="-35" transform="rotate(${i * 30})"/>`).join('')}</g></svg>`;
+const numsAt = r => Array.from({ length: 12 }, (_, i) => {
+  const a = (i + 1) * Math.PI / 6;
+  return `<span class="n" style="left:${50 + r * Math.sin(a)}%;top:${50 - r * Math.cos(a)}%">${i + 1}</span>`;
+}).join('');
+const nums = numsAt(40);
+// Minutenkranz: 60 Striche, Stunden kräftig, Minuten halbtransparent, Zahlen weiter innen
+const mticks = `<svg viewBox="-50 -50 100 100"><g stroke="#fff" stroke-linecap="round">${Array.from({ length: 60 }, (_, i) =>
+  `<line y1="-48" y2="${i % 5 ? -45.5 : -44.5}" stroke-width="${i % 5 ? .9 : 1.7}"${i % 5 ? ' stroke-opacity=".45"' : ''} transform="rotate(${i * 6})"/>`).join('')}</g></svg>` + numsAt(34);
+let hands = [], lastDay;
+function initDials(scope) {
+  for (const d of $$('.dial', scope)) {
+    d.insertAdjacentHTML('afterbegin', (d.classList.contains('mt') ? mticks : d.classList.contains('nums') ? nums : ticks) +'<i class="hand hh"></i><i class="hand mm"></i><i class="hand ss"></i><b class="pin"></b>');
+    for (const [c, per] of [['hh', 43200], ['mm', 3600], ['ss', 60]])
+      hands.push([per, $('.' + c, d).animate([{ transform: 'translateX(-50%) rotate(0)' }, { transform: 'translateX(-50%) rotate(1turn)' }], { duration: per * 1000, iterations: Infinity })]);
+  }
+}
+// Zahlen-Roll: alt raus, neu mit Feder rein (Richtung dir = ±1, 0 = ohne Animation)
+function roll(el, txt, dir = 0) {
+  const old = el.lastElementChild, n = document.createElement('span');
+  n.textContent = txt; el.append(n);
+  if (!dir || !old) { old?.remove(); return; }
+  old.animate([{ transform: 'none', opacity: 1 }, { transform: `translateY(${-dir * 40}%)`, opacity: 0 }], { duration: 220, easing: 'ease-in' }).onfinish = () => old.remove();
+  n.animate([{ transform: `translateY(${dir * 40}%)`, opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: SD, easing: SPRING });
+}
+const rollBind = (k, v) => { for (const el of $$(`[data-bind=${k}]`)) if (el.lastElementChild?.textContent !== v) roll(el, v, el.firstChild ? 1 : 0); };
+function tick() {
+  phase();
+  const d = new Date(), s = (d - new Date(d).setHours(0, 0, 0, 0)) / 1000;
+  hands = hands.filter(([, a]) => a.effect.target.isConnected || a.cancel());
+  for (const [per, a] of hands) a.currentTime = (s % per) * 1000;
+  const hm = d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+  bind('time', hm); rollBind('hh', hm.slice(0, 2)); rollBind('mm', hm.slice(3, 5)); bind('dh', hm.slice(0, 2)); bind('dm', hm.slice(3, 5));
+  bind('wd', d.toLocaleDateString('de-DE', { weekday: 'short' }));
+  bind('mo', d.toLocaleDateString('de-DE', { month: 'short' }));
+  bind('day', d.getDate());
+  bind('dlong', d.toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' }));
+  const h = d.getHours();
+  bind('greet', h < 11 ? 'Guten Morgen,' : h < 18 ? 'Guten Tag,' : 'Guten Abend,');
+  if (lastDay !== d.getDate()) {
+    const first = lastDay === undefined;
+    lastDay = d.getDate();
+    if (!first) CONF.faces.forEach((f, i) => f.type === 'calendar' && rerender(i));
+  }
+}
+
+// ---------- Home Assistant (oder Demo) ----------
+let ents = {}, forecast = null, NP = null, npKey = '';
+const st = id => ents[id] || { state: 'unavailable', attributes: {} };
+const hold = {}, held = id => hold[id] > Date.now();   // lokale Eingabe gewinnt kurz gegen HA-Echo
+const fmt = v => v == null ? '–' : (+v).toLocaleString('de-DE', { maximumFractionDigits: 1 });
+const pct = s => s.state === 'on' ? Math.round((s.attributes.brightness ?? 255) / 2.55) : 0;
+const mmss = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+const ON = { light: s => s.state === 'on', fan: s => s.state === 'on', lock: s => s.state !== 'locked', cover: s => s.state !== 'closed', media_player: s => s.state === 'playing', timer: s => s.state === 'active' };
+const MODES = { heat: ['Heizen auf', '#ff9500'], cool: ['Kühlen auf', '#0cacf8'], heat_cool: ['Automatisch', '#30b0c7'], dry: ['Entfeuchten', '#5ac8fa'], fan_only: ['Lüften', '#34c759'], off: ['Aus', '#636366'] };
+
+// ---------- Demo-Bibliothek (erfundene Titel, generierte Cover) ----------
+const coverArt = (h, k) => svgData(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><linearGradient id="a" x2="1" y2="1"><stop stop-color="hsl(${h},75%,62%)"/><stop offset="1" stop-color="hsl(${h + 40},70%,24%)"/></linearGradient></defs><rect width="100" height="100" fill="url(#a)"/>${[
+  '<circle cx="50" cy="50" r="24" fill="#fff" opacity=".85"/>',
+  '<path d="M0 65Q25 40 50 65T100 65V100H0z" fill="#fff" opacity=".3"/><path d="M0 78Q25 55 50 78T100 78V100H0z" fill="#fff" opacity=".5"/>',
+  '<rect x="24" y="24" width="52" height="52" rx="6" fill="none" stroke="#fff" stroke-width="5" opacity=".8" transform="rotate(14 50 50)"/>',
+  '<g fill="#fff" opacity=".75"><circle cx="30" cy="34" r="9"/><circle cx="64" cy="58" r="15"/><circle cx="38" cy="76" r="5"/></g>',
+  '<path d="M50 16 84 84H16z" fill="#fff" opacity=".6"/>',
+  '<path d="M10 22h80M10 38h80M10 54h80M10 70h80M10 86h80" stroke="#fff" stroke-width="3" opacity=".6"/>',
+][k % 6]}</svg>`);
+const ART0 = svgData(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs>
+<linearGradient id="a" x2="0" y2="1"><stop stop-color="#20264a"/><stop offset=".6" stop-color="#6a3f73"/><stop offset="1" stop-color="#e2796b"/></linearGradient>
+<radialGradient id="s"><stop stop-color="#ffd27a"/><stop offset="1" stop-color="#ff7a6b"/></radialGradient></defs>
+<rect width="100" height="100" fill="url(#a)"/><circle cx="50" cy="62" r="20" fill="url(#s)"/><rect y="70" width="100" height="30" fill="#14182e" opacity=".85"/>
+<path d="M0 74h100M0 79h100M0 85h100M0 92h100" stroke="#ff9a7a" stroke-opacity=".35" stroke-width=".8"/></svg>`);
+const LIB = {};
+const node = (id, title, sub, art, x) => (LIB[id] = { id, title, sub, art, ...x }, id);
+const ALBUMS = [
+  ['Abendlicht', 'Nachtfalter', 'Abendlicht,Glühwürmchen,Spätzug,Ufer,Funkstille'],
+  ['Nordwind', 'Kalte Küste', 'Nordwind,Treibgut,Leuchtturm,Salz'],
+  ['Neonregen', 'Die Lichter', 'Neonregen,Taxi,Halb vier,Rolltreppe'],
+  ['Waldbaden', 'Moos & Farn', 'Lichtung,Harz,Bachlauf'],
+  ['Kreisverkehr', 'Blechbläser', 'Kreisverkehr,Ampelphase,Umleitung'],
+  ['Polarlicht', 'Eisvogel', 'Polarlicht,Tundra,Schneeblind,Fjord'],
+].map(([title, artist, ts], k) => {
+  const art = k ? coverArt(k * 55, k) : ART0;
+  return node('alb:' + k, title, artist, art, { tracks: ts.split(',').map((t, j) => ({ title: t, artist, album: title, art, dur: j || k ? 160 + (k * 37 + j * 53) % 100 : 221 })) });
+});
+const SONGS = ALBUMS.flatMap(a => LIB[a].tracks);
+const PLAYL = ['Morgenkaffee', 'Fokus', 'Abendessen', 'Workout'].map((t, k) => node('pl:' + k, t, 'Playlist', coverArt(200 + k * 40, k + 2), { tracks: SONGS.filter((_, j) => j % 4 === k) }));
+const RADIO = ['Radio Pop', 'Radio Jazz', 'Radio Klassik', 'Radio Rock'].map((t, k) => { const art = coverArt(330 + k * 25, 5); return node('radio:' + k, t, 'Live', art, { tracks: [{ title: t, artist: 'Live-Radio', art }] }); });
+node('pls', 'Playlists', `${PLAYL.length} Playlists`, LIB[PLAYL[0]].art, { kids: PLAYL });
+node('albs', 'Alben', `${ALBUMS.length} Alben`, LIB[ALBUMS[1]].art, { kids: ALBUMS });
+node('radio', 'Radio', `${RADIO.length} Sender`, LIB[RADIO[0]].art, { kids: RADIO });
+node('root', 'Musik', '', null, { kids: ['pls', 'albs', 'radio', ALBUMS[0], PLAYL[0], ALBUMS[2], RADIO[0], PLAYL[1], ALBUMS[4]] });
+const track = (q, i, pos = 0) => {
+  const t = q[i];
+  return { _q: q, _i: i, media_title: t.title, media_artist: t.artist, media_album_name: t.album, entity_picture: t.art, media_duration: t.dur,
+    media_content_type: 'music', media_position: pos, media_position_updated_at: new Date().toISOString() };
+};
+
+// Demo: Service-Calls verändern den lokalen Zustand wie HA es täte
+function demoCall(domain, service, data) {
+  const id = data.entity_id, s = ents[id];
+  if (!s) return;
+  const set = (state, attrs) => { ents = { ...ents, [id]: { ...s, state, attributes: { ...s.attributes, ...attrs } } }; schedule(); };
+  const a = s.attributes, q = a._q, now = () => ({ media_position: npPos(id)[0], media_position_updated_at: new Date().toISOString() });
+  if (domain === 'timer') return set(...timerDemo(service, s));
+  if (domain === 'scene') return ['light.wohnzimmer', 'light.kuche'].forEach(l => demoCall('light', id === 'scene.gute_nacht' ? 'turn_off' : 'turn_on', { entity_id: l, brightness_pct: 80 }));
+  ({
+    toggle: () => set(s.state === 'on' ? 'off' : 'on'),
+    turn_on: () => set(domain === 'climate' ? 'heat' : 'on', data.brightness_pct ? { brightness: data.brightness_pct * 2.55 } : {}),
+    turn_off: () => set('off'),
+    lock: () => set('locked'), unlock: () => set('unlocked'),
+    open_cover: () => set('open'), close_cover: () => set('closed'),
+    set_temperature: () => set(s.state, { temperature: data.temperature }),
+    set_hvac_mode: () => set(data.hvac_mode),
+    media_play_pause: () => a.media_title && set(s.state === 'playing' ? 'paused' : 'playing', now()),
+    media_stop: () => set('idle', { ...now(), media_position: 0 }),
+    media_next_track: () => q && set(s.state, track(q, (a.shuffle ? Math.floor(Math.random() * q.length) : a._i + 1) % q.length)),
+    media_previous_track: () => q && set(s.state, track(q, npPos(id)[0] > 3 || !a._i ? a._i : a._i - 1)),
+    media_seek: () => set(s.state, { media_position: data.seek_position, media_position_updated_at: new Date().toISOString() }),
+    play_media: () => LIB[data.media_content_id]?.tracks && set('playing', track(LIB[data.media_content_id].tracks, 0)),
+    play_queue: () => q && set('playing', track(q, data.queue_position)),
+    shuffle_set: () => set(s.state, { shuffle: data.shuffle }),
+    repeat_set: () => set(s.state, { repeat: data.repeat }),
+    volume_set: () => set(s.state, { volume_level: data.volume_level }),
+  })[service]?.();
+}
+const call = (domain, service, data) => LIVE ? conn.sendMessagePromise({ type: 'call_service', domain, service, service_data: data }).catch(e => console.warn('HA', service, e)) : demoCall(domain, service, data);
+// Service mit Antwort (z. B. sonos.get_queue)
+const ask = (domain, service, data) => conn.sendMessagePromise({ type: 'call_service', domain, service, service_data: data, return_response: true }).then(r => r.response);
+
+const T = {};   // Soll-Temperatur je Klima-Entity
+function setTemp(id, v, dir = 0) { T[id] = v; for (const el of $$(`[data-temp="${id}"]`)) roll(el, fmt(v), dir); }
+const S = { light: 0 };
+function setLight(p) { S.light = p; $('#dimmer').style.setProperty('--p', p / 100); bind('light', p); }
+function npPos(id = NP) {
+  const s = st(id), a = s.attributes, dur = a.media_duration || 0;
+  if (a.media_position == null) return [0, dur];
+  const pos = a.media_position + (s.state === 'playing' ? (Date.now() - Date.parse(a.media_position_updated_at)) / 1000 : 0);
+  return [dur ? Math.min(pos, dur) : pos, dur];
+}
+// Fortschritt läuft als lineare Compositor-Animation bis zum Songende
+function progress(bar) {
+  const [pos, dur] = npPos(), p = dur ? pos / dur : 0;
+  bar.getAnimations().forEach(a => a.cancel());
+  bar.style.transform = `scaleX(${p})`;
+  if (dur && st(NP).state === 'playing') bar.animate([{ transform: `scaleX(${p})` }, { transform: 'scaleX(1)' }], { duration: (dur - pos) * 1000, easing: 'linear', fill: 'forwards' });
+}
+
+let queued = 0;
+const schedule = () => queued ||= requestAnimationFrame(() => { queued = 0; render(); });
+function render() {
+  phase();
+  for (const t of $$('[data-e]')) {
+    const id = t.dataset.e, s = st(id), d = id.split('.')[0];
+    t.classList.toggle('na', s.state === 'unavailable');
+    if (!held(id)) t.classList.toggle('on', !!ON[d]?.(s));
+    const u = d === 'lock' && $('.ico use', t), h = s.state === 'locked' ? '#lock' : '#unlock';
+    if (u && /lock/.test(u.getAttribute('href')) && u.getAttribute('href') !== h) u.setAttribute('href', h);
+    if (d === 'camera' && t.dataset.ti != null) camTile(t, id, s);
+  }
+  for (const el of $$('[data-temp]')) {
+    const id = el.dataset.temp, v = st(id).attributes.temperature, th = el.closest('.thermo');
+    // Untertitel „Wohnzimmer • 20,5°“; 1×1 zu schmal → nur Raum
+    const c = st(id).attributes.current_temperature, sub = th && $('.sub', th);
+    if (sub) { const txt = [th._t.sub, c != null && th.dataset.size !== '1x1' && fmt(c) + '°'].filter(Boolean).join(' • '); if (sub.textContent !== txt) sub.textContent = txt; }
+    if (!held(id) && v != null && v !== T[id]) setTemp(id, v, T[id] == null ? 0 : Math.sign(v - T[id]));
+    else if (!el.firstChild && T[id] != null) roll(el, fmt(T[id]));
+  }
+  if (cur?.view.id === 'climate') {
+    const c = st(cur.e), a = c.attributes, [mode, color] = MODES[c.state] || [c.state, '#636366'];
+    bind('mode', mode); $('#climate').style.setProperty('--cc', color);
+    bind('cur', fmt(a.current_temperature) + '°'); bind('hum', a.current_humidity == null ? '–' : Math.round(a.current_humidity) + ' %');
+  }
+  if (cur?.view.id === 'dimmer' && y0 === null && !held(cur.e)) setLight(pct(st(cur.e)));
+
+  weather(st(CFG.weather), ents['sun.sun'], forecast);
+  doorbell(ents);
+  energy(ents, rollBind);
+  timers(ents);
+
+  // Musik: gewählter Player (AirPlay-Menü), sonst laufende Musik, sonst pausiert, sonst erster Lautsprecher
+  const mps = players(), has = e => e.attributes.media_title;
+  const np = ents[CONF.player] || mps.find(e => e.state === 'playing' && has(e) && e.attributes.media_content_type === 'music') || mps.find(e => e.state === 'playing' && has(e))
+    || mps.find(e => e.state === 'paused' && has(e)) || mps.find(e => e.attributes.device_class === 'speaker') || mps[0], a = np?.attributes || {};
+  NP = np?.entity_id;
+  bind('npt', a.media_title || 'Nichts läuft');
+  bind('npa', a.media_artist || a.friendly_name || '');
+  bind('npb', np?.state === 'playing' ? 'Pause' : 'Abspielen');
+  const icon = np?.state === 'playing' ? '#pause' : '#play';
+  for (const u of $$('[data-act=play] use')) if (u.getAttribute('href') !== icon) u.setAttribute('href', icon);
+  const pic = a.entity_picture, art = pic ? `url("${pic.startsWith('/') ? HASS + pic : pic}")` : 'none';
+  if (screen.style.getPropertyValue('--art') !== art) screen.style.setProperty('--art', art);
+  const key = [NP, np?.state, a.media_position, a.media_position_updated_at, a.media_duration, a.shuffle, a.repeat, a.media_title].join();
+  if (key !== npKey) {
+    npKey = key; $$('.prog i').forEach(progress); syncLyrics(); times();
+    $$('.f-music.qm').forEach(fillQueue); $$('.menu.open').forEach(fillMenu);
+  }
+  if (`${a.media_title}|${a.media_artist}` !== lyr.key) loadLyrics(a);
+}
+function times() {
+  const [p, dur] = npPos(), f = curEl(), s = st(NP);
+  if (!sk) { bind('npe', mmss(p)); bind('npr', dur ? '−' + mmss(dur - p) : s.attributes.media_title ? 'LIVE' : ''); }
+  // Demo: am Songende weiter (bzw. Titel wiederholen)
+  if (!LIVE && dur && p >= dur && s.state === 'playing') demoCall('media_player', s.attributes.repeat === 'one' ? 'media_seek' : 'media_next_track', { entity_id: NP, seek_position: 0 });
+  if (f?.classList.contains('f-music') && s.attributes.media_title && mode === 'normal' && !cur && !AS.className && Date.now() - touched > IDLE && !f.classList.contains('amb')) {
+    f.classList.add('amb'); $$('.pop.open', f).forEach(x => x.classList.remove('open'));
+  }
+}
+const IDLE = 10000;   // ms ohne Berührung → Musik geht in den Ruhe-Modus
+let touched = Date.now();
+
+// ---------- Liedtext ----------
+// HA liefert keinen Liedtext → LRCLIB (frei, CORS offen, zeitgestempelt) über Titel/Interpret; Demo = eigener Platzhaltertext
+const DEMO_LYR = ['Abendlicht fällt auf die Dächer', 'Die Straßen werden still', 'Ich zähl die Fenster gegenüber', 'Und keins, das schlafen will', '',
+  'Der Tag legt sich zur Ruhe', 'Wie ein Hund vorm warmen Ofen', 'Wir reden nicht, wir hören nur', 'Wie die letzten Vögel rufen', '',
+  'Bleib noch kurz, das Licht ist golden', 'Bleib noch kurz, es wird bald blau', 'Alles, was wir heute wollten', 'Passt in diesen einen Raum'];
+const DEMO_LINES = Array.from({ length: 52 }, (_, k) => ({ t: +(2 + k * 4.2).toFixed(1), s: DEMO_LYR[k % DEMO_LYR.length] }));
+const parseLRC = txt => txt.split('\n').flatMap(l => {
+  const m = l.match(/^\[(\d+):(\d+(?:\.\d+)?)\](.*)/);
+  return m ? [{ t: m[1] * 60 + +m[2], s: m[3].trim() }] : [];
+});
+console.assert(JSON.stringify(parseLRC('[00:01.50] a\n[01:02]\nx')) === '[{"t":1.5,"s":"a"},{"t":62,"s":""}]', 'lrc');
+let lyr = { key: null, title: '', lines: [], msg: '' }, lyrIdx, lyrT;
+async function loadLyrics(a) {
+  const key = `${a.media_title}|${a.media_artist}`;
+  lyr = { key, title: a.media_title || '', lines: !a.media_title ? [] : LIVE ? null : a.media_duration ? DEMO_LINES : [] };
+  fillLyrics();
+  if (lyr.lines) return;
+  let lines = [], msg = '';
+  try {
+    const q = new URLSearchParams({ track_name: a.media_title, artist_name: a.media_artist || '' }), d = a.media_duration || 0;
+    const hits = await (await fetch('https://lrclib.net/api/search?' + q)).json();
+    hits.sort((x, y) => Math.abs(x.duration - d) - Math.abs(y.duration - d));
+    const h = hits.find(h => h.syncedLyrics) || hits.find(h => h.plainLyrics || h.instrumental);
+    if (h?.syncedLyrics) lines = parseLRC(h.syncedLyrics);
+    else if (h?.plainLyrics) lines = h.plainLyrics.split('\n').map(s => ({ t: null, s: s.trim() }));
+    else if (h?.instrumental) msg = 'Instrumental';
+    if (lines[0]?.t > 5) lines.unshift({ t: 0, s: '' });   // lange Intro → Punkte statt leerer Bühne
+  } catch (e) { console.warn('Liedtext', e); }
+  if (lyr.key === key) { lyr.lines = lines; lyr.msg = msg; fillLyrics(); }
+}
+function fillLyrics() {
+  const L = lyr.lines, plain = L?.[0]?.t === null;
+  const rest = L === null ? '<p>Liedtext wird geladen …</p>' : !L.length ? (lyr.title ? `<p>${lyr.msg || 'Kein Liedtext gefunden'}</p>` : '')
+    : plain ? L.map(l => `<p>${esc(l.s) || '&nbsp;'}</p>`).join('')
+    : L.map((l, k) => l.s ? `<p data-act="seek" data-t="${l.t}">${esc(l.s)}</p>`
+      : `<p class="gap" data-act="seek" data-t="${l.t}" style="--gd:${((L[k + 1]?.t ?? l.t + 4) - l.t).toFixed(2)}s"><i></i><i></i><i></i></p>`).join('');
+  for (const ll of $$('.ll')) { ll.innerHTML = `<p>${esc(lyr.title)}</p>` + rest; ll.classList.toggle('plain', plain); ll.classList.remove('scrub'); ll.style.removeProperty('--o'); }
+  lyrIdx = NaN; syncLyrics();
+}
+// aktive Zeile auf 28 % Höhe; nächster Wechsel per Timer genau zum Zeitstempel
+function syncLyrics() {
+  clearTimeout(lyrT);
+  const L = lyr.lines || [], [pos] = npPos(), i = L.findLastIndex(l => l.t !== null && l.t <= pos), playing = st(NP).state === 'playing';
+  for (const ll of $$('.ll')) ll.classList.toggle('paused', !playing);
+  if (i !== lyrIdx) {
+    lyrIdx = i;
+    for (const ll of $$('.ll')) {
+      const ps = [...ll.children];
+      if (!ps.length) continue;
+      // beim Scrollen von Hand folgt der Text nicht; loslassen synct neu
+      if (!ll.classList.contains('scrub')) ll.style.setProperty('--y', `${ll._y = ll.parentElement.clientWidth * .28 - ps[i + 1].offsetTop}px`);
+      ps[i + 1].style.setProperty('--ge', `${i >= 0 ? pos - L[i].t : 0}s`);   // mitten in eine Pause gesprungen → Punkte schon teils voll
+      ps.forEach((p, k) => {
+        p.classList.toggle('on', i >= 0 && k === i + 1);
+        p.style.setProperty('--d', Math.min(Math.abs(k - i - 1), 4));
+        p.style.setProperty('--w', Math.min(Math.max(k - i - 1, 0), 6));
+      });
+    }
+  }
+  if (playing && L[i + 1]?.t != null) lyrT = setTimeout(syncLyrics, (L[i + 1].t - pos) * 1000 + 30);
+}
+const resync = () => { lyrIdx = NaN; syncLyrics(); };
+document.fonts.ready.then(resync);
+addEventListener('resize', resync);
+// Von Hand scrollen (Finger/Mausrad): Text folgt dem Finger, alle Zeilen scharf; 3 s Ruhe → zurück zur aktiven Zeile
+let ls = null, lsT;
+function lyrScroll(ll, o) {
+  const ps = ll.children, h = ll.parentElement.clientWidth * .28;
+  o = Math.min(h - ps[0].offsetTop - ll._y, Math.max(h - ps[ps.length - 1].offsetTop - ll._y, o));
+  ll.classList.add('scrub'); ll.style.setProperty('--o', `${o}px`); clearTimeout(lsT);
+  if (!ll.classList.contains('plain')) lsT = setTimeout(() => { ll.classList.remove('scrub'); ll.style.removeProperty('--o'); resync(); }, 3000);
+  return o;
+}
+const lyrOff = ll => parseFloat(ll.style.getPropertyValue('--o')) || 0;
+document.addEventListener('wheel', e => { const ll = e.target.closest('.ly .lyrics')?.firstElementChild; if (ll?.children.length) lyrScroll(ll, lyrOff(ll) - e.deltaY); }, { passive: true });
+
+// ---------- Assist/Siri ----------
+// Ablauf wie im Video: Tropfen (Goo-SVG, 0,2 s) → Glaskugel hört zu → denkt → weiße Antwortkarte, Kugel wandert nach oben.
+// Demo: feste Wetter-Antwort aus den aktuellen Daten. ponytail: HA-Voice-Anbindung (assist_satellite-Zustand, Antworttext) fehlt noch
+const AS = $('#assist'), ORB = $('.orb', AS), INK = $('.ink', AS), DROPC = $('circle', AS);
+const goo = (k, ms, ease) => DROPC.animate(k.map(([y, sx, sy = sx]) => ({ transform: `translate(0px,${y}px) scale(${sx},${sy})` })), { duration: ms, easing: ease });
+let asT = [], asEv = null;
+// k = 'cal' → Kalender-Antwort (Taste K), sonst Wetter (Taste S / Zug von oben)
+function assistStart(k = '') {
+  if (AS.className || mode !== 'normal') return;
+  touched = Date.now(); $$('.amb').forEach(x => x.classList.remove('amb'));
+  AS.className = 'drop'; AS.dataset.k = k;
+  asEv = k === 'cal' ? events() : null;
+  // Wölbung am Rand → Hals → reißt ab als Ei (y in cqw ab Oberkante, Skala zu r = 10)
+  goo([[-7, .45], [0, .5, .55], [7, .46, .62], [11, .55, .72]], 200, 'cubic-bezier(.4,0,.7,.7)').onfinish = () => {
+    AS.className = 'listen';
+    ORB.animate([{ transform: 'translateY(-6cqw) scale(.55,.72)' }, { transform: 'none' }], { duration: SD, easing: SPRING });
+    INK.animate([{ opacity: 1 }, { opacity: 1, offset: .2 }, { opacity: 0 }], { duration: 420, easing: 'ease-out' });
+    asT = [setTimeout(() => AS.className = 'think', 2400), setTimeout(assistAnswer, 3100)];
+  };
+}
+async function assistAnswer() {
+  if (asEv) {
+    const list = await asEv;
+    if (AS.className !== 'think') return;   // inzwischen abgebrochen
+    $('.atxt', AS).textContent = !list ? 'Ich erreiche deinen Kalender gerade nicht.' : list.length ? 'Das sind deine nächsten Termine:' : 'In deinem Kalender steht nichts an.';
+    $('.acal', AS).innerHTML = list?.length ? eventsHTML(list, 4) : '';
+  } else {
+    const w = st(CFG.weather), a = w.attributes;
+    $('.atxt', AS).textContent = `Draußen sind es ${Math.round(a.temperature)} Grad, ${($('[data-bind=wxc]', AS).textContent || w.state).toLowerCase()}.`
+      + (forecast ? ` Heute wird es bis zu ${Math.round(forecast.temperature)} Grad warm.` : '');
+    $('.ainfo b', AS).textContent = CFG.place;
+  }
+  AS.className = 'answer';
+  ORB.animate([{ transform: 'translateY(-8cqw) scale(.475)' }], { duration: SD, easing: SPRING, fill: 'forwards' });
+  asT.push(setTimeout(assistEnd, 12000));
+}
+// Zurück in die Kamera: Kugel wird schwarz und steigt, Goo-Tropfen verschmilzt mit dem Rand
+function assistEnd() {
+  if (!/listen|think|answer/.test(AS.className)) return;
+  asT.forEach(clearTimeout);
+  AS.className = 'out';
+  INK.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 160, fill: 'forwards' });
+  ORB.animate([{ transform: 'translateY(-12cqw) scale(.45)' }], { duration: 180, easing: 'ease-in', fill: 'forwards' }).onfinish = () => {
+    AS.className = 'drop';
+    goo([[5, .45], [1, .42, .52], [-7, .4]], 200, 'ease-in').onfinish = () => {
+      AS.className = '';
+      for (const el of [ORB, INK]) el.getAnimations().forEach(a => a.cancel());
+    };
+  };
+}
+document.addEventListener('keydown', e => {
+  if (e.target.closest?.('input')) return;
+  if (e.key === 's' || e.key === 'S') assistStart();
+  if (e.key === 'k' || e.key === 'K') assistStart('cal');
+  if ((e.key === 't' || e.key === 'T') && !LIVE) call('timer', 'start', { entity_id: 'timer.kuche' });
+  if (e.key === 'Escape') assistEnd();
+});
+
+// ---------- Musikauswahl, Ausgabe, Menü, Warteschlange ----------
+const STATE = { playing: 'Spielt', paused: 'Pausiert', idle: 'Bereit', off: 'Aus', on: 'An', unavailable: 'Nicht verfügbar' };
+const players = () => Object.values(ents).filter(e => e.entity_id.startsWith('media_player.') && e.attributes.device_class !== 'tv');
+const cssUrl = u => `url(&quot;${String(u).replace(/"/g, '%22')}&quot;)`;
+const abs = u => u && (u.startsWith('/') ? HASS + u : u);
+// HA: media_player/browse_media (Spotify, Sonos, Music Assistant …) – gleiche Form wie die Demo-Bibliothek
+async function browse(item) {
+  if (!LIVE) {
+    const n = LIB[item?.media_content_id || 'root'];
+    return { title: n.title, children: n.kids.map(k => LIB[k]).map(c => ({ title: c.title, sub: c.sub, thumbnail: c.art, media_content_id: c.id, media_content_type: 'music', can_play: !!c.tracks, can_expand: !!c.kids })) };
+  }
+  const r = await conn.sendMessagePromise({ type: 'media_player/browse_media', entity_id: NP, ...(item && { media_content_id: item.media_content_id, media_content_type: item.media_content_type }) });
+  return { title: r.title, children: r.children || [] };
+}
+let libStack = [];
+function showLib(dir = 0) {
+  const n = libStack.at(-1), g = $('.lgrid');
+  bind('libt', n.title);
+  $('#lib .x use').setAttribute('href', libStack.length > 1 ? '#back' : '#x');
+  g.innerHTML = !n.children ? '<p class="lnone">Lädt …</p>' : !n.children.length ? '<p class="lnone">Keine Einträge</p>'
+    : n.children.map((c, k) => `<button class="li" data-act="libgo" data-v="${k}"><span class="cover" style="--art:${c.thumbnail ? cssUrl(abs(c.thumbnail)) : 'linear-gradient(135deg,#aeaeb2,#636366)'}">${c.thumbnail ? '' : svg(c.can_expand ? 'queue' : 'note')}</span><b>${esc(c.title)}</b><small>${esc(c.sub)}</small></button>`).join('');
+  if (dir) { g.scrollTop = 0; g.animate([{ transform: `translateX(${dir * 25}%)`, opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: SD, easing: SPRING }); }
+}
+async function libLoad(n, item) {
+  try { Object.assign(n, await browse(item)); } catch (e) { n.children = []; console.warn('Musikauswahl', e); }
+  if (libStack.at(-1) === n) showLib();
+}
+function openLib(btn) {
+  libStack = [{ title: 'Musik', children: null }];
+  showLib(); open(btn, 'lib'); libLoad(libStack[0]);
+}
+function libGo(k) {
+  const c = libStack.at(-1).children[k];
+  if (c.can_play) { call('media_player', 'play_media', { entity_id: NP, media_content_id: c.media_content_id, media_content_type: c.media_content_type }); return close(); }
+  if (!c.can_expand) return;
+  const n = { title: c.title, children: null };
+  libStack.push(n); showLib(1); libLoad(n, c);
+}
+function fillOuts(p, all) {
+  const list = all ? players() : players().filter(e => e.entity_id === NP);
+  p.innerHTML = `<h4>${all ? 'Wiedergabe auf' : 'Lautstärke · ' + esc(st(NP).attributes.friendly_name)}</h4>` + list.map(e => {
+    const v = Math.round((e.attributes.volume_level ?? 0) * 100), on = e.entity_id === NP;
+    return `<div class="orow">${all ? `<button data-act="pick" data-v="${e.entity_id}">${svg('vol')}<span>${esc(e.attributes.friendly_name || e.entity_id)}<small>${STATE[e.state] || esc(e.state)}</small></span><i class="ck${on ? ' on' : ''}">${on ? svg('check') : ''}</i></button>` : ''}`
+      + `<input type="range" min="0" max="100" value="${v}" data-vol="${e.entity_id}" style="--v:${v}%" aria-label="Lautstärke ${esc(e.attributes.friendly_name)}"></div>`;
+  }).join('');
+}
+function fillMenu(m) {
+  const a = st(NP).attributes;
+  m.innerHTML = `<button class="mi" data-act="shuffle">${svg('shuffle')}<span>Zufallswiedergabe</span><small>${a.shuffle ? 'Ein' : 'Aus'}</small></button>
+<button class="mi" data-act="repeat">${svg('repeat')}<span>Wiederholen</span><small>${{ all: 'Alle', one: 'Titel' }[a.repeat] || 'Aus'}</small></button>
+<button class="mi" data-act="lib">${svg('note')}<span>Musikauswahl</span></button>
+<button class="mi" data-act="stop">${svg('stop')}<span>Wiedergabe stoppen</span></button>`;
+}
+function openPop(b, sel, fill) {
+  const p = $(sel, b.closest('.face'));
+  fill(p); p.classList.add('open');
+}
+// Warteschlange: Demo aus der Bibliothek, live nur Sonos (sonos.get_queue); andere Player liefern keine
+async function fillQueue(face) {
+  const box = $('.qlist', face), a = st(NP).attributes;
+  let items = [], i = -1;
+  if (!LIVE) { items = a._q || []; i = a._i ?? -1; }
+  else if (NP) try { items = (await ask('sonos', 'get_queue', { entity_id: NP }))?.[NP] || []; i = items.findIndex(x => x.title === a.media_title); } catch {}
+  const rest = items.map((x, k) => [x, k]).filter(([, k]) => k > i);
+  box.innerHTML = `<div class="qhead"><span>Als Nächstes</span><button class="tg${a.shuffle ? ' on' : ''}" data-act="shuffle" aria-label="Zufallswiedergabe">${svg('shuffle')}</button>`
+    + `<button class="tg${a.repeat && a.repeat !== 'off' ? ' on' : ''}" data-act="repeat" aria-label="Wiederholen">${svg('repeat')}${a.repeat === 'one' ? '<small>1</small>' : ''}</button></div>`
+    + (rest.length ? rest.map(([x, k]) => `<button class="qi" data-act="qplay" data-v="${k}"><span class="cover" style="${x.art ? '--art:' + cssUrl(x.art) : ''}"></span><div><b>${esc(x.title)}</b><small>${esc(x.artist)}</small></div></button>`).join('')
+      : `<p class="qnone">${items.length ? 'Ende der Warteschlange' : 'Keine Warteschlange verfügbar'}</p>`);
+}
+let volT, volV;
+function sendVol(id, v) {   // max. alle 200 ms, letzter Wert gewinnt
+  volV = [id, v];
+  volT ||= setTimeout(() => { volT = 0; call('media_player', 'volume_set', { entity_id: volV[0], volume_level: volV[1] }); }, 200);
+}
+// Fortschritt ziehen = spulen
+let sk = null;
+function seekMove(e) {
+  const r = sk.getBoundingClientRect(), dur = npPos()[1], i = $('i', sk);
+  sk.f = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
+  i.getAnimations().forEach(a => a.cancel()); i.style.transform = `scaleX(${sk.f})`;
+  bind('npe', mmss(sk.f * dur)); bind('npr', '−' + mmss(dur - sk.f * dur));
+}
+
+let tempT, lightT;
+function sendTemp(id) {
+  hold[id] = Date.now() + 3000;
+  clearTimeout(tempT);
+  tempT = setTimeout(() => call('climate', 'set_temperature', { entity_id: id, temperature: T[id] }), 600);
+}
+function sendLight() {   // max. alle 200 ms während des Ziehens
+  hold[cur.e] = Date.now() + 1500;
+  if (lightT) return;
+  lightT = setTimeout(() => {
+    lightT = 0;
+    call('light', S.light ? 'turn_on' : 'turn_off', S.light ? { entity_id: cur.e, brightness_pct: S.light } : { entity_id: cur.e });
+  }, 200);
+}
+// Öffnen/Entriegeln (bzw. Löschen) braucht einen zweiten Tipp innerhalb von 3 s
+function armed(t) {
+  if (t.dataset.arm) { delete t.dataset.arm; return true; }
+  t.dataset.arm = 1; setTimeout(() => delete t.dataset.arm, 3000);
+  return false;
+}
+const TAP = {
+  climate: t => open(t, 'climate'),
+  camera: t => open(t, 'cam'),
+  light: (t, id) => { hold[id] = Date.now() + 1500; t.classList.toggle('on'); call(id.split('.')[0], 'toggle', { entity_id: id }); },
+  fan: (t, id) => TAP.light(t, id),
+  lock: (t, id) => st(id).state === 'locked' ? armed(t) && call('lock', 'unlock', { entity_id: id }) : call('lock', 'lock', { entity_id: id }),
+  cover: (t, id) => {
+    const s = st(id), opening = s.state === 'closed';
+    if (opening && s.attributes.device_class === 'garage' && !armed(t)) return;
+    call('cover', opening ? 'open_cover' : 'close_cover', { entity_id: id });
+  },
+  scene: (t, id) => { hold[id] = Date.now() + 1200; t.classList.add('on'); setTimeout(() => t.classList.remove('on'), 1200); call('scene', 'turn_on', { entity_id: id }); },
+  script: (t, id) => call('script', 'turn_on', { entity_id: id }),
+  media_player: (t, id) => call('media_player', 'media_play_pause', { entity_id: id }),
+  timer: (t, id) => st(id).state === 'idle' ? call('timer', 'start', { entity_id: id }) : timerShow(),
+};
+
+// Kachel → Vollbild: FLIP mit Feder, nur transform/opacity (+ Radius)
+// ponytail: borderRadius läuft auf dem Main-Thread; ruckelt das auf dem Tablet → Radius-Keyframes streichen
+function fly(tile, view, opening, done) {
+  const a = tile.getBoundingClientRect(), b = screen.getBoundingClientRect(), k = a.width / b.width;
+  const small = { transform: `translate(${a.left - b.left}px,${a.top - b.top}px) scale(${k})`, borderRadius: `${b.width * .043 / k}px` };
+  const big = { transform: 'none', borderRadius: '0px' };
+  view.hidden = false; tile.style.visibility = 'hidden';
+  view.animate(opening ? [small, big] : [big, small], { duration: SD, easing: SPRING });
+  const f = view.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 200, easing: 'ease-out', fill: 'both', direction: opening ? 'normal' : 'reverse', delay: opening ? 0 : SD - 300 });
+  if (!opening) f.onfinish = () => { view.hidden = true; tile.style.visibility = ''; f.cancel(); done?.(); };
+}
+let cur = null, y0 = null, p0;
+function open(tile, id) {
+  const view = $('#' + id), e = tile.dataset.e;
+  cur = { tile, view, e };
+  bind('vname', (tile._t ? tile._t.sub : $('.sub', tile)?.textContent) || st(e).attributes.friendly_name || '');   // Konfig-Wert: render() hängt beim Thermostat „• Ist°“ an
+  if (id === 'dimmer') setLight(pct(st(e)));
+  if (id === 'climate') { const n = $('.num', view); n.dataset.temp = e; n.replaceChildren(); }
+  if (id === 'cam') camShow(tile, e, st(e));
+  render();
+  fly(tile, view, true);
+}
+function close() {
+  const { tile, view } = cur;
+  cur = null;
+  fly(tile, view, false, camHide);
+}
+// Termine aller calendar.*-Entities (Demo: erfundene, relativ zu heute); null = kein Kalender erreichbar
+const events = () => loadEvents(Object.keys(ents).filter(id => id.startsWith('calendar.')).sort(), LIVE && ask).catch(e => (console.warn('Kalender', e), null));
+async function openEvents(face) {
+  const l = $('#events .evl');
+  l.innerHTML = '<p class="evnone">Lädt …</p>';
+  open(face, 'events');
+  const list = await events(), html = list ? eventsHTML(list) : '<p class="evnone">Kalender nicht erreichbar</p>';
+  if (cur?.view.id === 'events') { l.innerHTML = html; l.scrollTop = 0; }
+}
+
+// ---------- Bearbeiten ----------
+let mode = 'normal', editT = null, edNight = false;   // edNight: Editor bearbeitet die Nacht-Variante
+const curIdx = () => Math.round(faces.scrollLeft / faces.clientWidth);
+const curEl = () => faces.children[curIdx()], curFace = () => CONF.faces[curIdx()];
+const markCur = () => [...faces.children].forEach((f, i) => f.classList.toggle('cur', i === curIdx()));
+function setMode(m) {
+  mode = m; markCur();
+  screen.classList.toggle('gallery', m === 'gallery');
+  screen.classList.toggle('custom', m === 'custom');
+  if (m !== 'custom') closeEditor();
+}
+function refresh() { npKey = ''; tick(); render(); times(); fillLyrics(); }
+function renderAll(idx = 0) {
+  faces.replaceChildren(...CONF.faces.map(f => buildFace(f)));
+  faces.scrollLeft = idx * faces.clientWidth;
+  markCur(); refresh();
+}
+// Tag ↔ Nacht: betroffene Faces neu aufbauen, Überblendung per View Transition (Compositor); nicht mitten im Bearbeiten/Vollbild → nächster tick/render holt es nach
+let night;
+function phase() {
+  const n = isNight();
+  if (night === undefined) return night = n;   // erster Aufbau lief schon mit n
+  if (n === night || mode !== 'normal' || cur) return;
+  night = n;
+  const dyn = CONF.faces.map((f, i) => f.bg === 'auto' || f.tiles?.some(t => t.night) ? i : -1).filter(i => i >= 0);
+  const go = () => dyn.forEach(rerender);
+  document.startViewTransition ? document.startViewTransition(go) : go();
+}
+function rerender(i) {
+  const old = faces.children[i], n = buildFace(CONF.faces[i]);
+  n.classList.toggle('cur', old.classList.contains('cur'));
+  if (cur?.tile === old) cur.tile = n;   // offene Terminliste: Schließen fliegt aufs neue Face (Tageswechsel)
+  old.replaceWith(n); refresh();
+}
+function syncSheet() {
+  const f = curFace(), v = f.bg?.photo ? 'photo' : String(f.bg);
+  $('#sheet').classList.toggle('nogrid', f.type !== 'grid');
+  $('#sheet').classList.toggle('nobg', f.type === 'music' || f.type === 'weather');
+  $('#sheet [data-k=greet]').value = f.greet || '';
+  const sty = STYLES[f.type] || [];
+  $('#sheet .styles').innerHTML = sty.map(([v, n]) => `<button data-act="fstyle" data-v="${v}" class="${(f.style || sty[0][0]) === v ? 'sel' : ''}">${n}</button>`).join('');
+  for (const s of $$('.sw')) s.classList.toggle('sel', (s.dataset.v ?? 'photo') === v);
+}
+function openEditor(el) {
+  editT = el._t; edNight = !!editT.night && isNight();   // Tab = was gerade zu sehen ist
+  $$('.editing').forEach(x => x.classList.remove('editing'));
+  el.classList.add('editing');
+  $('#ents').innerHTML = Object.keys(ents).sort().map(id => `<option value="${id}">${esc(st(id).attributes.friendly_name)}</option>`).join('');
+  syncEditor();
+  screen.classList.add('tedit');
+}
+function closeEditor() {
+  const stale = editT && edNight !== isNight();   // Tab zeigte die andere Phase → Face wieder auf die aktuelle bringen
+  editT = null; edNight = false; screen.classList.remove('tedit'); $$('.editing').forEach(x => x.classList.remove('editing'));
+  if (stale) rerender(curIdx());
+}
+// Nacht-Variante = nur die abweichenden Felder (e, title, sub, icon); Größe/Art bleiben die der Tag-Kachel
+const edView = () => edNight ? { ...editT, ...editT.night } : editT;
+function syncEditor() {
+  const b = editT, t = edView();
+  for (const i of $$('#tedit input[data-k]')) if (document.activeElement !== i) i.value = t[i.dataset.k] || '';
+  const val = { kind: kindOf(b), size: `${b.w || 1}x${b.h || 1}`, cs: b.cs || 'ticks', ph: edNight ? 'night' : 'day' };
+  for (const x of $$('#tedit .seg button')) x.classList.toggle('sel', x.dataset.v === val[x.parentElement.dataset.k]);
+  $('#tedit').classList.toggle('isclock', val.kind === 'clock');
+  $('#tedit').classList.toggle('istile', val.kind === 'tile');
+  $('#tedit').classList.toggle('hasn', !!b.night);
+  $('#tedit').classList.toggle('nm', edNight);
+  for (const x of $$('#tedit .icons button')) x.classList.toggle('sel', x.dataset.v === iconOf(t));
+}
+const changed = () => { rerender(curIdx()); syncEditor(); save(); };
+const tileOf = t => $$('[data-ti]', curEl()).find(x => x._t === t);
+// Umordnen/Entfernen: alle anderen Kacheln gleiten per FLIP an ihren neuen Platz
+function flipPlace(faceEl, f, except) {
+  const els = $$('[data-ti]', faceEl), before = new Map(els.map(el => [el, [el.offsetLeft, el.offsetTop]]));
+  place(faceEl, f);
+  for (const el of els) {
+    if (el === except) continue;
+    const [l, t] = before.get(el), dx = l - el.offsetLeft, dy = t - el.offsetTop;
+    if (dx || dy) el.animate([{ translate: `${dx}px ${dy}px` }, { translate: '0px 0px' }], { duration: SD, easing: SPRING, composite: 'add' });
+  }
+}
+function removeTile(el) {
+  const f = curFace(), faceEl = curEl();
+  el.animate([{ scale: '1', opacity: 1 }, { scale: '.2', opacity: 0 }], { duration: 200, easing: 'ease-in', fill: 'forwards' }).onfinish = () => {
+    f.tiles.splice(f.tiles.indexOf(el._t), 1); el.remove(); flipPlace(faceEl, f); save();
+  };
+}
+let drag = null;
+function dragMove(e) {
+  const d = drag, k = faces.getBoundingClientRect().width / faces.offsetWidth;
+  if (!d.on) {
+    if (Math.hypot(e.clientX - d.x, e.clientY - d.y) < 6) return;
+    d.on = true; suppress = true; d.el.classList.add('lift');
+  }
+  const pos = () => d.el.style.translate = `${(e.clientX - d.x) / k + d.l - d.el.offsetLeft}px ${(e.clientY - d.y) / k + d.t - d.el.offsetTop}px`;
+  pos();
+  if (Date.now() < d.cool) return;
+  const over = document.elementsFromPoint(e.clientX, e.clientY).find(x => x !== d.el && x.matches('.face.cur [data-ti]'));
+  if (!over) return;
+  const f = curFace(), n = placed(f), from = f.tiles.indexOf(d.el._t), to = f.tiles.indexOf(over._t);
+  f.tiles.splice(to, 0, f.tiles.splice(from, 1)[0]);
+  if (placed(f) < n) { f.tiles.splice(from, 0, f.tiles.splice(to, 1)[0]); return; }
+  flipPlace(curEl(), f, d.el);
+  pos(); d.cool = Date.now() + 250;
+}
+function dragEnd() {
+  const d = drag;
+  drag = null;
+  if (!d.on) return;
+  const tr = d.el.style.translate;
+  d.el.style.translate = ''; d.el.classList.remove('lift');
+  d.el.animate([{ translate: tr }, { translate: '0px 0px' }], { duration: SD, easing: SPRING });
+  save();
+}
+const EDIT = {
+  customize: () => { setMode('custom'); syncSheet(); },
+  addface: () => screen.classList.add('picking'),
+  pclose: () => screen.classList.remove('picking'),
+  newface: b => {
+    const i = curIdx() + 1, type = b.dataset.v;
+    CONF.faces.splice(i, 0, { type, bg: NEWBG[type], ...(type === 'grid' && { tiles: [{ kind: 'clock' }] }) });
+    save(); screen.classList.remove('picking'); renderAll(i);
+    faces.children[i].animate([{ opacity: 0, scale: '.6' }, { opacity: 1, scale: '.94' }], { duration: SD, easing: SPRING });
+  },
+  reset: b => { if (!armed(b)) return; CONF = structuredClone(DEF); save(); screen.classList.remove('picking'); renderAll(0); },
+  delface: b => {
+    if (CONF.faces.length < 2) return shake(b);
+    if (!armed(b)) return;
+    const i = curIdx();
+    faces.children[i].animate([{ opacity: 1 }, { opacity: 0, scale: '.6' }], { duration: 250, easing: 'ease-in', fill: 'forwards' }).onfinish = () => {
+      CONF.faces.splice(i, 1); save(); renderAll(Math.min(i, CONF.faces.length - 1));
+    };
+  },
+  done: () => { setMode('normal'); save(); },
+  bg: b => { curFace().bg = isNaN(b.dataset.v) ? b.dataset.v : +b.dataset.v; save(); rerender(curIdx()); syncSheet(); },
+  addtile: b => {
+    const f = curFace(), t = { title: 'Neu', sub: 'Raum' };
+    f.tiles.push(t);
+    if (!pack(f.tiles, rows(f)).at(-1)) { f.tiles.pop(); return shake(b); }
+    save(); rerender(curIdx());
+    const el = tileOf(t);
+    el.animate([{ scale: '0', opacity: 0 }, { scale: '1', opacity: 1 }], { duration: SD, easing: SPRING });
+    openEditor(el);
+  },
+  deltile: b => removeTile(b.closest('[data-ti]')),
+  tdel: () => { const el = tileOf(editT); closeEditor(); if (el) removeTile(el); },
+  tdone: () => closeEditor(),
+  seg: b => {
+    const k = b.parentElement.dataset.k, v = b.dataset.v, t = editT;
+    if (k === 'ph') edNight = v === 'night';
+    else if (k === 'kind') { t.kind = v; if (v !== 'tile') delete t.night; }
+    else if (k === 'cs') t.cs = v;
+    else {
+      const f = curFace(), n = placed(f), old = [t.w, t.h];
+      [t.w, t.h] = v.split('x').map(Number);
+      if (placed(f) < n || !pack(f.tiles, rows(f))[f.tiles.indexOf(t)]) { [t.w, t.h] = old; return shake(b); }
+    }
+    changed();
+  },
+  icon: b => { (edNight ? editT.night ||= {} : editT).icon = b.dataset.v; changed(); },
+  ndel: () => { delete editT.night; edNight = false; changed(); },
+  fstyle: async b => {
+    const f = curFace(); f.style = b.dataset.v;
+    if (f.style === 'depth' && f.bg?.photo && !f.bg.fg) await addCut(f);
+    save(); rerender(curIdx()); syncSheet();
+  },
+  mvface: b => {
+    const i = curIdx(), j = i + +b.dataset.v;
+    if (j < 0 || j >= CONF.faces.length) return shake(b);
+    [CONF.faces[i], CONF.faces[j]] = [CONF.faces[j], CONF.faces[i]];
+    // Snap aus, solange das Face verschoben ist: Chrome snappt sonst auf die transformierte Box um → falsches Face
+    save(); faces.style.scrollSnapType = 'none'; renderAll(j);
+    const a = faces.children[j].animate([{ translate: `${(i - j) * 100}% 0` }, { translate: '0 0' }], { duration: SD, easing: SPRING });
+    a.onfinish = a.oncancel = () => { faces.style.scrollSnapType = ''; faces.scrollLeft = curIdx() * faces.clientWidth; };
+  },
+};
+$('.sws').innerHTML = HUES.map(h => `<button class="sw" data-act="bg" data-v="${h}" style="background:linear-gradient(135deg,hsl(${h} 70% 62%),hsl(${h - 10} 75% 28%))"></button>`).join('')
+  + `<button class="sw" data-act="bg" data-v="black" style="background:#000;box-shadow:inset 0 0 0 .3cqw #fff3"></button><button class="sw" data-act="bg" data-v="white" style="background:#f2f2f7"></button>`
+  + `<button class="sw" data-act="bg" data-v="auto" aria-label="Nach Tageszeit" style="background:linear-gradient(135deg,hsl(30 75% 58%) 50%,hsl(240 65% 55%) 50%)"></button>`
+  + `<label class="sw" style="background:#ffffff1a"><input type="file" accept="image/*" hidden>${svg('image')}</label>`;
+$('#tedit .icons').innerHTML = ICONS.map(i => `<button data-act="icon" data-v="${i}">${svg(i)}</button>`).join('');
+$('#picker .types').innerHTML = Object.entries(TYPES).map(([k, n]) => `<button data-act="newface" data-v="${k}">${n}</button>`).join('');
+$('#sheet input[type=file]').addEventListener('change', async e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const f = curFace(); f.bg = await photoBg(file); e.target.value = '';
+  save(); rerender(curIdx()); syncSheet();
+  if (f.type === 'bigclock' && await addCut(f)) { save(); rerender(CONF.faces.indexOf(f)); syncSheet(); }
+});
+$('#sheet').addEventListener('input', e => {
+  if (e.target.dataset.k !== 'greet') return;
+  curFace().greet = e.target.value.trim() || undefined; save(); rerender(curIdx());
+});
+$('#tedit').addEventListener('input', e => {
+  const k = e.target.dataset.k;
+  if (!k) return;
+  const t = edNight ? editT.night ||= {} : editT, v = e.target.value.trim();
+  t[k] = v || undefined;
+  // Neue Kachel an Entity gebunden → Name übernehmen, solange noch der Platzhalter-Titel drinsteht
+  const w = edView(), fn = k === 'e' && ents[w.e]?.attributes.friendly_name;
+  if (fn && (!w.title || w.title === 'Neu')) [t.title, t.sub] = [fn, w.sub === 'Raum' ? undefined : w.sub];
+  // Nacht: leeres Feld = wie tagsüber (Spread würde undefined sonst übernehmen); nur „Entity leer“ bleibt '' (= Kachel ohne Aktion)
+  if (edNight) { for (const x in t) if (t[x] === undefined) delete t[x]; if (k === 'e' && !v) t.e = ''; }
+  changed();
+});
+
+// ---------- Gesten ----------
+// Tippen = Aktion · Halten auf Licht (450 ms) = Dimmer · Halten auf Kachel (600 ms) = Anpassen + gleich verschieben
+// Halten sonst = Galerie · im Anpassen-Modus ziehen = umordnen
+let lp, suppress = false, px = 0, py = 0, pull = false;
+const grab = t => drag = { el: t, x: px, y: py, l: t.offsetLeft, t: t.offsetTop, on: false, cool: 0 };
+document.addEventListener('pointerdown', e => {
+  suppress = false; px = e.clientX; py = e.clientY; touched = Date.now(); pull = e.target.id === 'pull';
+  const amb = $('.amb');
+  if (amb) { amb.classList.remove('amb'); if (amb === curEl()) { suppress = true; return; } }   // erster Tipp weckt nur
+  if (cur) return;
+  if (mode === 'custom') {
+    const t = !screen.classList.contains('tedit') && e.target.closest('.face.cur [data-ti]');
+    if (t && !e.target.closest('.del')) grab(t);
+    return;
+  }
+  if (mode !== 'normal' || !e.target.closest('.face') || e.target.closest('.pop')) return;
+  const ll = e.target.closest('.ly .lyrics')?.firstElementChild;
+  if (ll?.children.length) ls = { ll, y: e.clientY, o: lyrOff(ll), on: false };
+  const pg = e.target.closest('.prog');
+  if (pg) { if (npPos()[1]) { sk = pg; pg.classList.add('drag'); seekMove(e); } return; }
+  const light = e.target.closest('.tile[data-e^="light."]'), tile = e.target.closest('.f-grid [data-ti]');
+  lp = setTimeout(() => {
+    suppress = true;
+    if (light) return open(light, 'dimmer');
+    if (!tile) return setMode('gallery');
+    setMode('custom'); syncSheet(); grab(tile);
+  }, light ? 450 : 600);
+});
+document.addEventListener('pointermove', e => {
+  if (Math.hypot(e.clientX - px, e.clientY - py) > 8) clearTimeout(lp);
+  if (drag) dragMove(e);
+  if (sk) seekMove(e);
+  if (ls && (ls.on || Math.abs(e.clientY - ls.y) > 8)) { ls.on = true; lyrScroll(ls.ll, ls.o + e.clientY - ls.y); }
+  if (pull && e.clientY - py > 20) { pull = false; suppress = true; assistStart(); }
+});
+for (const ev of ['pointerup', 'pointercancel']) document.addEventListener(ev, () => {
+  clearTimeout(lp);
+  if (ls?.on) suppress = true;   // Scrollen ist kein Tipp auf eine Zeile
+  ls = null;
+  if (drag) dragEnd();
+  if (sk) { call('media_player', 'media_seek', { entity_id: NP, seek_position: sk.f * npPos()[1] }); sk.classList.remove('drag'); sk = null; suppress = true; }
+});
+document.addEventListener('contextmenu', e => e.preventDefault());
+document.addEventListener('input', e => {
+  const id = e.target.dataset.vol;
+  if (!id) return;
+  e.target.style.setProperty('--v', e.target.value + '%');
+  sendVol(id, e.target.value / 100);
+});
+document.addEventListener('click', e => {
+  if (suppress) { suppress = false; return; }
+  const b = e.target.closest('[data-act]'), act = b?.dataset.act, pop = $('.pop.open');
+  if (act === 'assist') return assistStart();
+  if (e.target.closest('#assist')) { assistEnd(); if (act !== 'go') return; }   // Tipp schließt; Pille führt zusätzlich hin
+  if (pop && !e.target.closest('.pop')) return pop.classList.remove('open');   // Tipp daneben schließt nur
+  if (EDIT[act]) return EDIT[act](b);
+  if (mode === 'gallery') { if (e.target.closest('.face')) { screen.classList.remove('picking'); setMode('normal'); } return; }
+  if (mode === 'custom') { const t = e.target.closest('.face.cur [data-ti]'); if (t) openEditor(t); return; }
+  if (act === 'up' || act === 'down') {
+    const id = b.closest('[data-e]')?.dataset.e || cur?.e, a = st(id).attributes, d = act === 'up' ? 1 : -1, now = T[id] ?? a.temperature;
+    if (now == null) return;
+    const v = Math.min(a.max_temp ?? 35, Math.max(a.min_temp ?? 5, now + d * (a.target_temp_step || .5)));
+    if (v !== now) { setTemp(id, v, d); sendTemp(id); }
+  }
+  else if (act === 'close') close();
+  else if (act === 'power') call('climate', st(cur.e).state === 'off' ? 'turn_on' : 'turn_off', { entity_id: cur.e });
+  else if (act === 'hvac') {
+    const c = st(cur.e), m = c.attributes.hvac_modes || [];
+    if (m.length) call('climate', 'set_hvac_mode', { entity_id: cur.e, hvac_mode: m[(m.indexOf(c.state) + 1) % m.length] });
+  }
+  else if (act === 'lib') { pop?.classList.remove('open'); openLib($('.mb', b.closest('.face'))); }
+  else if (act === 'libgo') libGo(+b.dataset.v);
+  else if (act === 'libback') { if (libStack.length > 1) { libStack.pop(); showLib(-1); } else close(); }
+  else if (act === 'outs') openPop(b, '.outs', p => fillOuts(p, true));
+  else if (act === 'vol') openPop(b, '.outs', p => fillOuts(p, false));
+  else if (act === 'menu') openPop(b, '.menu', fillMenu);
+  else if (act === 'pick') { CONF.player = b.dataset.v; save(); render(); fillOuts(b.closest('.pop'), true); }
+  else if (act === 'shuffle') NP && call('media_player', 'shuffle_set', { entity_id: NP, shuffle: !st(NP).attributes.shuffle });
+  else if (act === 'repeat') NP && call('media_player', 'repeat_set', { entity_id: NP, repeat: { off: 'all', all: 'one', one: 'off' }[st(NP).attributes.repeat || 'off'] });
+  else if (act === 'stop') { pop?.classList.remove('open'); NP && call('media_player', 'media_stop', { entity_id: NP }); }
+  else if (act === 'qplay') NP && call(LIVE ? 'sonos' : 'media_player', 'play_queue', { entity_id: NP, queue_position: +b.dataset.v });
+  else if (act === 'cam') st(b.dataset.e).state === 'unavailable' ? shake(b) : open(b, 'cam');
+  else if (act === 'events') openEvents(b);
+  else if (act === 'toggle') st(b.dataset.e).state === 'unavailable' ? shake(b) : TAP[b.dataset.e.split('.')[0]]?.(b, b.dataset.e);   // Licht im Klingel-Bild / Kameras-Face
+  else if (act === 'go') { const i = CONF.faces.findIndex(f => f.type === b.dataset.v); if (i >= 0) faces.scrollTo({ left: i * faces.clientWidth, behavior: 'smooth' }); }
+  else if (act === 'play') NP && call('media_player', 'media_play_pause', { entity_id: NP });
+  else if (act === 'prev') NP && call('media_player', 'media_previous_track', { entity_id: NP });
+  else if (act === 'next') NP && call('media_player', 'media_next_track', { entity_id: NP });
+  else if (act === 'seek') NP && call('media_player', 'media_seek', { entity_id: NP, seek_position: +b.dataset.t });
+  else if (act === 'lyrics' || act === 'queue') {
+    const f = b.closest('.face'), [c, other] = act === 'lyrics' ? ['ly', 'qm'] : ['qm', 'ly'];
+    f.classList.remove(other);
+    if (f.classList.toggle(c) && c === 'qm') fillQueue(f);
+    lyrIdx = NaN; syncLyrics();
+  }
+  else {
+    const t = e.target.closest('[data-ti]');
+    if (!t?.classList.contains('tile')) return;
+    const id = t.dataset.e;
+    if (!id) { if ('noop' in t.dataset) return; setMode('custom'); syncSheet(); return openEditor(t); }   // leere Kachel → gleich einrichten
+    if (st(id).state === 'unavailable') return shake(t);
+    TAP[id.split('.')[0]]?.(t, id);
+  }
+});
+
+// Dimmer: ganzer Screen ist der Slider, relativ ziehen wie im Kontrollzentrum
+const dim = $('#dimmer');
+dim.addEventListener('pointerdown', e => { if (e.target.closest('[data-act]')) return; y0 = e.clientY; p0 = S.light; dim.setPointerCapture(e.pointerId); });
+dim.addEventListener('pointermove', e => {
+  if (y0 === null) return;
+  const p = Math.round(Math.min(100, Math.max(0, p0 + (y0 - e.clientY) / dim.clientHeight * 100)));
+  if (p !== S.light) { setLight(p); sendLight(); }
+});
+dim.addEventListener('pointerup', () => y0 = null);
+dim.addEventListener('pointercancel', () => y0 = null);
+
+// ---------- Start ----------
+if (!LIVE) {
+  const demo = {
+    'climate.wohnzimmer_ac_mqtt_hvac': ['heat', { friendly_name: 'Wohnzimmer Klima', hvac_modes: ['off', 'heat', 'cool', 'heat_cool', 'dry', 'fan_only'], temperature: 21, current_temperature: 20.5, current_humidity: 47, target_temp_step: .5, min_temp: 16, max_temp: 30 }],
+    'climate.tado_smart_radiator_thermostat_x': ['heat', { friendly_name: 'Büro Heizung', temperature: 22, current_temperature: 21.4, current_humidity: 52, target_temp_step: .5 }],
+    'light.flur': ['on', { friendly_name: 'Flur', brightness: 84 }],
+    'light.eingang': ['off', { friendly_name: 'Hauseingang' }],
+    'light.wohnzimmer': ['off', { friendly_name: 'Wohnzimmer' }],
+    'light.kuche': ['off', { friendly_name: 'Küche' }],
+    'light.buro': ['off', { friendly_name: 'Büro' }],
+    'light.schlafzimmer_deckenlampe': ['off', { friendly_name: 'Schlafzimmer Deckenlampe' }],
+    'fan.schlafzimmer': ['off', { friendly_name: 'Schlafzimmer Ventilator' }],
+    'calendar.familie': ['off', { friendly_name: 'Familie' }],
+    'calendar.geburtstage': ['off', { friendly_name: 'Geburtstage' }],
+    'calendar.mullabfuhr': ['off', { friendly_name: 'Müllabfuhr' }],
+    'lock.eingangstur': ['locked', { friendly_name: 'Eingangstür' }],
+    'lock.garagentur': ['locked', { friendly_name: 'Garagentür' }],
+    'cover.garagentor': ['closed', { friendly_name: 'Garagentor', device_class: 'garage' }],
+    'cover.kuche_rollladen': ['open', { friendly_name: 'Küche Rollladen', device_class: 'shutter' }],
+    'camera.turklingel': ['idle', { friendly_name: 'Türklingel' }],
+    'camera.cx410w_color_x_standardauflosung': ['unavailable', { friendly_name: 'Garten Kamera' }],
+    'event.turklingel_doorbell': [new Date(Date.now() - 47 * 60000).toISOString(), { friendly_name: 'Türklingel Doorbell', event_type: 'ring', device_class: 'doorbell' }],
+    'binary_sensor.turklingel_motion': ['off', { friendly_name: 'Türklingel Motion', device_class: 'motion' }],
+    'timer.kuche': ['idle', { friendly_name: 'Küche', duration: '0:15:00', remaining: '0:15:00', editable: true }],
+    'scene.guten_morgen': ['2026-10-19T06:30:00+00:00', { friendly_name: 'Guten Morgen' }],
+    'scene.gute_nacht': ['2026-10-18T22:40:00+00:00', { friendly_name: 'Gute Nacht' }],
+    'weather.home': ['partlycloudy', { friendly_name: 'Home', temperature: 12, humidity: 76, wind_speed: 11, wind_speed_unit: 'km/h', uv_index: 2 }],
+    'media_player.wohnzimmer_2': ['playing', { friendly_name: 'Sonos Wohnzimmer', device_class: 'speaker', volume_level: .35, ...track(LIB[ALBUMS[0]].tracks, 0, 121) }],
+    'media_player.buro': ['idle', { friendly_name: 'Sonos Büro', device_class: 'speaker', volume_level: .2 }],
+    'media_player.kuche': ['idle', { friendly_name: 'Sonos Küche', device_class: 'speaker', volume_level: .25 }],
+  };
+  const put = o => { for (const [id, [state, attributes]] of Object.entries(o)) ents[id] = { entity_id: id, state: String(state), attributes }; };
+  put(demo); put(energyDemo());
+  setInterval(() => { put(energyDemo()); schedule(); }, 3000);
+  forecast = { temperature: 14, templow: 6 };
+}
+camInit($('#cam'), { open, close, hass: HASS });
+if (!LIVE && new URLSearchParams(location.search).has('ring')) setTimeout(() => { ents = { ...ents, 'event.turklingel_doorbell': { ...ents['event.turklingel_doorbell'], state: new Date().toISOString() } }; schedule(); }, 1500);   // Demo-Klingeln wie HA
+timerInit(screen, call);
+renderAll(0);
+setTimeout(() => { tick(); setInterval(tick, 60000); }, 60050 - Date.now() % 60000);
+setInterval(times, 1000);
+document.addEventListener('visibilitychange', tick);
+
+// Verbindung: in Kiosk Satellite über dessen Socket (kein Token in der Seite), sonst HA-Login (OAuth) einmalig, Tokens im localStorage
+const KS = window.kioskSatellite?.platform === 'kiosksatellite' ? window.kioskSatellite : null;
+if (LIVE) {
+  // ponytail: Bibliothek vom CDN; für den Kiosk ohne Internet lokal ablegen
+  const ha = await import('https://cdn.jsdelivr.net/npm/home-assistant-js-websocket@9.7.1/+esm');
+  try {
+    if (KS) {
+      // setupRetry greift bei eigenem createSocket nicht → ersten Versuch selbst wiederholen (HA bootet)
+      for (let i = 1; !conn; i++) {
+        try { conn = await ha.createConnection({ createSocket: KS.ha.createSocket }); }
+        catch (e) { if (e === ha.ERR_INVALID_AUTH) throw e; await new Promise(r => setTimeout(r, Math.min(i, 5) * 1000)); }
+      }
+    } else {
+      const auth = await ha.getAuth({
+        hassUrl: HASS,
+        saveTokens: t => localStorage.hassTokens = JSON.stringify(t),
+        loadTokens: async () => JSON.parse(localStorage.hassTokens || 'null'),
+      });
+      if (location.search.includes('auth_callback')) history.replaceState(null, '', location.pathname + '?live');
+      conn = await ha.createConnection({ auth, setupRetry: -1 });
+    }
+    // Einstellungen aus HA übernehmen (gilt für alle Displays); ohne gespeicherte Konfiguration bleibt die lokale und wird hochgeladen
+    conn.sendMessagePromise({ type: 'homeblick/get_config' }).then(c => {
+      if (c?.faces?.length) { CONF = c; try { localStorage.setItem(KEY, JSON.stringify(CONF)); } catch {} renderAll(0); }
+      else save();
+    }).catch(() => {});
+    ha.subscribeEntities(conn, e => { ents = e; schedule(); });
+    conn.subscribeMessage(f => { forecast = f.forecast?.[0]; schedule(); }, { type: 'weather/subscribe_forecast', forecast_type: 'daily', entity_id: CFG.weather }).catch(console.warn);
+  } catch (err) {
+    // In KS heißt ERR_INVALID_AUTH: Teilen aus / keine Custom Page. Kein Reload, sonst Endlosschleife.
+    if (KS) console.error('KS: „Share Home Assistant connection“ einschalten bzw. Seite als Custom Page eintragen', err);
+    else if (err === ha.ERR_INVALID_AUTH) { localStorage.removeItem('hassTokens'); location.reload(); }
+    else console.error('HA', err);
+  }
+}
+</script>
+</body>
+</html>

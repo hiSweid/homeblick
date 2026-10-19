@@ -1,0 +1,6 @@
+{
+  "config": {
+    "step": { "user": { "title": "Homeblick", "description": "Adds the Homeblick wall display panel to the sidebar." } },
+    "abort": { "single_instance_allowed": "Homeblick is already set up." }
+  }
+}
