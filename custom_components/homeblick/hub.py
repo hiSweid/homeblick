@@ -67,6 +67,11 @@ class Hub:
             await self._save()
         return self.displays[id]
 
+    async def remove(self, id: str) -> None:
+        self.displays.pop(id, None)
+        self.configs.pop(id, None)
+        await self._save()
+
     def config(self, id: str) -> dict | None:
         return self.configs.get(id) or self.default
 
