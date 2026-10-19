@@ -81,6 +81,7 @@ SETTINGS = vol.Schema({
     vol.Optional("barge"): bool,
     vol.Optional("listen"): vol.All(int, vol.Range(min=3, max=60)),
     vol.Optional("volume"): vol.All(int, vol.Range(min=0, max=100)),
+    vol.Optional("bright"): vol.All(int, vol.Range(min=10, max=100)),
     vol.Optional("weather"): vol.Match(r"^weather\.\w+$"),
     vol.Optional("place"): vol.All(str, vol.Length(max=40)),
 })

@@ -134,6 +134,8 @@ function view() {
     ${row('Nach Inaktivität (Sekunden, 0 = aus)', sInput('idle', s.idle, 'type=number min=0 max=3600 step=10'))}
     ${row('Face im Bildschirmschoner', sSelect('saver', Object.entries(TYPES), s.saver))}
   </div>
+  <div class="card"><h2>Helligkeit</h2>
+    ${row('Helligkeit (%) <span class="mut">(Software-Abdunklung, keine Hardware-Helligkeit)</span>', sInput('bright', s.bright, 'type=range min=10 max=100 step=5'))}</div>
   <div class="card"><h2>Nachtmodus</h2>
     ${row('Nachts abdunkeln', `<input type=checkbox data-s="dim" ${s.dim ? 'checked' : ''}>`)}
     ${row('Von', sInput('dim_from', s.dim_from.slice(0, 5), 'type=time'))}${row('Bis', sInput('dim_to', s.dim_to.slice(0, 5), 'type=time'))}

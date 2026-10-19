@@ -83,6 +83,9 @@
       },
       "volume": {
         "name": "Lautstärke Antworten"
+      },
+      "bright": {
+        "name": "Helligkeit"
       }
     },
     "time": {

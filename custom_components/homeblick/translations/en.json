@@ -83,6 +83,9 @@
       },
       "volume": {
         "name": "Reply volume"
+      },
+      "bright": {
+        "name": "Brightness"
       }
     },
     "time": {
