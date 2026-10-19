@@ -563,7 +563,7 @@ import { loadEvents, eventsHTML } from './events.js';
 // Ohne Parameter: Demo-Daten. Echtes HA nur mit ?live
 const LIVE = new URLSearchParams(location.search).has('live');
 const CFG = { hass: '', weather: 'weather.home', place: 'Home', pipeline: '', mute: false, barge: false, listen: 15, volume: 100 };   // Wetter, Ort, Assist-Pipeline: je Display in der Einstellungsseite (applyK)
-const applyK = k => { for (const x of ['weather', 'place', 'pipeline', 'mute', 'barge', 'listen', 'volume']) if (k?.[x] != null) CFG[x] = k[x]; };
+const applyK = k => { for (const x of ['weather', 'place', 'tts', 'pipeline', 'mute', 'barge', 'listen', 'volume']) if (k?.[x] != null) CFG[x] = k[x]; };
 const HASS = /^\/(local|homeblick)\//.test(location.pathname) ? location.origin : CFG.hass;   // unter /local/ ist die Seite selbst der HA-Origin
 
 const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -1185,12 +1185,19 @@ function announce(t) {
   if (AS.className || mode !== 'normal') return;
   AS.dataset.k = 'voice'; AS.className = 'listen'; $('.atxt', AS).textContent = t;
   let ms = 8000 + t.length * 60;
-  if (!CFG.mute && window.speechSynthesis) {
-    const u = new SpeechSynthesisUtterance(t); u.lang = 'de-DE'; u.volume = CFG.volume / 100;
-    u.onend = u.onerror = () => asT = [setTimeout(assistEnd, 2500)];
-    speechSynthesis.speak(u); ms = 60000;   // schließt beim Sprechende; 60 s nur als Sicherung
-  }
+  const fin = () => { asT.forEach(clearTimeout); asT = [setTimeout(assistEnd, 2500)]; };
+  if (!CFG.mute && CFG.tts && conn?.options?.auth?.accessToken) {   // HA-Stimme; bei Fehler Browser-Stimme
+    fetch('/api/tts_get_url', { method: 'POST', headers: { Authorization: 'Bearer ' + conn.options.auth.accessToken, 'Content-Type': 'application/json' }, body: JSON.stringify({ message: t, engine_id: CFG.tts }) })
+      .then(r => r.ok ? r.json() : Promise.reject()).then(j => { const a = new Audio(j.path); a.volume = CFG.volume / 100; a.onended = a.onerror = fin; return a.play(); }).catch(() => speak(t, fin));
+    ms = 60000;
+  } else if (!CFG.mute) { speak(t, fin); ms = 60000; }
   assistShow(ms);
+}
+function speak(t, fin) {
+  if (!window.speechSynthesis) return fin();
+  const u = new SpeechSynthesisUtterance(t); u.lang = 'de-DE'; u.volume = CFG.volume / 100;
+  u.onend = u.onerror = fin;
+  speechSynthesis.speak(u);
 }
 function assistShow(ms = 12000) {
   AS.className = 'answer';

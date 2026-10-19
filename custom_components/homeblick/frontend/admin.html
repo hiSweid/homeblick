@@ -199,7 +199,7 @@ const slider = (label, key, lo, hi, step, v) => `<div class="row"><span class="l
 const field = (label, key, v, extra = '', attr = 'data-s') => `<label class="row"><span class="l">${label}</span><input class="r" ${attr}="${key}" value="${esc(v)}" ${extra}></label>`;
 
 const shots = {};   // letztes Bildschirmfoto je Display
-let conn, displays = [], sel = null, cfg = null, editing = false, pipelines = [], weathers = [];
+let conn, displays = [], sel = null, cfg = null, editing = false, pipelines = [], weathers = [], ttss = [];
 let stack = [];   // Seiten im Detail-Bereich: { t: 'display' } | { t: 'face', i }
 const call = (type, p = {}) => conn.sendMessagePromise({ type: 'homeblick/' + type, ...p });
 const cur = () => displays.find(d => d.id === sel);
@@ -281,7 +281,7 @@ const pages = {
         <label class="row"><span class="l">Von</span><input type="time" data-s="dim_from" value="${esc(s.dim_from.slice(0, 5))}"></label>
         <label class="row"><span class="l">Bis</span><input type="time" data-s="dim_to" value="${esc(s.dim_to.slice(0, 5))}"></label>
         ${slider('Stärke', 'dim_level', 10, 95, 5, s.dim_level)}</div></div>`, 'Ein Tipp hellt das Display für 30 Sekunden auf.')}
-      ${grp('Sprache', pick('Wake Word', 'wake', WAKE, s.wake) + toggle('Antworten stumm', 'mute', s.mute) + toggle('Wake Word unterbricht Antwort', 'barge', s.barge) + slider('Lautstärke der Antworten', 'volume', 0, 100, 5, s.volume) + field('Aufnahme-Zeitlimit (s)', 'listen', s.listen, 'type="number" inputmode="numeric" min="3" max="60"') + pick('Assist-Pipeline', 'pipeline', [['', 'Standard von Home Assistant'], ...pipelines], s.pipeline), 'Ein Wake Word hält das Mikrofon dauerhaft offen und braucht https. „Stumm“ zeigt Antworten nur als Text.')}
+      ${grp('Sprache', pick('Wake Word', 'wake', WAKE, s.wake) + toggle('Antworten stumm', 'mute', s.mute) + toggle('Wake Word unterbricht Antwort', 'barge', s.barge) + slider('Lautstärke der Antworten', 'volume', 0, 100, 5, s.volume) + field('Aufnahme-Zeitlimit (s)', 'listen', s.listen, 'type="number" inputmode="numeric" min="3" max="60"') + pick('Stimme für Ansagen', 'tts', [['', 'Browser-Stimme'], ...ttss], s.tts) + pick('Assist-Pipeline', 'pipeline', [['', 'Standard von Home Assistant'], ...pipelines], s.pipeline), 'Ein Wake Word hält das Mikrofon dauerhaft offen und braucht https. „Stumm“ zeigt Antworten nur als Text.')}
       ${grp('Wetter', pick('Wetter-Entity', 'weather', weathers.some(w => w[0] === s.weather) ? weathers : [...weathers, [s.weather, s.weather + ' (nicht gefunden)']], s.weather) + field('Ortsname', 'place', s.place))}
       <div id="liveGrp">${liveHTML(d)}</div>
       ${grp('Verwalten', pick('Konfiguration übernehmen von', 'copy', [['', 'Display wählen …'], ...displays.filter(x => x.id !== sel).map(x => [x.id, x.name])], '', 'data-copy') + `<button class="row red c" data-a="rm">Display entfernen</button>`)}`;
@@ -465,6 +465,7 @@ try {
   conn = await connect();
   const [states, pl] = await Promise.all([conn.sendMessagePromise({ type: 'get_states' }), conn.sendMessagePromise({ type: 'assist_pipeline/pipeline/list' }).catch(() => null)]);
   $('#ents').innerHTML = states.map(x => `<option value="${esc(x.entity_id)}">${esc(x.attributes.friendly_name || '')}</option>`).join('');
+  ttss = states.filter(x => x.entity_id.startsWith('tts.')).map(x => [x.entity_id, x.attributes.friendly_name || x.entity_id]);
   weathers = states.filter(x => x.entity_id.startsWith('weather.')).map(x => [x.entity_id, x.attributes.friendly_name || x.entity_id]);
   pipelines = pl?.pipelines?.map(p => [p.id, p.name]) || [];
   await reload();
