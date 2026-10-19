@@ -20,8 +20,8 @@ function onRR(t, h, R) {
   for (let i = 0; i < k; i++) [x, y, nx, ny] = [-y, x, -ny, nx];   // je Seite 90° weiterdrehen
   return [x, y, nx, ny];
 }
-// ponytail: 72 Striche, Lage/Größe aus dem schrägen Produktfoto geschätzt → bei besserer
-const N = 72, TICKS = Array.from({ length: N }, (_, i) => {
+// ponytail: 60 Striche (Vorlage), Lage/Größe aus dem schrägen Produktfoto geschätzt → bei besserer
+const N = 60, TICKS = Array.from({ length: N }, (_, i) => {
   const [x, y, nx, ny] = onRR(i / N, 44.5, 16), l = 4;
   return `<line x1="${(50 + x).toFixed(2)}" y1="${(50 + y).toFixed(2)}" x2="${(50 + x - nx * l).toFixed(2)}" y2="${(50 + y - ny * l).toFixed(2)}"/>`;
 }).join('');
