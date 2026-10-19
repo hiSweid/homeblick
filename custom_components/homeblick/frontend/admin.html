@@ -110,6 +110,10 @@ function view() {
   if (!d) return $('#view').innerHTML = `<div class="card">Noch kein Display angemeldet. Öffne Homeblick einmal auf dem Gerät (am besten mit <code>?display=kueche&amp;name=Küche</code>).</div>`;
   const faces = cfg?.faces;
   $('#view').innerHTML = `
+  ${displays.length > 1 ? `<div class="card"><h2>Alle Displays (${displays.filter(x => x.connected).length} online)</h2>
+    <div class="row"><select id="allFace"><option value="">Face auf allen anzeigen …</option>${opt(Object.entries(TYPES), '')}</select>
+      ${Object.entries(ACTIONS).map(([k, n]) => `<button data-all="${k}">${n}</button>`).join('')}</div>
+    <div class="row"><label>Nachtmodus</label><button data-alls="dim:1">Auf allen an</button><button data-alls="dim:0">Auf allen aus</button></div></div>` : ''}
   <div class="card"><h2>Display</h2>
     ${row('Name', sInput('name', d.name))}
     <div class="row"><label id="stat">${status(d)}</label>
@@ -170,7 +174,8 @@ document.addEventListener('change', e => {
     f[t.dataset.f] = t.dataset.f === 'bg' ? (isNaN(v) ? v : +v) : v; saveCfg();
   } else if (t.dataset.t) {
     faceOf(t).tiles[+t.closest('[data-ti]').dataset.ti][t.dataset.t] = t.value.trim(); saveCfg();
-  } else if (t.id === 'faceSel' && t.value) { guard(call('command', { display: sel, action: 'face', face: t.value })); t.value = ''; }
+  } else if (t.id === 'allFace' && t.value) { all({ action: 'face', face: t.value }); t.value = ''; }
+  else if (t.id === 'faceSel' && t.value) { guard(call('command', { display: sel, action: 'face', face: t.value })); t.value = ''; }
   else if (t.id === 'add' && t.value) { cfg.faces.push({ type: t.value, bg: NEWBG[t.value], ...(t.value === 'grid' && { tiles: [{ kind: 'clock' }] }) }); saveCfg(); view(); }
   else if (t.id === 'copy' && t.value) copyFrom(t.value);
 });
@@ -178,6 +183,8 @@ document.addEventListener('click', async e => {
   const b = e.target.closest('button');
   if (!b) return;
   if (b.dataset.d) return select(b.dataset.d);
+  if (b.dataset.all) return all({ action: b.dataset.all });
+  if (b.dataset.alls) { const [k, v] = b.dataset.alls.split(':'); return guard(Promise.all(displays.map(x => (x.settings[k] = !!+v, call('update', { display: x.id, settings: { [k]: !!+v } })))).then(view)); }
   if (b.dataset.c) return guard(call('command', { display: sel, action: b.dataset.c }));
   const a = b.dataset.a;
   if (a === 'rm') {
@@ -194,6 +201,9 @@ document.addEventListener('click', async e => {
   else if (a === 'del') { if (cfg.faces.length < 2) return toast('Mindestens ein Face', true); if (!confirm(`„${TYPES[f.type]}“ löschen?`)) return; cfg.faces.splice(i, 1); open.clear(); }
   saveCfg(); view();
 });
+
+// Gruppenaktion: Befehl an alle Displays, die gerade ein Panel offen haben
+const all = p => guard(Promise.all(displays.filter(x => x.connected).map(x => call('command', { display: x.id, ...p }))));
 
 async function copyFrom(id) {
   const src = displays.find(x => x.id === id);
