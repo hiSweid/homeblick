@@ -58,6 +58,9 @@
       },
       "mute": {
         "name": "Antworten stumm"
+      },
+      "barge": {
+        "name": "Wake Word unterbricht Antwort"
       }
     },
     "button": {

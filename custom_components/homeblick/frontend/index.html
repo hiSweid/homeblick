@@ -548,8 +548,8 @@ import { camInit, camShow, camHide, camFace, camTile, doorbell } from './doorbel
 import { loadEvents, eventsHTML } from './events.js';
 // Ohne Parameter: Demo-Daten. Echtes HA nur mit ?live
 const LIVE = new URLSearchParams(location.search).has('live');
-const CFG = { hass: '', weather: 'weather.home', place: 'Home', pipeline: '', mute: false, listen: 15, volume: 100 };   // Wetter, Ort, Assist-Pipeline: je Display in der Einstellungsseite (applyK)
-const applyK = k => { for (const x of ['weather', 'place', 'pipeline', 'mute', 'listen', 'volume']) if (k?.[x] != null) CFG[x] = k[x]; };
+const CFG = { hass: '', weather: 'weather.home', place: 'Home', pipeline: '', mute: false, barge: false, listen: 15, volume: 100 };   // Wetter, Ort, Assist-Pipeline: je Display in der Einstellungsseite (applyK)
+const applyK = k => { for (const x of ['weather', 'place', 'pipeline', 'mute', 'barge', 'listen', 'volume']) if (k?.[x] != null) CFG[x] = k[x]; };
 const HASS = /^\/(local|homeblick)\//.test(location.pathname) ? location.origin : CFG.hass;   // unter /local/ ist die Seite selbst der HA-Origin
 
 const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -1742,7 +1742,13 @@ if (LIVE) {
       const m = { ...KIOSK_DEF, ...CONF.kiosk }.wake;
       if (m === wkModel) return;
       wkModel = m; wkCtl?.stop(); wkCtl = null;
-      if (m && voiceOK()) wkCtl = await wakeInit({ model: m, onWake: () => { kiosk.wake(); assistStart(); return new Promise(r => { const t = setInterval(() => AS.className || (clearInterval(t), r()), 500); }); } }).catch(e => console.warn('Wake Word', e));
+      if (m && voiceOK()) wkCtl = await wakeInit({ model: m, onWake: () => {
+        kiosk.wake();
+        // Barge-in: Wake Word während der Antwort bricht sie ab und hört neu zu
+        if (CFG.barge && AS.className === 'answer' && voice) { asT.forEach(clearTimeout); voice.stop(); AS.className = 'listen'; assistVoice(); return; }
+        assistStart();
+        return new Promise(r => { const t = setInterval(() => (!AS.className || (CFG.barge && AS.className === 'answer')) && (clearInterval(t), r()), 300); });
+      } }).catch(e => console.warn('Wake Word', e));
     };
     hello.then(() => conn.subscribeMessage(f => { forecast = f.forecast?.[0]; schedule(); }, { type: 'weather/subscribe_forecast', forecast_type: 'daily', entity_id: CFG.weather })).catch(console.warn);
   } catch (err) {

@@ -69,6 +69,7 @@ SETTINGS = vol.Schema({
     vol.Optional("wake"): vol.In(WAKE),
     vol.Optional("pipeline"): str,
     vol.Optional("mute"): bool,
+    vol.Optional("barge"): bool,
     vol.Optional("listen"): vol.All(int, vol.Range(min=3, max=60)),
     vol.Optional("volume"): vol.All(int, vol.Range(min=0, max=100)),
     vol.Optional("weather"): vol.Match(r"^weather\.\w+$"),

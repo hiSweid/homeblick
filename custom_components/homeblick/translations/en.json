@@ -58,6 +58,9 @@
       },
       "mute": {
         "name": "Mute replies"
+      },
+      "barge": {
+        "name": "Wake word interrupts reply"
       }
     },
     "button": {

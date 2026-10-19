@@ -138,6 +138,7 @@ function view() {
   <div class="card"><h2>Sprache (Assist)</h2>
     ${row('Wake Word <span class="mut">(hält das Mikrofon dauerhaft offen, braucht https)</span>', sSelect('wake', [['off', 'Aus'], ['hey_jarvis', 'Hey Jarvis'], ['alexa', 'Alexa']], s.wake))}
     ${row('Antworten stumm <span class="mut">(Text ohne Ton)</span>', `<input type=checkbox data-s="mute" ${s.mute ? 'checked' : ''}>`)}
+    ${row('Wake Word unterbricht Antwort <span class="mut">(Barge-in)</span>', `<input type=checkbox data-s="barge" ${s.barge ? 'checked' : ''}>`)}
     ${row('Lautstärke der Antworten (%)', sInput('volume', s.volume, 'type=range min=0 max=100 step=5'))}
     ${row('Aufnahme-Zeitlimit (Sekunden)', sInput('listen', s.listen, 'type=number min=3 max=60'))}
     ${row('Assist-Pipeline', sSelect('pipeline', [['', 'Standard von Home Assistant'], ...pipelines], s.pipeline))}
