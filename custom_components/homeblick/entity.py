@@ -106,6 +106,29 @@ class Seen(Live, SensorEntity):
         return dt_util.parse_datetime(self.d.seen) if self.d.seen else None
 
 
+class ShownFace(Live, SensorEntity):
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, hub, d):
+        super().__init__(hub, d, "shown_face")
+
+    @property
+    def native_value(self):
+        return self.d.face
+
+
+class Resolution(Live, SensorEntity):
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, hub, d):
+        super().__init__(hub, d, "resolution")
+
+    @property
+    def native_value(self):
+        i = self.d.info
+        return f"{i['w']}x{i['h']}" if i.get("w") and i.get("h") else None
+
+
 # ---- Konfiguration ----
 class SettingSelect(Base, SelectEntity):
     def __init__(self, hub, d, key, options):
@@ -165,7 +188,7 @@ FACTORY = {
     "number": lambda h, d: [SettingNumber(h, d, "idle", 0, 3600, 10, "s"), SettingNumber(h, d, "dim_level", 10, 95, 5, "%"),
                          SettingNumber(h, d, "listen", 3, 60, 1, "s"), SettingNumber(h, d, "volume", 0, 100, 5, "%"), SettingNumber(h, d, "bright", 10, 100, 5, "%")],
     "binary_sensor": lambda h, d: [Online(h, d)],
-    "sensor": lambda h, d: [Seen(h, d)],
+    "sensor": lambda h, d: [Seen(h, d), ShownFace(h, d), Resolution(h, d)],
     "time": lambda h, d: [SettingTime(h, d, "dim_from"), SettingTime(h, d, "dim_to")],
 }
 assert set(FACTORY) == set(PLATFORMS)

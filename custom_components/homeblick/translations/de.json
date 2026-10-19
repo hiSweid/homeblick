@@ -104,6 +104,12 @@
     "sensor": {
       "seen": {
         "name": "Zuletzt gesehen"
+      },
+      "shown_face": {
+        "name": "Angezeigtes Face"
+      },
+      "resolution": {
+        "name": "Auflösung"
       }
     }
   }
