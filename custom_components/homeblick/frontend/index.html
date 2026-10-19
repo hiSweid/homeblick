@@ -55,6 +55,11 @@ svg.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-l
 .num{display:grid;justify-items:center;font-weight:500;line-height:1;letter-spacing:-.02em}
 .num>span{grid-area:1/1}
 .thermo{justify-content:flex-start;padding:0}
+.wxtile{position:relative;background:linear-gradient(#3b86dc,#a3cdf3);color:#fff;box-shadow:inset 0 0 0 .3cqw #ffffff59;padding:0}
+.wxtile .loc{position:absolute;left:5cqw;top:4cqw;font-size:3.1cqw;font-weight:600}
+.wxtile .tmp{position:absolute;left:5cqw;top:10cqw;font-size:22cqw;font-weight:300}
+.wxtile .wi{position:absolute;left:5cqw;bottom:5cqw;font-size:12cqw}
+.wxtile[data-size="1x1"] .tmp{font-size:10cqw;top:8cqw}.wxtile[data-size="1x1"] .wi{font-size:6cqw}
 .thermo .num{font-size:27cqw;margin-top:13.3cqw}
 .thermo[data-size="2x1"] .num{font-size:13cqw;margin-top:4cqw}
 .thermo[data-size="1x1"] .num{font-size:10cqw;margin-top:5.5cqw}
@@ -492,7 +497,7 @@ input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:tr
   <div id="tedit" class="sheet">
     <div class="srow">
       <div class="seg nt" data-k="ph"><button data-act="seg" data-v="day">Tag</button><button data-act="seg" data-v="night">Nacht</button></div>
-      <div class="seg kr" data-k="kind"><button data-act="seg" data-v="tile">Kachel</button><button data-act="seg" data-v="thermo">Thermostat</button><button data-act="seg" data-v="clock">Uhr</button></div>
+      <div class="seg kr" data-k="kind"><button data-act="seg" data-v="tile">Kachel</button><button data-act="seg" data-v="thermo">Thermostat</button><button data-act="seg" data-v="wx">Wetter</button><button data-act="seg" data-v="clock">Uhr</button></div>
       <span style="flex:1"></span>
       <button class="pill" data-act="ndel">Nacht entfernen</button>
     </div>
@@ -737,6 +742,7 @@ function tileEl(c) {
     el.className = t.cs === 'digital' ? 'dclock glass' : `dial glass${t.cs === 'numbers' ? ' nums' : ''}`;
     if (t.cs === 'digital') el.innerHTML = '<span data-bind="time"></span>';
   }
+  else if (kind === 'wx') { el.className = 'tile wxtile'; el.dataset.act = 'go'; el.dataset.v = 'weather'; el.innerHTML = `<div class="loc">${esc(CFG.place)}</div><div class="tmp" data-bind="wxt"></div><i class="wi" data-wxi></i>`; }
   else if (kind === 'thermo') { el.className = 'tile thermo'; el.innerHTML = `<div class="num" data-temp="${esc(t.e)}"></div><div class="foot">${chev('down')}${label}${chev('up')}</div>`; }
   else { el.className = 'tile'; el.innerHTML = (t.e?.startsWith('camera.') ? '<div class="feed"></div>' : '') + svg(iconOf(t), 'ico') + label; }   // Livebild: camTile in render()
   if (c === editT) el.classList.add('editing');
