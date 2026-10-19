@@ -19,7 +19,7 @@ The energy face reads the entities of the [ha-evcc](https://github.com/marq24/ha
 
 ## Several displays
 
-Each browser/tablet is its own **display** (a device in Home Assistant, created the first time it opens Homeblick; rename it there or open the panel once with `?name=Kitchen` in the URL). Every display has its own faces and layout (new displays start from the existing one) and its own entities:
+Each browser/tablet is its own **display** (a device in Home Assistant, created the first time it opens Homeblick; rename it there, or give it a fixed id once per device by opening `https://<your-ha>/homeblick/index.html?display=kitchen&name=Kitchen` in that device's browser). Every display has its own faces and layout (new displays start from the existing one) and its own entities:
 
 - Control: **Face** (select), **Screensaver** (switch), **Reload** and **Assist** (buttons) – use them in automations, dashboards or voice like any other entity.
 - Configuration: screensaver delay and face, night dimming (on, from, until, level) and wake word (opt-in, keeps the microphone open: `hey_jarvis` or `alexa`).

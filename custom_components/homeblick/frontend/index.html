@@ -652,7 +652,11 @@ const DEF = { cams: 1, energy: 1, dyn: 2, faces: [   // Flags: Migrationen unten
 let conn;   // vor save(): die Migrationen unten rufen save() schon vor der Verbindung
 const KEY = 'homeview.v1';
 // Jedes Display hat seine Kennung (pro Gerät/Browser); in HA: eigenes Gerät mit Entities, eigene Faces und Einstellungen
-const DISPLAY = (() => { try { return localStorage.homeblickDisplay ||= 'd' + Math.random().toString(36).slice(2, 8); } catch { return 'd0'; } })();
+// ?display=kueche (einmal pro Gerät öffnen) legt die Kennung fest und merkt sie sich
+const DISPLAY = (() => {
+  const p = (new URLSearchParams(location.search).get('display') || '').toLowerCase().replace(/[^a-z0-9_-]/g, '');
+  try { if (p) localStorage.homeblickDisplay = p; return localStorage.homeblickDisplay ||= 'd' + Math.random().toString(36).slice(2, 8); } catch { return p || 'd0'; }
+})();
 let CONF;
 try { CONF = JSON.parse(localStorage.getItem(KEY)); } catch {}
 if (!CONF?.faces?.length) CONF = structuredClone(DEF);
