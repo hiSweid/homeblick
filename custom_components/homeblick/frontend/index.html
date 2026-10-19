@@ -392,6 +392,7 @@ input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:tr
 #assist:not([data-k=cal]) .acal,#assist[data-k=cal] :is(.acard,.apill){display:none}
 /* Auslöser: Kamera oben Mitte antippen oder herunterziehen */
 #pull{position:absolute;left:30cqw;right:30cqw;top:0;height:3cqw;z-index:19;touch-action:none}
+.lk .sh{fill:none;stroke:currentColor;stroke-linecap:round;transform-origin:7.8px 10.5px;transition:transform .55s cubic-bezier(.34,1.7,.5,1)}.lk.open .sh{transform:translateY(-2.4px) rotate(-32deg)}
 </style>
 </head>
 <body>
@@ -981,8 +982,14 @@ function render() {
     const id = t.dataset.e, s = st(id), d = id.split('.')[0];
     t.classList.toggle('na', s.state === 'unavailable');
     if (!held(id)) t.classList.toggle('on', !!ON[d]?.(s));
-    const u = d === 'lock' && $('.ico use', t), h = s.state === 'locked' ? '#lock' : '#unlock';
-    if (u && /lock/.test(u.getAttribute('href')) && u.getAttribute('href') !== h) u.setAttribute('href', h);
+    const u = d === 'lock' && $('.ico use', t);
+    if (u && /lock/.test(u.getAttribute('href'))) {
+      // Bügel als eigener Pfad: hebt/dreht sich beim Entriegeln, rastet mit Feder ein
+      const sv = u.closest('svg'), open = s.state !== 'locked';
+      sv.classList.add('lk'); sv.innerHTML = '<rect x="4.5" y="10.5" width="15" height="11.5" rx="2.5" fill="currentColor" stroke="none"/><path class="sh" d="M7.8 10.5V7.4a4.2 4.2 0 0 1 8.4 0v3.1" stroke-width="2.4"/>';
+      sv.classList.toggle('open', open);
+    }
+    else if (d === 'lock') { const sv = $('svg.lk', t); if (sv) sv.classList.toggle('open', s.state !== 'locked'); }
     if (d === 'camera' && t.dataset.ti != null) camTile(t, id, s);
   }
   for (const el of $$('[data-temp]')) {
