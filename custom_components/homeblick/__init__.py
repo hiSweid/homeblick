@@ -57,6 +57,15 @@ def report(hass, connection, msg):
         connection.send_result(msg["id"])
 
 
+@websocket_api.websocket_command({vol.Required("type"): "homeblick/shot", **DISPLAY, vol.Required("image"): vol.All(str, vol.Length(max=400_000), vol.Match(r"^data:image/jpeg;base64,"))})
+@callback
+def shot(hass, connection, msg):
+    """Display liefert sein Bildschirmfoto (Antwort auf den Befehl „screenshot“)."""
+    if d := _display(hass, connection, msg):
+        d.shot = msg["image"]
+        connection.send_result(msg["id"])
+
+
 # ---- Einstellungsseite (admin.html, nur Administratoren) ----
 _time = vol.Match(r"^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$")
 SETTINGS = vol.Schema({
@@ -90,6 +99,14 @@ def displays(hass, connection, msg):
 
 
 @websocket_api.require_admin
+@websocket_api.websocket_command({vol.Required("type"): "homeblick/get_shot", **DISPLAY})
+@callback
+def get_shot(hass, connection, msg):
+    if d := _display(hass, connection, msg):
+        connection.send_result(msg["id"], {"image": d.shot})
+
+
+@websocket_api.require_admin
 @websocket_api.websocket_command({vol.Required("type"): "homeblick/get_config", **DISPLAY})
 @callback
 def get_config(hass, connection, msg):
@@ -116,7 +133,7 @@ async def admin_config(hass, connection, msg):
 
 
 @websocket_api.require_admin
-@websocket_api.websocket_command({vol.Required("type"): "homeblick/command", **DISPLAY, vol.Required("action"): vol.In(["face", "reload", "screensaver", "wake", "assist"]), vol.Optional("face"): vol.In(FACES)})
+@websocket_api.websocket_command({vol.Required("type"): "homeblick/command", **DISPLAY, vol.Required("action"): vol.In(["face", "reload", "screensaver", "wake", "assist", "screenshot"]), vol.Optional("face"): vol.In(FACES)})
 @callback
 def command(hass, connection, msg):
     if d := _display(hass, connection, msg):
@@ -137,7 +154,7 @@ async def remove(hass, connection, msg):
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hub = hass.data[DOMAIN] = Hub(hass)
     await hub.load()
-    for cmd in (register, set_config, subscribe, report, displays, get_config, update, admin_config, command, remove):
+    for cmd in (register, set_config, subscribe, report, shot, displays, get_shot, get_config, update, admin_config, command, remove):
         websocket_api.async_register_command(hass, cmd)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 

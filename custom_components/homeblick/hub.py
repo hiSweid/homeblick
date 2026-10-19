@@ -17,6 +17,7 @@ class Display:
         self.settings = {**DEFAULTS, **(settings or {})}
         self.face: str | None = None   # vom Panel gemeldet
         self.saver = False
+        self.shot: str | None = None   # letztes Bildschirmfoto (data-URL), nur im Speicher
         self.links: list = []   # offene Panels (Callbacks)
 
     @property

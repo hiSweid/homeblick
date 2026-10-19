@@ -540,6 +540,7 @@ import { weatherFace, weather, COND } from './weather.js';
 import { cutout } from './depth.js';
 import { energyFace, energy, energyDemo } from './energy.js';
 import { kioskInit, KIOSK_DEF } from './kiosk.js';
+import { shot } from './shot.js';
 import { wakeInit } from './wake.js';
 import { parseLRC, findLyrics } from './lyrics.js';
 import { voiceOK, voiceRun } from './voice.js';
@@ -1734,6 +1735,7 @@ if (LIVE) {
       else if (c.action === 'reload') location.reload();
       else if (c.action === 'screensaver') kiosk.sleep();
       else if (c.action === 'wake') kiosk.wake();
+      else if (c.action === 'screenshot') shot().then(image => conn.sendMessagePromise({ type: 'homeblick/shot', display: DISPLAY, image })).catch(console.warn);
       else if (c.action === 'assist') { kiosk.wake(); assistStart(); }
     }, { type: 'homeblick/subscribe', display: DISPLAY })).then(() => { wk(); kiosk.report(); conn.addEventListener('ready', () => kiosk.report()); }).catch(console.warn);
     // Wake Word nur auf Wunsch (CONF.kiosk.wake): Mikrofon bleibt dann dauerhaft offen

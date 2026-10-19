@@ -55,9 +55,10 @@ const TYPES = { grid: 'Smart Home', music: 'Musik', bigclock: 'Uhr digital', ana
 const NEWBG = { grid: 150, music: 'black', bigclock: 205, analog: 340, calendar: 'white', weather: 212, energy: 'black', info: 'black', cams: 'black' };
 const BG = [['auto', 'Tageszeit'], ['black', 'Schwarz'], ['white', 'Weiß'], [30, 'Orange'], [5, 'Rot'], [340, 'Rosa'], [285, 'Violett'], [250, 'Blau'], [205, 'Türkis'], [212, 'Himmelblau'], [150, 'Grün']];
 const STYLES = { bigclock: [['stack', 'Gestapelt'], ['line', 'Zeile']], analog: [['numbers', 'Zahlen'], ['ticks', 'Striche'], ['minimal', 'Minimal']] };
+const SHOT = 'screenshot';
 const ACTIONS = { reload: 'Neu laden', assist: 'Assist starten', screensaver: 'Bildschirmschoner', wake: 'Aufwecken' };
 
-let conn, displays = [], sel, cfg, open = new Set(), pipelines = [], weathers = [];
+let lastShot, conn, displays = [], sel, cfg, open = new Set(), pipelines = [], weathers = [];
 const call = (type, p = {}) => conn.sendMessagePromise({ type: 'homeblick/' + type, ...p });
 
 // ---- Verbindung ----
@@ -122,6 +123,9 @@ function view() {
     <div class="row"><label>Konfiguration übernehmen von</label><select id="copy"><option value="">— Display wählen —</option>${displays.filter(x => x.id !== sel).map(x => `<option value="${esc(x.id)}">${esc(x.name)}</option>`).join('')}</select>
       <button data-a="rm" class="danger">Display entfernen</button></div>
   </div>
+  <div class="card"><h2>Vorschau</h2>
+    <div class="row"><button data-a="shot" ${d.connected ? '' : 'disabled'}>Bildschirmfoto aufnehmen</button><span class="mut">Bilder von fremden Servern, Kamera-Video und WebGL fehlen im Foto.</span></div>
+    <img id="shotImg" alt="" style="display:none;max-width:100%;border-radius:12px;border:1px solid var(--line)"></div>
   <div class="card"><h2>Anzeige – was dieses Display zeigt</h2>
     ${faces ? faces.map(faceHTML).join('') + `<div class="row"><select id="add"><option value="">+ Face hinzufügen …</option>${opt(Object.entries(TYPES), '')}</select></div>`
             : '<span class="mut">Dieses Display hat noch keine Konfiguration hochgeladen – öffne Homeblick einmal auf dem Gerät.</span>'}
@@ -191,6 +195,19 @@ document.addEventListener('click', async e => {
   if (b.dataset.alls) { const [k, v] = b.dataset.alls.split(':'); return guard(Promise.all(displays.map(x => (x.settings[k] = !!+v, call('update', { display: x.id, settings: { [k]: !!+v } })))).then(view)); }
   if (b.dataset.c) return guard(call('command', { display: sel, action: b.dataset.c }));
   const a = b.dataset.a;
+  if (a === 'shot') {
+    b.disabled = true;
+    try {
+      await call('command', { display: sel, action: SHOT });
+      for (let i = 0; i < 10; i++) {   // Display antwortet asynchron
+        await new Promise(r => setTimeout(r, 500));
+        const { image } = await call('get_shot', { display: sel });
+        if (image && image !== lastShot) { lastShot = image; const im = $('#shotImg'); im.src = image; im.style.display = 'block'; break; }
+        if (i === 9) toast('Keine Antwort vom Display', true);
+      }
+    } catch (e) { toast(e?.message || 'Fehler', true); }
+    b.disabled = false; return;
+  }
   if (a === 'rm') {
     if (confirm(`„${cur().name}“ aus Homeblick entfernen? Das Gerät in Home Assistant bitte danach unter Geräte löschen.`)) { await guard(call('remove', { display: sel })); sel = null; reload(); }
     return;
