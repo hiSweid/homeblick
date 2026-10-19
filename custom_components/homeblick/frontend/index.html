@@ -75,6 +75,11 @@ svg.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-l
 .greet{grid-area:1/1/2/4;display:flex;justify-content:space-between;align-items:flex-start;padding:5cqw 3cqw;font-size:5cqw;font-weight:600;text-transform:uppercase;line-height:1.25}
 .greet>div>div:first-child{opacity:.7;font-weight:500}
 .greet .gw{font-size:8cqw;font-weight:500}
+.greet{position:relative;gap:3cqw}.greet .gw{margin-left:auto}
+.av,.avf{width:10cqw;height:10cqw;border-radius:50%;flex:none;display:grid;place-items:center;font-size:4.5cqw;font-weight:600;color:#fff;background:var(--c) center/cover;border:0;padding:0;touch-action:manipulation}
+.avf{position:absolute;right:3cqw;top:5cqw;z-index:5;opacity:0;scale:.4;pointer-events:none;transition:translate var(--sd) var(--spring),opacity .25s,scale var(--sd) var(--spring);transition-delay:calc(var(--k)*40ms)}
+.fan .avf{opacity:1;scale:1;pointer-events:auto;translate:var(--x) var(--y)}
+.av:active,.avf:active{scale:.92}
 
 /* ---------- Uhren ---------- */
 .dial{position:relative;border-radius:50%;aspect-ratio:1}
@@ -791,7 +796,7 @@ async function addCut(f) {
 }
 const FACE = {
   grid: (el, f) => {
-    if (f.greet) el.insertAdjacentHTML('beforeend', `<div class="greet"><div><div data-bind="greet"></div><div>${esc(f.greet)}</div></div><div class="gw" data-act="go" data-v="weather" data-bind="wxt"></div></div>`);
+    if (f.greet) el.insertAdjacentHTML('beforeend', `<div class="greet"><div><div data-bind="greet"></div><div data-bind="who">${esc(f.greet)}</div></div><div class="gw" data-act="go" data-v="weather" data-bind="wxt"></div><button class="av" data-act="avatars" hidden></button></div>`);
     for (const t of f.tiles) el.append(tileEl(t));
     place(el, f);
   },
@@ -983,8 +988,30 @@ function progress(bar) {
 
 let queued = 0;
 const schedule = () => queued ||= requestAnimationFrame(() => { queued = 0; render(); });
+// Mehrbenutzer: Avatare aus person.*, Tipp fächert die übrigen im Viertelbogen auf, Auswahl setzt Name/Akzent
+const AVC = ['#9b8cd6', '#5a9a8f', '#e8a63c', '#d4604a', '#4a8ad8', '#8aa85a'];
+let who = localStorage.hb_person || '';
+const persons = () => Object.values(ents).filter(e => e.entity_id.startsWith('person.'));
+const avStyle = (e, i) => `--c:${AVC[i % AVC.length]}` + (e.attributes.entity_picture ? `;background-image:url("${e.attributes.entity_picture.startsWith('/') ? HASS + e.attributes.entity_picture : e.attributes.entity_picture}")` : '');
+const avName = e => e.attributes.friendly_name || e.entity_id.slice(7);
+function avatars() {
+  const ps = persons(), cur = ps.find(p => p.entity_id === who) || ps[0];
+  for (const g of $$('.greet')) {
+    const a = $('.av', g); if (!a) continue;
+    a.hidden = !cur; if (!cur) continue;
+    const i = ps.indexOf(cur); a.style.cssText = avStyle(cur, i); a.textContent = cur.attributes.entity_picture ? '' : avName(cur)[0];
+    bind('who', avName(cur));
+    const rest = ps.filter(p => p !== cur), key = rest.map(p => p.entity_id).join();
+    if (g.dataset.fk === key) continue;
+    g.dataset.fk = key; $$('.avf', g).forEach(x => x.remove());
+    rest.forEach((p, k) => {   // 180° (links) bis 90° (unten), Radius 3,5 × Avatar
+      const ang = Math.PI * (rest.length < 2 ? .75 : 1 - k / (rest.length - 1) / 2), r = 35;
+      g.insertAdjacentHTML('beforeend', `<button class="avf" data-act="avpick" data-v="${p.entity_id}" style="${avStyle(p, ps.indexOf(p))};--k:${k};--x:${(r * Math.cos(ang)).toFixed(1)}cqw;--y:${(r * Math.sin(ang)).toFixed(1)}cqw">${p.attributes.entity_picture ? '' : avName(p)[0]}</button>`);
+    });
+  }
+}
 function render() {
-  phase();
+  phase(); avatars();
   for (const t of $$('[data-e]')) {
     const id = t.dataset.e, s = st(id), d = id.split('.')[0];
     t.classList.toggle('na', s.state === 'unavailable');
@@ -1641,6 +1668,8 @@ document.addEventListener('click', e => {
   else if (act === 'cam') st(b.dataset.e).state === 'unavailable' ? shake(b) : open(b, 'cam');
   else if (act === 'events') openEvents(b);
   else if (act === 'toggle') st(b.dataset.e).state === 'unavailable' ? shake(b) : TAP[b.dataset.e.split('.')[0]]?.(b, b.dataset.e);   // Licht im Klingel-Bild / Kameras-Face
+  else if (act === 'avatars') b.closest('.greet').classList.toggle('fan');
+  else if (act === 'avpick') { who = b.dataset.v; try { localStorage.hb_person = who; } catch {} b.closest('.greet').classList.remove('fan'); render(); }
   else if (act === 'go') { const i = CONF.faces.findIndex(f => f.type === b.dataset.v); if (i >= 0) faces.scrollTo({ left: i * faces.clientWidth, behavior: 'smooth' }); }
   else if (act === 'play') NP && call('media_player', 'media_play_pause', { entity_id: NP });
   else if (act === 'prev') NP && call('media_player', 'media_previous_track', { entity_id: NP });
@@ -1688,6 +1717,10 @@ if (!LIVE) {
     'calendar.familie': ['off', { friendly_name: 'Familie' }],
     'calendar.geburtstage': ['off', { friendly_name: 'Geburtstage' }],
     'calendar.mullabfuhr': ['off', { friendly_name: 'Müllabfuhr' }],
+    'person.erica': ['home', { friendly_name: 'Erica' }],
+    'person.henryk': ['home', { friendly_name: 'Henryk' }],
+    'person.mia': ['not_home', { friendly_name: 'Mia' }],
+    'person.tom': ['home', { friendly_name: 'Tom' }],
     'lock.eingangstur': ['locked', { friendly_name: 'Eingangstür' }],
     'lock.garagentur': ['locked', { friendly_name: 'Garagentür' }],
     'cover.garagentor': ['closed', { friendly_name: 'Garagentor', device_class: 'garage' }],
