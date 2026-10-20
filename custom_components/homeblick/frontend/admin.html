@@ -201,6 +201,7 @@ const field = (label, key, v, extra = '', attr = 'data-s') => `<label class="row
 
 const shots = {};   // letztes Bildschirmfoto je Display
 let conn, displays = [], sel = null, cfg = null, editing = false, pipelines = [], weathers = [], ttss = [];
+let camState = { cameras: { list: [], bell: null }, auto: true }, camEnts = [], eventEnts = [], lightEnts = [];   // Kameras und Klingel gelten für alle Displays
 let stack = [];   // Seiten im Detail-Bereich: { t: 'display' } | { t: 'face', i }
 const call = (type, p = {}) => conn.sendMessagePromise({ type: 'homeblick/' + type, ...p });
 const cur = () => displays.find(d => d.id === sel);
@@ -258,6 +259,47 @@ function listHTML() {
       : grp('', `<div class="row"><span class="l">Noch kein Display angemeldet</span></div>`, 'Öffne Homeblick auf dem Gerät, am besten mit <code>?display=kueche&amp;name=Küche</code> hinter der Adresse.'));
 }
 
+// ---- Kameras + Klingel (global) ----
+const withCur = (list, v) => !v || list.some(x => x[0] === v) ? list : [...list, [v, v + ' (nicht gefunden)']];
+const camName = x => x.name || camEnts.find(c => c[0] === x.entity)?.[1] || x.entity;
+function camsHTML() {
+  const { cameras: c, auto } = camState;
+  const row = (x, i) => `<div class="grp tilecard" data-ci="${i}">
+    ${field('Name', 'name', x.name, `maxlength="40" placeholder="${esc(camEnts.find(k => k[0] === x.entity)?.[1] || '')}"`, 'data-cam')}
+    ${pick('Kamera', 'entity', withCur(camEnts, x.entity), x.entity, 'data-cam')}
+    ${pick('Licht davor', 'light', [['', 'Keins'], ...withCur(lightEnts, x.light)], x.light || '', 'data-cam')}
+    <div class="tilebar"><span class="arrows"><button data-a="cup" aria-label="Nach oben">${svg('up', '')}</button><button data-a="cdown" aria-label="Nach unten">${svg('down', '')}</button></span><button data-a="cdel" style="color:var(--red);padding:8px 10px">Entfernen</button></div></div>`;
+  return `<div class="sec"><div class="sh"><span>Kameras</span></div>${c.list.map(row).join('')}
+      <div class="grp"><button class="row btn" data-a="cadd">${svg('plus', 'plus')}<span class="l">Kamera hinzufügen</span></button></div>
+      <div class="sf">${auto ? 'Automatisch erkannt: alle Kameras von Home Assistant. Jede Änderung hier legt die Liste fest.' : 'Die erste Kamera (oder die der Klingel) ist groß zu sehen, bis zu drei weitere Kacheln folgen.'} Das Bild läuft über Home Assistant (WebRTC, sonst HLS oder Standbilder).</div></div>`
+    + grp('Türklingel', pick('Klingel-Ereignis', 'event', [['', 'Keine'], ...withCur(eventEnts, c.bell?.event)], c.bell?.event || '', 'data-bell')
+      + pick('Kamera der Klingel', 'camera', [['', 'Keine'], ...c.list.map(x => [x.entity, camName(x)])], c.bell?.camera || '', 'data-bell'),
+      'Klingeln weckt alle geöffneten Displays, spielt den Gong und zeigt diese Kamera. Gilt für alle Displays.')
+    + (auto ? '' : grp('', `<button class="row btn c" data-a="creset">Automatisch erkennen</button>`));
+}
+let cst;
+const saveCams = () => { clearTimeout(cst); camState.auto = false; cst = setTimeout(() => guard(call('set_cameras', { cameras: camState.cameras })).catch(() => {}), 500); };
+function camEdit(t) {
+  const c = camState.cameras;
+  if (t.dataset.bell) {
+    const b = c.bell || { event: '', camera: '' }; b[t.dataset.bell] = t.value;
+    c.bell = b.event ? b : null;
+  } else c.list[+t.closest('[data-ci]').dataset.ci][t.dataset.cam] = t.value.trim();
+  saveCams();
+}
+async function camAction(a, i) {
+  const c = camState.cameras;
+  if (a === 'creset') { await guard(call('set_cameras', { cameras: null })); camState = await call('cameras'); return fill(top(), stack.at(-1)); }
+  if (a === 'cadd') {
+    const e = (camEnts.find(k => !c.list.some(x => x.entity === k[0])) || [])[0];
+    if (!e) return toast(camEnts.length ? 'Alle Kameras sind schon in der Liste' : 'Keine Kamera in Home Assistant', true);
+    if (c.list.length >= 8) return toast('Höchstens 8 Kameras', true);
+    c.list.push({ entity: e, name: '', light: '' });
+  } else if (a === 'cup' || a === 'cdown') swap(c.list, i, i + (a === 'cup' ? -1 : 1));
+  else if (a === 'cdel') { const [x] = c.list.splice(i, 1); if (c.bell?.camera === x.entity) c.bell.camera = ''; }
+  saveCams(); fill(top(), stack.at(-1));
+}
+
 // ---- Seiten ----
 const pages = {
   display() {
@@ -305,6 +347,7 @@ const pages = {
       ${sty ? `<div class="sec"><div class="sh">Stil</div><div class="grp"><div class="seg">${sty.concat(f.style === 'depth' ? [['depth', 'Tiefe']] : []).map(([v, n]) => `<button data-a="style" data-v="${v}" class="${(f.style || sty[0][0]) === v ? 'on' : ''}">${n}</button>`).join('')}</div></div></div>` : ''}
       ${f.type === 'grid' ? `<div class="sec"><div class="sh"><span>Kacheln</span></div>${(f.tiles || []).map(tile).join('')}<div class="grp"><button class="row btn" data-a="tadd">${svg('plus', 'plus')}<span class="l">Kachel hinzufügen</span></button></div>
         <div class="sf">Kacheln folgen der Reihenfolge von oben links. Nachtvarianten bleiben erhalten.</div></div>` : ''}
+      ${f.type === 'cams' ? camsHTML() : ''}
       ${grp('', `<button class="row btn c" data-c="face" ${d.connected ? '' : 'disabled style="opacity:.4"'}>Auf dem Display anzeigen</button><button class="row red c" data-a="delface">Face entfernen</button>`)}`;
     return { back: d.name, title: meta[0], body };
   },
@@ -370,7 +413,8 @@ document.addEventListener('change', async e => {
     }
     if (k === 'dim') $('#dimdep').classList.toggle('off', !v);
     d.settings[k] = v; guard(call('update', { display: sel, settings: { [k]: v } })).catch(() => {});
-  } else if (t.dataset.t) { cfg.faces[stack.at(-1).i].tiles[+t.closest('[data-ti]').dataset.ti][t.dataset.t] = t.value.trim(); saveCfg(); }
+  } else if (t.dataset.cam || t.dataset.bell) camEdit(t);
+  else if (t.dataset.t) { cfg.faces[stack.at(-1).i].tiles[+t.closest('[data-ti]').dataset.ti][t.dataset.t] = t.value.trim(); saveCfg(); }
   else if (t.dataset.allface !== undefined) { if (t.value) all({ action: 'face', face: t.value }); t.value = ''; t.closest('.pick').querySelector('.val').textContent = 'Wählen …'; }
   else if (t.dataset.show !== undefined) { if (t.value) guard(call('command', { display: sel, action: 'face', face: t.value })).catch(() => {}); t.value = ''; t.closest('.pick').querySelector('.val').textContent = 'Wählen …'; }
   else if (t.dataset.copy !== undefined && t.value) copyFrom(t.value, t);
@@ -410,6 +454,7 @@ document.addEventListener('click', async e => {
     } catch (e) { toast(e?.message || 'Fehler', true); }
     b.disabled = false; return;
   }
+  if (/^c(add|up|down|del|reset)$/.test(a)) return camAction(a, +b.closest('[data-ci]')?.dataset.ci);
   if (a === 'face') return push({ t: 'face', i: +b.closest('[data-fi]').dataset.fi });
   if (!onFace) {   // Face-Liste
     const i = +b.closest('[data-fi]')?.dataset.fi, F = cfg.faces;
@@ -470,7 +515,11 @@ async function poll() {   // Status nachführen, ohne Formulare neu zu zeichnen
 }
 try {
   conn = await connect();
-  const [states, pl] = await Promise.all([conn.sendMessagePromise({ type: 'get_states' }), conn.sendMessagePromise({ type: 'assist_pipeline/pipeline/list' }).catch(() => null)]);
+  const [states, pl, cs] = await Promise.all([conn.sendMessagePromise({ type: 'get_states' }), conn.sendMessagePromise({ type: 'assist_pipeline/pipeline/list' }).catch(() => null), call('cameras').catch(() => null)]);
+  if (cs) camState = cs;
+  const nameOf = x => x.attributes.friendly_name || x.entity_id, byDomain = d => states.filter(x => x.entity_id.startsWith(d + '.')).map(x => [x.entity_id, nameOf(x)]).sort((a, b) => a[1].localeCompare(b[1], 'de'));
+  camEnts = byDomain('camera'); lightEnts = byDomain('light');
+  eventEnts = states.filter(x => x.entity_id.startsWith('event.')).sort((a, b) => (b.attributes.device_class === 'doorbell') - (a.attributes.device_class === 'doorbell')).map(x => [x.entity_id, nameOf(x)]);
   $('#ents').innerHTML = states.map(x => `<option value="${esc(x.entity_id)}">${esc(x.attributes.friendly_name || '')}</option>`).join('');
   ttss = states.filter(x => x.entity_id.startsWith('tts.')).map(x => [x.entity_id, x.attributes.friendly_name || x.entity_id]);
   weathers = states.filter(x => x.entity_id.startsWith('weather.')).map(x => [x.entity_id, x.attributes.friendly_name || x.entity_id]);

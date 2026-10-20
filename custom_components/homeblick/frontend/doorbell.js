@@ -1,17 +1,16 @@
 // Türklingel + Video-Überwachung. Vollbild =  t = 43,4 s („Front Door / Live“, unten rot ✕ / gelb Mic / Glas-Raster).
-// Video kommt aus dem go2rtc von Frigate (WebRTC, sonst MSE) — nie direkt von der Hikvision (verträgt nur wenige Sitzungen).
+// Video über die HA-Verbindung des Displays (camplay.js: WebRTC, sonst HLS, sonst MJPEG) — HA/go2rtc teilt sich die Quelle, die Kamera selbst sieht nur eine Sitzung.
 // Funktion haben nur ✕ (schließt die Ansicht) und Licht (data-act="toggle" → TAP.light in index.html); Mic, Raster, Öffner, Antworten noch nicht (Wunsch 2026-10-19).
 // Klingeln weckt das Display und spielt einen Gong (Einstellung „Gong beim Klingeln“, Lautstärke = Antworten).
 
-const GO2RTC = '', FRIGATE = '';
-// Entity → Name, go2rtc-/Frigate-Kamera (ohne src: HA-Bild, nur mit ?live), Licht davor, bell = Türklingel (Mic, Öffner, Antworten)
-const CAMS = {
-  'camera.turklingel': { name: 'Haustür', src: 'tuerstation', light: 'light.eingang', bell: true },
-  'camera.cx410w_color_x_standardauflosung': { name: 'Garten' },
-};
-const RING = 'event.turklingel_doorbell', DOOR = 'camera.turklingel';
+import { live } from './camplay.js';
+
+// Kameras kommen aus der Konfiguration (Einstellungsseite → Face „Kameras“, sonst automatisch erkannt): camConfig({ list: [{ entity, name, light }], bell: { event, camera } })
+let LIST = [], RING = '', DOOR = '';
 const REPLIES = ['Komme gleich', 'Paket ablegen', 'Nicht da'];
 const Z = 16 / 9;   // 16:9-Bild füllt das Quadrat bei Vergrößerung Z
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+const camOf = e => LIST.find(c => c.entity === e) || {};
 
 const $ = (s, r = document) => r.querySelector(s);
 const ico = (id, cls = '') => `<svg class="i ${cls}"><use href="#${id}"/></svg>`;
@@ -20,44 +19,40 @@ const when = t => {
   return isNaN(d) ? null : d.toDateString() === new Date().toDateString() ? hm : `${d.toLocaleDateString('de-DE', { weekday: 'short' })} ${hm}`;
 };
 
-// Player = VideoRTC aus dem go2rtc selbst (passt immer zur Server-Version); erst nach define Elemente anlegen
-const ready = import(GO2RTC + '/video-rtc.js').then(({ VideoRTC }) => {
-  customElements.define('cam-rtc', class extends VideoRTC {
-    oninit() {
-      super.oninit();
-      this.video.controls = false; this.video.muted = true;
-      this.video.addEventListener('playing', () => this.dispatchEvent(new Event('live')));
-    }
-  });
-  return true;
-}).catch(e => (console.warn('go2rtc nicht erreichbar', e), false));
+// Rückfall ohne Stream (Kamera ohne Stream-Quelle, kein WebRTC/HLS): HA-MJPEG-Proxy bzw. Standbild
+function mjpeg(box, e, s, cb) {
+  const { access_token: tok, entity_picture: pic } = s.attributes;
+  const u = tok ? `${HASS}/api/camera_proxy_stream/${e}?token=${tok}` : pic?.startsWith('/') ? HASS + pic : pic;
+  if (!u) { box.replaceChildren(); return cb('Kein Bild'); }
+  // neues Bild über das alte legen (bis zum ersten Frame durchsichtig), altes erst danach weg → kein Aufblitzen
+  const img = new Image(), old = [...box.children], drop = () => old.forEach(o => o.remove());
+  img.alt = ''; img.onload = drop; setTimeout(drop, 10000);
+  img.onerror = () => { const t = box._tag; setTimeout(() => box._tag === t && box.isConnected && !document.hidden && feed(box, e, ents[e] || s, cb), 5000); };   // Verbindung weg → später neu
+  img.src = u;
+  box.append(img);
+  cb('Live');
+}
 
-// Bild in box: sofort Frigate-Standbild, darüber der Live-Stream; cb(Status)
-async function feed(box, e, s, cb, vis = 0) {
-  const cam = CAMS[e] || {}, { access_token: tok, entity_picture: pic } = s.attributes;
-  if (!cam.src) {   // ohne go2rtc: HA-MJPEG (live) bzw. Standbild
-    const u = tok ? `${HASS}/api/camera_proxy_stream/${e}?token=${tok}` : pic?.startsWith('/') ? HASS + pic : pic;
-    if (!u) { box.replaceChildren(); return cb('Kein Bild'); }
-    // neues Bild über das alte legen (bis zum ersten Frame durchsichtig), altes erst danach weg → kein Aufblitzen beim Token-Wechsel
-    const img = new Image(), old = [...box.children], drop = () => old.forEach(o => o.remove());
-    img.alt = ''; img.onload = drop; setTimeout(drop, 10000); img.src = u;
-    box.append(img);
-    return cb('Live');
-  }
-  const tag = box._tag = {};   // camHide/Neuaufbau während des Ladens → nichts mehr anhängen
-  box.innerHTML = `<img alt="" src="${FRIGATE}/api/${cam.src}/latest.webp?h=720">`;
-  box.firstChild.onerror = function () { this.remove(); };
+// Bild in box: sofort das Standbild, darüber der Live-Stream (WebRTC, sonst HLS, sonst MJPEG); cb(Status)
+async function feed(box, e, s, cb) {
+  box._stop?.(); box._stop = null;
+  const tag = box._tag = {}, alive = () => box._tag === tag && box.isConnected, conn = api.conn?.();
+  if (!conn) return mjpeg(box, e, s, cb);
+  const pic = s.attributes.entity_picture, v = Object.assign(document.createElement('video'), { muted: true, autoplay: true, playsInline: true });
+  box.replaceChildren();
+  if (pic?.startsWith('/')) { const i = Object.assign(new Image(), { alt: '', src: HASS + pic }); i.onerror = () => i.remove(); box.append(i); }
+  v.style.opacity = 0; box.append(v);
   cb('Verbinde …');
-  if (!await ready) return cb('Offline');
-  if (box._tag !== tag) return;
-  const v = document.createElement('cam-rtc');
-  // Vollbild: WebRTC (geringste Latenz, später Gegensprechen); Face: MSE reicht und vermeidet den WebRTC/MSE-Wettlauf im Player
-  v.mode = vis ? 'mse' : 'webrtc,mse'; v.media = 'video'; v.visibilityThreshold = vis;
-  v.src = `${GO2RTC}/api/ws?src=${cam.src}`;
-  // kein Bild nach 10 s → Player neu aufbauen (nur bei sichtbarer Seite; nach 5 s Pause, bis es klappt)
-  const t = setTimeout(() => { if (box._tag !== tag) return; cb('Offline'); v.remove(); setTimeout(() => box._tag === tag && !document.hidden && feed(box, e, s, cb, vis), 5000); }, 10000);
-  v.addEventListener('live', () => { clearTimeout(t); cb('Live'); });
-  box.append(v);
+  let real;
+  const end = () => { clearInterval(w); clearTimeout(t); try { real?.(); } catch {} real = null; };
+  const fallback = why => { if (!alive()) return; console.warn('Kamera', e, why?.message || why); end(); v.remove(); mjpeg(box, e, ents[e] || s, cb); };
+  box._stop = end;
+  let seen = false;
+  const w = setInterval(() => { if (box._tag !== tag || seen && !box.isConnected) end(); seen ||= box.isConnected; }, 3000);   // Box verschwunden (Face neu gebaut, Ansicht zu) → Stream beenden
+  const t = setTimeout(() => fallback('kein Bild nach 15 s'), 15000);
+  v.addEventListener('playing', () => { clearTimeout(t); v.style.opacity = ''; box.querySelectorAll('img').forEach(i => i.remove()); cb('Live'); });
+  try { real = await live(conn, e, v, HASS, fallback); } catch (err) { return fallback(err); }
+  if (box._tag !== tag) end();
 }
 
 // ---------- Vollbild ----------
@@ -82,7 +77,7 @@ export function camInit(view, fns) {
 <button class="rb all" aria-label="Alle Kameras">${ico('cams')}</button>`;
   // Klingeln: Ansicht fliegt aus der Kamera-Notch oben mittig
   notch = document.createElement('i');
-  notch.id = 'notch'; notch.className = 'notch'; notch.dataset.e = DOOR;
+  notch.id = 'notch'; notch.className = 'notch';
   spot = Object.assign(document.createElement('i'), { className: 'notch' });   // gleiche Stelle für Kameras per HA-Dienst (ohne Klingel-Zustand)
   V.after(notch, spot);
 
@@ -112,19 +107,19 @@ export function camInit(view, fns) {
 }
 
 export function camShow(tile, e, s) {
-  const cam = CAMS[e] || {}, lt = $('.cb.lt', V);
+  const cam = camOf(e), lt = $('.cb.lt', V);
   clearTimeout(ringT); V._e = e;
   V.classList.toggle('ring', tile === notch);
-  V.classList.toggle('bell', !!cam.bell);
+  V.classList.toggle('bell', !!DOOR && e === DOOR);
   if (tile === notch) ringT = setTimeout(api.close, 60000);   // unbeantwortet → nach 1 min zu
-  $('.cname', V).textContent = cam.name || s.attributes.friendly_name || '';
+  $('.cname', V).textContent = cam.name || s.attributes.friendly_name || e;
   lt.hidden = !cam.light;
   if (cam.light) lt.dataset.e = cam.light; else delete lt.dataset.e;
   $('.feed', V).classList.add('drag'); pan(0, Z);   // ohne Animation zurück auf „füllen“
   requestAnimationFrame(() => $('.feed', V).classList.remove('drag'));
   feed($('.feed', V), e, s, showStat);
 }
-export function camHide() { clearTimeout(ringT); const f = $('.feed', V); f._tag = null; f.replaceChildren(); }
+export function camHide() { clearTimeout(ringT); const f = $('.feed', V); f._stop?.(); f._stop = null; f._tag = null; f.replaceChildren(); }
 
 export const camRinging = () => api.view() === V && V.classList.contains('ring');
 
@@ -165,34 +160,48 @@ async function gong(vol) {
 export function ring() {
   api.wake?.();   // Bildschirmschoner und Nacht-Dimmung weg, erster Tipp geht an die Klingel-Ansicht
   const v = api.sound?.(); if (v) gong(v);
+  if (!DOOR) return;   // Klingel ohne zugeordnete Kamera: nur wecken und läuten
   const open = api.view();
   if (open === V) {   // läuft schon eine andere Kamera → auf die Haustür wechseln
     if (V._e === DOOR) { V.classList.add('ring'); showStat(); } else camShow(notch, DOOR, ents[DOOR] || { attributes: {} });
     return;
   }
   if (open || $('#screen').matches('.gallery,.custom')) return;
-  api.open(notch, 'cam');
+  notch.dataset.e = DOOR; api.open(notch, 'cam');
 }
 
-// ---------- Kamera-Face: Haustür live (3×2), darunter Licht, Klingel, weitere Kamera ----------
+// ---------- Kamera-Face: Hauptkamera (Klingelkamera, sonst die erste) live (3×2), darunter bis zu drei Kacheln: Licht, Klingel, weitere Kameras ----------
 export function camFace(el) {
-  const [other] = Object.keys(CAMS).filter(e => e !== DOOR), lt = CAMS[DOOR].light;
-  el.innerHTML = `<button class="ctile" data-act="cam" data-e="${DOOR}"><div class="feed"></div>
-  <div class="lbl"><b>${CAMS[DOOR].name}</b><span><i class="dot"></i><span class="cst"></span></span></div></button>
-<button class="tile" data-act="toggle" data-e="${lt}" style="grid-area:3/1;--r:2;--c:0">${ico('bulb', 'ico')}<div><div class="ttl">Licht</div><div class="sub">Eingang</div></div></button>
-<div class="tile" data-k="ring" style="grid-area:3/2;--r:2;--c:1">${ico('bell', 'ico')}<div><div class="ttl">Klingel</div><div class="sub"></div></div></div>
-<button class="tile" data-act="cam" data-e="${other}" style="grid-area:3/3;--r:2;--c:2">${ico('video', 'ico')}<div><div class="ttl">${CAMS[other].name}</div><div class="sub">Kamera</div></div></button>`;
+  const main = LIST.find(c => c.entity === DOOR) || LIST[0];
+  if (!main) { el.innerHTML = `<div class="ctile"><div class="lbl"><b>Keine Kamera</b><span>In den Einstellungen wählen</span></div></div>`; return; }
+  const tile = (i, inner, attrs) => `<${attrs.includes('data-act') ? 'button' : 'div'} class="tile" ${attrs} style="grid-area:3/${i + 1};--r:2;--c:${i}">${inner}</${attrs.includes('data-act') ? 'button' : 'div'}>`;
+  const slots = [
+    main.light && [ico('bulb', 'ico') + '<div><div class="ttl">Licht</div><div class="sub">' + esc(main.name || 'Kamera') + '</div></div>', `data-act="toggle" data-e="${esc(main.light)}"`],
+    RING && [ico('bell', 'ico') + '<div><div class="ttl">Klingel</div><div class="sub"></div></div>', 'data-k="ring"'],
+    ...LIST.filter(c => c !== main).map(c => [ico('video', 'ico') + `<div><div class="ttl">${esc(c.name || ents[c.entity]?.attributes.friendly_name || c.entity)}</div><div class="sub">Kamera</div></div>`, `data-act="cam" data-e="${esc(c.entity)}"`]),
+  ].filter(Boolean).slice(0, 3);
+  el.innerHTML = `<button class="ctile" data-act="cam" data-e="${esc(main.entity)}"><div class="feed"></div>
+  <div class="lbl"><b>${esc(main.name || ents[main.entity]?.attributes.friendly_name || main.entity)}</b><span><i class="dot"></i><span class="cst"></span></span></div></button>`
+    + slots.map(([inner, attrs], i) => tile(i, inner, attrs)).join('');
   const lbl = $('.lbl', el);
-  feed($('.feed', el), DOOR, ents[DOOR] || { attributes: {} }, s => { $('.cst', lbl).textContent = s; lbl.classList.toggle('live', s === 'Live'); }, .3);
+  feed($('.feed', el), main.entity, ents[main.entity] || { attributes: {} }, s => { $('.cst', lbl).textContent = s; lbl.classList.toggle('live', s === 'Live'); });
 }
 
 // Raster-Kachel: Livebild randlos ohne Beschriftung; ohne Bild bleiben Icon + Text sichtbar.
 // Aus render(): neu laden nur bei neuer Quelle (HA wechselt access_token alle paar Minuten)
 export function camTile(tile, e, s) {
-  const box = tile.querySelector('.feed'), k = CAMS[e]?.src || s.attributes.access_token || s.attributes.entity_picture;
-  if (!box || !k || box._k === k) return;
-  box._k = k;
-  feed(box, e, s, st => tile.classList.toggle('live', st === 'Live'), .3);
+  const box = tile.querySelector('.feed');
+  if (!box || box._k === e) return;   // Stream läuft weiter, wenn HA das Zugriffs-Token wechselt
+  box._k = e;
+  feed(box, e, s, st => tile.classList.toggle('live', st === 'Live'));
+}
+
+// Konfiguration (register / Push vom Server); der Aufrufer baut die Faces danach neu auf
+let configured = false;
+export function camConfig(c) {
+  LIST = c?.list || []; RING = c?.bell?.event || ''; DOOR = c?.bell?.camera || '';
+  if (configured) lastRing = ents[RING]?.state;   // spätere Änderung der Klingel zählt nicht als Klingeln (nur Beim Laden: frisches Ereignis darf läuten)
+  configured = true;
 }
 
 // Aus render(): Klingeln erkennen (Event-Zeitstempel neu und frisch) + Face-Kacheln
@@ -200,13 +209,13 @@ let ents = {}, lastRing;
 const put = (el, v) => { if (el && el.textContent !== v) el.textContent = v; };
 export function doorbell(all) {
   ents = all;
-  const r = ents[RING]?.state, o = Object.keys(CAMS).find(e => e !== DOOR);
-  const neu = r !== lastRing && Date.now() - Date.parse(r) < 30000;
+  const r = ents[RING]?.state;
+  const neu = RING && r !== lastRing && Date.now() - Date.parse(r) < 30000;
   lastRing = r;   // vor ring(): open() rendert synchron und landet wieder hier
   if (neu) ring();
   for (const f of document.querySelectorAll('.f-cams')) {
     put($('[data-k=ring] .sub', f), when(r) ? 'Zuletzt ' + when(r) : 'Keine');
-    put($(`[data-e="${o}"] .sub`, f), ents[o]?.state === 'unavailable' || !ents[o] ? 'Offline' : 'Kamera');
+    for (const t of f.querySelectorAll('.tile[data-act=cam]')) put($('.sub', t), ents[t.dataset.e]?.state === 'unavailable' || !ents[t.dataset.e] ? 'Offline' : 'Kamera');
   }
 }
 

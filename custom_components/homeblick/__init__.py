@@ -32,7 +32,7 @@ async def register(hass, connection, msg):
     """Display meldet sich an (legt sich beim ersten Mal an) und bekommt seine Konfiguration."""
     hub = hass.data[DOMAIN]
     d = await hub.ensure(msg["display"], msg.get("name"))
-    connection.send_result(msg["id"], {"config": hub.config(d.id), "kiosk": d.kiosk(), "device_id": hub.device_id(d)})
+    connection.send_result(msg["id"], {"config": hub.config(d.id), "kiosk": d.kiosk(), "device_id": hub.device_id(d), "cameras": hub.cameras()})
 
 
 @websocket_api.websocket_command({vol.Required("type"): "homeblick/set_config", **DISPLAY, vol.Required("config"): dict})
@@ -127,6 +127,31 @@ def displays(hass, connection, msg):
         for d in hub.displays.values()])
 
 
+_ent = lambda domain: vol.Match(rf"^{domain}\.[\w]+$")   # noqa: E731
+CAMERAS = vol.Schema({
+    vol.Required("list"): vol.All([vol.Schema({vol.Required("entity"): _ent("camera"), vol.Optional("name", default=""): vol.All(str, vol.Length(max=40)),
+                                               vol.Optional("light", default=""): vol.Any("", _ent("light"))})], vol.Length(max=8)),
+    vol.Required("bell"): vol.Any(None, vol.Schema({vol.Required("event"): _ent("event"), vol.Optional("camera", default=""): vol.Any("", _ent("camera"))})),
+})
+
+
+@websocket_api.require_admin
+@websocket_api.websocket_command({vol.Required("type"): "homeblick/cameras"})
+@callback
+def cameras(hass, connection, msg):
+    hub = hass.data[DOMAIN]
+    connection.send_result(msg["id"], {"cameras": hub.cameras(), "auto": hub.cams is None})
+
+
+@websocket_api.require_admin
+@websocket_api.websocket_command({vol.Required("type"): "homeblick/set_cameras", vol.Required("cameras"): vol.Any(None, CAMERAS)})
+@websocket_api.async_response
+async def set_cameras(hass, connection, msg):
+    """Kameras und Klingel für alle Displays; null = wieder automatisch erkennen."""
+    await hass.data[DOMAIN].set_cameras(msg["cameras"])
+    connection.send_result(msg["id"])
+
+
 @websocket_api.require_admin
 @websocket_api.websocket_command({vol.Required("type"): "homeblick/get_shot", **DISPLAY})
 @callback
@@ -202,7 +227,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         for i, d in hub.displays.items():
             if o := old.displays.get(i):
                 d.links, d.logs, d.face, d.saver, d.info, d.seen, d.shot = o.links, o.logs, o.face, o.saver, o.info, o.seen, o.shot
-    for cmd in (register, set_config, subscribe, report, shot, log, displays, get_shot, get_config, update, admin_config, command, remove):
+    for cmd in (register, set_config, subscribe, report, shot, log, displays, cameras, set_cameras, get_shot, get_config, update, admin_config, command, remove):
         websocket_api.async_register_command(hass, cmd)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 

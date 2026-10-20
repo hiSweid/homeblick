@@ -37,6 +37,8 @@ data:
 
 A ring of the doorbell event wakes the display, plays a chime and opens the door camera.
 
+**Cameras** (Settings page → a display → face *Kameras*, shared by all displays): the list of cameras, a light in front of each, and the doorbell (its `event` entity and the camera it belongs to). Without a choice Homeblick uses every camera of Home Assistant and the `event` entity with device class *doorbell* (paired by device, else by name). The live picture comes through Home Assistant itself, so no extra server or address is needed: WebRTC (`camera/webrtc`, e.g. via the go2rtc integration), otherwise HLS, otherwise the MJPEG/still-image proxy. Pressing *Automatisch erkennen* returns to the automatic choice.
+
 **Settings page** (sidebar → *Homeblick Einstellungen*, admins only): one tab per display with online status and remote actions (show face, reload, Assist, screensaver), the faces it shows (order, background, style, grid tiles and their entities), screensaver, night dimming, wake word, Assist pipeline, weather entity/place; copy the setup of one display to another. Changes reach the open display immediately.
 
 Also: `#music`, `#bigclock`, … in the URL switches to that face; the screen is kept awake via the Wake Lock API.

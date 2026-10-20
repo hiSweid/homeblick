@@ -2,7 +2,7 @@
 from collections import deque
 
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import device_registry as dr, entity_registry as er
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.storage import Store
 
@@ -46,6 +46,7 @@ class Hub:
         self.store = Store(hass, STORE_VERSION, DOMAIN)
         self.default: dict | None = None   # Vorlage für neue Displays (Stand vor Mehrfach-Display: die eine gemeinsame Konfiguration)
         self.configs: dict[str, dict] = {}
+        self.cams: dict | None = None   # Kameras + Klingel für alle Displays; None = automatisch erkannt
         self.displays: dict[str, Display] = {}
         self.adders: dict = {}   # Plattform → (async_add_entities, Fabrik)
 
@@ -53,13 +54,13 @@ class Hub:
         d = await self.store.async_load() or {}
         if "faces" in d:   # altes Format
             d = {"default": d}
-        self.default, self.configs = d.get("default"), d.get("configs", {})
+        self.default, self.configs, self.cams = d.get("default"), d.get("configs", {}), d.get("cameras")
         for id, m in d.get("displays", {}).items():
             self.displays[id] = Display(id, m["name"], m.get("settings"))
 
     async def _save(self) -> None:
         await self.store.async_save({
-            "default": self.default, "configs": self.configs,
+            "default": self.default, "configs": self.configs, "cameras": self.cams,
             "displays": {i: {"name": d.name, "settings": d.settings} for i, d in self.displays.items()},
         })
 
@@ -90,6 +91,28 @@ class Hub:
     def by_device(self, device_id: str) -> Display | None:
         dev = dr.async_get(self.hass).async_get(device_id)
         return next((self.displays.get(i) for dom, i in dev.identifiers if dom == DOMAIN), None) if dev else None
+
+    def cameras(self) -> dict:
+        """Kameras und Klingel der Displays: gespeicherte Auswahl, sonst automatisch (alle Kameras, Klingel = event-Entity mit device_class doorbell samt zugehöriger Kamera)."""
+        if self.cams is not None:
+            return self.cams
+        states, reg = self.hass.states, er.async_get(self.hass)
+        cams = [{"entity": s.entity_id, "name": s.name} for s in sorted(states.async_all("camera"), key=lambda s: s.entity_id)][:8]
+        ev = next((s for s in sorted(states.async_all("event"), key=lambda s: s.entity_id) if s.attributes.get("device_class") == "doorbell"), None)
+        if not ev:
+            return {"list": cams, "bell": None}
+        dev = getattr(reg.async_get(ev.entity_id), "device_id", None)
+        base = ev.object_id.rsplit("_", 1)[0]   # event.haustuer_doorbell ↔ camera.haustuer_*
+        cam = next((c["entity"] for c in cams if dev and getattr(reg.async_get(c["entity"]), "device_id", None) == dev), None) \
+            or next((c["entity"] for c in cams if c["entity"].split(".", 1)[1].startswith(base)), "")
+        return {"list": cams, "bell": {"event": ev.entity_id, "camera": cam}}
+
+    async def set_cameras(self, cams: dict | None) -> None:
+        """None = zurück auf automatisch. Offene Displays bauen ihre Kamera-Faces neu."""
+        self.cams = cams
+        await self._save()
+        for d in self.displays.values():
+            self.push(d, {"cameras": self.cameras()})
 
     def config(self, id: str) -> dict | None:
         return self.configs.get(id) or self.default
