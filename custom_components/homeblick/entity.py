@@ -226,7 +226,7 @@ FACTORY = {
                          SettingSwitch(h, d, "music"), SettingSwitch(h, d, "chime")],
     "light": lambda h, d: [ScreenLight(h, d)],
     "button": lambda h, d: [ActionButton(h, d, "reload"), ActionButton(h, d, "assist")],
-    "number": lambda h, d: [SettingNumber(h, d, "idle", 0, 3600, 10, "s"), SettingNumber(h, d, "dim_level", 10, 95, 5, "%"),
+    "number": lambda h, d: [SettingNumber(h, d, "idle", 0, 3600, 10, "s"), SettingNumber(h, d, "dim_level", 10, 95, 5, "%"), SettingNumber(h, d, "wake_sens", 10, 95, 5, "%"),
                          SettingNumber(h, d, "listen", 3, 60, 1, "s"), SettingNumber(h, d, "volume", 0, 100, 5, "%"), SettingNumber(h, d, "bright", 10, 100, 5, "%")],
     "binary_sensor": lambda h, d: [Online(h, d)],
     "sensor": lambda h, d: [Seen(h, d), ShownFace(h, d), Resolution(h, d)],

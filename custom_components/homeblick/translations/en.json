@@ -95,6 +95,9 @@
       "idle": {
         "name": "Screensaver delay"
       },
+      "wake_sens": {
+        "name": "Wake word sensitivity"
+      },
       "dim_level": {
         "name": "Dim level"
       },

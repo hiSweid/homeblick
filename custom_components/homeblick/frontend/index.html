@@ -2078,7 +2078,7 @@ if (LIVE) {
       const m = { ...KIOSK_DEF, ...CONF.kiosk }.wake;
       if (m === wkModel) return;
       wkModel = m; wkCtl?.stop(); wkCtl = null; INFO.wake = null;
-      if (m && voiceOK()) wkCtl = await wakeInit({ model: m, onWake: () => {
+      if (m && voiceOK()) wkCtl = await wakeInit({ model: m, threshold: () => 1 - ({ ...KIOSK_DEF, ...CONF.kiosk }.wake_sens ?? 50) / 100, onWake: () => {
         kiosk.wake();
         // Barge-in: Wake Word während der Antwort bricht sie ab und hört neu zu
         if (CFG.barge && AS.className === 'answer' && voice) { voice.stop(); relisten(); assistVoice(); return; }

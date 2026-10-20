@@ -95,6 +95,9 @@
       "idle": {
         "name": "Screensaver nach"
       },
+      "wake_sens": {
+        "name": "Wake-Word-Empfindlichkeit"
+      },
       "dim_level": {
         "name": "Dimmstufe"
       },

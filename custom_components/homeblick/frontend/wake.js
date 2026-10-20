@@ -5,8 +5,8 @@ import { openMic } from './voice.js';
 const ORT = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/';   // ponytail: CDN; für Offline-Betrieb lokal ablegen
 const CHUNK = 1280, WIN = CHUNK + 480;   // 80 ms neu, 3 Mel-Frames Vorlauf
 
-// onWake(score) → Promise optional; solange es läuft, ist die Erkennung pausiert (Antwort/TTS soll nicht erneut auslösen)
-export async function wakeInit({ onWake, model = 'hey_jarvis_v0.1', threshold = 0.5 }) {
+// threshold: Funktion (live änderbar); onWake(score) → Promise optional; solange es läuft, ist die Erkennung pausiert (Antwort/TTS soll nicht erneut auslösen)
+export async function wakeInit({ onWake, model = 'hey_jarvis_v0.1', threshold = () => 0.5 }) {
   const ort = await import(ORT + 'ort.min.mjs');
   ort.env.wasm.numThreads = 1;   // Mehrfach-Threads brauchen COOP/COEP-Header
   ort.env.wasm.wasmPaths = ORT;
@@ -29,7 +29,7 @@ export async function wakeInit({ onWake, model = 'hey_jarvis_v0.1', threshold = 
     feats = [...feats.slice(-15), Float32Array.from(e)];
     if (feats.length < 16) return;
     const score = (await out(ww, T(Float32Array.from(feats.flatMap(f => [...f])), [1, 16, 96])))[0];
-    if (score > threshold && Date.now() - last > 2000 && !hold) {
+    if (score > threshold() && Date.now() - last > 2000 && !hold) {
       last = Date.now(); hold = true;
       Promise.resolve(onWake(score)).finally(() => { hold = false; mels = []; feats = []; });
     }

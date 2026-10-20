@@ -109,6 +109,7 @@ SETTINGS = vol.Schema({
     vol.Optional("dim"): bool,
     vol.Optional("dim_from"): _time,
     vol.Optional("dim_to"): _time,
+    vol.Optional("wake_sens"): vol.All(int, vol.Range(min=10, max=95)),
     vol.Optional("dim_level"): vol.All(int, vol.Range(min=10, max=95)),
     vol.Optional("wake"): vol.In(WAKE),
     vol.Optional("pipeline"): str,
