@@ -4,7 +4,8 @@ from pathlib import Path
 
 import voluptuous as vol
 from homeassistant.components import frontend, websocket_api
-from homeassistant.components.http import StaticPathConfig
+from aiohttp import web
+from homeassistant.components.http import HomeAssistantView, StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall, callback
 from homeassistant.exceptions import ServiceValidationError
@@ -257,6 +258,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.services.async_register(DOMAIN, "hide_camera", hide_camera, HIDE)
 
     if not hass.data.get(f"{DOMAIN}_static"):   # Pfad lässt sich nach Reload nicht erneut registrieren
+        hass.http.register_view(HomeView())   # vor dem Static-Pfad: /homeblick (ohne Datei) liefert sonst 403
         await hass.http.async_register_static_paths(
             [StaticPathConfig(URL, str(Path(__file__).parent / "frontend"), cache_headers=False)]
         )
@@ -280,6 +282,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         require_admin=True,
     )
     return True
+
+
+class HomeView(HomeAssistantView):
+    """Direktaufruf von /homeblick (Lesezeichen, Seite neu laden im Panel): das Display öffnen. Das Panel selbst hat denselben Pfad wie das Static-Verzeichnis."""
+
+    url = URL
+    name = "homeblick:home"
+    requires_auth = False
+
+    async def get(self, request: web.Request) -> web.Response:
+        raise web.HTTPFound(f"{URL}/index.html?live")
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
