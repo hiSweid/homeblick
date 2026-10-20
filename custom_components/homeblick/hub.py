@@ -148,7 +148,8 @@ class Hub:
         if cam and cam not in cams:   # Klingelkamera bleibt in der Liste, auch wenn es mehr als 8 Kameras gibt
             cams[-1] = cam
         cam = cam["entity"] if cam else ""
-        return {"list": cams, "bell": {"event": ev.entity_id, "camera": cam}}
+        lock = next((s.entity_id for s in sorted(states.async_all("lock"), key=lambda s: s.entity_id) if any(k in s.entity_id for k in ("eingang", "haus", "front", "door"))), "")
+        return {"list": cams, "bell": {"event": ev.entity_id, "camera": cam, "lock": lock, "warm": False}}
 
     async def set_cameras(self, cams: dict | None) -> None:
         """None = zurück auf automatisch. Offene Displays bauen ihre Kamera-Faces neu."""

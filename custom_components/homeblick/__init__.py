@@ -139,8 +139,13 @@ def displays(hass, connection, msg):
 _ent = lambda domain: vol.Match(rf"^{domain}\.[\w]+$")   # noqa: E731
 CAMERAS = vol.Schema({
     vol.Required("list"): vol.All([vol.Schema({vol.Required("entity"): _ent("camera"), vol.Optional("name", default=""): vol.All(str, vol.Length(max=40)),
-                                               vol.Optional("light", default=""): vol.Any("", _ent("light"))})], vol.Length(max=8)),
-    vol.Required("bell"): vol.Any(None, vol.Schema({vol.Required("event"): _ent("event"), vol.Optional("camera", default=""): vol.Any("", _ent("camera"))})),
+                                               vol.Optional("light", default=""): vol.Any("", _ent("light")),
+                                               # go2rtc (z. B. Frigate): Livebild per WebRTC direkt von dort, wenn die HA-Kamera keinen Stream anbietet
+                                               vol.Optional("go2rtc", default=""): vol.Any("", vol.All(str, vol.Match(r"^https?://[^\s/]+/?$"), vol.Length(max=200))),
+                                               vol.Optional("stream", default=""): vol.All(str, vol.Match(r"^[A-Za-z0-9_.-]*$"), vol.Length(max=80))})], vol.Length(max=8)),
+    vol.Required("bell"): vol.Any(None, vol.Schema({vol.Required("event"): _ent("event"), vol.Optional("camera", default=""): vol.Any("", _ent("camera")),
+                                                    vol.Optional("lock", default=""): vol.Any("", _ent("lock")),   # Schloss, das die Klingel-Ansicht öffnet
+                                                    vol.Optional("warm", default=False): bool})),   # Klingelbild vorhalten (Verbindung bleibt offen); über go2rtc ist das Bild auch kalt nach ~0,3 s da
 })
 
 

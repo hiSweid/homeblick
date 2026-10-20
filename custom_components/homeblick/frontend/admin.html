@@ -202,7 +202,7 @@ const field = (label, key, v, extra = '', attr = 'data-s') => `<label class="row
 
 const shots = {};   // letztes Bildschirmfoto je Display
 let conn, displays = [], sel = null, cfg = null, pipelines = [], weathers = [], ttss = [];
-let camState = { cameras: { list: [], bell: null }, auto: true }, camEnts = [], eventEnts = [], lightEnts = [];   // Kameras und Klingel gelten für alle Displays
+let camState = { cameras: { list: [], bell: null }, auto: true }, camEnts = [], eventEnts = [], lightEnts = [], lockEnts = [];   // Kameras und Klingel gelten für alle Displays
 let stack = [];   // Seiten im Detail-Bereich: { t: 'display' } | { t: 'face', i }
 const call = (type, p = {}) => conn.sendMessagePromise({ type: 'homeblick/' + type, ...p });
 const cur = () => displays.find(d => d.id === sel);
@@ -288,13 +288,17 @@ function camsHTML() {
     ${field('Name', 'name', x.name, `maxlength="40" placeholder="${esc(camEnts.find(k => k[0] === x.entity)?.[1] || '')}"`, 'data-cam')}
     ${pick('Kamera', 'entity', withCur(camEnts, x.entity), x.entity, 'data-cam')}
     ${pick('Licht davor', 'light', [['', 'Keins'], ...withCur(lightEnts, x.light)], x.light || '', 'data-cam')}
+    ${field('go2rtc-Adresse (optional)', 'go2rtc', x.go2rtc || '', 'placeholder="http://192.168.1.10:1984" inputmode="url" maxlength="200"', 'data-cam')}
+    ${x.go2rtc ? field('go2rtc-Stream', 'stream', x.stream || '', `placeholder="${esc(x.entity.split('.')[1] || '')}" maxlength="80"`, 'data-cam') : ''}
     <div class="tilebar"><span class="arrows"><button data-a="cup" aria-label="Nach oben">${svg('up', '')}</button><button data-a="cdown" aria-label="Nach unten">${svg('down', '')}</button></span><button data-a="cdel" style="color:var(--red);padding:8px 10px">Entfernen</button></div></div>`;
   return `<div class="sec"><div class="sh"><span>Kameras</span></div>${c.list.map(row).join('')}
       <div class="grp"><button class="row btn" data-a="cadd">${svg('plus', 'plus')}<span class="l">Kamera hinzufügen</span></button></div>
       <div class="sf">${auto ? 'Automatisch erkannt: alle Kameras von Home Assistant. Jede Änderung hier legt die Liste fest.' : 'Das Face „Kameras“ zeigt bis zu vier Kameras als 2×2-Raster, die Klingelkamera (sonst die erste) zuerst.'} Das Bild läuft über Home Assistant (WebRTC, sonst HLS oder Standbilder).</div></div>`
     + grp('Türklingel', pick('Klingel-Ereignis', 'event', [['', 'Keine'], ...withCur(eventEnts, c.bell?.event)], c.bell?.event || '', 'data-bell')
-      + pick('Kamera der Klingel', 'camera', [['', 'Keine'], ...c.list.map(x => [x.entity, camName(x)])], c.bell?.camera || '', 'data-bell'),
-      'Klingeln weckt alle geöffneten Displays, spielt den Gong und zeigt diese Kamera. Gilt für alle Displays.')
+      + pick('Kamera der Klingel', 'camera', [['', 'Keine'], ...c.list.map(x => [x.entity, camName(x)])], c.bell?.camera || '', 'data-bell')
+      + pick('Schloss zum Öffnen', 'lock', [['', 'Keins'], ...withCur(lockEnts, c.bell?.lock)], c.bell?.lock || '', 'data-bell')
+      + pick('Bild vorhalten', 'warm', [['0', 'Nein'], ['1', 'Ja (Verbindung bleibt offen)']], c.bell?.warm ? '1' : '0', 'data-bell'),
+      'Klingeln weckt alle geöffneten Displays, spielt den Gong und zeigt diese Kamera. „Tür öffnen“ braucht einen zweiten Tipp. Sprechen geht nur, wenn die Kamera (go2rtc) einen Rückkanal hat und die Seite über https läuft. Über go2rtc ist das Bild nach ca. 0,3 s da; „Vorhalten“ hält zusätzlich eine Videoverbindung offen. Gilt für alle Displays.')
     + (auto ? '' : grp('', `<button class="row btn c" data-a="creset">Automatisch erkennen</button>`));
 }
 let cst;
@@ -306,7 +310,7 @@ const saveCams = () => {
 function camEdit(t) {
   const c = camState.cameras;
   if (t.dataset.bell) {
-    c.bell = { event: '', camera: '', ...c.bell, [t.dataset.bell]: t.value };
+    c.bell = { event: '', camera: '', lock: '', warm: false, ...c.bell, [t.dataset.bell]: t.dataset.bell === 'warm' ? t.value === '1' : t.value };
   } else {
     const x = c.list[+t.closest('[data-ci]').dataset.ci], old = x.entity;
     x[t.dataset.cam] = t.value.trim();
@@ -545,7 +549,7 @@ try {
   const [states, pl, cs] = await Promise.all([conn.sendMessagePromise({ type: 'get_states' }), conn.sendMessagePromise({ type: 'assist_pipeline/pipeline/list' }).catch(() => null), call('cameras').catch(() => null)]);
   if (cs) camState = cs;
   const nameOf = x => x.attributes.friendly_name || x.entity_id, byDomain = d => states.filter(x => x.entity_id.startsWith(d + '.')).map(x => [x.entity_id, nameOf(x)]).sort((a, b) => a[1].localeCompare(b[1], 'de'));
-  camEnts = byDomain('camera'); lightEnts = byDomain('light');
+  camEnts = byDomain('camera'); lightEnts = byDomain('light'); lockEnts = byDomain('lock');
   eventEnts = states.filter(x => x.entity_id.startsWith('event.')).sort((a, b) => (b.attributes.device_class === 'doorbell') - (a.attributes.device_class === 'doorbell')).map(x => [x.entity_id, nameOf(x)]);
   $('#ents').innerHTML = states.map(x => `<option value="${esc(x.entity_id)}">${esc(x.attributes.friendly_name || '')}</option>`).join('');
   ttss = states.filter(x => x.entity_id.startsWith('tts.')).map(x => [x.entity_id, x.attributes.friendly_name || x.entity_id]);

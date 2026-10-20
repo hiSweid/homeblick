@@ -1,26 +1,61 @@
 // Livebild einer HA-Kamera über die Verbindung des Displays: WebRTC (camera/webrtc/*), sonst HLS (camera/stream).
 // Löst mit stop() auf, sobald der Stream angefordert ist; wirft, wenn die Kamera keinen Stream anbietet (Aufrufer fällt auf MJPEG zurück).
 // Das Bild erscheint im übergebenen <video> (Ereignis „playing“). fail() meldet einen späteren Abbruch (ICE/HLS).
-// Eine WebRTC-Sitzung pro Kamera, geteilt zwischen Kachel/Face und Vollbild: Öffnet man die Kamera, während die Kachel läuft, ist das Bild sofort da (kein neuer Verbindungsaufbau, ~2 s)
+// Eine WebRTC-Sitzung pro Kamera, geteilt zwischen Kachel/Face, Vollbild und „Vorhalten“ (Klingel): Öffnet man die Kamera, während schon eine Sitzung läuft, ist das Bild sofort da
+// o.go2rtc = { url, stream }: Livebild direkt von go2rtc (WHEP, ohne HA-Verbindung nutzbar); o.talk: Audio-Zeile sendrecv, damit talk() später das Mikrofon einhängen kann
 const shared = new Map(), CAPS = new Map();
-export async function live(conn, e, video, hass = '', fail = () => {}) {
+export async function live(conn, e, video, hass = '', fail = () => {}, o = {}) {
+  const release = n => () => { n.fails.delete(fail); video.srcObject = null; if (--n.n === 0) { n.stop(); shared.delete(e); } };
+  const open = async start => {
+    const n = { n: 1, fails: new Set([fail]), dead: false, ms: new MediaStream() };
+    const die = err => { if (n.dead) return; n.dead = true; shared.delete(e); n.fails.forEach(f => f(err)); };
+    n.stop = await start(n, die); shared.set(e, n);
+    return release(n);
+  };
   const s = shared.get(e);
-  if (s && !s.dead) {
-    s.n++; s.fails.add(fail); video.srcObject = s.ms;
-    return () => { s.fails.delete(fail); video.srcObject = null; if (--s.n === 0) { s.stop(); shared.delete(e); } };
+  if (s && !s.dead) { s.n++; s.fails.add(fail); video.srcObject = s.ms; return release(s); }
+  if (o.go2rtc?.url) {
+    try { return await open((n, die) => whep(o.go2rtc, video, die, n, o.talk)); } catch (err) { console.warn('go2rtc', e, err?.message || err); if (!conn) throw err; }
   }
   if (!CAPS.has(e)) CAPS.set(e, (await conn.sendMessagePromise({ type: 'camera/capabilities', entity_id: e }))?.frontend_stream_types || []);
   const caps = CAPS.get(e);
   if (caps.includes('web_rtc')) {
-    try {
-      const n = { n: 1, fails: new Set([fail]), dead: false, ms: new MediaStream() };
-      n.stop = await webrtc(conn, e, video, err => { n.dead = true; shared.delete(e); n.fails.forEach(f => f(err)); }, n.ms);
-      shared.set(e, n);
-      return () => { n.fails.delete(fail); video.srcObject = null; if (--n.n === 0) { n.stop(); shared.delete(e); } };
-    } catch (err) { console.warn('WebRTC', e, err?.message || err); }
+    try { return await open((n, die) => webrtc(conn, e, video, die, n.ms)); } catch (err) { console.warn('WebRTC', e, err?.message || err); }
   }
   if (caps.includes('hls')) return hls(conn, e, video, hass, fail);
   throw new Error('Kamera bietet keinen Stream');
+}
+
+// go2rtc-WHEP: Angebot (ohne Trickle, LAN) per POST, Antwort kommt als SDP; n.tr = Audio-Transceiver (Sprechen)
+async function whep(g, video, die, n, talk) {
+  const pc = new RTCPeerConnection({ iceServers: [] });
+  let dead = false;
+  const stop = () => { dead = true; pc.close(); video.srcObject = null; };
+  pc.ontrack = ev => { n.ms.addTrack(ev.track); video.srcObject = n.ms; };
+  pc.onconnectionstatechange = () => { if (!dead && pc.connectionState === 'failed') { stop(); die(new Error('WebRTC-Verbindung fehlgeschlagen')); } };
+  try {
+    pc.addTransceiver('video', { direction: 'recvonly' });
+    n.g = g; n.tr = pc.addTransceiver('audio', { direction: talk ? 'sendrecv' : 'recvonly' });
+    await pc.setLocalDescription(await pc.createOffer());
+    if (pc.iceGatheringState !== 'complete') await new Promise(r => { const t = setTimeout(r, 1500); pc.addEventListener('icegatheringstatechange', () => pc.iceGatheringState === 'complete' && (clearTimeout(t), r())); });
+    const r = await fetch(`${g.url.replace(/\/$/, '')}/api/webrtc?src=${encodeURIComponent(g.stream)}`, { method: 'POST', headers: { 'Content-Type': 'application/sdp' }, body: pc.localDescription.sdp });
+    if (!r.ok) throw new Error('go2rtc: HTTP ' + r.status);
+    await pc.setRemoteDescription({ type: 'answer', sdp: await r.text() });
+  } catch (err) { stop(); throw err; }
+  return stop;
+}
+
+// Sprechen (Gegensprechen) über die laufende Sitzung der Kamera: Mikrofon ein/aus; wirft verständliche Fehler
+export async function talk(e, on) {
+  const n = shared.get(e);
+  if (!on) { n?.tr?.sender.replaceTrack(null); n?.mic?.getTracks().forEach(t => t.stop()); if (n) n.mic = null; return; }
+  if (!n?.tr) throw new Error('Kamera nicht verbunden');
+  if (!navigator.mediaDevices?.getUserMedia) throw new Error('Mikrofon braucht https');
+  // go2rtc nimmt „sendrecv“ immer an; ein Rückkanal besteht nur, wenn die Quelle selbst Audio empfängt (Producer-Medien „audio, sendonly“)
+  const back = n.g ? await fetch(`${n.g.url.replace(/\/$/, '')}/api/streams?src=${encodeURIComponent(n.g.stream)}`).then(r => r.json()).then(j => j.producers?.some(p => p.medias?.some(m => /^audio, sendonly/.test(m)))).catch(() => false) : /send/.test(n.tr.currentDirection || '');
+  if (!back) throw new Error('Kamera hat keinen Rückkanal');
+  n.mic = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+  await n.tr.sender.replaceTrack(n.mic.getAudioTracks()[0]);
 }
 
 async function webrtc(conn, e, video, fail, ms) {
