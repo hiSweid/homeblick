@@ -28,7 +28,7 @@ svg.i{width:1em;height:1em;flex:none;fill:none;stroke:currentColor;stroke-width:
 /* Face-Pager (STEUERUNG.md P1-1): Karten mit Spalt, Wischen/Auslauf in JS (Pager-Block unten), scrollLeft bleibt die API; Schritt = Breite + Spalt */
 #faces{position:absolute;inset:0;display:flex;gap:2.5cqw;overflow:hidden;touch-action:pan-y;transition:transform var(--sd) var(--spring)}
 #faces::-webkit-scrollbar{display:none}
-.face{--pad:1.9cqw;--gap:1.65cqw;--t:calc((100cqw - 2*var(--pad) - 2*var(--gap))/3);--tint:hsl(calc(var(--h,0) - 4) 80% 72% / .85);
+.face{--ink:#1c1c1e;--ink2:#1c1c1e99;--pad:1.9cqw;--gap:1.65cqw;--t:calc((100cqw - 2*var(--pad) - 2*var(--gap))/3);--tint:hsl(var(--h,0) 100% 72%);
   flex:0 0 100cqw;height:100cqw;border-radius:8cqw;position:relative;overflow:hidden;
   background:var(--wp) 0 0/100% 100%;transition:scale var(--sd) var(--spring),border-radius .3s,opacity .3s}
 .face.mono{--tint:#ebebf599}
@@ -38,22 +38,28 @@ svg.i{width:1em;height:1em;flex:none;fill:none;stroke:currentColor;stroke-width:
 .f-grid{display:grid;grid-template:repeat(3,var(--t))/repeat(3,var(--t));gap:var(--gap);padding:var(--pad)}
 /* Glas = vorgerenderte Blur-Wallpaper an der Kachelposition, kein Live-backdrop-filter */
 .tile{position:relative;isolation:isolate;border-radius:4.3cqw;
-  display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:6cqw 1cqw 5.5cqw;text-align:center;
+  display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:5.3cqw 1cqw 4.9cqw;text-align:center;
   background:linear-gradient(165deg,#fff3,#fff1 45%,#fff0 75%),
     var(--wpb) calc(-1*(var(--pad) + var(--c)*(var(--t) + var(--gap)))) calc(-1*(var(--pad) + var(--r)*(var(--t) + var(--gap))))/100cqw 100cqw;
-  box-shadow:inset 0 .2cqw .1cqw #fff5,inset 0 0 0 .12cqw #fff2,0 .6cqw 2cqw #0003;
+  /* Glasrand (Pixelprofil Website dashboard): 2 px helle Kante rundum (oben/unten kräftiger), 1 px dunkle Außenlinie */
+  box-shadow:inset 0 .25cqw .1cqw #ffffff59,inset 0 -.25cqw .1cqw #ffffff40,inset 0 0 0 .25cqw #ffffff2e,0 0 0 .13cqw #0000002e,0 .6cqw 2cqw #0003;
   transition:transform var(--sd) var(--spring),scale .25s,color .3s}
 .tile:active{transform:scale(.96);transition:transform .12s ease-out}
-.tile::before{content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;background:#fffffff2;opacity:0;transition:opacity .3s}
-.tile.on{color:#1c1c1e}.tile.on::before{opacity:1}.tile.on .sub{color:#1c1c1e99}.tile.on .ico{color:var(--accent)}
-[data-e^="light."]{--accent:#ffb300}[data-e^="lock."],[data-e^="cover."]{--accent:#ff9500}[data-e^="media_player."]{--accent:#ff2d55}[data-e^="fan."]{--accent:#30b0c7}
+/* An-Zustand (Vorlage y-MO 02750/03850, b-Tbq 00515 per Pixelprobe): weiße Fläche ≈ 85 %, Zahl/Titel/Icon dunkelblau (≈ hsl(Face-Ton 100 % 21 %)) statt Schwarz, Untertitel heller; --ink/--ink2 setzt applyBg */
+.tile::before{content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;background:linear-gradient(#fffc,#ffffff99);opacity:0;transition:opacity .3s}
+.tile.on{color:var(--ink)}.tile.on::before{opacity:1}.tile.on .sub{color:var(--ink2)}.tile.on .ico{color:var(--accent,var(--ink))}
+[data-e^="cover."]{--accent:#ff9500}[data-e^="media_player."]{--accent:#ff2d55}   /* Schloss/Ventilator an: Icon dunkel wie Titel (Vorlage y-MO 02750), kein Akzent */
 .tile.on[data-e^="fan."]{--fanplay:running}
 .tile.na{opacity:.45}
-.tile[data-arm] .sub{font-size:0}.tile[data-arm] .sub::after{content:"Nochmal tippen";font-size:3.1cqw}
-.light .tile{background:#fff;box-shadow:0 .4cqw 2cqw #0000001a}.light .tile .sub{color:#3c3c4399}
+.tile[data-arm] .sub{font-size:0}.tile[data-arm] .sub::after{content:"Nochmal tippen";font-size:3cqw}
+/* Helle Variante (Website highlights/homeview, Pixelproben): flach ohne Schatten; Aus = hellgrau 232, An = Lavendel (198,194,227), Icon/Titel lila */
+.light .tile{background:#e8e8e8;box-shadow:none;color:#454546}.light .tile::before{display:none}.light .tile .sub{color:#828284}
+.light .tile.on{background:#c6c2e3;color:#6a6393}.light .tile.on .sub{color:#9590b7}.light .tile.on .ico,.light .tile .ico{color:inherit}
+.f-grid.light .dial svg g{stroke:#6a6393}.f-grid.light .dial .n{color:#6a6393;font-size:3.1cqw;font-weight:500}
 .ico{font-size:9.5cqw;transition:color .3s}
-.ttl{font-weight:600;font-size:3.1cqw;line-height:1.3}
-.sub{font-size:3.1cqw;line-height:1.3;color:var(--tint)}
+/* Beschriftung (Frontalbild Website highlights/dashboard, auf 784 px normiert, Inter statt SF): Schrift 3,0 % W, Zeilenabstand 34 px (1×1) bzw. 32 px (Thermostat) */
+.ttl{font-weight:600;font-size:3cqw;line-height:1.45}
+.sub{font-size:3cqw;line-height:1.45;color:var(--tint);transition:color .3s}
 .tile[data-size="2x2"]{padding:9cqw 2cqw 6cqw}
 .tile[data-size="2x2"] .ico{font-size:20cqw}
 .tile[data-size="2x2"] :is(.ttl,.sub){font-size:4.4cqw}
@@ -67,17 +73,19 @@ svg.i{width:1em;height:1em;flex:none;fill:none;stroke:currentColor;stroke-width:
 .wxtile .tmp{position:absolute;left:5cqw;top:10cqw;font-size:22cqw;font-weight:300}
 .wxtile .wi{position:absolute;left:5cqw;bottom:5cqw;font-size:12cqw}
 .wxtile[data-size="1x1"] .tmp{font-size:10cqw;top:8cqw}.wxtile[data-size="1x1"] .wi{font-size:6cqw}
-.thermo .num{font-size:27cqw;margin-top:13.3cqw}
+.thermo .num{font-size:27cqw;margin-top:4.8cqw}   /* Ziffernmitte bei 43 % der Kachelhöhe (Frontalbild dashboard), Ziffernhöhe 19,8 % W */
 .thermo[data-size="2x1"] .num{font-size:13cqw;margin-top:4cqw}
 .thermo[data-size="1x1"] .num{font-size:10cqw;margin-top:5.5cqw}
 /*: Titel/Untertitel im 2×2-Thermostat so groß wie bei 1×1, eine Zeile („Wohnzimmer • 20,5°“) */
-.thermo[data-size="2x2"] :is(.ttl,.sub){font-size:3.1cqw}
+.thermo[data-size="2x2"] :is(.ttl,.sub){font-size:3cqw;line-height:1.36}
 .thermo .sub{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .thermo .foot>div{min-width:0}
 .thermo[data-size="1x1"] .chev{display:none}
 .thermo[data-size="1x1"] .foot{justify-content:center}
 .foot{position:absolute;inset:auto 0 5.5cqw;display:flex;align-items:center;justify-content:space-between;padding:0 4.8cqw}
+.thermo[data-size="2x2"] .foot{bottom:3.1cqw;padding:0 3.1cqw}
 .chev{font-size:5cqw;padding:2cqw;position:relative}
+.thermo[data-size="2x2"] .chev{font-size:8.1cqw;display:grid;translate:0 -.3cqw}   /* Chevron 41 × 24 px bei 784 px (Frontalbild dashboard), Mitten bei 11 % / 89 % der Kachelbreite */
 .chev::before{content:"";position:absolute;left:50%;top:50%;width:13cqw;height:13cqw;translate:-50% -50%;border-radius:50%;background:#fff;opacity:0;transition:opacity .13s linear;pointer-events:none}
 .chev:active::before{opacity:.22;transition:none}
 .x:active{background:#fff6}
@@ -98,12 +106,27 @@ svg.i{width:1em;height:1em;flex:none;fill:none;stroke:currentColor;stroke-width:
 .f-grid .dial{height:100%;justify-self:center;transition:scale .25s}
 .dial>svg{position:absolute;inset:0;width:100%;height:100%}
 .glass{background:radial-gradient(circle at 50% 20%,#fff3,#fff1 60%,#fff0);box-shadow:inset 0 0 0 .3cqw #fff4,inset 0 .5cqw .8cqw #fff3,0 .6cqw 2cqw #0002}
-.light .glass{background:#fff;box-shadow:0 .4cqw 2cqw #0000001a}
+.light .glass{background:#fff;box-shadow:none}
 .hand{position:absolute;left:50%;bottom:50%;transform:translateX(-50%);transform-origin:50% 100%;background:#fff;border-radius:99px}
 .hh{height:27%;width:3.8%}.mm{height:39%;width:3.2%}.ss{height:46%;width:.8%;background:#fffc}
 .pin{position:absolute;left:50%;top:50%;width:4%;height:4%;margin:-2%;border-radius:50%;background:#fff}
 .n{position:absolute;transform:translate(-50%,-50%);font-size:3.6cqw;font-weight:500}
 .light .hand,.light .pin{background:#1c1c1e}.light .dial svg g{stroke:#1c1c1e}
+/* Analoguhr-Kachel (Vorlage Website highlights/dashboard, frontal, Maße in % Zifferblatt-Ø): Stunden-/Minutenzeiger = dünner Stiel + breites Blatt mit runder Spitze (Länge 51 % / 88 % des Radius),
+   Sekundenzeiger hauchdünn mit kurzem Gegengewicht und Endplättchen, Ring statt Punkt, Glasrand 1 px. Das Element deckt die obere Zifferblatthälfte ab (Drehpunkt = Mitte), Pseudo-Elemente zeichnen */
+.f-grid .dial .hand{width:100%;height:50%;background:none;border-radius:0;color:#fff}
+.f-grid.light .dial .hand{color:#1c1c1e}
+.f-grid .hand::before,.f-grid .hand::after{content:"";position:absolute;left:50%;translate:-50% 0;background:currentColor;border-radius:99px}
+.f-grid .hh{--L:49%}.f-grid .mm{--L:12%}
+.f-grid :is(.hh,.mm)::before{top:var(--L);bottom:12.4%;width:4.4%}
+.f-grid :is(.hh,.mm)::after{top:var(--L);bottom:0;width:1.5%}
+.f-grid .ss::before{top:2%;bottom:-15%;width:.8%;border-radius:0}
+.f-grid .ss::after{top:8%;height:19%;width:3.4%;border-radius:.3cqw;background:#fff}
+.f-grid.light .dial .ss{color:#6a6393}.f-grid.light .ss::after{display:none}
+.f-grid .dial .pin{width:3.6%;height:3.6%;margin:-1.8%;background:radial-gradient(circle,#0006 0 22%,#ffffffd9 26%)}
+.f-grid.light .dial .pin{background:radial-gradient(circle,#fff 0 22%,#1c1c1e 26%)}
+.f-grid .dial.glass{box-shadow:inset 0 0 0 .13cqw #ffffff59,inset 0 .5cqw .8cqw #fff3,0 .6cqw 2cqw #0001}
+.f-grid.light .dial.glass{box-shadow:none}
 
 .f-bigclock{display:flex;flex-direction:column;align-items:center;justify-content:center}
 .f-bigclock .dl{font-size:4.2cqw;font-weight:600;opacity:.85;margin-bottom:2cqw}
@@ -386,21 +409,22 @@ input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:tr
 #assist:not([data-k=cal]) .acal,#assist[data-k=cal] :is(.acard,.apill){display:none}
 /* Auslöser: Kamera oben Mitte antippen oder herunterziehen */
 #pull{position:absolute;left:30cqw;right:30cqw;top:0;height:3cqw;z-index:19;touch-action:none}
-.lk .sh{fill:none;stroke:currentColor;stroke-linecap:round;transform-origin:7.8px 10.5px;transition:transform .55s cubic-bezier(.34,1.7,.5,1)}.lk.open .sh{transform:translateY(-2.4px) rotate(-32deg)}
+.lk .sh{fill:none;stroke:currentColor;stroke-linecap:round;transform-origin:7.8px 11.5px;transition:transform .55s cubic-bezier(.34,1.7,.5,1)}.lk.open .sh{transform:translateY(-2.4px) rotate(-32deg)}
 </style>
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute">
-  <symbol id="intercom" viewBox="0 0 24 24"><clipPath id="icl"><circle cx="12" cy="12" r="10.2"/></clipPath><g clip-path="url(#icl)" fill="currentColor" stroke="none"><rect x="1.62" y="1" width="1.56" height="22"/><rect x="4.82" y="1" width="1.56" height="22"/><rect x="8.02" y="1" width="1.56" height="22"/><rect x="11.22" y="1" width="1.56" height="22"/><rect x="14.42" y="1" width="1.56" height="22"/><rect x="17.62" y="1" width="1.56" height="22"/><rect x="20.82" y="1" width="1.56" height="22"/></g></symbol>
+  <symbol id="intercom" viewBox="0 0 24 24"><clipPath id="icl"><circle cx="12" cy="12" r="10.2"/></clipPath><g clip-path="url(#icl)" fill="currentColor" stroke="none"><rect x="1.85" y="1" width="1.1" height="22"/><rect x="5.05" y="1" width="1.1" height="22"/><rect x="8.25" y="1" width="1.1" height="22"/><rect x="11.45" y="1" width="1.1" height="22"/><rect x="14.65" y="1" width="1.1" height="22"/><rect x="17.85" y="1" width="1.1" height="22"/><rect x="21.05" y="1" width="1.1" height="22"/></g></symbol>
   <symbol id="moon" viewBox="0 0 24 24"><g fill="currentColor" stroke="none"><path d="M17.6 16.4A7.6 7.6 0 1 1 9.1 5.8a8 8 0 0 0 8.5 10.6z"/><g opacity=".85"><path d="M15.4 2.4l.4 1.1 1.1.4-1.1.4-.4 1.1-.4-1.1-1.1-.4 1.1-.4z"/><path d="M19.4 5.7l.6 1.6 1.6.6-1.6.6-.6 1.6-.6-1.6-1.6-.6 1.6-.6z"/></g></g></symbol>
-  <symbol id="sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.2" fill="currentColor" stroke="none"/><path d="M12 1.8v2.5M12 19.7v2.5M1.8 12h2.5M19.7 12h2.5M4.8 4.8l1.7 1.7M17.5 17.5l1.7 1.7M4.8 19.2l1.7-1.7M17.5 6.5l1.7-1.7"/></symbol>
-  <symbol id="lock" viewBox="0 0 24 24"><rect x="4.5" y="10.5" width="15" height="11.5" rx="2.5" fill="currentColor" stroke="none"/><path d="M7.8 10.5V7.4a4.2 4.2 0 0 1 8.4 0v3.1" stroke-width="2.4"/></symbol>
-  <symbol id="unlock" viewBox="0 0 24 24"><rect x="4.5" y="10.5" width="15" height="11.5" rx="2.5" fill="currentColor" stroke="none"/><path d="M7.8 10.5V7.4a4.2 4.2 0 0 1 8.2-1.4" stroke-width="2.4"/></symbol>
+  <symbol id="sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.9" fill="currentColor" stroke="none"/><path d="M12 3.2v1.8M12 19v1.8M3.2 12H5M19 12h1.8M5.8 5.8l1.3 1.3M16.9 16.9l1.3 1.3M5.8 18.2l1.3-1.3M16.9 7.1l1.3-1.3" stroke-width="1.7"/></symbol>
+  <symbol id="lock" viewBox="0 0 24 24"><rect x="4.5" y="11.5" width="15" height="10.5" rx="2.5" fill="currentColor" stroke="none"/><path d="M7.8 11.5V8.4a4.2 4.2 0 0 1 8.4 0v3.1" stroke-width="2.4"/></symbol>
+  <symbol id="unlock" viewBox="0 0 24 24"><rect x="4.5" y="11.5" width="15" height="10.5" rx="2.5" fill="currentColor" stroke="none"/><path d="M7.8 11.5V8.4a4.2 4.2 0 0 1 8.2-1.4" stroke-width="2.4"/></symbol>
   <symbol id="bulb" viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.2 1 2v.3h6v-.3c0-.8.4-1.5 1-2A7 7 0 0 0 12 2z" fill="currentColor" stroke="none"/><path d="M9.2 19.3h5.6M10 21.8h4" stroke-width="1.8"/></symbol>
   <symbol id="video" viewBox="0 0 24 24"><rect x="2.5" y="6.5" width="13" height="11" rx="2.5" fill="currentColor" stroke="none"/><path d="M16.5 10.5l5-3v9l-5-3z" fill="currentColor" stroke="none"/></symbol>
   <symbol id="timer" viewBox="0 0 24 24"><circle cx="12" cy="13.5" r="8"/><path d="M12 9.5v4l2.6 2M9.5 2.5h5M12 2.5v3"/></symbol>
   <symbol id="house" viewBox="0 0 24 24"><path d="M3.5 11 12 4l8.5 7M6 9.5V20h12V9.5M10 20v-5h4v5"/></symbol>
-  <symbol id="garage" viewBox="0 0 24 24"><path d="M3 21V9l9-5 9 5v12M6.5 21v-9h11v9M6.5 15h11M6.5 18h11"/></symbol>
+  <symbol id="garage" viewBox="0 0 24 24"><rect x="3.5" y="3" width="17" height="18" rx="2.5" stroke-width="1.8"/><g fill="currentColor" stroke="none"><rect x="6.2" y="6" width="3.2" height="3.2" rx=".6"/><rect x="10.4" y="6" width="3.2" height="3.2" rx=".6"/><rect x="14.6" y="6" width="3.2" height="3.2" rx=".6"/></g><path d="M3.5 18.5h17" stroke-width="1.6"/></symbol>
+  <symbol id="pendant" viewBox="0 0 24 24"><path d="M12 1.5v3" stroke-width="1.8"/><path d="M12 4.5c-3.6 0-6 2-6.5 5.5h13c-.5-3.5-2.9-5.5-6.5-5.5z" fill="currentColor" stroke="none"/><path d="M4.5 11.5h15" stroke-width="1.6"/><path d="M9 15.5l-2.5 5M15 15.5l2.5 5M12 15.5v5" stroke-width="1.5" opacity=".6"/></symbol>
   <symbol id="blind" viewBox="0 0 24 24"><path d="M3.5 4h17M5 4v12h14V4M5 8h14M5 12h14M12 16v4"/></symbol>
   <!-- Standventilator Flügel drehen per --fanplay (Variablen erben in den <use>-Baum, Selektoren nicht) -->
   <symbol id="fan" viewBox="0 0 24 24"><g opacity=".55" stroke-width="1.4"><circle cx="12" cy="10.5" r="8.3"/><path d="M12 18.8v2.4M8.6 21.4h6.8"/></g><g style="transform-origin:12px 10.5px;animation:spin 1.4s linear infinite;animation-play-state:var(--fanplay,paused)" fill="currentColor" stroke="none"><path id="fb" d="M11.2 9.4C9.3 8.6 7.9 7 8.3 5.3c.5-1.8 3-2.2 4.3-.9 1.2 1.2 1 3.4-.4 5z"/><use href="#fb" transform="rotate(90 12 10.5)"/><use href="#fb" transform="rotate(180 12 10.5)"/><use href="#fb" transform="rotate(270 12 10.5)"/></g><circle cx="12" cy="10.5" r="1" stroke-width=".9"/></symbol>
@@ -550,8 +574,18 @@ const wp = (h, blur = 0) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 
 <circle cx="-10" cy="108" r="48" fill="hsl(${h - 14},70%,14%)" opacity=".55"/>
 <path d="M40-10C30 40 60 70 110 80" stroke="hsl(${h + 8},95%,80%)" stroke-opacity=".3" stroke-width="10" fill="none"/>
 </g></svg>`;
+// Helle Glas-Variante 'metal' (Vorlage TGo1gI0QtfU 00475): entsättigtes Graublau H≈215°, S≈20-25 %, L≈60-75 %, dunkle Wellenformen, weißer Text auf Glas
+const wpMetal = (blur = 0) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="none">
+<defs><linearGradient id="g" x2="1" y2="1"><stop stop-color="hsl(212,42%,76%)"/><stop offset=".5" stop-color="hsl(213,40%,62%)"/><stop offset="1" stop-color="hsl(214,38%,52%)"/></linearGradient>
+<filter id="b" x="0" y="0" width="1" height="1"><feGaussianBlur stdDeviation="${blur}" edgeMode="duplicate"/></filter></defs>
+<g ${blur ? 'filter="url(#b)"' : ''}><rect width="100" height="100" fill="url(#g)"/>
+<path d="M-10 30C20 10 40 45 30 75S60 115 110 95V110H-10z" fill="hsl(216,32%,38%)" opacity=".45"/>
+<path d="M45-10C70 20 95 25 110 50V-10z" fill="hsl(212,40%,86%)" opacity=".5"/>
+<circle cx="35" cy="45" r="30" fill="hsl(216,30%,34%)" opacity=".28"/>
+<path d="M-10 80C25 60 60 70 110 40" stroke="hsl(210,35%,90%)" stroke-opacity=".35" stroke-width="9" fill="none"/></g></svg>`;
 const wallCache = {};
-const wall = h => wallCache[h] ||= [svgUrl(wp(h)), svgUrl(wp(h, 5))];
+// Kachelglas: Blur σ ≈ 2 % W (≈ 15 px bei 784 px; Website dashboard/installation: Wallpaper-Formen scheinen weich durch, vorher 5 % = zu stark)
+const wall = h => wallCache[h] ||= h === 'metal' ? [svgUrl(wpMetal()), svgUrl(wpMetal(2))] : [svgUrl(wp(h)), svgUrl(wp(h, 2))];
 // Dynamische Faces:
 // Nacht = Sonne unter dem Horizont (sun.sun), ohne sun.sun nach Uhrzeit; ?tod=night|day erzwingt
 const TOD = new URLSearchParams(location.search).get('tod');
@@ -559,14 +593,15 @@ const isNight = () => TOD ? TOD === 'night' : ents['sun.sun'] ? ents['sun.sun'].
 // bg 'auto': Tag/Nacht — Home orange/violett, Widget hell/dunkel (faces_enhanced/hero_endframe)
 const AUTO = { info: ['white', 'black'], calendar: ['white', 'black'] };
 const bgOf = f => f.bg === 'auto' ? (AUTO[f.type] || [30, 240])[+isNight()] : f.bg;
-// bg: Farbton (Zahl) | 'black' | 'white' | { photo, blur }
+// bg: Farbton (Zahl) | 'metal' (helles Graublau) | 'black' | 'white' | { photo, blur }
 function applyBg(el, bg) {
-  const hue = typeof bg === 'number';
+  const hue = typeof bg === 'number' || bg === 'metal', h = bg === 'metal' ? 215 : bg;
   el.classList.toggle('light', bg === 'white');
   el.classList.toggle('mono', !hue && bg !== 'white');
-  if (hue) { const [a, b] = wall(bg); el.style.setProperty('--h', bg); el.style.setProperty('--wp', a); el.style.setProperty('--wpb', b); }
+  for (const k of ['--ink', '--ink2']) el.style.removeProperty(k);
+  if (hue) { const [a, b] = wall(bg); el.style.setProperty('--h', h); el.style.setProperty('--wp', a); el.style.setProperty('--wpb', b); el.style.setProperty('--ink', `hsl(${h} 96% 28%)`); el.style.setProperty('--ink2', `hsl(${h} 65% 38%)`); }
   else if (bg?.photo) { el.style.setProperty('--wp', `url(${bg.photo})`); el.style.setProperty('--wpb', `url(${bg.blur})`); }
-  else { el.style.setProperty('--wp', 'none'); el.style.setProperty('--wpb', 'none'); el.style.backgroundColor = bg === 'white' ? 'var(--paper,#f2f2f7)' : '#000'; }
+  else { el.style.setProperty('--wp', 'none'); el.style.setProperty('--wpb', 'none'); el.style.backgroundColor = bg === 'white' ? '#fff' : '#000'; }
 }
 // ---------- Konfiguration (localStorage) ----------
 // night: Variante der Kachel nach Sonnenuntergang; bg 'auto' = Farbe nach Tageszeit
@@ -580,11 +615,11 @@ const DEF = { cams: 1, energy: 1, dyn: 2, faces: [   // Flags: Migrationen unten
     { e: 'camera.turklingel', title: 'Türklingel', sub: 'Haustür', night: NIGHT_SCENE },
     { e: 'scene.guten_morgen', icon: 'sun', title: 'Guten Morgen', sub: 'Szene', night: NIGHT_INTERCOM },
     { e: 'lock.eingangstur', title: 'Türschloss', sub: 'Haustür' },
-    { e: 'light.flur', title: 'Licht', sub: 'Flur' },
+    { e: 'light.flur', icon: 'pendant', title: 'Licht', sub: 'Flur' },
   ] },
   { type: 'music', bg: 'black' },
   { type: 'bigclock', bg: 205 },
-  { type: 'grid', bg: 250, tiles: [
+  { type: 'grid', bg: 228, tiles: [
     { e: 'light.wohnzimmer', title: 'Licht', sub: 'Wohnzimmer' },
     { e: 'light.kuche', title: 'Licht', sub: 'Küche' },
     { kind: 'clock' },
@@ -675,7 +710,7 @@ const iconOf = t => { const d = t.e?.split('.')[0]; return t.icon || (d === 'cov
 function tileEl(c) {
   const t = c.night && isNight() ? { ...c, ...c.night } : c;
   const el = document.createElement('div'), kind = kindOf(t), label = `<div><div class="ttl">${esc(t.title)}</div><div class="sub">${esc(t.sub)}</div></div>`;
-  el._t = c; el.dataset.ti = ''; el.dataset.size = `${t.w || 1}x${t.h || 1}`;
+  el._t = c; el._sub = t.sub; el.dataset.ti = ''; el.dataset.size = `${t.w || 1}x${t.h || 1}`;
   if (t.e) el.dataset.e = t.e;
   if (t.noop) el.dataset.noop = '';
   if (kind === 'clock') {
@@ -764,6 +799,9 @@ function buildFace(f) {
 }
 
 // Uhren: Zeiger per WAAPI (Compositor, volle Bildrate), Zeit wird minütlich nachgestellt
+// Home-Kachel (Vorlage Website highlights/dashboard): 12 gleiche Striche, Länge 12 % / Breite 2,7 % des Zifferblatts, 3,3 % vom Rand
+const gticks = `<svg viewBox="-50 -50 100 100"><g stroke="#fff" stroke-width="2.7" stroke-linecap="round">${
+  Array.from({ length: 12 }, (_, i) => `<line y1="-45.35" y2="-36.05" transform="rotate(${i * 30})"/>`).join('')}</g></svg>`;
 const ticks = `<svg viewBox="-50 -50 100 100"><g stroke="#fff" stroke-width="3.6" stroke-linecap="round">${
   Array.from({ length: 12 }, (_, i) => `<line y1="-45" y2="-35" transform="rotate(${i * 30})"/>`).join('')}</g></svg>`;
 const numsAt = r => Array.from({ length: 12 }, (_, i) => {
@@ -777,7 +815,7 @@ const mticks = `<svg viewBox="-50 -50 100 100"><g stroke="#fff" stroke-linecap="
 let hands = [], lastDay;
 function initDials(scope) {
   for (const d of $$('.dial', scope)) {
-    d.insertAdjacentHTML('afterbegin', (d.classList.contains('mt') ? mticks : d.classList.contains('nums') ? nums : ticks) +'<i class="hand hh"></i><i class="hand mm"></i><i class="hand ss"></i><b class="pin"></b>');
+    d.insertAdjacentHTML('afterbegin', (d.classList.contains('mt') ? mticks : d.classList.contains('nums') ? nums : d.closest('.f-grid.light') ? mticks : d.closest('.f-grid') ? gticks : ticks) +'<i class="hand hh"></i><i class="hand mm"></i><i class="hand ss"></i><b class="pin"></b>');
     for (const [c, per] of [['hh', 43200], ['mm', 3600], ['ss', 60]])
       hands.push([per, $('.' + c, d).animate([{ transform: 'translateX(-50%) rotate(0)' }, { transform: 'translateX(-50%) rotate(1turn)' }], { duration: per * 1000, iterations: Infinity })]);
   }
@@ -825,7 +863,7 @@ const hold = {}, held = id => hold[id] > Date.now();   // lokale Eingabe gewinnt
 const fmt = v => v == null ? '–' : (+v).toLocaleString('de-DE', { maximumFractionDigits: 1 });
 const pct = s => s.state === 'on' ? Math.round((s.attributes.brightness ?? 255) / 2.55) : 0;
 const mmss = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
-const ON = { light: s => s.state === 'on', fan: s => s.state === 'on', lock: s => s.state !== 'locked', cover: s => s.state !== 'closed', media_player: s => s.state === 'playing', timer: s => s.state === 'active' };
+const ON = { climate: s => /^(heating|cooling)$/.test(s.attributes.hvac_action), /* Ruhezustand = Glas, an nur bei aktivem Heizen/Kühlen oder kurz nach Bedienung */ light: s => s.state === 'on', fan: s => s.state === 'on', lock: s => s.state !== 'locked', cover: s => s.state !== 'closed', media_player: s => s.state === 'playing', timer: s => s.state === 'active' };
 const MODES = { heat: ['Heizen auf', '#ff9500'], cool: ['Kühlen auf', '#0cacf8'], heat_cool: ['Automatisch', '#30b0c7'], dry: ['Entfeuchten', '#5ac8fa'], fan_only: ['Lüften', '#34c759'], off: ['Aus', '#636366'] };
 
 // ---------- Demo-Bibliothek (erfundene Titel, generierte Cover) ----------
@@ -880,7 +918,9 @@ function demoCall(domain, service, data) {
     toggle: () => set(s.state === 'on' ? 'off' : 'on'),
     turn_on: () => set(domain === 'climate' ? 'heat' : 'on', data.brightness_pct ? { brightness: data.brightness_pct * 2.55 } : {}),
     turn_off: () => set('off'),
-    lock: () => set('locked'), unlock: () => set('unlocked'),
+    // Demo wie ein HA-Schloss: Zwischenzustand „locking/unlocking“ (Kachel bleibt weiß, Untertitel „Wird verriegelt …“), dann Endzustand
+    lock: () => { set('locking'); setTimeout(() => { ents = { ...ents, [id]: { ...ents[id], state: 'locked' } }; schedule(); }, 1300); },
+    unlock: () => { set('unlocking'); setTimeout(() => { ents = { ...ents, [id]: { ...ents[id], state: 'unlocked' } }; schedule(); }, 900); },
     open_cover: () => set('open'), close_cover: () => set('closed'),
     set_temperature: () => set(s.state, { temperature: data.temperature }),
     set_hvac_mode: () => set(data.hvac_mode),
@@ -947,6 +987,22 @@ function avatars() {
     });
   }
 }
+// Statuszeile (Vorlage y-MO 02750/03050/03200): nach einem Zustandswechsel steht kurz „Locking …/Locked“ bzw. „100 %/Off“ als Untertitel, danach wieder der Raum.
+// Dauer 2,5 s = Schätzung (Vorlage nur Standbilder); Zwischenzustände (locking/unlocking/jammed) stehen, solange sie dauern
+const STATUS = {
+  lock: s => ({ locking: 'Wird verriegelt …', unlocking: 'Wird entriegelt …', jammed: 'Blockiert', locked: 'Verriegelt', unlocked: 'Entriegelt', open: 'Geöffnet' })[s.state],
+  fan: s => s.state === 'on' ? (s.attributes.percentage != null ? `${Math.round(s.attributes.percentage)} %` : 'An') : s.state === 'off' ? 'Aus' : '',
+};
+function statusSub(t, d, s) {
+  if (t._ls === s.state) return;
+  if (t._ls && t._ls !== 'unavailable' && s.state !== 'unavailable') { t._flash = Date.now() + 2500; setTimeout(schedule, 2600); }
+  t._ls = s.state;
+}
+function statusLine(t, d, s) {
+  const sub = $('.sub', t); if (!sub || !t._sub) return;
+  const f = STATUS[d](s), out = f && (/ing$|jammed/.test(s.state) || t._flash > Date.now()) ? f : t._sub;
+  if (sub.textContent !== out) sub.textContent = out;
+}
 function render() {
   phase(); avatars();
   for (const t of $$('[data-e]')) {
@@ -957,11 +1013,12 @@ function render() {
     if (u && /lock/.test(u.getAttribute('href'))) {
       // Bügel als eigener Pfad: hebt/dreht sich beim Entriegeln, rastet mit Feder ein
       const sv = u.closest('svg'), open = s.state !== 'locked';
-      sv.classList.add('lk'); sv.setAttribute('viewBox', '0 0 24 24'); sv.innerHTML = '<rect x="4.5" y="10.5" width="15" height="11.5" rx="2.5" fill="currentColor" stroke="none"/><path class="sh" d="M7.8 10.5V7.4a4.2 4.2 0 0 1 8.4 0v3.1" stroke-width="2.4"/>';
+      sv.classList.add('lk'); sv.setAttribute('viewBox', '0 0 24 24'); sv.innerHTML = '<rect x="4.5" y="11.5" width="15" height="10.5" rx="2.5" fill="currentColor" stroke="none"/><path class="sh" d="M7.8 11.5V8.4a4.2 4.2 0 0 1 8.4 0v3.1" stroke-width="2.4"/>';
       sv.classList.toggle('open', open);
     }
     else if (d === 'lock') { const sv = $('svg.lk', t); if (sv) sv.classList.toggle('open', s.state !== 'locked'); }
     if (d === 'camera' && t.dataset.ti != null) camTile(t, id, s);
+    if (STATUS[d] && t.classList.contains('tile') && t.dataset.ti != null) { statusSub(t, d, s); statusLine(t, d, s); }
   }
   for (const el of $$('[data-temp]')) {
     const id = el.dataset.temp, v = st(id).attributes.temperature, th = el.closest('.thermo');
@@ -1309,6 +1366,7 @@ function seekMove(e) {
 let tempT, lightT;
 function sendTemp(id) {
   hold[id] = Date.now() + 3000;
+  $$(`[data-e="${id}"]`).forEach(t => t.classList.add('on')); setTimeout(render, 3100);
   clearTimeout(tempT);
   tempT = setTimeout(() => call('climate', 'set_temperature', { entity_id: id, temperature: T[id] }), 600);
 }
@@ -1574,7 +1632,7 @@ if (!LIVE) {
     'light.kuche': ['off', { friendly_name: 'Küche' }],
     'light.buro': ['off', { friendly_name: 'Büro' }],
     'light.schlafzimmer_deckenlampe': ['off', { friendly_name: 'Schlafzimmer Deckenlampe' }],
-    'fan.schlafzimmer': ['off', { friendly_name: 'Schlafzimmer Ventilator' }],
+    'fan.schlafzimmer': ['off', { friendly_name: 'Schlafzimmer Ventilator', percentage: 100 }],
     'calendar.familie': ['off', { friendly_name: 'Familie' }],
     'calendar.geburtstage': ['off', { friendly_name: 'Geburtstage' }],
     'calendar.mullabfuhr': ['off', { friendly_name: 'Müllabfuhr' }],
