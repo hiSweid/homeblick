@@ -557,7 +557,7 @@ import { shot } from './shot.js';
 import { wakeInit } from './wake.js';
 import { parseLRC, findLyrics } from './lyrics.js';
 import { voiceOK, voiceRun } from './voice.js';
-import { timerInit, timers, timerDemo, timerShow } from './timer.js';
+import { timerInit, timers, timerDemo, timerShow, timerMusic } from './timer.js';
 import { camInit, camConfig, camShow, camHide, camFace, camTile, camOpen, camRinging, doorbell } from './doorbell.js';
 import { loadEvents, eventsHTML } from './events.js';
 // Ohne Parameter: Demo-Daten. Echtes HA nur mit ?live
@@ -1052,6 +1052,7 @@ function render() {
   const np = ents[CONF.player] || mps.find(e => e.state === 'playing' && has(e) && e.attributes.media_content_type === 'music') || mps.find(e => e.state === 'playing' && has(e))
     || mps.find(e => e.state === 'paused' && has(e)) || mps.find(e => e.attributes.device_class === 'speaker') || mps[0], a = np?.attributes || {};
   NP = np?.entity_id;
+  timerMusic(np, HASS);
   bind('npt', a.media_title || 'Nichts läuft');
   bind('npa', a.media_artist || a.friendly_name || '');
   bind('npb', np?.state === 'playing' ? 'Pause' : 'Abspielen');
