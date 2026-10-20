@@ -55,7 +55,9 @@ async function feed(box, e, s, cb) {
 }
 
 // ---------- Vollbild ----------
-let V, api, notch, spot, HASS = '', stat = '', ringT, px = 0, z = Z;
+let V, api, notch, spot, HASS = '', stat = '', ringT, idleT, px = 0, z = Z;
+// Name und Buttons nach 5 s ohne Berührung ausblenden (wie Video-Steuerung), Tippen holt sie zurück; beim Klingeln bleiben sie stehen
+const wake = () => { V.classList.remove('idle'); clearTimeout(idleT); idleT = setTimeout(() => V.classList.contains('ring') || V.classList.add('idle'), 5000); };
 const showStat = s => { if (s) stat = s; $('.cst', V).textContent = V.classList.contains('ring') ? 'Es klingelt' : stat; };
 // 16:9-Bild im Quadrat: nur transform → Compositor
 function pan(p, zz = z) {
@@ -85,6 +87,7 @@ export function camInit(view, fns) {
   const end = () => { $('.feed', V).classList.remove('drag'); g = null; };
   V.addEventListener('pointerdown', e => {
     clearTimeout(ringT);   // Berührung: Klingel-Ansicht bleibt offen
+    wake();
     if (e.target.closest('button')) return;
     g = { x: e.clientX, p: px, on: false };
     V.setPointerCapture(e.pointerId);
@@ -117,8 +120,9 @@ export function camShow(tile, e, s) {
   $('.feed', V).classList.add('drag'); pan(0, Z);   // ohne Animation zurück auf „füllen“
   requestAnimationFrame(() => $('.feed', V).classList.remove('drag'));
   feed($('.feed', V), e, s, showStat);
+  wake();
 }
-export function camHide() { clearTimeout(ringT); const f = $('.feed', V); f._stop?.(); f._stop = null; f._tag = null; f.replaceChildren(); }
+export function camHide() { clearTimeout(ringT); clearTimeout(idleT); V.classList.remove('idle'); const f = $('.feed', V); f._stop?.(); f._stop = null; f._tag = null; f.replaceChildren(); }
 
 export const camRinging = () => api.view() === V && V.classList.contains('ring');
 
@@ -162,7 +166,7 @@ export function ring() {
   if (!DOOR) return;   // Klingel ohne zugeordnete Kamera: nur wecken und läuten
   const open = api.view();
   if (open === V) {   // läuft schon eine andere Kamera → auf die Haustür wechseln
-    if (V._e === DOOR) { V.classList.add('ring'); showStat(); } else camShow(notch, DOOR, ents[DOOR] || { attributes: {} });
+    if (V._e === DOOR) { V.classList.add('ring'); showStat(); wake(); } else camShow(notch, DOOR, ents[DOOR] || { attributes: {} });
     return;
   }
   if (open || $('#screen').matches('.gallery,.custom')) return;
@@ -233,7 +237,8 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 #cam .feed.drag{transition:none}
 .feed>*{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 cam-rtc video{object-fit:cover}
-.ctop{position:absolute;top:6.7cqw;inset-inline:0;text-align:center;font-size:3.4cqw;line-height:4.55cqw;text-shadow:0 0 1.2cqw #0009;pointer-events:none}
+.ctop{position:absolute;top:6.7cqw;inset-inline:0;text-align:center;font-size:3.4cqw;line-height:4.55cqw;text-shadow:0 0 1.2cqw #0009;pointer-events:none;transition:opacity .4s}
+#cam.idle :is(.ctop,.cb,.rb){opacity:0;pointer-events:none}
 .ctop b{display:block;font-weight:600}
 .ctop span{color:#ffffffa6}
 .ring .ctop span{color:#fff;animation:cblink 1.6s ease-in-out infinite}
@@ -248,7 +253,7 @@ cam-rtc video{object-fit:cover}
 :is(.rb.all,.replies button){background:#ffffff38}
 /* oben meist Himmel → dunkles Glas, sonst verschwindet das weiße Icon; Licht an = weiß mit gelber Birne wie die Kacheln */
 .cb{position:absolute;top:4cqw;width:10cqw;height:10cqw;border-radius:50%;display:grid;place-items:center;font-size:4.8cqw;background:#1c1c1e4d}
-.cb.lt{left:4cqw;transition:scale var(--sd) var(--spring),background-color .3s,color .3s}.cb.key{right:4cqw}
+.cb.lt{left:4cqw;transition:scale var(--sd) var(--spring),background-color .3s,color .3s,opacity .4s}.cb.key{right:4cqw}
 .cb.lt.on{background:#fffffff2;color:#ffb300}
 .cb.na{opacity:.45}
 .replies{position:absolute;left:0;right:0;top:66cqw;display:flex;justify-content:center;gap:2cqw;pointer-events:none}
@@ -256,7 +261,7 @@ cam-rtc video{object-fit:cover}
   transition:opacity .25s,transform var(--sd) var(--spring),scale var(--sd) var(--spring)}
 .ring .replies button{opacity:1;transform:none;pointer-events:auto;transition-delay:calc(180ms + var(--i)*50ms),calc(180ms + var(--i)*50ms),0s}
 #cam:not(.bell) :is(.mic,.key,.replies){display:none}
-.rb,.cb.key{transition:scale var(--sd) var(--spring)}
+.rb,.cb.key{transition:scale var(--sd) var(--spring),opacity .4s}
 :is(.rb,.cb,.replies button):active{scale:.88;transition:scale .12s ease-out}
 .notch{position:absolute;left:44cqw;top:-7cqw;width:12cqw;height:12cqw;border-radius:50%;opacity:0;pointer-events:none}
 
