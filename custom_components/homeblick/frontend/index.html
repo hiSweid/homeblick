@@ -237,6 +237,7 @@ svg.i{width:1em;height:1em;flex:none;fill:none;stroke:currentColor;stroke-width:
 .orow small{display:block;font-weight:400;font-size:3cqw;color:#ffffff8c}
 .ck{width:5.4cqw;height:5.4cqw;border-radius:50%;border:.4cqw solid #ffffff59;display:grid;place-items:center;font-size:3.2cqw;font-style:normal}
 .ck.on{background:#0a84ff;border-color:#0a84ff}
+[data-act=grp]{position:relative}[data-act=grp]::after{content:'';position:absolute;inset:-2.4cqw}
 input[type=range]{-webkit-appearance:none;appearance:none;display:block;width:100%;height:7cqw;margin:0;border-radius:2.2cqw;cursor:pointer;
   background:linear-gradient(#fff,#fff) 0/var(--v,50%) 100% no-repeat,#ffffff2e}
 input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:1px;height:7cqw;background:transparent}
@@ -862,6 +863,8 @@ function demoCall(domain, service, data) {
     set_hvac_mode: () => set(data.hvac_mode),
     media_play_pause: () => a.media_title && set(s.state === 'playing' ? 'paused' : 'playing', now()),
     media_stop: () => set('idle', { ...now(), media_position: 0 }),
+    join: () => { const g = [...new Set([id, ...(a.group_members || []), ...data.group_members])]; for (const m of g) ents = { ...ents, [m]: { ...ents[m], attributes: { ...ents[m].attributes, group_members: g } } }; schedule(); },
+    unjoin: () => { const g = (a.group_members || []).filter(m => m !== id); ents = { ...ents, [id]: { ...s, attributes: { ...a, group_members: [id] } } }; for (const m of g) ents[m] = { ...ents[m], attributes: { ...ents[m].attributes, group_members: g } }; schedule(); },
     media_next_track: () => q && set(s.state, track(q, (a.shuffle ? Math.floor(Math.random() * q.length) : a._i + 1) % q.length)),
     media_previous_track: () => q && set(s.state, track(q, npPos(id)[0] > 3 || !a._i ? a._i : a._i - 1)),
     media_seek: () => set(s.state, { media_position: data.seek_position, media_position_updated_at: new Date().toISOString() }),
@@ -973,6 +976,7 @@ function render() {
     npKey = key; $$('.prog i').forEach(progress); syncLyrics(); times();
     $$('.f-music.qm').forEach(fillQueue); $$('.menu.open').forEach(fillMenu);
   }
+  if (members(NP).join() !== grpKey) $$('.outs.open').forEach(p => fillOuts(p, !!p.dataset.all));   // Gruppe geändert (auch von außen) → offene Ausgabewahl neu zeichnen; nicht bei jedem Tick, sonst reißt es laufende Regler ab
   if (`${a.media_title}|${a.media_artist}` !== lyr.key) loadLyrics(a);
 }
 function times() {
@@ -1222,11 +1226,20 @@ function libGo(k) {
   const n = { title: c.title, children: null };
   libStack.push(n); showLib(1); libLoad(n, c);
 }
+// Multiroom: ist der gewählte Player gruppenfähig (JOIN = 524288), schaltet der Haken rechts einen weiteren Lautsprecher in dessen Gruppe
+// (media_player.join/unjoin), die Zeile selbst wählt wie bisher den Player. Gruppenlautstärke = ein Regler, der alle Mitglieder mitzieht
+const JOIN = 524288, members = id => (st(id).attributes.group_members || []).filter(m => m !== id && ents[m]);
+const canGroup = id => !!(st(id).attributes.supported_features & JOIN);
+let grpKey = '';
 function fillOuts(p, all) {
-  const list = all ? players() : players().filter(e => e.entity_id === NP);
-  p.innerHTML = `<h4>${all ? 'Wiedergabe auf' : 'Lautstärke · ' + esc(st(NP).attributes.friendly_name)}</h4>` + list.map(e => {
-    const v = Math.round((e.attributes.volume_level ?? 0) * 100), on = e.entity_id === NP;
-    return `<div class="orow">${all ? `<button data-act="pick" data-v="${e.entity_id}">${svg('vol')}<span>${esc(e.attributes.friendly_name || e.entity_id)}<small>${STATE[e.state] || esc(e.state)}</small></span><i class="ck${on ? ' on' : ''}">${on ? svg('check') : ''}</i></button>` : ''}`
+  p.dataset.all = all ? '1' : ''; grpKey = members(NP).join();
+  const list = all ? players() : players().filter(e => e.entity_id === NP), grp = all && canGroup(NP), mem = members(NP);
+  const gv = !all && mem.length ? Math.round([NP, ...mem].reduce((x, m) => x + (st(m).attributes.volume_level ?? 0), 0) / (mem.length + 1) * 100) : null;
+  p.innerHTML = `<h4>${all ? 'Wiedergabe auf' : 'Lautstärke · ' + esc(st(NP).attributes.friendly_name)}</h4>`
+    + (gv == null ? '' : `<div class="orow"><small>Gruppe · ${mem.length + 1} Lautsprecher</small><input type="range" min="0" max="100" value="${gv}" data-gvol style="--v:${gv}%" aria-label="Gruppenlautstärke"></div>`)
+    + list.map(e => {
+    const v = Math.round((e.attributes.volume_level ?? 0) * 100), on = e.entity_id === NP, inG = mem.includes(e.entity_id);
+    return `<div class="orow">${all ? `<button data-act="pick" data-v="${e.entity_id}">${svg('vol')}<span>${esc(e.attributes.friendly_name || e.entity_id)}<small>${inG ? 'In der Gruppe · ' : ''}${STATE[e.state] || esc(e.state)}</small></span>${grp && !on ? `<i class="ck${inG ? ' on' : ''}" data-act="grp" data-v="${e.entity_id}" role="checkbox" aria-checked="${inG}" aria-label="Zur Gruppe">${inG ? svg('check') : ''}</i>` : `<i class="ck${on ? ' on' : ''}">${on ? svg('check') : ''}</i>`}</button>` : ''}`
       + `<input type="range" min="0" max="100" value="${v}" data-vol="${e.entity_id}" style="--v:${v}%" aria-label="Lautstärke ${esc(e.attributes.friendly_name)}"></div>`;
   }).join('');
 }
@@ -1253,10 +1266,10 @@ async function fillQueue(face) {
     + (rest.length ? rest.map(([x, k]) => `<button class="qi" data-act="qplay" data-v="${k}"><span class="cover" style="${x.art ? '--art:' + cssUrl(x.art) : ''}"></span><div><b>${esc(x.title)}</b><small>${esc(x.artist)}</small></div></button>`).join('')
       : `<p class="qnone">${items.length ? 'Ende der Warteschlange' : 'Keine Warteschlange verfügbar'}</p>`);
 }
-let volT, volV;
-function sendVol(id, v) {   // max. alle 200 ms, letzter Wert gewinnt
-  volV = [id, v];
-  volT ||= setTimeout(() => { volT = 0; call('media_player', 'volume_set', { entity_id: volV[0], volume_level: volV[1] }); }, 200);
+let volT, volV = {};
+function sendVol(id, v) {   // max. alle 200 ms, letzter Wert je Player gewinnt
+  volV[id] = v;
+  volT ||= setTimeout(() => { volT = 0; for (const [e, l] of Object.entries(volV)) call('media_player', 'volume_set', { entity_id: e, volume_level: l }); volV = {}; }, 200);
 }
 // Fortschritt ziehen = spulen
 let sk = null;
@@ -1423,6 +1436,12 @@ for (const ev of ['pointerup', 'pointercancel']) document.addEventListener(ev, (
 });
 document.addEventListener('contextmenu', e => e.preventDefault());
 document.addEventListener('input', e => {
+  if (e.target.matches('[data-gvol]')) {   // Gruppe: alle um denselben Abstand verschieben, Verhältnisse bleiben
+    const all = [NP, ...members(NP)], avg = all.reduce((x, m) => x + (st(m).attributes.volume_level ?? 0), 0) / all.length, d = e.target.value / 100 - avg;
+    e.target.style.setProperty('--v', e.target.value + '%');
+    for (const m of all) sendVol(m, Math.min(1, Math.max(0, (st(m).attributes.volume_level ?? 0) + d)));
+    return;
+  }
   const id = e.target.dataset.vol;
   if (!id) return;
   e.target.style.setProperty('--v', e.target.value + '%');
@@ -1452,6 +1471,7 @@ document.addEventListener('click', e => {
   else if (act === 'outs') openPop(b, '.outs', p => fillOuts(p, true));
   else if (act === 'vol') openPop(b, '.outs', p => fillOuts(p, false));
   else if (act === 'menu') openPop(b, '.menu', fillMenu);
+  else if (act === 'grp') { const id = b.dataset.v; call('media_player', members(NP).includes(id) ? 'unjoin' : 'join', members(NP).includes(id) ? { entity_id: id } : { entity_id: NP, group_members: [id] }); }
   else if (act === 'pick') { CONF.player = b.dataset.v; save(); render(); fillOuts(b.closest('.pop'), true); }
   else if (act === 'shuffle') NP && call('media_player', 'shuffle_set', { entity_id: NP, shuffle: !st(NP).attributes.shuffle });
   else if (act === 'repeat') NP && call('media_player', 'repeat_set', { entity_id: NP, repeat: { off: 'all', all: 'one', one: 'off' }[st(NP).attributes.repeat || 'off'] });
@@ -1531,6 +1551,7 @@ if (!LIVE) {
   };
   const put = o => { for (const [id, [state, attributes]] of Object.entries(o)) ents[id] = { entity_id: id, state: String(state), attributes }; };
   put(demo); put(energyDemo());
+  for (const e of Object.values(ents)) if (e.entity_id.startsWith('media_player.')) e.attributes = { ...e.attributes, supported_features: (e.attributes.supported_features || 0) | 524288 };   // Demo: gruppenfähig
   setInterval(() => { put(energyDemo()); schedule(); }, 3000);
   forecast = { temperature: 14, templow: 6 };
   weatherHours(Array.from({ length: 24 }, (_, i) => ({ datetime: new Date(Date.now() + i * 3600e3).toISOString(), condition: ['partlycloudy', 'partlycloudy', 'sunny', 'sunny', 'cloudy', 'rainy'][i % 6], temperature: 12 + Math.round(3 * Math.sin(i / 4)), precipitation_probability: i % 6 === 5 ? 60 : 10, wind_speed: 8 + i % 5 })));   // Demo-Stundenleiste
