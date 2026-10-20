@@ -248,14 +248,25 @@ function liveHTML(d) {
       'Stehen auch im Home-Assistant-Protokoll. Diagnose: Gerät des Displays → ⋮ → Diagnose herunterladen.') : '');
 }
 
+// Hinweise: was an einem Display gerade nicht stimmt (Tipp öffnet das Display)
+const issues = d => {
+  const i = d.info || {}, day = Date.now() - 864e5, err = (d.logs || []).filter(m => m.level === 'error' && new Date(m.t) > day).length;
+  return [!d.connected && d.seen && `Offline seit ${ago(d.seen).replace(/^vor /, '')}`,
+    d.connected && i.secure === false && 'Ohne https: kein Mikrofon, Bildschirm geht aus',
+    d.connected && i.visible === false && 'Fenster verdeckt',
+    err && `${err} Fehler in den letzten 24 Std`].filter(Boolean);
+};
+
 function listHTML() {
+  const warn = displays.map(d => [d, issues(d)]).filter(x => x[1].length)
+    .map(([d, l]) => `<button class="row" data-d="${esc(d.id)}">${ico('disp')}<span class="l two"><b>${esc(d.name)}</b><small>${esc(l.join(' · '))}</small></span>${svg('chev')}</button>`).join('');
   const rows = displays.map(d => `<button class="row ${d.id === sel ? 'sel-row' : ''}" data-d="${esc(d.id)}">${ico('disp')}<span class="l two"><b>${esc(d.name)}</b><small>${esc(stat(d))}</small></span><span class="dot ${d.connected ? 'on' : ''}"></span>${svg('chev')}</button>`).join('');
   const on = displays.filter(x => x.connected).length, dis = on ? '' : 'disabled';
   const allGrp = displays.length > 1 ? grp(`Alle Displays · ${on} online`, `<div class="quick">${[['reload', 'Neu laden', 'refresh'], ['assist', 'Assist', 'mic'], ['stop', 'Abbrechen', 'x'], ['screensaver', 'Ruhemodus', 'moon'], ['wake', 'Aufwecken', 'sun']].map(([c, n, i]) => `<button class="q" data-all="${c}" ${dis}><span class="qi">${svg(i, '')}</span>${n}</button>`).join('')}</div>`
     + pick('Face anzeigen', 'allface', [['', 'Wählen …'], ...TYPES], '', 'data-allface')
     + `<button class="row btn" data-alls="1"><span class="l">Nachtmodus auf allen an</span></button><button class="row btn" data-alls="0"><span class="l">Nachtmodus auf allen aus</span></button>`, 'Befehle gehen an alle Displays, die gerade geöffnet sind.') : '';
   return `<div class="lt">Homeblick</div><div class="lsub">Displays im Haus</div>` +
-    (displays.length ? grp('Displays', rows, 'Ein Display legt sich an, sobald Homeblick einmal auf dem Gerät geöffnet wurde.') + allGrp
+    (displays.length ? (warn ? grp('Hinweise', warn) : '') + grp('Displays', rows, 'Ein Display legt sich an, sobald Homeblick einmal auf dem Gerät geöffnet wurde.') + allGrp
       : grp('', `<div class="row"><span class="l">Noch kein Display angemeldet</span></div>`, 'Öffne Homeblick auf dem Gerät, am besten mit <code>?display=kueche&amp;name=Küche</code> hinter der Adresse.'));
 }
 
