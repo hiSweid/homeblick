@@ -163,6 +163,7 @@ input::-webkit-calendar-picker-indicator{display:none!important}
 <datalist id="ents"></datalist>
 
 <script type="module">
+import { ORDER, normFaces } from './faces.js';
 // Einstellungsseite: Seitenleiste mit allen Displays → Display → Face (Kacheln). Läuft als Admin-Panel in HA
 // (gleicher Login wie das Panel, Tokens im localStorage).
 const $ = s => document.querySelector(s);
@@ -183,7 +184,6 @@ const FACE = {
   calendar: ['Kalender', '#ff3b30', 'cal'], weather: ['Wetter', '#32ade6', 'sun'], energy: ['Energie', '#34c759', 'bolt'], info: ['Info', '#30b0c7', 'info'], cams: ['Kameras', '#8e8e93', 'cam'],
 };
 const TYPES = Object.entries(FACE).map(([k, v]) => [k, v[0]]);
-const NEWBG = { grid: 150, music: 'black', bigclock: 205, analog: 340, calendar: 'white', weather: 212, energy: 'black', info: 'black', cams: 'black' };
 const BG = [['auto', 'Tageszeit'], ['black', 'Schwarz'], ['white', 'Weiß'], [30, 'Orange'], [5, 'Rot'], [340, 'Rosa'], [285, 'Violett'], [250, 'Blau'], [205, 'Türkis'], [212, 'Himmel'], [150, 'Grün']];
 const STYLES = { weather: [['', 'Kompakt'], ['cond', 'Bedingungen']], bigclock: [['stack', 'Gestapelt'], ['line', 'Zeile']], analog: [['numbers', 'Zahlen'], ['ticks', 'Striche'], ['minimal', 'Minimal']] };
 const WAKE = [['off', 'Aus'], ['hey_jarvis', 'Hey Jarvis'], ['alexa', 'Alexa']];
@@ -201,7 +201,7 @@ const slider = (label, key, lo, hi, step, v) => `<div class="row"><span class="l
 const field = (label, key, v, extra = '', attr = 'data-s') => `<label class="row"><span class="l">${label}</span><input class="r" ${attr}="${key}" value="${esc(v)}" ${extra}></label>`;
 
 const shots = {};   // letztes Bildschirmfoto je Display
-let conn, displays = [], sel = null, cfg = null, editing = false, pipelines = [], weathers = [], ttss = [];
+let conn, displays = [], sel = null, cfg = null, pipelines = [], weathers = [], ttss = [];
 let camState = { cameras: { list: [], bell: null }, auto: true }, camEnts = [], eventEnts = [], lightEnts = [];   // Kameras und Klingel gelten für alle Displays
 let stack = [];   // Seiten im Detail-Bereich: { t: 'display' } | { t: 'face', i }
 const call = (type, p = {}) => conn.sendMessagePromise({ type: 'homeblick/' + type, ...p });
@@ -334,11 +334,16 @@ async function camAction(a, i) {
 const pages = {
   display() {
     const d = cur(), s = d.settings, faces = cfg?.faces;
-    const face = (f, i) => {
-      const meta = FACE[f.type] || [f.type, '#8e8e93', 'grid'];
-      return `<div class="row" data-fi="${i}">${editing ? `<button data-a="del" aria-label="Entfernen"><span class="minus"></span></button>` : ''}
-        <button class="go" data-a="face">${ico(meta[2], meta[1])}<span class="l two"><b>${esc(meta[0])}</b><small>${esc(bgName(f.bg))}${f.type === 'grid' ? ` · ${f.tiles?.length || 0} Kacheln` : ''}</small></span></button>
-        ${editing ? `<span class="arrows"><button data-a="up" aria-label="Nach oben">${svg('up', '')}</button><button data-a="down" aria-label="Nach unten">${svg('down', '')}</button></span>` : svg('chev')}</div>`;
+    // feste Reihenfolge, nur ein-/ausschalten (faces.js); i = Index in cfg.faces (nur eingeschaltete haben eine Seite)
+    if (faces) normFaces(cfg);
+    const rk = f => (i => i < 0 ? ORDER.length : i)(ORDER.indexOf(f.id));
+    const all = faces ? [...faces.map((f, i) => [f, i]), ...(cfg.off || []).map(f => [f, -1])].sort((x, y) => rk(x[0]) - rk(y[0])) : [];
+    const face = ([f, i]) => {
+      const meta = FACE[f.type] || [f.type, '#8e8e93', 'grid'], on = i >= 0, sub = `${esc(bgName(f.bg))}${f.type === 'grid' ? ` · ${f.tiles?.length || 0} Kacheln` : ''}`;
+      return `<div class="row" data-fi="${i}">
+        ${on ? `<button class="go" data-a="face">${ico(meta[2], meta[1])}<span class="l two"><b>${esc(meta[0])}</b><small>${sub}</small></span></button>`
+             : `<span class="go" style="opacity:.45">${ico(meta[2], meta[1])}<span class="l two"><b>${esc(meta[0])}</b><small>${sub}</small></span></span>`}
+        <label class="sw"><input type="checkbox" data-fon="${esc(f.id)}" ${on ? 'checked' : ''}><i></i></label></div>`;
     };
     const body = `
       <div class="hero">${ico('disp')}<h2 data-live="name">${esc(d.name)}</h2><p data-live="stat">${esc(stat(d))}</p></div>
@@ -348,9 +353,9 @@ const pages = {
         ${pick('Face anzeigen', 'show', [['', 'Wählen …'], ...TYPES], '', 'data-show')}</div><div class="sf">Die Steuerung geht, solange das Display geöffnet ist.</div></div>
       ${grp('Ansage', field('Text', 'say', '', 'placeholder="Das Essen ist fertig" maxlength="300"', 'data-say') + `<button class="row btn c" data-a="say" ${d.connected ? '' : 'disabled style="opacity:.4"'}>Auf dem Display ansagen</button>`, 'Erscheint als Text und wird gesprochen (außer bei „Antworten stumm“). In Automationen: Aktion „Benachrichtigung senden“ (notify.send_message) an die Durchsage-Entity des Displays.')}
       ${grp('Vorschau', `<button class="row btn c" data-a="shot" ${d.connected ? '' : 'disabled style="opacity:.4"'}>Bildschirmfoto aufnehmen</button>${shots[d.id] ? `<img class="shot" src="${shots[d.id]}" alt="">` : ''}`, 'Bilder von fremden Servern, Kamera-Video und WebGL fehlen im Foto.')}
-      ${grp(`<span>Anzeige</span>${faces ? `<button data-a="edit">${editing ? 'Fertig' : 'Bearbeiten'}</button>` : ''}`,
-        faces ? faces.map(face).join('') + `<button class="row btn" data-a="add">${svg('plus', 'plus')}<span class="l">Face hinzufügen</span></button>` : `<div class="row"><span class="l" style="color:var(--sec)">Noch keine Konfiguration. Öffne Homeblick einmal auf dem Gerät.</span></div>`,
-        'Tippe ein Face, um Hintergrund, Stil und Kacheln einzustellen. Änderungen erscheinen sofort auf dem Display.')}
+      ${grp('Anzeige',
+        faces ? all.map(face).join('') : `<div class="row"><span class="l" style="color:var(--sec)">Noch keine Konfiguration. Öffne Homeblick einmal auf dem Gerät.</span></div>`,
+        'Die Reihenfolge ist fest. Schalte Faces ein oder aus; Tippe ein eingeschaltetes Face, um Hintergrund, Stil und Kacheln einzustellen.')}
       ${grp('Bildschirmschoner', field('Nach Inaktivität (s)', 'idle', s.idle, 'type="number" inputmode="numeric" min="0" max="3600" step="10"') + pick('Face', 'saver', TYPES, s.saver) + toggle('Musik statt Bildschirmschoner', 'music', s.music), '0 schaltet den Bildschirmschoner aus. Läuft Musik, erscheint stattdessen das Musik-Face.')}
       ${grp('Helligkeit', slider('Helligkeit', 'bright', 10, 100, 5, s.bright), 'Software-Abdunklung, keine Hardware-Helligkeit.')}
       ${grp('Nachtmodus', toggle('Nachts abdunkeln', 'dim', s.dim) + `<div class="dep ${s.dim ? '' : 'off'}" id="dimdep"><div>
@@ -379,7 +384,7 @@ const pages = {
       ${f.type === 'grid' ? `<div class="sec"><div class="sh"><span>Kacheln</span></div>${(f.tiles || []).map(tile).join('')}<div class="grp"><button class="row btn" data-a="tadd">${svg('plus', 'plus')}<span class="l">Kachel hinzufügen</span></button></div>
         <div class="sf">Kacheln folgen der Reihenfolge von oben links. Nachtvarianten bleiben erhalten.</div></div>` : ''}
       ${f.type === 'cams' ? camsHTML() : ''}
-      ${grp('', `<button class="row btn c" data-c="face" ${d.connected ? '' : 'disabled style="opacity:.4"'}>Auf dem Display anzeigen</button><button class="row red c" data-a="delface">Face entfernen</button>`)}`;
+      ${grp('', `<button class="row btn c" data-c="face" ${d.connected ? '' : 'disabled style="opacity:.4"'}>Auf dem Display anzeigen</button>`)}`;
     return { back: d.name, title: meta[0], body };
   },
 };
@@ -409,7 +414,7 @@ async function pop() {
 function renderSide() { const sc = $('#side').scrollTop; $('#side').innerHTML = listHTML(); $('#side').scrollTop = sc; }
 
 async function open(id) {
-  sel = id; editing = false;
+  sel = id;
   cfg = (await call('get_config', { display: id })).config;
   pane().replaceChildren(); stack = [];
   push({ t: 'display' }, false);
@@ -444,6 +449,10 @@ document.addEventListener('change', async e => {
     }
     if (k === 'dim') $('#dimdep').classList.toggle('off', !v);
     d.settings[k] = v; guard(call('update', { display: sel, settings: { [k]: v } })).catch(() => {});
+  } else if (t.dataset.fon) {   // Face ein-/ausschalten: Konfiguration wandert zwischen faces und off, mindestens ein Face bleibt an
+    const id = t.dataset.fon, from = t.checked ? 'off' : 'faces', to = t.checked ? 'faces' : 'off', i = cfg[from].findIndex(f => f.id === id);
+    if (i < 0 || (!t.checked && cfg.faces.length < 2)) { if (!t.checked) toast('Mindestens ein Face', true); return refresh(); }
+    cfg[to].push(...cfg[from].splice(i, 1)); normFaces(cfg); saveCfg(); refresh();
   } else if (t.dataset.cam || t.dataset.bell) camEdit(t);
   else if (t.dataset.t) { cfg.faces[stack.at(-1).i].tiles[+t.closest('[data-ti]').dataset.ti][t.dataset.t] = t.value.trim(); saveCfg(); }
   else if (t.dataset.area !== undefined) { area = t.value; renderSide(); }
@@ -457,17 +466,10 @@ document.addEventListener('click', async e => {
   if (b.dataset.d) return open(b.dataset.d);
   if (b.dataset.all) return all({ action: b.dataset.all });
   if (b.dataset.alls !== undefined) { const v = !!+b.dataset.alls; return guard(Promise.all(inArea().map(x => (x.settings.dim = v, call('update', { display: x.id, settings: { dim: v } })))).then(() => { const d = cur(); if (d) refresh(); })).catch(() => {}); }
-  const onFace = stack.at(-1)?.t === 'face';
   if (b.dataset.c) return guard(call('command', { display: sel, action: b.dataset.c, ...(b.dataset.c === 'face' && { face: cfg.faces[stack.at(-1).i].type }) })).catch(() => {});
   const a = b.dataset.a;
   if (!a) return;
   if (a === 'back') { if (stack.length > 1) return pop(); $('#app').dataset.open = '0'; return; }
-  if (a === 'edit') { editing = !editing; return refresh(); }
-  if (a === 'add') {
-    const r = await overlay('sheet', `<div class="shs"><div class="grp">${TYPES.map(([k, n]) => `<button class="row" data-r="${k}">${ico(FACE[k][2], FACE[k][1])}<span class="l">${n}</span></button>`).join('')}</div><div class="grp"><button class="row c btn" data-r="">Abbrechen</button></div></div>`);
-    if (r) { cfg.faces.push({ type: r, bg: NEWBG[r], ...(r === 'grid' && { tiles: [{ kind: 'clock' }] }) }); saveCfg(); refresh(); }
-    return;
-  }
   if (a === 'rm') {
     if (await ask(`„${cur().name}“ entfernen?`, 'Faces und Einstellungen gehen verloren. Das Gerät in Home Assistant bitte danach unter Geräte löschen.', 'Entfernen')) { await guard(call('remove', { display: sel })); sel = null; await reload(); }
     return;
@@ -488,12 +490,6 @@ document.addEventListener('click', async e => {
   }
   if (/^c(add|up|down|del|reset)$/.test(a)) return camAction(a, +b.closest('[data-ci]')?.dataset.ci);
   if (a === 'face') return push({ t: 'face', i: +b.closest('[data-fi]').dataset.fi });
-  if (!onFace) {   // Face-Liste
-    const i = +b.closest('[data-fi]')?.dataset.fi, F = cfg.faces;
-    if (a === 'up' || a === 'down') swap(F, i, i + (a === 'up' ? -1 : 1));
-    else if (a === 'del') { if (F.length < 2) return toast('Mindestens ein Face', true); if (!await ask(`„${FACE[F[i].type]?.[0]}“ entfernen?`, 'Das Face verschwindet vom Display.', 'Entfernen')) return; F.splice(i, 1); }
-    saveCfg(); return refresh();
-  }
   // Face-Seite
   const i = stack.at(-1).i, f = cfg.faces[i], tiles = f.tiles, j = +b.closest('[data-ti]')?.dataset.ti;
   if (a === 'bg') f.bg = bgVal(b.dataset.v);
@@ -501,11 +497,6 @@ document.addEventListener('click', async e => {
   else if (a === 'tadd') tiles.push({ e: '', title: 'Neu', sub: '' });
   else if (a === 'tup' || a === 'tdown') swap(tiles, j, j + (a === 'tup' ? -1 : 1));
   else if (a === 'tdel') tiles.splice(j, 1);
-  else if (a === 'delface') {
-    if (cfg.faces.length < 2) return toast('Mindestens ein Face', true);
-    if (!await ask(`„${FACE[f.type]?.[0]}“ entfernen?`, 'Das Face verschwindet vom Display.', 'Entfernen')) return;
-    cfg.faces.splice(i, 1); saveCfg(); return pop();
-  }
   saveCfg(); fill(top(), stack.at(-1));
 });
 
