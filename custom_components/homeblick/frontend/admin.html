@@ -258,6 +258,7 @@ const issues = d => {
   return [!d.connected && d.seen && `Offline seit ${ago(d.seen).replace(/^vor /, '')}`,
     d.connected && i.secure === false && 'Ohne https: kein Mikrofon, Bildschirm geht aus',
     d.connected && i.visible === false && 'Fenster verdeckt',
+    d.windows > 1 && `${d.windows} Fenster mit derselben Display-ID offen (jedes Gerät braucht eine eigene, ?display=)`,
     d.connected && d.outdated && 'Alte Version geladen, Seite neu laden',
     err && `${err} Fehler in den letzten 24 Std`].filter(Boolean);
 };
