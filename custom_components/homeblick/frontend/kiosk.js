@@ -1,6 +1,6 @@
 // Wanddisplay-Verhalten im Browser: Idle-Screensaver, Nacht-Dimmen, Display wach halten, Face per #<typ>.
-// Einstellungen: CONF.kiosk = { idle: Sekunden (0 = aus), saver: Face-Typ, dim: { from: 'HH:MM', to: 'HH:MM', level: 0–1 } | null, black: Schoner = 100 % schwarz statt Face, sched: { from, to } | null (im Fenster startet der Schoner nach 30 s, auch bei idle 0), wake: Modellname | null }
-export const KIOSK_DEF = { idle: 300, saver: 'bigclock', black: false, sched: null, dim: null, wake: null, bright: 1 };   // wake: 'hey_jarvis_v0.1' | 'alexa_v0.1' | null (Mikrofon dauerhaft offen → nur auf Wunsch)
+// Einstellungen: CONF.kiosk = { idle: Sekunden (0 = aus), saver: Face-Typ, dim: { from: 'HH:MM', to: 'HH:MM', level: 0–1 } | null, black: Schoner = 100 % schwarz statt Face, hold: true = Schoner startet nicht, sched: { from, to } | null (im Fenster startet der Schoner nach 30 s, auch bei idle 0), wake: Modellname | null }
+export const KIOSK_DEF = { idle: 300, saver: 'bigclock', black: false, sched: null, dim: null, wake: null, bright: 1, hold: false };   // wake: 'hey_jarvis_v0.1' | 'alexa_v0.1' | null (Mikrofon dauerhaft offen → nur auf Wunsch)
 
 const mins = s => { const [h, m] = s.split(':'); return h * 60 + +m; };
 export const inWindow = (now, from, to) => from <= to ? now >= from && now < to : now >= from || now < to;   // über Mitternacht erlaubt
@@ -45,9 +45,9 @@ export function kioskInit({ faces, conf, busy, touched, onState, music }) {
   };
 
   setInterval(() => {
-    const { idle: idle0, dim, bright, black, sched } = cfg(), now = new Date(), min = now.getHours() * 60 + now.getMinutes();
+    const { idle: idle0, dim, bright, black, sched, hold } = cfg(), now = new Date(), min = now.getHours() * 60 + now.getMinutes();
     const idle = sched && inWindow(min, mins(sched.from), mins(sched.to)) ? 30 : idle0;
-    if (idle && back < 0 && !busy() && Date.now() - Math.max(last, touched()) > idle * 1000) {
+    if (idle && !hold && back < 0 && !busy() && Date.now() - Math.max(last, touched()) > idle * 1000) {
       sleep();
     } else if (back >= 0 && !busy() && !black) {   // im Schoner: Musik startet/endet → passendes Face
       const s = saver(); if (s >= 0 && s !== idx()) goto(s);

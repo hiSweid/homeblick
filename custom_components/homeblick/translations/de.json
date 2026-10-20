@@ -73,6 +73,9 @@
       "black": {
         "name": "Screensaver schwarz"
       },
+      "hold": {
+        "name": "Screensaver halten"
+      },
       "perf": {
         "name": "Leistungsmodus"
       },

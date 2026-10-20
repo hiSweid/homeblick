@@ -73,6 +73,9 @@
       "black": {
         "name": "Screensaver black"
       },
+      "hold": {
+        "name": "Screensaver hold"
+      },
       "perf": {
         "name": "Performance mode"
       },
