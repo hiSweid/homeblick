@@ -270,6 +270,7 @@ function listHTML() {
   if (!areas.includes(area)) area = '';
   const on = inArea().filter(x => x.connected).length, dis = on ? '' : 'disabled';
   const allGrp = displays.length > 1 ? grp(`${area ? esc(area) : 'Alle Displays'} · ${on} online`, (areas.length ? pick('Bereich', 'area', [['', 'Alle'], ...areas.map(a => [a, a])], area, 'data-area') : '') + `<div class="quick">${[['reload', 'Neu laden', 'refresh'], ['assist', 'Assist', 'mic'], ['stop', 'Abbrechen', 'x'], ['screensaver', 'Ruhemodus', 'moon'], ['wake', 'Aufwecken', 'sun']].map(([c, n, i]) => `<button class="q" data-all="${c}" ${dis}><span class="qi">${svg(i, '')}</span>${n}</button>`).join('')}</div>`
+    + field('Zurück nach (s, leer = bleibt)', 'dur', '', 'type="number" inputmode="numeric" min="1" max="3600"', 'data-dur')
     + pick('Face anzeigen', 'allface', [['', 'Wählen …'], ...TYPES], '', 'data-allface')
     + `<button class="row btn" data-alls="1"><span class="l">Nachtmodus auf allen an</span></button><button class="row btn" data-alls="0"><span class="l">Nachtmodus auf allen aus</span></button>`, `Befehle gehen an alle Displays${area ? ` im Bereich „${esc(area)}“` : ''}, die gerade geöffnet sind.${areas.length ? '' : ' Bekommen die Display-Geräte in Home Assistant einen Bereich, lassen sich die Befehle auf einen Bereich beschränken.'}`) : '';
   return `<div class="lt">Homeblick</div><div class="lsub">Displays im Haus</div>` +
@@ -342,6 +343,7 @@ const pages = {
       <div class="hero">${ico('disp')}<h2 data-live="name">${esc(d.name)}</h2><p data-live="stat">${esc(stat(d))}</p></div>
       ${grp('', field('Name', 'name', d.name))}
       <div class="sec"><div class="grp"><div class="quick">${[['reload', 'Neu laden', 'refresh'], ['assist', 'Assist', 'mic'], ['stop', 'Abbrechen', 'x'], ['screensaver', 'Ruhemodus', 'moon'], ['wake', 'Aufwecken', 'sun']].map(([c, n, i]) => `<button class="q" data-c="${c}" ${d.connected ? '' : 'disabled'}><span class="qi">${svg(i, '')}</span>${n}</button>`).join('')}</div>
+        ${field('Zurück nach (s, leer = bleibt)', 'dur', '', 'type="number" inputmode="numeric" min="1" max="3600"', 'data-dur')}
         ${pick('Face anzeigen', 'show', [['', 'Wählen …'], ...TYPES], '', 'data-show')}</div><div class="sf">Die Steuerung geht, solange das Display geöffnet ist.</div></div>
       ${grp('Ansage', field('Text', 'say', '', 'placeholder="Das Essen ist fertig" maxlength="300"', 'data-say') + `<button class="row btn c" data-a="say" ${d.connected ? '' : 'disabled style="opacity:.4"'}>Auf dem Display ansagen</button>`, 'Erscheint als Text und wird gesprochen (außer bei „Antworten stumm“). In Automationen: Aktion „Benachrichtigung senden“ (notify.send_message) an die Durchsage-Entity des Displays.')}
       ${grp('Vorschau', `<button class="row btn c" data-a="shot" ${d.connected ? '' : 'disabled style="opacity:.4"'}>Bildschirmfoto aufnehmen</button>${shots[d.id] ? `<img class="shot" src="${shots[d.id]}" alt="">` : ''}`, 'Bilder von fremden Servern, Kamera-Video und WebGL fehlen im Foto.')}
@@ -444,8 +446,8 @@ document.addEventListener('change', async e => {
   } else if (t.dataset.cam || t.dataset.bell) camEdit(t);
   else if (t.dataset.t) { cfg.faces[stack.at(-1).i].tiles[+t.closest('[data-ti]').dataset.ti][t.dataset.t] = t.value.trim(); saveCfg(); }
   else if (t.dataset.area !== undefined) { area = t.value; renderSide(); }
-  else if (t.dataset.allface !== undefined) { if (t.value) all({ action: 'face', face: t.value }); t.value = ''; t.closest('.pick').querySelector('.val').textContent = 'Wählen …'; }
-  else if (t.dataset.show !== undefined) { if (t.value) guard(call('command', { display: sel, action: 'face', face: t.value })).catch(() => {}); t.value = ''; t.closest('.pick').querySelector('.val').textContent = 'Wählen …'; }
+  else if (t.dataset.allface !== undefined) { if (t.value) all({ action: 'face', face: t.value, ...dur() }); t.value = ''; t.closest('.pick').querySelector('.val').textContent = 'Wählen …'; }
+  else if (t.dataset.show !== undefined) { if (t.value) guard(call('command', { display: sel, action: 'face', face: t.value, ...dur() })).catch(() => {}); t.value = ''; t.closest('.pick').querySelector('.val').textContent = 'Wählen …'; }
   else if (t.dataset.copy !== undefined && t.value) copyFrom(t.value, t);
 });
 document.addEventListener('click', async e => {
@@ -507,6 +509,7 @@ document.addEventListener('click', async e => {
 });
 
 // Gruppenaktion: Befehl an alle Displays, die gerade ein Panel offen haben
+const dur = () => { const n = parseInt(document.querySelector('[data-dur]')?.value, 10); return n >= 1 ? { duration: Math.min(n, 3600) } : {}; };
 const all = p => guard(Promise.all(inArea().filter(x => x.connected).map(x => call('command', { display: x.id, ...p })))).catch(() => {});
 
 async function copyFrom(id, selEl) {
