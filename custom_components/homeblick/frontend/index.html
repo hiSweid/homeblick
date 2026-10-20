@@ -745,7 +745,7 @@ const TOD = new URLSearchParams(location.search).get('tod');
 const isNight = () => TOD ? TOD === 'night' : ents['sun.sun'] ? ents['sun.sun'].state === 'below_horizon' : (h => h < 6.5 || h >= 19.5)(new Date().getHours() + new Date().getMinutes() / 60);
 // bg 'auto': Tag/Nacht — Home orange/violett, Widget hell/dunkel (faces_enhanced/hero_endframe)
 const AUTO = { info: ['white', 'black'], calendar: ['white', 'black'], date: ['white', 'black'] };
-const bgOf = f => f.bg === 'auto' ? (AUTO[f.type] || [30, 240])[+isNight()] : f.bg;
+const bgOf = f => { const b = f.bg === 'auto' ? (AUTO[f.type] || [30, 240])[+isNight()] : f.bg; return (f.type === 'calendar' || f.type === 'date') && (typeof b === 'number' || b === 'metal') ? 'white' : b; };   // Kalender- und Datums-Face gibt es nur hell/dunkel (Vorlage faces_enhanced); Farbhintergründe → hell, sonst rote Zahl + blaue Ziffern auf Farbe unlesbar
 // bg: Farbton (Zahl) | 'metal' (helles Graublau) | 'black' | 'white' | { photo, blur }
 function applyBg(el, bg) {
   const hue = typeof bg === 'number' || bg === 'metal', h = bg === 'metal' ? 215 : bg;

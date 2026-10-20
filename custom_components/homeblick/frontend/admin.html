@@ -389,7 +389,7 @@ const pages = {
         <div class="tilebar"><span class="arrows"><button data-a="tup" aria-label="Nach oben">${svg('up', '')}</button><button data-a="tdown" aria-label="Nach unten">${svg('down', '')}</button></span><button data-a="tdel" style="color:var(--red);padding:8px 10px">Entfernen</button></div></div>`;
     const body = `
       <div class="prev" style="background:${bgCss(f.bg)}">${ico(meta[2], meta[1])}</div>
-      ${photo ? '' : grp('Hintergrund', `<div class="sw-grid">${BG.map(([v, n]) => `<button data-a="bg" data-v="${v}" class="${String(v) === String(f.bg) ? 'on' : ''}"><i style="background:${bgCss(v)}"></i>${n}</button>`).join('')}</div>`)}
+      ${photo ? '' : grp('Hintergrund', `<div class="sw-grid">${BG.filter(([v]) => !['calendar', 'date'].includes(f.type) || ['auto', 'black', 'white'].includes(v)).map(([v, n]) => `<button data-a="bg" data-v="${v}" class="${String(v) === String(f.bg) ? 'on' : ''}"><i style="background:${bgCss(v)}"></i>${n}</button>`).join('')}</div>`)}
       ${sty ? `<div class="sec"><div class="sh">Stil</div><div class="grp"><div class="seg">${sty.concat((LEGACY[f.type] || []).filter(([v]) => v === f.style)).map(([v, n]) => `<button data-a="style" data-v="${v}" class="${(f.style || sty[0][0]) === v ? 'on' : ''}">${n}</button>`).join('')}</div></div></div>` : ''}
       ${f.type === 'grid' ? `<div class="sec"><div class="sh"><span>Kacheln</span></div>${(f.tiles || []).map(tile).join('')}<div class="grp"><button class="row btn" data-a="tadd">${svg('plus', 'plus')}<span class="l">Kachel hinzufügen</span></button></div>
         <div class="sf">Kacheln folgen der Reihenfolge von oben links. Nachtvarianten bleiben erhalten.</div></div>` : ''}

@@ -84,7 +84,7 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 #events{background:#fff;color:#1c1c1e}
 #events .x{background:#0000000f}
 #events .top{font-size:3.8cqw}
-.evl{position:absolute;inset:15cqw 0 0;overflow-y:auto;scrollbar-width:none;padding:0 4.4cqw 8cqw}
+.evl{position:absolute;inset:15cqw 0 0;overflow-y:auto;scrollbar-width:none;touch-action:pan-y;overscroll-behavior:contain;padding:0 4.4cqw 8cqw}
 .evl::-webkit-scrollbar{display:none}
 .evl h4,.acal h4{font-size:3.1cqw;line-height:1;font-weight:600;padding:4.91cqw 0 2.03cqw 5.9cqw}
 .evl h4:first-child,.acal h4:first-child{padding-top:0}
