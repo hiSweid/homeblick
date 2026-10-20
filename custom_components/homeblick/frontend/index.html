@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Roboto+Flex:opsz,wdth,wght@144,25,500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Roboto+Flex:opsz,wdth,wght,XOPQ,YOPQ,YTFI@144,25,400..500,27..175,25..135,560..788&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0}
 html,body{height:100%;overflow:hidden;background:#000;color:#fff;font:400 16px Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
@@ -256,9 +256,9 @@ input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:tr
 .dsvg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
 .dsvg{animation:drv .8s cubic-bezier(.34,1.5,.64,1) both}
 @keyframes drv{from{opacity:0;transform:translateY(10%);filter:blur(10px)}}
-.dt{font:500 74px 'Roboto Flex',sans-serif;font-stretch:25%;text-anchor:middle}
-.dg{fill:#ffffff38}
-.dsvg feFlood{flood-color:#fff}
+.dt{font:74px 'Roboto Flex',sans-serif;font-variation-settings:'wght' 420,'wdth' 25,'opsz' 144,'XOPQ' 88,'YOPQ' 72;font-feature-settings:'pnum';text-anchor:middle}
+.dg{fill:#fff6}
+.dsvg feFlood{flood-color:#fff}.dsvg .rk{flood-color:#000}
 .f-bigclock.light .dg{fill:#0000000f}
 .f-bigclock.light .dsvg feFlood{flood-color:#000}
 .dfg{position:absolute;inset:0;background:0 0/100% 100%;pointer-events:none}
@@ -777,17 +777,18 @@ function calHTML() {
 let dN = 0;
 function depthHTML(f) {
   const b = bgOf(f), src = b?.photo ? b.blur : typeof b === 'number' ? svgData(wp(b, 5)) : '';
-  // Video: Ziffern 5,6–59 % hoch, Paare um 21/76 % zentriert; Roboto Flex (wdth 25) ist noch zu breit → gestaucht
+  // Vorlage faces_endframe (per Pixel gemessen): Ziffern 6–94 % hoch, „0“ 16 % breit, Strich ≈ 5,6 % (monoline), Paare um 21/76 %;
+  // Roboto Flex schmal + dünn (XOPQ/YOPQ) und per scale(K KY) auf diese Maße gezogen, proportionale Ziffern wie die Vorlage
   // Reveal: jede Ziffer eigene Ebene (die anderen visibility:hidden, Platz bleibt), links → rechts versetzt mit Feder
-  const K = .9, tsp = (p, k) => [0, 1].map(j => `<tspan data-bind="d${p}${j}"${p + j === ['h0', 'h1', 'm0', 'm1'][k] ? '' : ' visibility="hidden"'}></tspan>`).join('');
+  const K = 1.683, KY = 1.651, tsp = (p, k) => [0, 1].map(j => `<tspan data-bind="d${p}${j}"${p + j === ['h0', 'h1', 'm0', 'm1'][k] ? '' : ' visibility="hidden"'}></tspan>`).join('');
   const layer = k => {
-    const id = 'dc' + ++dN, t = c => `<text class="dt${c}" y="59" transform="scale(${K} 1)"><tspan x="${21 / K}">${tsp('h', k)}</tspan><tspan x="${76 / K}">${tsp('m', k)}</tspan></text>`;
+    const id = 'dc' + ++dN, t = c => `<text class="dt${c}" y="56.6" transform="scale(${K} ${KY})"><tspan x="${21 / K}">${tsp('h', k)}</tspan><tspan x="${76 / K}">${tsp('m', k)}</tspan></text>`;
     // Glaskante als Filter (Alpha minus erodiertes Alpha) statt stroke: die variable Schrift hat überlappende Konturen (Querbalken der 4)
     return `<svg class="dsvg" style="animation-delay:${k * 100}ms" viewBox="0 0 100 100" preserveAspectRatio="none"><clipPath id="${id}">${t('')}</clipPath>`
       + `<filter id="${id}g" x="-5%" y="-5%" width="110%" height="110%"><feColorMatrix in="SourceAlpha" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 9 0" result="a"/>`
-      + `<feMorphology in="a" operator="erode" radius=".28" result="e"/><feComposite in="a" in2="e" operator="out" result="r"/>`
-      + `<feGaussianBlur in="r" stdDeviation=".9" result="b"/><feComposite in="b" in2="a" operator="in" result="g"/><feFlood flood-opacity=".75"/><feComposite in2="r" operator="in" result="rc"/>`
-      + `<feFlood flood-opacity=".3"/><feComposite in2="g" operator="in" result="gc"/>`
+      + `<feMorphology in="a" operator="erode" radius=".17" result="e"/><feComposite in="a" in2="e" operator="out" result="r"/>`
+      + `<feGaussianBlur in="r" stdDeviation=".55" result="b"/><feComposite in="b" in2="a" operator="in" result="g"/><feFlood class="rk" flood-opacity=".2"/><feComposite in2="r" operator="in" result="rc"/>`
+      + `<feFlood flood-opacity=".45"/><feComposite in2="g" operator="in" result="gc"/>`
       + `<feMerge><feMergeNode in="SourceGraphic"/><feMergeNode in="gc"/><feMergeNode in="rc"/></feMerge></filter>`
       + (src ? `<image href="${src}" width="100" height="100" preserveAspectRatio="none" clip-path="url(#${id})"/>` : '')
       + t(' dg').replace('<text', `<text filter="url(#${id}g)"`) + `</svg>`;
