@@ -57,6 +57,7 @@ svg{display:block}
 .row .val{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .row input.r{text-align:right;color:var(--sec);min-width:0;flex:1;width:50%}
 .row input[type=number]{-moz-appearance:textfield}
+.row input[type=number]::-webkit-inner-spin-button,.row input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
 .row.btn{color:var(--blue)}.row.red{color:var(--red)}.row.c{justify-content:center}
 .row .go{display:flex;align-items:center;gap:12px;flex:1;min-width:0;text-align:left;padding:0}
 button.row:active,label.row:active{background:var(--fill)}
@@ -76,7 +77,7 @@ button.row:active,label.row:active{background:var(--fill)}
 .sw i{position:absolute;inset:0;border-radius:16px;background:var(--fill);transition:background .3s}
 .sw i::after{content:"";position:absolute;left:2px;top:2px;width:27px;height:27px;border-radius:50%;background:#fff;box-shadow:0 2px 6px #0003;transition:transform var(--sd) var(--spring)}
 .sw input:checked+i{background:var(--green)}.sw input:checked+i::after{transform:translateX(20px)}
-input[type=range]{-webkit-appearance:none;appearance:none;width:150px;height:28px;background:none;flex:none}
+input[type=range]{-webkit-appearance:none;appearance:none;width:150px;height:28px;background:none;flex:none;margin-right:8px}
 input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:2px;background:var(--fill)}
 input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:27px;height:27px;border-radius:50%;background:#fff;margin-top:-11.5px;box-shadow:0 2px 8px #0004}
 input[type=time]{color:var(--sec);text-align:right}

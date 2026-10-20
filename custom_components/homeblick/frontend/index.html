@@ -20,7 +20,7 @@ button,input{font:inherit;color:inherit;background:none;border:0;padding:0;outli
 button{cursor:pointer}
 input{user-select:text;-webkit-user-select:text}
 input::placeholder{color:#ffffff66}
-svg.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+svg.i{width:1em;height:1em;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 [hidden]{display:none!important}
 
 /* Quadratischer Screen, alle Maße in cqw (1cqw = 1 % Breite) — Werte aus SPEC.md */
@@ -1028,7 +1028,7 @@ function render() {
     if (u && /lock/.test(u.getAttribute('href'))) {
       // Bügel als eigener Pfad: hebt/dreht sich beim Entriegeln, rastet mit Feder ein
       const sv = u.closest('svg'), open = s.state !== 'locked';
-      sv.classList.add('lk'); sv.innerHTML = '<rect x="4.5" y="10.5" width="15" height="11.5" rx="2.5" fill="currentColor" stroke="none"/><path class="sh" d="M7.8 10.5V7.4a4.2 4.2 0 0 1 8.4 0v3.1" stroke-width="2.4"/>';
+      sv.classList.add('lk'); sv.setAttribute('viewBox', '0 0 24 24'); sv.innerHTML = '<rect x="4.5" y="10.5" width="15" height="11.5" rx="2.5" fill="currentColor" stroke="none"/><path class="sh" d="M7.8 10.5V7.4a4.2 4.2 0 0 1 8.4 0v3.1" stroke-width="2.4"/>';
       sv.classList.toggle('open', open);
     }
     else if (d === 'lock') { const sv = $('svg.lk', t); if (sv) sv.classList.toggle('open', s.state !== 'locked'); }
