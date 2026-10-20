@@ -103,6 +103,17 @@ class Hub:
                 for t in (mgr.timers.values() if mgr else []) if t.device_id == dev]
 
     @callback
+    def timer_act(self, d: Display, timer_id: str, action: str) -> bool:
+        """Sprach-Timer dieses Displays pausieren/fortsetzen/abbrechen (fremde Timer und unbekannte ids: False). HA meldet den neuen Stand über den Handler (watch_timers)."""
+        mgr, t = self.hass.data.get(TIMER_DATA), None
+        if mgr:
+            t = mgr.timers.get(timer_id)
+        if not t or t.device_id != self.device_id(d):
+            return False
+        {"pause": mgr.pause_timer, "resume": mgr.unpause_timer, "cancel": mgr.cancel_timer}[action](timer_id)
+        return True
+
+    @callback
     def watch_timers(self, d: Display) -> None:
         """Display als Timer-Gerät anmelden: „Timer auf 10 Minuten“ per Assist am Display läuft dann hier (ohne Anmeldung lehnt HA ab)."""
         if d.id in self.timer_unsub:

@@ -72,6 +72,14 @@ def report(hass, connection, msg):
         connection.send_result(msg["id"])
 
 
+@websocket_api.websocket_command({vol.Required("type"): "homeblick/timer", **DISPLAY, vol.Required("timer"): str, vol.Required("action"): vol.In(["pause", "resume", "cancel"])})
+@callback
+def timer(hass, connection, msg):
+    """Sprach-Timer (Assist) am Display pausieren, fortsetzen oder abbrechen (Knöpfe im Timer-Vollbild); sind keine timer.*-Entities."""
+    if d := _display(hass, connection, msg):
+        connection.send_result(msg["id"], hass.data[DOMAIN].timer_act(d, msg["timer"], msg["action"]))   # False: schon abgelaufen/abgebrochen, kein Fehler
+
+
 @websocket_api.websocket_command({vol.Required("type"): "homeblick/shot", **DISPLAY, vol.Required("image"): vol.All(str, vol.Length(max=400_000), vol.Match(r"^data:image/jpeg;base64,"))})
 @callback
 def shot(hass, connection, msg):
@@ -252,7 +260,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     o.alarm()
                 if d.links:
                     hub._disarm(d)
-    for cmd in (register, set_config, subscribe, report, shot, log, displays, cameras, set_cameras, get_shot, get_config, update, admin_config, command, remove):
+    for cmd in (register, set_config, subscribe, report, timer, shot, log, displays, cameras, set_cameras, get_shot, get_config, update, admin_config, command, remove):
         websocket_api.async_register_command(hass, cmd)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 

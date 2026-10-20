@@ -678,7 +678,7 @@ import { normFaces } from './faces.js';
 import { wakeInit } from './wake.js';
 import { parseLRC, findLyrics } from './lyrics.js';
 import { voiceOK, voiceRun } from './voice.js';
-import { timerInit, timers, timerDemo, timerShow, timerMusic, voiceTimers } from './timer.js';
+import { timerInit, timers, timerDemo, timerShow, timerOn, timerMusic, voiceTimers } from './timer.js';
 import { camInit, camConfig, camShow, camHide, camFace, camTile, camOpen, camRinging, doorbell } from './doorbell.js';
 import { loadEvents, eventsHTML, infoHTML } from './events.js';
 // Ohne Parameter: Demo-Daten. Echtes HA nur mit ?live
@@ -1282,7 +1282,7 @@ function render() {
   weather(st(CFG.weather), ents['sun.sun'], forecast);
   doorbell(ents);
   energy(ents, rollBind);
-  timers(ents);
+  if (timers(ents)) kiosk.wake();   // Timer abgelaufen → Display weckt
 
   // Musik: gewählter Player (AirPlay-Menü), sonst laufende Musik, sonst pausiert, sonst erster Lautsprecher
   const mps = players(), has = e => e.attributes.media_title;
@@ -1526,6 +1526,7 @@ document.addEventListener('keydown', e => {
   if (e.key === 's' || e.key === 'S') assistStart();
   if (e.key === 'k' || e.key === 'K') assistStart('cal');
   if ((e.key === 't' || e.key === 'T') && !LIVE) call('timer', 'start', { entity_id: 'timer.kuche' });
+  if ((e.key === 'e' || e.key === 'E') && !LIVE) call('timer', 'start', { entity_id: 'timer.eier' });   // Demo: zweiter Timer
   if (e.key === 'Escape') assistEnd();
 });
 
@@ -1656,7 +1657,7 @@ const TAP = {
   scene: (t, id) => { hold[id] = Date.now() + 1200; t.classList.add('on'); setTimeout(() => t.classList.remove('on'), 1200); call('scene', 'turn_on', { entity_id: id }); },
   script: (t, id) => call('script', 'turn_on', { entity_id: id }),
   media_player: (t, id) => call('media_player', 'media_play_pause', { entity_id: id }),
-  timer: (t, id) => st(id).state === 'idle' ? call('timer', 'start', { entity_id: id }) : timerShow(),
+  timer: (t, id) => st(id).state === 'idle' ? call('timer', 'start', { entity_id: id }) : timerShow(id),
 };
 
 // Kachel → Vollbild (hkrYiZ_g9tw 111,48–111,90 s, STEUERUNG.md P2-2): FLIP mit kritisch gedämpfter Feder ≈ 170 ms, Raster dimmt + blurt in ≈ 70 ms (#dim),
@@ -1959,6 +1960,7 @@ if (!LIVE) {
     'event.turklingel_doorbell': [new Date(Date.now() - 47 * 60000).toISOString(), { friendly_name: 'Türklingel Doorbell', event_type: 'ring', device_class: 'doorbell' }],
     'binary_sensor.turklingel_motion': ['off', { friendly_name: 'Türklingel Motion', device_class: 'motion' }],
     'timer.kuche': ['idle', { friendly_name: 'Küche', duration: '0:15:00', remaining: '0:15:00', editable: true }],
+    'timer.eier': ['idle', { friendly_name: 'Eier', duration: '0:03:00', remaining: '0:03:00', editable: true }],
     'scene.guten_morgen': ['2026-10-19T06:30:00+00:00', { friendly_name: 'Guten Morgen' }],
     'scene.gute_nacht': ['2026-10-18T22:40:00+00:00', { friendly_name: 'Gute Nacht' }],
     'weather.home': ['partlycloudy', { friendly_name: 'Home', temperature: 12, humidity: 76, wind_speed: 11, wind_speed_unit: 'km/h', uv_index: 2 }],
@@ -1974,8 +1976,8 @@ if (!LIVE) {
   weatherHours(Array.from({ length: 24 }, (_, i) => ({ datetime: new Date(Date.now() + i * 3600e3).toISOString(), condition: ['partlycloudy', 'partlycloudy', 'sunny', 'sunny', 'cloudy', 'rainy'][i % 6], temperature: 12 + Math.round(3 * Math.sin(i / 4)), precipitation_probability: i % 6 === 5 ? 60 : 10, wind_speed: 8 + i % 5 })));   // Demo-Stundenleiste
 }
 if (!LIVE && new URLSearchParams(location.search).has('ring')) setTimeout(() => { ents = { ...ents, 'event.turklingel_doorbell': { ...ents['event.turklingel_doorbell'], state: new Date().toISOString() } }; schedule(); }, 1500);   // Demo-Klingeln wie HA
-timerInit(screen, call);
-const kiosk = kioskInit({ faces, conf: () => CONF, busy: () => cur || AS.className, touched: () => touched,
+timerInit(screen, call, (timer, action) => LIVE && conn.sendMessagePromise({ type: 'homeblick/timer', display: DISPLAY, timer, action }).catch(e => console.warn('Timer', action, e)), () => CFG.chime ? CFG.volume / 100 : 0, () => kiosk.wake());
+const kiosk = kioskInit({ faces, conf: () => CONF, busy: () => cur || AS.className || timerOn(), touched: () => touched,
   music: () => NP && st(NP).state === 'playing' && !/video|movie|tvshow|channel/.test(st(NP).attributes.media_content_type),   // Filme/TV ohne device_class tv nicht als Musik
   onState: st => conn?.sendMessagePromise({ type: 'homeblick/report', display: DISPLAY, ...st, info: info() }).catch(() => {}) });
 if (!LIVE) camConfig({ list: [{ entity: 'camera.turklingel', name: 'Haustür', light: 'light.eingang' }, { entity: 'camera.cx410w_color_x_standardauflosung', name: 'Garten' }, { entity: 'camera.demo_veranda', name: 'Veranda' }, { entity: 'camera.demo_wohnzimmer', name: 'Wohnzimmer' }], bell: { event: 'event.turklingel_doorbell', camera: 'camera.turklingel' } });
@@ -2034,7 +2036,7 @@ if (LIVE) {
     // Neu laden am HTTP-Cache vorbei: eigene Dateien (Ordner dieser Seite) erst frisch holen, sonst laufen nach einem Update alte Module weiter
     const hardReload = () => { const dir = new URL('.', location.href).href; return Promise.allSettled([location.href, ...performance.getEntriesByType('resource').map(e => e.name)].filter(u => u.startsWith(dir)).map(u => fetch(u, { cache: 'reload' }))).then(() => location.reload()); };
     // Nach HA-Neustart (z. B. Update über HACS) wieder verbinden: andere Integrationsversion → Seite neu laden, sonst läuft altes JS weiter
-    conn.addEventListener('ready', () => register().then(c => { if (version && c.version && c.version !== version) hardReload(); }).catch(console.warn));
+    conn.addEventListener('ready', () => register().then(c => { if (version && c.version && c.version !== version) hardReload(); else if (voiceTimers(c.timers)) kiosk.wake(); }).catch(console.warn));   // nach Verbindungsabbruch Sprach-Timer neu abgleichen (verpasste Pushs)
     // Fehler des Panels ins HA-Protokoll und auf die Einstellungsseite (gleiche Meldung höchstens einmal pro Minute)
     const seenErr = new Map();
     const report = (level, m) => {
