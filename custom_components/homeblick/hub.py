@@ -2,11 +2,14 @@
 from collections import deque
 
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import device_registry as dr, issue_registry as ir
 from homeassistant.helpers.dispatcher import async_dispatcher_send
+from homeassistant.helpers.event import async_call_later
 from homeassistant.helpers.storage import Store
 
 from .const import DEFAULTS, DOMAIN, LOGS, STORE_VERSION
+
+OFFLINE = 600   # s ohne offenes Panel bis zur Reparaturmeldung (kurze Neuladen/WLAN-Aussetzer lösen keine aus)
 
 
 def signal(display_id: str) -> str:
@@ -24,6 +27,7 @@ class Display:
         self.shot: str | None = None   # letztes Bildschirmfoto (data-URL), nur im Speicher
         self.logs: deque = deque(maxlen=LOGS)   # letzte Fehler/Warnungen des Panels, nur im Speicher
         self.links: list = []   # offene Panels (Callbacks)
+        self.alarm = None   # laufender Offline-Timer (cancel-Funktion)
 
     @property
     def connected(self) -> bool:
@@ -56,6 +60,7 @@ class Hub:
         self.default, self.configs = d.get("default"), d.get("configs", {})
         for id, m in d.get("displays", {}).items():
             self.displays[id] = Display(id, m["name"], m.get("settings"))
+            self._arm(self.displays[id])   # nach HA-Neustart: Panels melden sich gleich wieder, sonst Meldung
 
     async def _save(self) -> None:
         await self.store.async_save({
@@ -76,7 +81,8 @@ class Hub:
         return self.displays[id]
 
     async def remove(self, id: str) -> None:
-        self.displays.pop(id, None)
+        if d := self.displays.pop(id, None):
+            self._disarm(d)
         self.configs.pop(id, None)
         if not self.displays:   # Vorlage nur für die Umstellung vom alten Einzel-Display; ohne Displays nicht weiterreichen
             self.default = None
@@ -126,12 +132,34 @@ class Hub:
         async_dispatcher_send(self.hass, signal(d.id))
 
     @callback
+    def _arm(self, d: Display) -> None:
+        """Offline-Alarm: bleibt das Display OFFLINE s ohne Panel, erscheint eine Meldung unter Einstellungen → Reparaturen."""
+        @callback
+        def fire(_now) -> None:
+            d.alarm = None
+            if d.links:   # nach Neuladen der Integration kann ein alter Timer laufen, Panel ist längst wieder da
+                return
+            ir.async_create_issue(self.hass, DOMAIN, f"offline_{d.id}", is_fixable=False, severity=ir.IssueSeverity.WARNING,
+                                  translation_key="offline", translation_placeholders={"name": d.name})
+        if not d.links and not d.alarm:
+            d.alarm = async_call_later(self.hass, OFFLINE, fire)
+
+    @callback
+    def _disarm(self, d: Display) -> None:
+        if d.alarm:
+            d.alarm()
+            d.alarm = None
+        ir.async_delete_issue(self.hass, DOMAIN, f"offline_{d.id}")
+
+    @callback
     def link(self, d: Display, cb):
         d.links.append(cb)
+        self._disarm(d)
         self.notify(d)
 
         @callback
         def unlink() -> None:
             d.links.remove(cb)
+            self._arm(d)
             self.notify(d)
         return unlink

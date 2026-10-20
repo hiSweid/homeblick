@@ -202,6 +202,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         for i, d in hub.displays.items():
             if o := old.displays.get(i):
                 d.links, d.logs, d.face, d.saver, d.info, d.seen, d.shot = o.links, o.logs, o.face, o.saver, o.info, o.seen, o.shot
+                if o.alarm:   # Timer des alten Hubs beenden, der neue entscheidet selbst
+                    o.alarm()
+                if d.links:
+                    hub._disarm(d)
     for cmd in (register, set_config, subscribe, report, shot, log, displays, get_shot, get_config, update, admin_config, command, remove):
         websocket_api.async_register_command(hass, cmd)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)

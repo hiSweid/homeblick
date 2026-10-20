@@ -158,5 +158,11 @@
     "no_display": {
       "message": "Das gewählte Gerät ist kein Homeblick-Display."
     }
+  },
+  "issues": {
+    "offline": {
+      "title": "Display {name} ist offline",
+      "description": "Das Homeblick-Display **{name}** hat seit 10 Minuten kein offenes Panel. Prüfe, ob das Gerät eingeschaltet, im Netzwerk und auf der Homeblick-Seite ist. Die Meldung verschwindet, sobald sich das Display wieder verbindet."
+    }
   }
 }

@@ -158,5 +158,11 @@
     "no_display": {
       "message": "The selected device is not a Homeblick display."
     }
+  },
+  "issues": {
+    "offline": {
+      "title": "Display {name} is offline",
+      "description": "The Homeblick display **{name}** has had no open panel for 10 minutes. Check that the device is switched on, connected to the network and showing the Homeblick page. This message disappears as soon as the display connects again."
+    }
   }
 }
