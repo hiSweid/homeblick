@@ -1824,8 +1824,8 @@ const kiosk = kioskInit({ faces, conf: () => CONF, busy: () => mode !== 'normal'
 if (!LIVE) camConfig({ list: [{ entity: 'camera.turklingel', name: 'Haustür', light: 'light.eingang' }, { entity: 'camera.cx410w_color_x_standardauflosung', name: 'Garten' }], bell: { event: 'event.turklingel_doorbell', camera: 'camera.turklingel' } });
 camInit($('#cam'), { open, close, view: () => cur?.view, conn: () => conn, hass: HASS, wake: () => kiosk.wake(), sound: () => CFG.chime ? CFG.volume / 100 : 0 });
 // Laufender Zustand für die Einstellungsseite (Mikro braucht https, Wake Word hält es offen, Wake Lock hält den Bildschirm an)
-const INFO = { wake: null };
-const info = () => ({ secure: isSecureContext, mic: voiceOK(), wake: INFO.wake, wakelock: kiosk.wakeLock(), visible: document.visibilityState === 'visible', w: innerWidth, h: innerHeight });
+const INFO = { wake: null, v: undefined };
+const info = () => ({ secure: isSecureContext, mic: voiceOK(), wake: INFO.wake, wakelock: kiosk.wakeLock(), visible: document.visibilityState === 'visible', w: innerWidth, h: innerHeight, v: INFO.v });
 renderAll(0);
 setTimeout(() => { tick(); setInterval(tick, 60000); }, 60050 - Date.now() % 60000);
 setInterval(times, 1000);
@@ -1863,7 +1863,7 @@ if (LIVE) {
     const register = () => conn.sendMessagePromise({ type: 'homeblick/register', display: DISPLAY, name: new URLSearchParams(location.search).get('name') || undefined });
     let version;
     const hello = register().then(c => {
-      version = c.version;
+      version = INFO.v = c.version;
       CONF.kiosk = c.kiosk; applyK(c.kiosk); CFG.device = c.device_id || '';
       const cam = setCams(c.cameras);
       voiceTimers(c.timers);   // beim Anmelden laufende Timer, ohne zu wecken

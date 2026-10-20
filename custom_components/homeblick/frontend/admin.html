@@ -243,6 +243,7 @@ function liveHTML(d) {
     row('Bildschirm wach', i.wakelock ? 'Aktiv' : i.secure === false ? 'Braucht https' : 'Aus', !!i.wakelock),
     row('Fenster', i.w ? `${esc(i.w)} × ${esc(i.h)}${i.visible === false ? ' · verdeckt' : ''}` : '–'),
     row('Zuletzt gesehen', ago(d.seen)),
+    i.v ? row('Version', esc(i.v) + (d.outdated ? ' · veraltet' : ''), !d.outdated) : '',
   ].join('') : row('Noch nie verbunden', '–'), 'Zustand des geöffneten Displays, alle 30 Sekunden aktualisiert.')
     + (d.logs?.length ? grp('Letzte Fehler', d.logs.slice().reverse().map(m => `<div class="row"><span class="l two"><b>${esc(m.message)}</b><small>${m.level === 'error' ? 'Fehler' : 'Warnung'} · ${ago(m.t)}</small></span></div>`).join(''),
       'Stehen auch im Home-Assistant-Protokoll. Diagnose: Gerät des Displays → ⋮ → Diagnose herunterladen.') : '');
@@ -254,6 +255,7 @@ const issues = d => {
   return [!d.connected && d.seen && `Offline seit ${ago(d.seen).replace(/^vor /, '')}`,
     d.connected && i.secure === false && 'Ohne https: kein Mikrofon, Bildschirm geht aus',
     d.connected && i.visible === false && 'Fenster verdeckt',
+    d.connected && d.outdated && 'Alte Version geladen, Seite neu laden',
     err && `${err} Fehler in den letzten 24 Std`].filter(Boolean);
 };
 

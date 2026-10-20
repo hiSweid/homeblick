@@ -57,7 +57,8 @@ def subscribe(hass, connection, msg):
 # Laufzustand des Panels (landet im HTML der Einstellungsseite und in der Diagnose) → feste Felder statt beliebigem dict
 INFO = vol.Schema({vol.Optional("secure"): bool, vol.Optional("mic"): bool, vol.Optional("wake"): vol.Any(None, vol.All(str, vol.Length(max=40))),
                    vol.Optional("wakelock"): bool, vol.Optional("visible"): bool, vol.Optional("w"): vol.All(int, vol.Range(min=0, max=20000)),
-                   vol.Optional("h"): vol.All(int, vol.Range(min=0, max=20000))}, extra=vol.REMOVE_EXTRA)
+                   vol.Optional("h"): vol.All(int, vol.Range(min=0, max=20000)),
+                   vol.Optional("v"): vol.All(str, vol.Length(max=40))}, extra=vol.REMOVE_EXTRA)
 
 
 @websocket_api.websocket_command({vol.Required("type"): "homeblick/report", **DISPLAY, vol.Required("face"): vol.Any(vol.All(str, vol.Length(max=40)), None), vol.Required("saver"): bool, vol.Optional("info"): INFO})
@@ -124,6 +125,7 @@ def displays(hass, connection, msg):
     hub = hass.data[DOMAIN]
     connection.send_result(msg["id"], [
         {"id": d.id, "name": d.name, "connected": d.connected, "face": d.face, "saver": d.saver, "settings": d.settings, "info": d.info, "seen": d.seen, "logs": list(d.logs)[-10:],
+         "outdated": bool(d.info.get("v")) and d.info.get("v") != hub.version,   # Panel läuft noch mit JS einer anderen Integrationsversion
          "faces": [{"type": f.get("type"), "bg": f.get("bg")} for f in (hub.config(d.id) or {}).get("faces", [])]}
         for d in hub.displays.values()])
 
