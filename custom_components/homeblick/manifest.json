@@ -3,7 +3,7 @@
   "name": "Homeblick",
   "codeowners": ["@hiSweid"],
   "config_flow": true,
-  "dependencies": ["http", "frontend", "websocket_api"],
+  "dependencies": ["http", "frontend", "intent", "websocket_api"],
   "documentation": "https://github.com/hiSweid/homeblick",
   "integration_type": "service",
   "iot_class": "calculated",

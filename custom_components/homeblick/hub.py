@@ -1,6 +1,8 @@
 """Displays: je Display eigene Konfiguration, Einstellungen und Entities; Verbindung zu den offenen Panels."""
 from collections import deque
 
+from homeassistant.components.intent import async_register_timer_handler
+from homeassistant.components.intent.const import TIMER_DATA
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import device_registry as dr, entity_registry as er, issue_registry as ir
 from homeassistant.helpers.dispatcher import async_dispatcher_send
@@ -53,6 +55,7 @@ class Hub:
         self.configs: dict[str, dict] = {}
         self.cams: dict | None = None   # Kameras + Klingel für alle Displays; None = automatisch erkannt
         self.displays: dict[str, Display] = {}
+        self.timer_unsub: dict = {}   # Display-id → Abmeldung des Timer-Handlers
         self.adders: dict = {}   # Plattform → (async_add_entities, Fabrik)
 
     async def load(self) -> None:
@@ -79,16 +82,44 @@ class Hub:
             d = self.displays[id] = Display(id, name or f"Display {len(self.displays) + 1}")
             for add, factory in self.adders.values():
                 add(factory(self, d))
+            self.watch_timers(d)
             await self._save()
         return self.displays[id]
 
     async def remove(self, id: str) -> None:
+        self.unwatch_timers(id)
         if d := self.displays.pop(id, None):
             self._disarm(d)
         self.configs.pop(id, None)
         if not self.displays:   # Vorlage nur für die Umstellung vom alten Einzel-Display; ohne Displays nicht weiterreichen
             self.default = None
         await self._save()
+
+    def timers(self, d: Display) -> list[dict]:
+        """Laufende Sprach-Timer (Assist), die an diesem Display gestartet wurden."""
+        mgr, dev = self.hass.data.get(TIMER_DATA), self.device_id(d)
+        return [{"id": t.id, "name": t.name, "total": t.created_seconds, "left": t.seconds_left, "active": t.is_active}
+                for t in (mgr.timers.values() if mgr else []) if t.device_id == dev]
+
+    @callback
+    def watch_timers(self, d: Display) -> None:
+        """Display als Timer-Gerät anmelden: „Timer auf 10 Minuten“ per Assist am Display läuft dann hier (ohne Anmeldung lehnt HA ab)."""
+        if d.id in self.timer_unsub:
+            return
+
+        @callback
+        def handle(event, t) -> None:   # Timer ist bei „finished“/„cancelled“ schon aus dem Manager entfernt
+            msg = {"timers": self.timers(d)}
+            if event == "finished":
+                msg["finished"] = {"id": t.id, "total": t.created_seconds}
+            self.push(d, msg)
+        self.timer_unsub[d.id] = async_register_timer_handler(self.hass, self.device_id(d), handle)
+
+    @callback
+    def unwatch_timers(self, id: str | None = None) -> None:
+        for i in [id] if id else list(self.timer_unsub):
+            if unsub := self.timer_unsub.pop(i, None):
+                unsub()
 
     def device_id(self, d: Display) -> str:
         """HA-Gerät des Displays (legt es an, falls die Entities noch nicht da sind) – für den Raumbezug von Assist."""

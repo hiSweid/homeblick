@@ -33,7 +33,7 @@ async def register(hass, connection, msg):
     """Display meldet sich an (legt sich beim ersten Mal an) und bekommt seine Konfiguration."""
     hub = hass.data[DOMAIN]
     d = await hub.ensure(msg["display"], msg.get("name"))
-    connection.send_result(msg["id"], {"config": hub.config(d.id), "kiosk": d.kiosk(), "device_id": hub.device_id(d), "version": hub.version, "cameras": hub.cameras()})
+    connection.send_result(msg["id"], {"config": hub.config(d.id), "kiosk": d.kiosk(), "device_id": hub.device_id(d), "version": hub.version, "cameras": hub.cameras(), "timers": hub.timers(d)})
 
 
 @websocket_api.websocket_command({vol.Required("type"): "homeblick/set_config", **DISPLAY, vol.Required("config"): dict})
@@ -225,6 +225,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hub = hass.data[DOMAIN] = Hub(hass, entry.entry_id)
     hub.version = str((await async_get_integration(hass, DOMAIN)).version)   # Panels laden neu, wenn sie nach dem Wiederverbinden eine andere sehen
     await hub.load()
+    for d in hub.displays.values():
+        hub.watch_timers(d)
     if old:   # Integration neu geladen: offene Panels (WebSocket-Abos) und Laufzustand übernehmen, sonst hängen sie am alten Hub
         for i, d in hub.displays.items():
             if o := old.displays.get(i):
@@ -278,6 +280,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    hass.data[DOMAIN].unwatch_timers()
     frontend.async_remove_panel(hass, DOMAIN)
     frontend.async_remove_panel(hass, f"{DOMAIN}-settings")
     for service in ("show_camera", "hide_camera"):
