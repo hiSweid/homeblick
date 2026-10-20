@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Roboto+Flex:opsz,wdth,wght,XOPQ,YOPQ,YTFI@144,25,400..500,27..175,25..135,560..788&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@200..700&family=Roboto+Flex:opsz,wdth,wght,XOPQ,YOPQ,YTFI@144,25..151,400..500,27..175,25..135,560..788&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0}
 html,body{height:100%;overflow:hidden;background:#000;color:#fff;font:400 16px Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
@@ -128,16 +128,60 @@ svg.i{width:1em;height:1em;flex:none;fill:none;stroke:currentColor;stroke-width:
 .f-grid .dial.glass{box-shadow:inset 0 0 0 .13cqw #ffffff59,inset 0 .5cqw .8cqw #fff3,0 .6cqw 2cqw #0001}
 .f-grid.light .dial.glass{box-shadow:none}
 
-.f-bigclock{display:flex;flex-direction:column;align-items:center;justify-content:center}
-.f-bigclock .dl{font-size:4.2cqw;font-weight:600;opacity:.85;margin-bottom:2cqw}
-.f-bigclock .num{font-size:42cqw;font-weight:600;line-height:.84;letter-spacing:-.04em}
-.f-bigclock .num span{background:linear-gradient(170deg,#fffffff2,#ffffff80 45%,#ffffff40);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 .6cqw 1.5cqw #0003)}
-.f-bigclock.light .num span{background:linear-gradient(170deg,#1c1c1e,#1c1c1e80);-webkit-background-clip:text;background-clip:text}
+/* Digitale Glas-Uhr (Face bigclock). Vorlagen: „Digital grün“ y-MO 07850 (Stil stack), „Lavalampe“ y-MO 07350/07167 (Stil line), Tiefen-/Foto-Uhr y-MO 08150 + Website faces_endframe (Stil depth).
+   Maße in % Face (je Bild auf den Bildschirmrand normiert): Ziffernhöhe 37,3 % (stack) bzw. 41 % (line), Ziffer ≈ 15 % breit, rechter Rand 8,3 %, Textrand links 9,4 % */
+.f-bigclock{overflow:hidden}
+.f-bigclock.stack:not(.mono):not(.light){background:hsl(var(--h,150) 78% 55%)}
+.f-bigclock .bt,.f-bigclock .bs{position:absolute;left:9.4cqw;font-size:5.8cqw;font-weight:600;line-height:6.1cqw;display:flex;flex-direction:column}
+.f-bigclock .bt{top:7.3cqw}
+.f-bigclock .bt span{display:flex;align-items:center;gap:1.2cqw}
+.f-bigclock .bs{bottom:8cqw;flex-direction:row;align-items:center;gap:1.4cqw}
+.f-bigclock .wi{height:5.2cqw}.f-bigclock [data-wxsi]{display:block;height:5.2cqw;aspect-ratio:28/24;fill:currentColor;stroke:currentColor}
+.gt{font:48.2px 'Roboto Flex',sans-serif;font-variation-settings:'wght' 500,'wdth' 52,'opsz' 144,'XOPQ' 112,'YOPQ' 70,'YTFI' 788;font-feature-settings:'tnum'}
+.f-bigclock.stack:not(.light) .gslow .gt{fill:hsl(calc(var(--h,150) + 28) 66% 82% / .96)}   /* untere Zeile y-MO 07850: rgb(176,238,237) gegen oben (194,244,243) */
+.f-bigclock.lava .gt{font-size:53px;fill:#ffffff52;font-variation-settings:'wght' 500,'wdth' 44,'opsz' 144,'XOPQ' 130,'YOPQ' 70,'YTFI' 788}
+.f-bigclock.stack:not(.light) .gt{fill:hsl(calc(var(--h,150) + 28) 76% 88% / .96)}   /* Ziffernfläche y-MO 07850: #c8f5f4 auf #32e891, untere Zeile ≈ 8 % dunkler */
+/* Lavalampe: Farben relativ zum Ton (Blau 228 → Kern hsl(228 96 49) wie y-MO 07350, Magenta-Hof +65, Lavendelrand +13); Blob driftet (Bewegung nur grob belegt, y-MO 07167) */
+.f-bigclock.lava{background:linear-gradient(115deg,hsl(calc(var(--h,228) + 55) 70% 62%) 0 38%,hsl(calc(var(--h,228) + 34) 75% 70%) 72%,hsl(calc(var(--h,228) + 13) 85% 76%))}
+.lv{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.lv i{position:absolute;left:38cqw;top:28cqw;width:58cqw;aspect-ratio:1;border-radius:50%;animation:lava 13s ease-in-out infinite alternate;
+  background:radial-gradient(circle closest-side,hsl(var(--h,228) 96% 49%) 0 80%,hsl(calc(var(--h,228) - 12) 100% 55%) 90%,hsl(calc(var(--h,228) - 24) 100% 58%) 95%,#0000 100%)}
+.lv i:first-child{left:27cqw;top:17cqw;width:80cqw;background:radial-gradient(circle closest-side,hsl(calc(var(--h,228) + 66) 75% 55%) 0 48%,hsl(calc(var(--h,228) + 66) 75% 55% / 0) 100%)}
+@keyframes lava{to{transform:translate(-5cqw,3cqw) scale(1.1,.92) rotate(24deg)}}
+@media (prefers-reduced-motion:reduce){.lv i{animation:none}}
 
-.f-analog{display:grid;place-items:center}
-.f-analog .dial{width:86cqw}
-.f-analog .n{font-size:8.5cqw;font-weight:600;opacity:.9}
-.f-analog .hh{width:2.6%}.f-analog .mm{width:2%}.f-analog .ss{background:#ff9f0a}
+/* Analog-Face. Vorlagen (frontal Website faces_enhanced „Analog grün“ und „Relief rosé“, Pixelmaße auf 350 px Face; Video y-MO 01167/07100/08250/07950, TGo 00370/00485):
+   Zeiger = dünner Stiel (1 %) + rundes Blatt (3,4 %, ab 7,8 % Länge), Stunde 25,5 %, Minute 43,5 %; Sekunde 0,7 % dünn, Länge 45 %, Gegengewicht 7,4 %; Ring 4 % */
+.f-analog.an-big{--g:hsl(calc(var(--h,150) - 9) 41% 40%);background:var(--g);--hand:#fff;--sec:#ffffffeb;--pinc:var(--g)}   /* Website-Grün #3E935C = Ton 141 (Swatch Grün 150) */
+.f-analog.an-relief{background:linear-gradient(135deg,hsl(var(--h,5) 38% 82%),hsl(var(--h,5) 16% 66%));--hand:hsl(var(--h,5) 35% 29%);--sec:#fb72d0;--pinc:hsl(var(--h,5) 28% 74%)}
+.f-analog.an-big.tq{--g:hsl(calc(var(--h) - 14) 74% 71%);--hand:hsl(calc(var(--h) - 12) 95% 92%)}   /* Türkis/Cyan: y-MO 07950 hellcyan hsl(191 74 71) mit grünen Ziffern hsl(162 68 45), Zeiger weiß-cyan (Swatch 205 → -14) */
+.f-analog.an-relief.tq{background:linear-gradient(135deg,hsl(calc(var(--h) - 25) 52% 70%),hsl(calc(var(--h) - 25) 48% 62%));--hand:hsl(calc(var(--h) - 32) 47% 29%);--pinc:hsl(calc(var(--h) - 25) 48% 66%)}   /* y-MO 07100 Mint: hsl(180 52 68), Zeiger hsl(173 47 29) */
+.f-analog.an-white{background:linear-gradient(135deg,#f4f4f4,#c9c9c9);--hand:#2a2a2c;--sec:#c8742f;--pinc:#d9d9d9}
+.fnum{position:absolute;inset:0;width:100%;height:100%}
+.an-big .fnum text{font:278 55.2px Inter,sans-serif;fill:#000}
+.f-analog.an-big.tq{--sec:hsl(calc(var(--h) - 20) 40% 45%)}.an-big.tq .fdate{color:hsl(calc(var(--h) - 43) 40% 52%)}
+.an-big.tq .fnum text{fill:hsl(calc(var(--h) - 43) 68% 45%)}
+.an-relief .fnum text,.an-white .fnum text{font:560 16.4px Inter,sans-serif;fill:#000}
+.fdate{position:absolute;left:6.4cqw;bottom:5.7cqw;font-size:5.4cqw;line-height:1;font-weight:700;color:#000;letter-spacing:.01em}
+.f-analog .dial.fl{position:absolute;inset:0;width:auto;aspect-ratio:auto;border-radius:0;background:none}
+.f-analog .dial.fl .hand{width:100%;height:50%;background:none;border-radius:0;color:var(--hand)}
+.f-analog .dial.fl .hand::before,.f-analog .dial.fl .hand::after{content:"";position:absolute;left:50%;translate:-50% 0;background:currentColor;border-radius:99px}
+.f-analog .dial.fl .hh{--L:26.8}.f-analog .dial.fl .mm{--L:44.4}
+.f-analog .dial.fl :is(.hh,.mm){filter:drop-shadow(.2cqw .6cqw .9cqw #0004)}
+.f-analog .dial.fl :is(.hh,.mm)::before{top:calc(50cqw - var(--L)*1cqw);bottom:7.8cqw;width:3.4cqw}
+.f-analog .dial.fl :is(.hh,.mm)::after{top:calc(50cqw - var(--L)*1cqw + 2cqw);bottom:0;width:1cqw}
+.f-analog .dial.fl .ss{color:var(--sec)}
+.f-analog .dial.fl .ss::before{top:5cqw;bottom:-7.4cqw;width:.7cqw;border-radius:0}
+.f-analog .dial.fl .ss::after{display:none}
+.f-analog .dial.fl .pin{width:3.6cqw;height:3.6cqw;margin:-1.8cqw;background:radial-gradient(circle,var(--pinc) 0 38%,var(--sec) 44%);box-shadow:0 .3cqw .6cqw #0003}
+.f-analog.an-relief .dial.fl .pin{width:3.8cqw;height:3.8cqw;margin:-1.9cqw;background:radial-gradient(circle closest-side,var(--pinc) 0 28%,var(--hand) 31% 46%,var(--sec) 49% 74%,var(--hand) 77% 99%,transparent)}   /* Website rosé: braune Scheibe, dünner Ring, graurosa Mitte */
+
+/* Legacy-Stile (Zahlen/Striche/Minimal, gespeicherte Konfigurationen): keine Vorlage, unverändert */
+.f-analog.lg{display:grid;place-items:center}
+.f-analog.lg .dial{width:86cqw}
+.f-analog.lg .n{font-size:8.5cqw;font-weight:600;opacity:.9}
+.f-analog.lg .hh{width:2.6%}.f-analog.lg .mm{width:2%}.f-analog.lg .ss{background:#ff9f0a}
+
 
 /* ---------- Kalender ---------- */
 .f-calendar{padding:7cqw 6cqw;display:flex;flex-direction:column;gap:3cqw}
@@ -293,12 +337,11 @@ input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:tr
 .dt{font:74px 'Roboto Flex',sans-serif;font-variation-settings:'wght' 420,'wdth' 25,'opsz' 144,'XOPQ' 88,'YOPQ' 72;font-feature-settings:'pnum';text-anchor:middle}
 .dg{fill:#fff6}
 .dsvg feFlood{flood-color:#fff}.dsvg .rk{flood-color:#000}
+.f-bigclock.lava .dsvg>g{transition:transform .3s cubic-bezier(.3,1.3,.5,1)}.f-bigclock.lava .dsvg.h1>g{transform:translateX(-6px)}
+.f-bigclock.lava .rk{flood-color:#fff;flood-opacity:.3}.f-bigclock.lava .gk{flood-opacity:.85}   /* Lavalampe y-MO 07350: heller Rim + Innenglanz */
 .f-bigclock.light .dg{fill:#0000000f}
 .f-bigclock.light .dsvg feFlood{flood-color:#000}
 .dfg{position:absolute;inset:0;background:0 0/100% 100%;pointer-events:none}
-.f-bigclock .hl{display:flex;align-items:center;font-size:30cqw;font-weight:200;line-height:1;letter-spacing:-.03em}
-.f-bigclock .hl .num{font-size:1em;font-weight:inherit;line-height:1}
-.f-bigclock .hl .num span{background:none;color:inherit;filter:none}
 
 /* Tag ↔ Nacht langsam überblenden (phase() in JS) */
 ::view-transition-old(root),::view-transition-new(root){animation-duration:1.4s}
@@ -667,7 +710,7 @@ const DEF = { cams: 1, energy: 1, dyn: 2, faces: [   // Flags: Migrationen unten
     { e: 'light.flur', icon: 'pendant', title: 'Licht', sub: 'Flur' },
   ] },
   { type: 'music', bg: 'black' },
-  { type: 'bigclock', bg: 205 },
+  { type: 'bigclock', bg: 150 },
   { type: 'grid', bg: 228, tiles: [
     { e: 'light.wohnzimmer', title: 'Licht', sub: 'Wohnzimmer' },
     { e: 'light.kuche', title: 'Licht', sub: 'Küche' },
@@ -680,7 +723,7 @@ const DEF = { cams: 1, energy: 1, dyn: 2, faces: [   // Flags: Migrationen unten
   { type: 'weather', bg: 212 },
   { type: 'energy', bg: 'black' },
   { type: 'calendar', bg: 'white' },
-  { type: 'analog', bg: 340 },
+  { type: 'analog', bg: 150 },
   { type: 'info', bg: 'auto' },
   { type: 'cams', bg: 'black' },
 ] };
@@ -783,6 +826,42 @@ function calHTML() {
 }
 // Tiefe (Video 15,4 s): Glasziffern = verwischtes Hintergrundbild in die Ziffern geclippt + heller Rand; freigestellte Person davor
 let dN = 0;
+// Glaskante als Filter (Alpha minus erodiertes Alpha): helle Innenkante + dunkler Saum, für Tiefen-Uhr und die Glas-Ziffern von Stack/Lavalampe
+const glassEdge = (id, er = .17, bl = .55) => `<filter id="${id}" x="-5%" y="-5%" width="110%" height="110%"><feColorMatrix in="SourceAlpha" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 9 0" result="a"/>`
+  + `<feMorphology in="a" operator="erode" radius="${er}" result="e"/><feComposite in="a" in2="e" operator="out" result="r"/>`
+  + `<feGaussianBlur in="r" stdDeviation="${bl}" result="b"/><feComposite in="b" in2="a" operator="in" result="g"/><feFlood class="rk" flood-opacity=".2"/><feComposite in2="r" operator="in" result="rc"/>`
+  + `<feFlood class="gk" flood-opacity=".45"/><feComposite in2="g" operator="in" result="gc"/>`
+  + `<feMerge><feMergeNode in="SourceGraphic"/><feMergeNode in="gc"/><feMergeNode in="rc"/></feMerge></filter>`;
+// Glas-Ziffern (Stack/Lavalampe): je Stelle eine Gruppe (Roll beim Wechsel, glassSlots), Position = Mitte der Ziffer, y = Grundlinie (Maße in % Face)
+const GSLOT = {
+  stack: [[0, 68.6, 48.6], [1, 84.3, 48.6], [2, 68.6, 90.8], [3, 84.3, 90.8], [':', 53.7, 90.8]],   // y-MO 07850: „13“ über „:58“, rechtsbündig
+  line: [[0, 18.75, 73], [1, 35.75, 73], [':', 50, 73], [2, 64.25, 73], [3, 81.25, 73]],              // y-MO 07350: eine Zeile, Höhe 41 %, Ziffer 15 % breit, Teilung 17 %
+};
+let gN = 0;
+function glassHTML(style) {
+  const id = 'gt' + ++gN;
+  return `<svg class="dsvg" style="animation:none" viewBox="0 0 100 100" preserveAspectRatio="none">${style === 'line' ? glassEdge(id, .3, .7) : glassEdge(id)}<g filter="url(#${id})">${
+    GSLOT[style].map(([i, x, y]) => {
+      const lo = style === 'stack' && y > 50 ? ' class="gslow"' : '';
+      // Doppelpunkt = zwei runde Punkte (Ø 14–16 % der Ziffernhöhe, Abstand 53 %, mittig; y-MO 07350/07850)
+      if (i === ':') { const H = style === 'stack' ? 37.3 : 41, c = y - H / 2; return `<g${lo}>${[-1, 1].map(k => `<circle class="gt dg" cx="${x}" cy="${c + k * .265 * H}" r="${.073 * H}"/>`).join('')}</g>`; }
+      return `<g data-gs="${i}"${lo}><text class="gt dg" x="${x}" y="${y}" text-anchor="middle"></text></g>`;
+    }).join('')}</g></svg>`;
+}
+function glassSlots(hm) {
+  const ch = [...hm.slice(0, 2), ...hm.slice(3, 5)], Y = 22;
+  if (ch[0] === '0') ch[0] = '';   // Vorlage: Stunde ohne führende Null (y-MO 07850/07350)   // Roll: alt ±55 % Ziffernhöhe raus, neu mit Feder rein (wie roll())
+  for (const g of $$('[data-gs]')) {
+    g.closest('svg').classList.toggle('h1', ch[0] === '');   // Lavalampe: einstellige Stunde → ganze Zeit zentriert (CSS), Wechsel 9:59 → 10:00 läuft mit
+    const c = ch[g.dataset.gs], old = g.lastElementChild;
+    if (old.textContent === c) continue;
+    if (!old.textContent) { old.textContent = c; continue; }
+    const n = old.cloneNode(); n.textContent = c; g.append(n);
+    old.animate([{ transform: 'none', opacity: 1, filter: 'none' }, { transform: `translateY(${-Y}px)`, opacity: 0, filter: 'blur(.6px)' }], { duration: 150, easing: 'ease-in', fill: 'forwards' });
+    n.animate([{ transform: `translateY(${Y}px)`, opacity: 0, filter: 'blur(.6px)' }, { transform: 'none', opacity: 1, filter: 'none' }], { duration: 300, easing: SPRING });
+    setTimeout(() => old.remove(), 160);
+  }
+}
 function depthHTML(f) {
   const b = bgOf(f), src = b?.photo ? b.blur : typeof b === 'number' ? svgData(wp(b, 5)) : '';
   // Vorlage faces_endframe (per Pixel gemessen): Ziffern 6–94 % hoch, „0“ 16 % breit, Strich ≈ 5,6 % (monoline), Paare um 21/76 %;
@@ -793,11 +872,7 @@ function depthHTML(f) {
     const id = 'dc' + ++dN, t = c => `<text class="dt${c}" y="56.6" transform="scale(${K} ${KY})"><tspan x="${21 / K}">${tsp('h', k)}</tspan><tspan x="${76 / K}">${tsp('m', k)}</tspan></text>`;
     // Glaskante als Filter (Alpha minus erodiertes Alpha) statt stroke: die variable Schrift hat überlappende Konturen (Querbalken der 4)
     return `<svg class="dsvg" style="animation-delay:${k * 100}ms" viewBox="0 0 100 100" preserveAspectRatio="none"><clipPath id="${id}">${t('')}</clipPath>`
-      + `<filter id="${id}g" x="-5%" y="-5%" width="110%" height="110%"><feColorMatrix in="SourceAlpha" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 9 0" result="a"/>`
-      + `<feMorphology in="a" operator="erode" radius=".17" result="e"/><feComposite in="a" in2="e" operator="out" result="r"/>`
-      + `<feGaussianBlur in="r" stdDeviation=".55" result="b"/><feComposite in="b" in2="a" operator="in" result="g"/><feFlood class="rk" flood-opacity=".2"/><feComposite in2="r" operator="in" result="rc"/>`
-      + `<feFlood flood-opacity=".45"/><feComposite in2="g" operator="in" result="gc"/>`
-      + `<feMerge><feMergeNode in="SourceGraphic"/><feMergeNode in="gc"/><feMergeNode in="rc"/></feMerge></filter>`
+      + glassEdge(id + 'g')
       + (src ? `<image href="${src}" width="100" height="100" preserveAspectRatio="none" clip-path="url(#${id})"/>` : '')
       + t(' dg').replace('<text', `<text filter="url(#${id}g)"`) + `</svg>`;
   };
@@ -825,10 +900,26 @@ const FACE = {
 <button class="c next" data-act="next" aria-label="Weiter">${svg('next', 'std')}${svg('fwd30', 'pod')}</button>
 <button class="c queue" data-act="queue" aria-label="Warteschlange">${svg('queue')}</button>
 <div class="pop outs"></div><div class="pop menu"></div>`,
-  bigclock: (el, f) => el.innerHTML = f.style === 'depth' ? depthHTML(f) : `<div class="dl" data-bind="dlong"></div>` + (f.style === 'line'
-    ? `<div class="hl"><div class="num" data-bind="hh"></div>:<div class="num" data-bind="mm"></div></div>`
-    : `<div class="num" data-bind="hh"></div><div class="num" data-bind="mm"></div>`),
-  analog: (el, f) => el.innerHTML = `<div class="dial ${{ ticks: '', minimal: 'minimal' }[f.style] ?? 'nums'}"></div>`,
+  bigclock: (el, f) => {
+    if (f.style === 'depth') return el.innerHTML = depthHTML(f);
+    const line = f.style === 'line';
+    el.classList.add(line ? 'lava' : 'stack');
+    if (line) { el.style.backgroundColor = ''; el.classList.remove('light', 'mono'); }   // Lavalampe hat immer ihre eigene Farbwelt
+    el.innerHTML = line ? `<div class="lv"><i></i><i></i></div>${glassHTML('line')}`
+      : `<div class="bt"><b data-bind="wdd"></b><span><i class="wi" data-wxi></i><span data-bind="wxt"></span></span></div>${glassHTML('stack')}<div class="bs"><i data-wxsi></i><span data-bind="wxsun"></span></div>`;
+  },
+  analog: (el, f) => {
+    const s = f.style, k = !s || s === 'big' ? 'big' : s === 'relief' ? 'relief' : '';
+    if (!k) return el.classList.add('lg'), el.innerHTML = `<div class="dial ${{ ticks: '', minimal: 'minimal' }[s] ?? 'nums'}"></div>`;
+    // flache Fläche aus dem Ton des Face (nicht der Wallpaper); Weiß = helles Relief mit kupfernem Sekundenzeiger
+    el.style.backgroundColor = ''; el.classList.remove('light', 'mono');
+    const h = typeof f.bg === 'number' ? f.bg : f.bg === 'metal' ? 215 : null;
+    el.classList.add('an-' + (k === 'relief' && f.bg === 'white' ? 'white' : k));
+    el.classList.toggle('tq', h >= 165 && h <= 215);
+    if (h != null) el.style.setProperty('--h', h);
+    if (k === 'relief' && h != null && h > 45 && h < 330) el.style.setProperty('--sec', '#fff');   // rosé: Magenta; Mint/Hellgrün: weiß (y-MO 07100/08250)
+    el.innerHTML = (k === 'big' ? bigNums : reliefNums()) + (k === 'big' ? '<div class="fdate" data-bind="wdd"></div>' : '') + '<div class="dial fl"></div>';
+  },
   calendar: el => { el.innerHTML = calHTML(); el.dataset.act = 'events'; },
   weather: (el, f) => weatherFace(el, f, CFG.place),
   energy: el => energyFace(el),
@@ -861,10 +952,27 @@ const nums = numsAt(40);
 // Minutenkranz: 60 Striche, Stunden kräftig, Minuten halbtransparent, Zahlen weiter innen
 const mticks = `<svg viewBox="-50 -50 100 100"><g stroke="#fff" stroke-linecap="round">${Array.from({ length: 60 }, (_, i) =>
   `<line y1="-48" y2="${i % 5 ? -45.5 : -44.5}" stroke-width="${i % 5 ? .9 : 1.7}"${i % 5 ? ' stroke-opacity=".45"' : ''} transform="rotate(${i * 6})"/>`).join('')}</g></svg>` + numsAt(34);
+// Analog „Große Ziffern“ (Website faces_enhanced, Pixelmaße auf 350 px): 12/9/6/3 in Inter Light, Höhe 41,4 %, 5 % Abstand zum Rand, y = Grundlinie
+const bigNums = `<svg class="fnum" viewBox="0 0 100 100">${[['12', 43.8, 45.7, 'middle'], ['9', 1.4, 71, 'start'], ['3', 98.7, 71, 'end'], ['6', 49, 94.7, 'middle']]
+  .map(([t, x, y, a]) => `<text transform="translate(${x} ${y}) scale(1.08 1)" text-anchor="${a}"${t === '12' ? ' letter-spacing="-8"' : ''}>${t}</text>`).join('')}</svg>`;
+// Analog „Relief“ (Website faces_enhanced rosé, y-MO 07100/08250, TGo 00370): geprägte Ziffern auf Radius 40 %, Höhe 11,9 %, radial gedreht, links oben dunkle / rechts unten helle Kante;
+// sichtbar 11–5 mit Ausblendung zu den Rändern (perspektivische Maske; die Bögen der anderen Farbvarianten sind nicht ableitbar)
+let rN = 0;
+const reliefNums = () => {
+  const id = 'rl' + ++rN, c = (o, f) => `<feFlood flood-color="${f}" flood-opacity="${o}"/>`;
+  return `<svg class="fnum" viewBox="0 0 100 100"><filter id="${id}" x="-20%" y="-20%" width="140%" height="140%">`
+    + `<feOffset in="SourceAlpha" dx=".35" dy=".35" result="s1"/><feComposite in="SourceAlpha" in2="s1" operator="out" result="d0"/><feGaussianBlur in="d0" stdDeviation=".12" result="d"/>${c(.65, '#000')}<feComposite in2="d" operator="in" result="dc"/>`
+    + `<feOffset in="SourceAlpha" dx="-.35" dy="-.35" result="s2"/><feComposite in="SourceAlpha" in2="s2" operator="out" result="l0"/><feGaussianBlur in="l0" stdDeviation=".12" result="l"/>${c(.3, '#000')}<feComposite in2="l" operator="in" result="lc"/>`
+    + `<feMerge><feMergeNode in="dc"/><feMergeNode in="lc"/></feMerge></filter>`
+    + `<g>${[[11, .35], [12, 1], [1, 1], [2, 1], [3, 1], [4, .9], [5, .4]].map(([n, o]) => {
+      const a = n * Math.PI / 6;
+      return `<g opacity="${o}"><g filter="url(#${id})"><text transform="translate(${50 + 40 * Math.sin(a)} ${50 - 40 * Math.cos(a)}) rotate(${n > 3 && n < 11 ? n * 30 - 180 : n * 30})" text-anchor="middle" dy=".36em">${n}</text></g></g>`;   // Deckkraft außerhalb des Filters: sonst wird SourceAlpha teiltransparent und die Ziffer füllt sich
+    }).join('')}</g></svg>`;
+};
 let hands = [], lastDay;
 function initDials(scope) {
   for (const d of $$('.dial', scope)) {
-    d.insertAdjacentHTML('afterbegin', (d.classList.contains('mt') ? mticks : d.classList.contains('nums') ? nums : d.closest('.f-grid.light') ? mticks : d.closest('.f-grid') ? gticks : ticks) +'<i class="hand hh"></i><i class="hand mm"></i><i class="hand ss"></i><b class="pin"></b>');
+    d.insertAdjacentHTML('afterbegin', (d.classList.contains('fl') ? '' : d.classList.contains('mt') ? mticks : d.classList.contains('nums') ? nums : d.closest('.f-grid.light') ? mticks : d.closest('.f-grid') ? gticks : ticks) +'<i class="hand hh"></i><i class="hand mm"></i><i class="hand ss"></i><b class="pin"></b>');
     for (const [c, per] of [['hh', 43200], ['mm', 3600], ['ss', 60]])
       hands.push([per, $('.' + c, d).animate([{ transform: 'translateX(-50%) rotate(0)' }, { transform: 'translateX(-50%) rotate(1turn)' }], { duration: per * 1000, iterations: Infinity })]);
   }
@@ -892,11 +1000,11 @@ function tick() {
   hands = hands.filter(([, a]) => a.effect.target.isConnected || a.cancel());
   for (const [per, a] of hands) a.currentTime = (s % per) * 1000;
   const hm = d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
-  bind('time', hm); rollBind('hh', hm.slice(0, 2)); rollBind('mm', hm.slice(3, 5)); [...hm.slice(0, 2)].forEach((c, i) => bind('dh' + i, c)); [...hm.slice(3, 5)].forEach((c, i) => bind('dm' + i, c));
+  bind('time', hm); glassSlots(hm); [...hm.slice(0, 2)].forEach((c, i) => bind('dh' + i, !i && c === '0' ? '\u2007' : c)); [...hm.slice(3, 5)].forEach((c, i) => bind('dm' + i, c));
   bind('wd', d.toLocaleDateString('de-DE', { weekday: 'short' }));
   bind('mo', d.toLocaleDateString('de-DE', { month: 'short' }));
   bind('day', d.getDate());
-  bind('dlong', d.toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' }));
+  bind('wdd', `${d.toLocaleDateString('de-DE', { weekday: 'short' }).replace('.', '').toUpperCase()} ${d.getDate()}`);   // „DI 20“ (Vorlage „WED 1“, „TUE 13“)
   const h = d.getHours();
   bind('greet', h < 11 ? 'Guten Morgen,' : h < 18 ? 'Guten Tag,' : 'Guten Abend,');
   if (lastDay !== d.getDate()) {
