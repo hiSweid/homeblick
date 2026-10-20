@@ -1,10 +1,12 @@
 """Displays: je Display eigene Konfiguration, Einstellungen und Entities; Verbindung zu den offenen Panels."""
+from collections import deque
+
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.storage import Store
 
-from .const import DEFAULTS, DOMAIN, STORE_VERSION
+from .const import DEFAULTS, DOMAIN, LOGS, STORE_VERSION
 
 
 def signal(display_id: str) -> str:
@@ -20,6 +22,7 @@ class Display:
         self.info: dict = {}   # vom Panel gemeldet: Mikro, Wake Word, Wake Lock, Auflösung …
         self.seen: str | None = None   # letzte Meldung (ISO)
         self.shot: str | None = None   # letztes Bildschirmfoto (data-URL), nur im Speicher
+        self.logs: deque = deque(maxlen=LOGS)   # letzte Fehler/Warnungen des Panels, nur im Speicher
         self.links: list = []   # offene Panels (Callbacks)
 
     @property
@@ -30,7 +33,7 @@ class Display:
         """Einstellungen im Format des Frontends (kiosk.js)."""
         s = self.settings
         return {
-            "idle": s["idle"], "saver": s["saver"],
+            "idle": s["idle"], "saver": s["saver"], "music": s["music"], "chime": s["chime"],
             "wake": None if s["wake"] == "off" else f"{s['wake']}_v0.1",
             "pipeline": s["pipeline"], "mute": s["mute"], "barge": s["barge"], "listen": s["listen"], "volume": s["volume"], "bright": s["bright"] / 100, "tts": s["tts"], "weather": s["weather"], "place": s["place"],
             "dim": {"from": s["dim_from"], "to": s["dim_to"], "level": s["dim_level"] / 100} if s["dim"] else None,
@@ -38,8 +41,8 @@ class Display:
 
 
 class Hub:
-    def __init__(self, hass: HomeAssistant):
-        self.hass = hass
+    def __init__(self, hass: HomeAssistant, entry_id: str):
+        self.hass, self.entry_id = hass, entry_id
         self.store = Store(hass, STORE_VERSION, DOMAIN)
         self.default: dict | None = None   # Vorlage für neue Displays (Stand vor Mehrfach-Display: die eine gemeinsame Konfiguration)
         self.configs: dict[str, dict] = {}
@@ -78,6 +81,15 @@ class Hub:
         if not self.displays:   # Vorlage nur für die Umstellung vom alten Einzel-Display; ohne Displays nicht weiterreichen
             self.default = None
         await self._save()
+
+    def device_id(self, d: Display) -> str:
+        """HA-Gerät des Displays (legt es an, falls die Entities noch nicht da sind) – für den Raumbezug von Assist."""
+        return dr.async_get(self.hass).async_get_or_create(
+            config_entry_id=self.entry_id, identifiers={(DOMAIN, d.id)}, name=d.name, manufacturer="Homeblick", model="Display").id
+
+    def by_device(self, device_id: str) -> Display | None:
+        dev = dr.async_get(self.hass).async_get(device_id)
+        return next((self.displays.get(i) for dom, i in dev.identifiers if dom == DOMAIN), None) if dev else None
 
     def config(self, id: str) -> dict | None:
         return self.configs.get(id) or self.default

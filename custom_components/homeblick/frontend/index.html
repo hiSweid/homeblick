@@ -558,12 +558,12 @@ import { wakeInit } from './wake.js';
 import { parseLRC, findLyrics } from './lyrics.js';
 import { voiceOK, voiceRun } from './voice.js';
 import { timerInit, timers, timerDemo, timerShow } from './timer.js';
-import { camInit, camShow, camHide, camFace, camTile, doorbell } from './doorbell.js';
+import { camInit, camShow, camHide, camFace, camTile, camOpen, camRinging, doorbell } from './doorbell.js';
 import { loadEvents, eventsHTML } from './events.js';
 // Ohne Parameter: Demo-Daten. Echtes HA nur mit ?live
 const LIVE = new URLSearchParams(location.search).has('live');
-const CFG = { hass: '', weather: 'weather.home', place: 'Home', pipeline: '', mute: false, barge: false, listen: 15, volume: 100 };   // Wetter, Ort, Assist-Pipeline: je Display in der Einstellungsseite (applyK)
-const applyK = k => { for (const x of ['weather', 'place', 'tts', 'pipeline', 'mute', 'barge', 'listen', 'volume']) if (k?.[x] != null) CFG[x] = k[x]; };
+const CFG = { hass: '', weather: 'weather.home', place: 'Home', pipeline: '', mute: false, barge: false, listen: 15, volume: 100, music: true, chime: true, device: '' };   // Wetter, Ort, Assist-Pipeline: je Display in der Einstellungsseite (applyK); device = HA-Gerät (register)
+const applyK = k => { for (const x of ['weather', 'place', 'tts', 'pipeline', 'mute', 'barge', 'listen', 'volume', 'music', 'chime']) if (k?.[x] != null) CFG[x] = k[x]; };
 const HASS = /^\/(local|homeblick)\//.test(location.pathname) ? location.origin : CFG.hass;   // unter /local/ ist die Seite selbst der HA-Origin
 
 const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -1006,7 +1006,8 @@ function avatars() {
     g.dataset.fk = key; $$('.avf', g).forEach(x => x.remove());
     rest.forEach((p, k) => {   // 180° (links) bis 90° (unten), Radius 3,5 × Avatar
       const ang = Math.PI * (rest.length < 2 ? .75 : 1 - k / (rest.length - 1) / 2), r = 35;
-      g.insertAdjacentHTML('beforeend', `<button class="avf" data-act="avpick" data-v="${p.entity_id}" style="${avStyle(p, ps.indexOf(p))};--k:${k};--x:${(r * Math.cos(ang)).toFixed(1)}cqw;--y:${(r * Math.sin(ang)).toFixed(1)}cqw">${p.attributes.entity_picture ? '' : avName(p)[0]}</button>`);
+      // esc: url("…") aus avStyle steht sonst roh im doppelt gequoteten style-Attribut und beendet es
+      g.insertAdjacentHTML('beforeend', `<button class="avf" data-act="avpick" data-v="${esc(p.entity_id)}" style="${esc(avStyle(p, ps.indexOf(p)))};--k:${k};--x:${(r * Math.cos(ang)).toFixed(1)}cqw;--y:${(r * Math.sin(ang)).toFixed(1)}cqw">${p.attributes.entity_picture ? '' : esc(avName(p)[0])}</button>`);
     });
   }
 }
@@ -1162,7 +1163,8 @@ function assistStart(k = '') {
     AS.className = 'listen';
     ORB.animate([{ transform: 'translateY(-6cqw) scale(.55,.72)' }, { transform: 'none' }], { duration: SD, easing: SPRING });
     INK.animate([{ opacity: 1 }, { opacity: 1, offset: .2 }, { opacity: 0 }], { duration: 420, easing: 'ease-out' });
-    if (LIVE && conn && voiceOK()) return assistVoice();
+    // Live nie die Demo-Antwort: ohne Mikrofon (http) bzw. Verbindung nur ein Hinweis
+    if (LIVE) return conn && voiceOK() ? assistVoice() : assistHint(conn ? isSecureContext ? 'Kein Mikrofon verfügbar.' : 'Sprachsteuerung braucht https.' : 'Keine Verbindung zu Home Assistant.');
     asT = [setTimeout(() => AS.className = 'think', 2400), setTimeout(assistAnswer, 3100)];
   };
 }
@@ -1180,14 +1182,17 @@ async function assistAnswer() {
   }
   assistShow();
 }
-// Ansage aus dem Admin-Panel: Text in der Kugel, gesprochen per Browser-Stimme (Stumm/Lautstärke gelten)
-function announce(t) {
+// Ansage aus dem Admin-Panel bzw. notify.send_message: Text (Titel fett) in der Kugel, gesprochen per HA- oder Browser-Stimme (Stumm/Lautstärke gelten)
+function announce(m, title) {
   if (AS.className || mode !== 'normal') return;
-  AS.dataset.k = 'voice'; AS.className = 'listen'; $('.atxt', AS).textContent = t;
+  const t = title ? `${title}. ${m}` : m;
+  AS.dataset.k = 'voice'; AS.className = 'listen'; $('.atxt', AS).innerHTML = (title ? `<b>${esc(title)}</b><br>` : '') + esc(m);
   let ms = 8000 + t.length * 60;
   const fin = () => { asT.forEach(clearTimeout); asT = [setTimeout(assistEnd, 2500)]; };
-  if (!CFG.mute && CFG.tts && conn?.options?.auth?.accessToken) {   // HA-Stimme; bei Fehler Browser-Stimme
-    fetch('/api/tts_get_url', { method: 'POST', headers: { Authorization: 'Bearer ' + conn.options.auth.accessToken, 'Content-Type': 'application/json' }, body: JSON.stringify({ message: t, engine_id: CFG.tts }) })
+  const auth = conn?.options?.auth;
+  if (!CFG.mute && CFG.tts && auth?.accessToken) {   // HA-Stimme; bei Fehler Browser-Stimme. Token läuft nach 30 min ab (WebSocket merkt das nicht)
+    Promise.resolve(auth.expired && auth.refreshAccessToken())
+      .then(() => fetch('/api/tts_get_url', { method: 'POST', headers: { Authorization: 'Bearer ' + auth.accessToken, 'Content-Type': 'application/json' }, body: JSON.stringify({ message: t, engine_id: CFG.tts }) }))
       .then(r => r.ok ? r.json() : Promise.reject()).then(j => { const a = new Audio(j.path); a.volume = CFG.volume / 100; a.onended = a.onerror = fin; return a.play(); }).catch(() => speak(t, fin));
     ms = 60000;
   } else if (!CFG.mute) { speak(t, fin); ms = 60000; }
@@ -1204,24 +1209,42 @@ function assistShow(ms = 12000) {
   ORB.animate([{ transform: 'translateY(-8cqw) scale(.475)' }], { duration: SD, easing: SPRING, fill: 'forwards' });
   asT.push(setTimeout(assistEnd, ms));
 }
-// Live: echte HA-Assist-Pipeline (voice.js); Antworttext erscheint, TTS läuft, danach schließt die Kugel
-let voice;
-async function assistVoice() {
+function assistHint(t) { AS.dataset.k = 'voice'; $('.atxt', AS).textContent = t; assistShow(5000); }
+// Zurück zum Zuhören (Rückfrage, Barge-in): Kugel federt aus der Antwortposition zurück
+function relisten() {
+  asT.forEach(clearTimeout); asT = [];
+  AS.className = 'listen';
+  ORB.animate([{ transform: 'none' }], { duration: SD, easing: SPRING, fill: 'forwards' });
+}
+// Live: echte HA-Assist-Pipeline (voice.js); Antworttext erscheint, TTS läuft, danach schließt die Kugel.
+// Stellt der Agent eine Rückfrage (continue_conversation), hört die Kugel ohne Wake Word gleich wieder zu (gleiche conversation_id)
+// voiceGen: jeder Lauf hat eine Nummer; assistEnd/neuer Lauf entwerten ältere (auch solange voiceRun noch das Mikro öffnet)
+let voice, voiceGen = 0;
+async function assistVoice(conversation) {
+  const gen = ++voiceGen, live = () => gen === voiceGen;
   AS.dataset.k = 'voice'; $('.atxt', AS).textContent = '';
   const say = t => { $('.atxt', AS).textContent = t; };
-  voice = await voiceRun(conn, {
-    pipeline: CFG.pipeline, mute: CFG.mute, listen: CFG.listen, volume: CFG.volume,
+  const v = await voiceRun(conn, {
+    pipeline: CFG.pipeline, device: CFG.device, conversation, mute: CFG.mute, volume: CFG.volume,
+    listen: conversation ? Math.min(CFG.listen, 8) : CFG.listen,   // Rückfrage: kürzer warten
     base: location.origin === 'null' ? '' : location.origin,
-    onThink: () => { if (AS.className === 'listen') AS.className = 'think'; },
-    onAnswer: t => { say(t || 'Erledigt.'); assistShow(60000); },   // schließt beim TTS-Ende (onEnd); 60 s nur als Sicherung
-    onError: m => { say('Das hat nicht geklappt: ' + m); assistShow(6000); },
-    onEnd: () => { if (AS.className === 'answer') { asT.forEach(clearTimeout); asT = [setTimeout(assistEnd, 4000)]; } else assistEnd(); },
+    onThink: () => { if (live() && AS.className === 'listen') AS.className = 'think'; },
+    onAnswer: t => { if (!live()) return; say(t || 'Erledigt.'); assistShow(60000); },   // schließt beim TTS-Ende (onEnd); 60 s nur als Sicherung
+    onError: m => { if (!live()) return; say('Das hat nicht geklappt: ' + m); assistShow(6000); },
+    onEnd: next => {
+      if (!live()) return;
+      if (AS.className !== 'answer') return assistEnd();
+      asT.forEach(clearTimeout);
+      // stumm: Rückfrage erst lesen lassen
+      asT = [next ? setTimeout(() => { if (AS.className === 'answer') { relisten(); assistVoice(next.conversation); } }, CFG.mute ? 3000 : 300) : setTimeout(assistEnd, 4000)];
+    },
   });
+  if (live() && /listen|think|answer/.test(AS.className)) voice = v; else v.stop();   // inzwischen geschlossen → Mikro gleich wieder zu
 }
 // Zurück in die Kamera: Kugel wird schwarz und steigt, Goo-Tropfen verschmilzt mit dem Rand
 function assistEnd() {
   if (!/listen|think|answer/.test(AS.className)) return;
-  asT.forEach(clearTimeout); voice?.stop(); voice = null;
+  asT.forEach(clearTimeout); voice?.stop(); voice = null; voiceGen++;
   AS.className = 'out';
   INK.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 160, fill: 'forwards' });
   ORB.animate([{ transform: 'translateY(-12cqw) scale(.45)' }], { duration: 180, easing: 'ease-in', fill: 'forwards' }).onfinish = () => {
@@ -1369,7 +1392,7 @@ function fly(tile, view, opening, done) {
   view.hidden = false; tile.style.visibility = 'hidden';
   view.animate(opening ? [small, big] : [big, small], { duration: SD, easing: SPRING });
   const f = view.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 200, easing: 'ease-out', fill: 'both', direction: opening ? 'normal' : 'reverse', delay: opening ? 0 : SD - 300 });
-  if (!opening) f.onfinish = () => { view.hidden = true; tile.style.visibility = ''; f.cancel(); done?.(); };
+  if (!opening) f.onfinish = () => { tile.style.visibility = ''; f.cancel(); if (cur?.view === view) return; view.hidden = true; done?.(); };   // während des Schließens neu geöffnet → offen lassen
 }
 let cur = null, y0 = null, p0;
 function open(tile, id) {
@@ -1383,6 +1406,7 @@ function open(tile, id) {
   fly(tile, view, true);
 }
 function close() {
+  if (!cur) return;   // schon beim Schließen (z. B. Kamera-Timer)
   const { tile, view } = cur;
   cur = null;
   fly(tile, view, false, camHide);
@@ -1761,11 +1785,12 @@ if (!LIVE) {
   setInterval(() => { put(energyDemo()); schedule(); }, 3000);
   forecast = { temperature: 14, templow: 6 };
 }
-camInit($('#cam'), { open, close, hass: HASS });
 if (!LIVE && new URLSearchParams(location.search).has('ring')) setTimeout(() => { ents = { ...ents, 'event.turklingel_doorbell': { ...ents['event.turklingel_doorbell'], state: new Date().toISOString() } }; schedule(); }, 1500);   // Demo-Klingeln wie HA
 timerInit(screen, call);
 const kiosk = kioskInit({ faces, conf: () => CONF, busy: () => mode !== 'normal' || cur || AS.className, touched: () => touched,
+  music: () => NP && st(NP).state === 'playing' && !/video|movie|tvshow|channel/.test(st(NP).attributes.media_content_type),   // Filme/TV ohne device_class tv nicht als Musik
   onState: st => conn?.sendMessagePromise({ type: 'homeblick/report', display: DISPLAY, ...st, info: info() }).catch(() => {}) });
+camInit($('#cam'), { open, close, view: () => cur?.view, hass: HASS, wake: () => kiosk.wake(), sound: () => CFG.chime ? CFG.volume / 100 : 0 });
 // Laufender Zustand für die Einstellungsseite (Mikro braucht https, Wake Word hält es offen, Wake Lock hält den Bildschirm an)
 const INFO = { wake: null };
 const info = () => ({ secure: isSecureContext, mic: voiceOK(), wake: INFO.wake, wakelock: kiosk.wakeLock(), visible: document.visibilityState === 'visible', w: innerWidth, h: innerHeight });
@@ -1774,13 +1799,18 @@ setTimeout(() => { tick(); setInterval(tick, 60000); }, 60050 - Date.now() % 600
 setInterval(times, 1000);
 document.addEventListener('visibilitychange', tick);
 
-// Verbindung: in Kiosk Satellite über dessen Socket (kein Token in der Seite), sonst HA-Login (OAuth) einmalig, Tokens im localStorage
+// Verbindung: in Kiosk Satellite über dessen Socket (kein Token in der Seite), im HA-Panel (iframe) die des HA-Frontends,
+// sonst HA-Login (OAuth) einmalig, Tokens im localStorage
 const KS = window.kioskSatellite?.platform === 'kiosksatellite' ? window.kioskSatellite : null;
+// Gleicher Origin im Sidebar-Panel → Login des HA-Frontends (window.parent.hassConnection) mitnutzen: kein zweiter Login, kein eigenes Refresh-Token.
+// Nur die Auth, nicht dessen Socket: den trennt das HA-Frontend, sobald die Seite verdeckt ist (Display wäre offline)
+const PARENT = (() => { try { return !KS && parent !== window && parent.hassConnection || null; } catch { return null; } })();
 if (LIVE) {
   // ponytail: Bibliothek vom CDN; für den Kiosk ohne Internet lokal ablegen
   const ha = await import('https://cdn.jsdelivr.net/npm/home-assistant-js-websocket@9.7.1/+esm');
   try {
-    if (KS) {
+    if (PARENT) conn = await ha.createConnection({ auth: (await PARENT).auth, setupRetry: -1 });
+    else if (KS) {
       // setupRetry greift bei eigenem createSocket nicht → ersten Versuch selbst wiederholen (HA bootet)
       for (let i = 1; !conn; i++) {
         try { conn = await ha.createConnection({ createSocket: KS.ha.createSocket }); }
@@ -1797,23 +1827,39 @@ if (LIVE) {
     }
     // Display anmelden: eigene Konfiguration + Kiosk-Einstellungen aus HA; ohne gespeicherte Konfiguration bleibt die lokale und wird hochgeladen
     const hello = conn.sendMessagePromise({ type: 'homeblick/register', display: DISPLAY, name: new URLSearchParams(location.search).get('name') || undefined }).then(c => {
-      CONF.kiosk = c.kiosk; applyK(c.kiosk);
+      CONF.kiosk = c.kiosk; applyK(c.kiosk); CFG.device = c.device_id || '';
       if (c.config?.faces?.length) { CONF = { ...c.config, kiosk: c.kiosk }; try { localStorage.setItem(KEY, JSON.stringify(CONF)); } catch {} renderAll(0); }
       else save();
     }).catch(console.warn);
     ha.subscribeEntities(conn, e => { ents = e; schedule(); });
+    // Fehler des Panels ins HA-Protokoll und auf die Einstellungsseite (gleiche Meldung höchstens einmal pro Minute)
+    const seenErr = new Map();
+    const report = (level, m) => {
+      m = String(m).slice(0, 1000); const t = Date.now();
+      if (t - (seenErr.get(m) || 0) < 60000) return;
+      if (seenErr.size > 100) seenErr.clear();
+      seenErr.set(m, t); hello.then(() => conn.sendMessagePromise({ type: 'homeblick/log', display: DISPLAY, level, message: m })).catch(() => {});
+    };
+    addEventListener('error', e => report('error', `${e.message} (${(e.filename || '').split('/').pop()}:${e.lineno})`));
+    addEventListener('unhandledrejection', e => report('error', e.reason?.message ?? e.reason));
+    for (const [k, level] of [['warn', 'warning'], ['error', 'error']]) {
+      const o = console[k].bind(console);
+      console[k] = (...a) => { o(...a); report(level, a.map(x => x?.message ?? x).join(' ')); };
+    }
     // Befehle und geänderte Einstellungen aus HA (Entities des Displays)
     hello.then(() => conn.subscribeMessage(c => {
       if (c.kiosk) { const w = [CFG.weather, CFG.place]; CONF.kiosk = c.kiosk; applyK(c.kiosk); if ([CFG.weather, CFG.place] + '' !== w + '') return location.reload(); wk(); }
       else if (c.config?.faces?.length) { const i = curIdx(); CONF = { ...c.config, kiosk: CONF.kiosk }; try { localStorage.setItem(KEY, JSON.stringify(CONF)); } catch {} renderAll(Math.min(i, CONF.faces.length - 1)); }
-      else if (c.action === 'face' && c.face) location.hash = c.face;
+      else if (c.action === 'face' && c.face) kiosk.show(c.face);
       else if (c.action === 'reload') location.reload();
       else if (c.action === 'screensaver') kiosk.sleep();
       else if (c.action === 'wake') kiosk.wake();
       else if (c.action === 'screenshot') shot().then(image => conn.sendMessagePromise({ type: 'homeblick/shot', display: DISPLAY, image })).catch(console.warn);
       else if (c.action === 'assist') { kiosk.wake(); assistStart(); }
       else if (c.action === 'stop') { try { speechSynthesis.cancel(); } catch {} assistEnd(); }
-      else if (c.action === 'announce' && c.message) { kiosk.wake(); announce(c.message); }
+      else if (c.action === 'announce' && c.message) { kiosk.wake(); announce(c.message, c.title); }
+      else if (c.action === 'camera' && c.camera) { kiosk.wake(); camOpen(c.camera, c.duration); }
+      else if (c.action === 'camera_close' && cur?.view.id === 'cam' && !camRinging()) close();   // Klingel nicht wegschließen
     }, { type: 'homeblick/subscribe', display: DISPLAY })).then(() => { wk(); kiosk.report(); conn.addEventListener('ready', () => kiosk.report()); setInterval(() => kiosk.report(), 30000); }).catch(console.warn);
     // Wake Word nur auf Wunsch (CONF.kiosk.wake): Mikrofon bleibt dann dauerhaft offen
     let wkCtl, wkModel;
@@ -1824,7 +1870,7 @@ if (LIVE) {
       if (m && voiceOK()) wkCtl = await wakeInit({ model: m, onWake: () => {
         kiosk.wake();
         // Barge-in: Wake Word während der Antwort bricht sie ab und hört neu zu
-        if (CFG.barge && AS.className === 'answer' && voice) { asT.forEach(clearTimeout); voice.stop(); AS.className = 'listen'; assistVoice(); return; }
+        if (CFG.barge && AS.className === 'answer' && voice) { voice.stop(); relisten(); assistVoice(); return; }
         assistStart();
         return new Promise(r => { const t = setInterval(() => (!AS.className || (CFG.barge && AS.className === 'answer')) && (clearInterval(t), r()), 300); });
       } }).catch(e => console.warn('Wake Word', e));

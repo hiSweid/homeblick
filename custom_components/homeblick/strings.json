@@ -61,6 +61,12 @@
       },
       "barge": {
         "name": "Wake word interrupts reply"
+      },
+      "music": {
+        "name": "Music instead of screensaver"
+      },
+      "chime": {
+        "name": "Doorbell chime"
       }
     },
     "button": {
@@ -111,6 +117,46 @@
       "resolution": {
         "name": "Resolution"
       }
+    },
+    "notify": {
+      "announce": {
+        "name": "Announcement"
+      }
+    }
+  },
+  "services": {
+    "show_camera": {
+      "name": "Show camera",
+      "description": "Opens a camera full screen on the display, e.g. on motion.",
+      "fields": {
+        "display": {
+          "name": "Display",
+          "description": "Homeblick displays (only open ones react)."
+        },
+        "camera": {
+          "name": "Camera",
+          "description": "Camera to show."
+        },
+        "duration": {
+          "name": "Duration",
+          "description": "Closes after this many seconds; 0 keeps it open until someone closes it."
+        }
+      }
+    },
+    "hide_camera": {
+      "name": "Hide camera",
+      "description": "Closes the full-screen camera on the display.",
+      "fields": {
+        "display": {
+          "name": "Display",
+          "description": "Homeblick displays."
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "no_display": {
+      "message": "The selected device is not a Homeblick display."
     }
   }
 }

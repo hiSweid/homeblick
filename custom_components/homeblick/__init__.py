@@ -1,17 +1,21 @@
 """Homeblick: wall-display panel for Home Assistant. Every display has its own layout, settings and entities."""
+import logging
 from pathlib import Path
 
 import voluptuous as vol
 from homeassistant.components import frontend, websocket_api
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import HomeAssistant, ServiceCall, callback
+from homeassistant.exceptions import ServiceValidationError
+from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.device_registry import DeviceEntry
 from homeassistant.util import dt as dt_util
 
 from .const import DEFAULTS, DOMAIN, FACES, PLATFORMS, URL, WAKE
 from .hub import Hub
 
+_LOGGER = logging.getLogger(__name__)
 DISPLAY = {vol.Required("display"): str}
 
 
@@ -28,7 +32,7 @@ async def register(hass, connection, msg):
     """Display meldet sich an (legt sich beim ersten Mal an) und bekommt seine Konfiguration."""
     hub = hass.data[DOMAIN]
     d = await hub.ensure(msg["display"], msg.get("name"))
-    connection.send_result(msg["id"], {"config": hub.config(d.id), "kiosk": d.kiosk()})
+    connection.send_result(msg["id"], {"config": hub.config(d.id), "kiosk": d.kiosk(), "device_id": hub.device_id(d)})
 
 
 @websocket_api.websocket_command({vol.Required("type"): "homeblick/set_config", **DISPLAY, vol.Required("config"): dict})
@@ -49,7 +53,13 @@ def subscribe(hass, connection, msg):
         connection.send_result(msg["id"])
 
 
-@websocket_api.websocket_command({vol.Required("type"): "homeblick/report", **DISPLAY, vol.Required("face"): vol.Any(str, None), vol.Required("saver"): bool, vol.Optional("info"): dict})
+# Laufzustand des Panels (landet im HTML der Einstellungsseite und in der Diagnose) → feste Felder statt beliebigem dict
+INFO = vol.Schema({vol.Optional("secure"): bool, vol.Optional("mic"): bool, vol.Optional("wake"): vol.Any(None, vol.All(str, vol.Length(max=40))),
+                   vol.Optional("wakelock"): bool, vol.Optional("visible"): bool, vol.Optional("w"): vol.All(int, vol.Range(min=0, max=20000)),
+                   vol.Optional("h"): vol.All(int, vol.Range(min=0, max=20000))}, extra=vol.REMOVE_EXTRA)
+
+
+@websocket_api.websocket_command({vol.Required("type"): "homeblick/report", **DISPLAY, vol.Required("face"): vol.Any(vol.All(str, vol.Length(max=40)), None), vol.Required("saver"): bool, vol.Optional("info"): INFO})
 @callback
 def report(hass, connection, msg):
     if d := _display(hass, connection, msg):
@@ -68,11 +78,25 @@ def shot(hass, connection, msg):
         connection.send_result(msg["id"])
 
 
+@websocket_api.websocket_command({vol.Required("type"): "homeblick/log", **DISPLAY, vol.Required("level"): vol.In(["error", "warning"]), vol.Required("message"): vol.All(str, vol.Length(max=1000))})
+@callback
+def log(hass, connection, msg):
+    """Fehler/Warnungen aus dem Browser des Displays → HA-Protokoll und Einstellungsseite."""
+    if d := _display(hass, connection, msg):
+        now = dt_util.utcnow()
+        recent = [x for x in d.logs if (now - dt_util.parse_datetime(x["t"])).total_seconds() < 60]
+        if len(recent) < 20:   # Schutz vor Fehlerschleifen im Panel
+            d.logs.append({"t": now.isoformat(), "level": msg["level"], "message": msg["message"]})
+            _LOGGER.log(logging.ERROR if msg["level"] == "error" else logging.WARNING, "Display %s: %s", d.name, msg["message"])
+        connection.send_result(msg["id"])
+
+
 # ---- Einstellungsseite (admin.html, nur Administratoren) ----
 _time = vol.Match(r"^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$")
 SETTINGS = vol.Schema({
     vol.Optional("idle"): vol.All(int, vol.Range(min=0, max=3600)),
     vol.Optional("saver"): vol.In(FACES),
+    vol.Optional("music"): bool,
     vol.Optional("dim"): bool,
     vol.Optional("dim_from"): _time,
     vol.Optional("dim_to"): _time,
@@ -85,6 +109,7 @@ SETTINGS = vol.Schema({
     vol.Optional("volume"): vol.All(int, vol.Range(min=0, max=100)),
     vol.Optional("bright"): vol.All(int, vol.Range(min=10, max=100)),
     vol.Optional("tts"): vol.Any("", vol.Match(r"^tts\.\w+$")),
+    vol.Optional("chime"): bool,
     vol.Optional("weather"): vol.Match(r"^weather\.\w+$"),
     vol.Optional("place"): vol.All(str, vol.Length(max=40)),
 })
@@ -97,7 +122,7 @@ assert set(DEFAULTS) == {k.schema for k in SETTINGS.schema}
 def displays(hass, connection, msg):
     hub = hass.data[DOMAIN]
     connection.send_result(msg["id"], [
-        {"id": d.id, "name": d.name, "connected": d.connected, "face": d.face, "saver": d.saver, "settings": d.settings, "info": d.info, "seen": d.seen,
+        {"id": d.id, "name": d.name, "connected": d.connected, "face": d.face, "saver": d.saver, "settings": d.settings, "info": d.info, "seen": d.seen, "logs": list(d.logs)[-10:],
          "faces": [{"type": f.get("type"), "bg": f.get("bg")} for f in (hub.config(d.id) or {}).get("faces", [])]}
         for d in hub.displays.values()])
 
@@ -155,12 +180,45 @@ async def remove(hass, connection, msg):
         connection.send_result(msg["id"])
 
 
+# ---- Dienste für Automationen ----
+CAMERA = vol.Schema({vol.Required("display"): vol.All(cv.ensure_list, [str]), vol.Required("camera"): cv.entity_domain("camera"),
+                     vol.Optional("duration", default=60): vol.All(vol.Coerce(int), vol.Range(min=0, max=3600))})
+HIDE = vol.Schema({vol.Required("display"): vol.All(cv.ensure_list, [str])})
+
+
+def _targets(hass, call: ServiceCall):
+    hub = hass.data[DOMAIN]
+    ds = [hub.by_device(i) for i in call.data["display"]]
+    if None in ds:
+        raise ServiceValidationError(translation_domain=DOMAIN, translation_key="no_display")
+    return hub, ds
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    hub = hass.data[DOMAIN] = Hub(hass)
+    old = hass.data.get(DOMAIN)
+    hub = hass.data[DOMAIN] = Hub(hass, entry.entry_id)
     await hub.load()
-    for cmd in (register, set_config, subscribe, report, shot, displays, get_shot, get_config, update, admin_config, command, remove):
+    if old:   # Integration neu geladen: offene Panels (WebSocket-Abos) und Laufzustand übernehmen, sonst hängen sie am alten Hub
+        for i, d in hub.displays.items():
+            if o := old.displays.get(i):
+                d.links, d.logs, d.face, d.saver, d.info, d.seen, d.shot = o.links, o.logs, o.face, o.saver, o.info, o.seen, o.shot
+    for cmd in (register, set_config, subscribe, report, shot, log, displays, get_shot, get_config, update, admin_config, command, remove):
         websocket_api.async_register_command(hass, cmd)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+
+    async def show_camera(call: ServiceCall) -> None:
+        """Kamera im Vollbild öffnen (z. B. bei Bewegung); duration 0 = bis jemand schließt. Geschlossene Displays überspringt der Dienst."""
+        hub, ds = _targets(hass, call)
+        for d in ds:
+            hub.push(d, {"action": "camera", "camera": call.data["camera"], "duration": call.data["duration"]})
+
+    async def hide_camera(call: ServiceCall) -> None:
+        hub, ds = _targets(hass, call)
+        for d in ds:
+            hub.push(d, {"action": "camera_close"})
+
+    hass.services.async_register(DOMAIN, "show_camera", show_camera, CAMERA)
+    hass.services.async_register(DOMAIN, "hide_camera", hide_camera, HIDE)
 
     if not hass.data.get(f"{DOMAIN}_static"):   # Pfad lässt sich nach Reload nicht erneut registrieren
         await hass.http.async_register_static_paths(
@@ -191,6 +249,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     frontend.async_remove_panel(hass, DOMAIN)
     frontend.async_remove_panel(hass, f"{DOMAIN}-settings")
+    for service in ("show_camera", "hide_camera"):
+        hass.services.async_remove(DOMAIN, service)
     return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
 

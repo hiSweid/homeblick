@@ -1,0 +1,29 @@
+show_camera:
+  fields:
+    display:
+      required: true
+      selector:
+        device:
+          integration: homeblick
+          multiple: true
+    camera:
+      required: true
+      selector:
+        entity:
+          domain: camera
+    duration:
+      default: 60
+      selector:
+        number:
+          min: 0
+          max: 3600
+          unit_of_measurement: s
+          mode: box
+hide_camera:
+  fields:
+    display:
+      required: true
+      selector:
+        device:
+          integration: homeblick
+          multiple: true

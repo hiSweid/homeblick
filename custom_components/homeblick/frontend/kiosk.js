@@ -6,8 +6,8 @@ const mins = s => { const [h, m] = s.split(':'); return h * 60 + +m; };
 export const inWindow = (now, from, to) => from <= to ? now >= from && now < to : now >= from || now < to;   // über Mitternacht erlaubt
 
 // faces: Scroll-Container, conf: () => CONF, busy: () => Bearbeiten/Vollbild/Assist aktiv, touched: () => letzte Berührung (ms),
-// onState({ face, saver }) bei Änderung (Meldung an HA)
-export function kioskInit({ faces, conf, busy, touched, onState }) {
+// onState({ face, saver }) bei Änderung (Meldung an HA), music: () => läuft Musik (dann Musik-Face statt Schoner, Einstellung „music“)
+export function kioskInit({ faces, conf, busy, touched, onState, music }) {
   const cfg = () => ({ ...KIOSK_DEF, ...conf().kiosk });
   const idx = () => Math.round(faces.scrollLeft / faces.clientWidth);
   const goto = (i, behavior = 'smooth') => faces.scrollTo({ left: i * faces.clientWidth, behavior });
@@ -26,7 +26,8 @@ export function kioskInit({ faces, conf, busy, touched, onState }) {
   const wake = () => { last = Date.now(); if (back < 0) return false; goto(back); back = -1; return true; };
   document.addEventListener('pointerdown', e => { if (wake()) { e.stopPropagation(); e.preventDefault(); } }, true);
 
-  const saver = () => faces.children.length && [...faces.children].findIndex(f => f.classList.contains('f-' + cfg().saver));
+  const find = t => [...faces.children].findIndex(f => f.classList.contains('f-' + t));
+  const saver = () => { const m = cfg().music !== false && music?.() ? find('music') : -1; return m >= 0 ? m : find(cfg().saver); };
 
   const sleep = () => { const s = saver(); if (back < 0 && s >= 0 && s !== idx()) { back = idx(); goto(s); } };
 
@@ -34,6 +35,8 @@ export function kioskInit({ faces, conf, busy, touched, onState }) {
     const { idle, dim, bright } = cfg(), now = new Date();
     if (idle && back < 0 && !busy() && Date.now() - Math.max(last, touched()) > idle * 1000) {
       sleep();
+    } else if (back >= 0 && !busy()) {   // im Schoner: Musik startet/endet → passendes Face
+      const s = saver(); if (s >= 0 && s !== idx()) goto(s);
     }
     const face = faces.children[idx()]?.className.match(/f-(\w+)/)?.[1] ?? null;
     if (onState && (face !== st.face || (back >= 0) !== st.saver)) onState(st = { face, saver: back >= 0 });
@@ -42,9 +45,11 @@ export function kioskInit({ faces, conf, busy, touched, onState }) {
   }, 1000);
 
   // Face per URL-Fragment (z. B. HA-Automation / Dashboard-Link): #music, #bigclock …
-  const byHash = () => { const i = [...faces.children].findIndex(f => f.classList.contains('f-' + location.hash.slice(1))); if (i >= 0) goto(i); };
+  // Gewähltes Face beendet den Screensaver (sonst holt ihn der Schoner-Tick zurück)
+  const show = t => { const i = find(t); if (i < 0) return; back = -1; last = Date.now(); goto(i); };
+  const byHash = () => show(location.hash.slice(1));
   addEventListener('hashchange', byHash); if (location.hash) byHash();
-  return { wake, sleep, report: () => onState?.(st), wakeLock: () => !!wl && !wl.released };   // wake: Screensaver beenden (Wake Word, HA-Befehl), sleep: sofort starten, report: Zustand erneut melden
+  return { wake, sleep, show, report: () => onState?.(st), wakeLock: () => !!wl && !wl.released };   // wake: Screensaver beenden (Wake Word, HA-Befehl), sleep: sofort starten, show: Face zeigen (HA-Befehl), report: Zustand erneut melden
 }
 
 // Selbsttest: node kiosk.js

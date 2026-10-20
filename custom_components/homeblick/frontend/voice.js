@@ -20,9 +20,10 @@ export async function openMic(onFrame) {
   return { stop: () => { stream.getTracks().forEach(t => t.stop()); ctx.close().catch(() => {}); } };
 }
 
-// h: { onThink(text?), onAnswer(text), onEnd(), onError(msg), base, pipeline? } → { stop() }
+// h: { onThink(text?), onAnswer(text), onEnd(next?), onError(msg), base, pipeline?, device?, conversation? } → { stop() }
+// device = HA-Geräte-ID des Displays (Raum für „Licht an“); next = { conversation } wenn der Agent eine Rückfrage stellt
 export async function voiceRun(conn, h) {
-  let mic, unsub, audio, id, sent = false, dead = false;
+  let mic, unsub, audio, id, next, sent = false, dead = false;
   const cleanup = () => { dead = true; mic?.stop(); unsub?.(); audio?.pause(); clearTimeout(cap); };
   const endAudio = () => { if (sent || id == null) return; sent = true; conn.socket.send(new Uint8Array([id])); mic?.stop(); };
   const cap = setTimeout(endAudio, (h.listen || 15) * 1000);   // ponytail: Zeitlimit statt eigener VAD; HA meldet das Sprechende meist früher (stt-vad-end)
@@ -34,16 +35,24 @@ export async function voiceRun(conn, h) {
       if (ev.type === 'run-start') id = d.runner_data.stt_binary_handler_id;
       else if (ev.type === 'stt-vad-end') { endAudio(); h.onThink(); }
       else if (ev.type === 'stt-end') { endAudio(); h.onThink(d.stt_output?.text); }
-      else if (ev.type === 'intent-end') h.onAnswer(d.intent_output?.response?.speech?.plain?.speech || '');
+      else if (ev.type === 'intent-end') {
+        const o = d.intent_output;
+        if (o?.continue_conversation) next = { conversation: o.conversation_id };
+        h.onAnswer(o?.response?.speech?.plain?.speech || '');
+      }
       else if (ev.type === 'tts-end') {
-        if (h.mute) { cleanup(); return h.onEnd(); }   // stumm: Text erscheint, kein Ton
+        if (h.mute) { cleanup(); return h.onEnd(next); }   // stumm: Text erscheint, kein Ton
         audio = new Audio(h.base + d.tts_output.url);
         audio.volume = (h.volume ?? 100) / 100;
-        audio.onended = audio.onerror = () => { cleanup(); h.onEnd(); };
-        audio.play().catch(() => { cleanup(); h.onEnd(); });
-      } else if (ev.type === 'error') fail(d.message || d.code);
-      else if (ev.type === 'run-end' && !audio) { cleanup(); h.onEnd(); }
-    }, { type: 'assist_pipeline/run', start_stage: 'stt', end_stage: 'tts', input: { sample_rate: 16000 }, ...(h.pipeline && { pipeline: h.pipeline }) });
+        audio.onended = audio.onerror = () => { cleanup(); h.onEnd(next); };
+        audio.play().catch(() => { cleanup(); h.onEnd(next); });
+      } else if (ev.type === 'error') {
+        if (h.conversation && d.code === 'stt-no-text-recognized') { cleanup(); h.onEnd(); }   // Rückfrage ohne Antwort: still schließen
+        else fail(d.message || d.code);
+      }
+      else if (ev.type === 'run-end' && !audio) { cleanup(); h.onEnd(next); }
+    }, { type: 'assist_pipeline/run', start_stage: 'stt', end_stage: 'tts', input: { sample_rate: 16000 },
+      ...(h.pipeline && { pipeline: h.pipeline }), ...(h.device && { device_id: h.device }), ...(h.conversation && { conversation_id: h.conversation }) });
   } catch (e) { fail(e.message || String(e)); }
   return { stop: cleanup };
 }

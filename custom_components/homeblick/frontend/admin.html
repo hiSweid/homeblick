@@ -240,9 +240,11 @@ function liveHTML(d) {
     row('Mikrofon', i.mic ? 'Verfügbar' : i.secure === false ? 'Braucht https' : 'Nicht verfügbar', !!i.mic),
     row('Wake Word', i.wake ? 'Hört zu · ' + esc(i.wake.replace(/_v.*/, '')) : 'Aus', !!i.wake),
     row('Bildschirm wach', i.wakelock ? 'Aktiv' : i.secure === false ? 'Braucht https' : 'Aus', !!i.wakelock),
-    row('Fenster', i.w ? `${i.w} × ${i.h}${i.visible === false ? ' · verdeckt' : ''}` : '–'),
+    row('Fenster', i.w ? `${esc(i.w)} × ${esc(i.h)}${i.visible === false ? ' · verdeckt' : ''}` : '–'),
     row('Zuletzt gesehen', ago(d.seen)),
-  ].join('') : row('Noch nie verbunden', '–'), 'Zustand des geöffneten Displays, alle 30 Sekunden aktualisiert.');
+  ].join('') : row('Noch nie verbunden', '–'), 'Zustand des geöffneten Displays, alle 30 Sekunden aktualisiert.')
+    + (d.logs?.length ? grp('Letzte Fehler', d.logs.slice().reverse().map(m => `<div class="row"><span class="l two"><b>${esc(m.message)}</b><small>${m.level === 'error' ? 'Fehler' : 'Warnung'} · ${ago(m.t)}</small></span></div>`).join(''),
+      'Stehen auch im Home-Assistant-Protokoll. Diagnose: Gerät des Displays → ⋮ → Diagnose herunterladen.') : '');
 }
 
 function listHTML() {
@@ -271,18 +273,19 @@ const pages = {
       ${grp('', field('Name', 'name', d.name))}
       <div class="sec"><div class="grp"><div class="quick">${[['reload', 'Neu laden', 'refresh'], ['assist', 'Assist', 'mic'], ['stop', 'Abbrechen', 'x'], ['screensaver', 'Ruhemodus', 'moon'], ['wake', 'Aufwecken', 'sun']].map(([c, n, i]) => `<button class="q" data-c="${c}" ${d.connected ? '' : 'disabled'}><span class="qi">${svg(i, '')}</span>${n}</button>`).join('')}</div>
         ${pick('Face anzeigen', 'show', [['', 'Wählen …'], ...TYPES], '', 'data-show')}</div><div class="sf">Die Steuerung geht, solange das Display geöffnet ist.</div></div>
-      ${grp('Ansage', field('Text', 'say', '', 'placeholder="Das Essen ist fertig" maxlength="300"', 'data-say') + `<button class="row btn c" data-a="say" ${d.connected ? '' : 'disabled style="opacity:.4"'}>Auf dem Display ansagen</button>`, 'Erscheint als Text und wird mit der Browser-Stimme gesprochen (außer bei „Antworten stumm“).')}
+      ${grp('Ansage', field('Text', 'say', '', 'placeholder="Das Essen ist fertig" maxlength="300"', 'data-say') + `<button class="row btn c" data-a="say" ${d.connected ? '' : 'disabled style="opacity:.4"'}>Auf dem Display ansagen</button>`, 'Erscheint als Text und wird gesprochen (außer bei „Antworten stumm“). In Automationen: Aktion „Benachrichtigung senden“ (notify.send_message) an die Durchsage-Entity des Displays.')}
       ${grp('Vorschau', `<button class="row btn c" data-a="shot" ${d.connected ? '' : 'disabled style="opacity:.4"'}>Bildschirmfoto aufnehmen</button>${shots[d.id] ? `<img class="shot" src="${shots[d.id]}" alt="">` : ''}`, 'Bilder von fremden Servern, Kamera-Video und WebGL fehlen im Foto.')}
       ${grp(`<span>Anzeige</span>${faces ? `<button data-a="edit">${editing ? 'Fertig' : 'Bearbeiten'}</button>` : ''}`,
         faces ? faces.map(face).join('') + `<button class="row btn" data-a="add">${svg('plus', 'plus')}<span class="l">Face hinzufügen</span></button>` : `<div class="row"><span class="l" style="color:var(--sec)">Noch keine Konfiguration. Öffne Homeblick einmal auf dem Gerät.</span></div>`,
         'Tippe ein Face, um Hintergrund, Stil und Kacheln einzustellen. Änderungen erscheinen sofort auf dem Display.')}
-      ${grp('Bildschirmschoner', field('Nach Inaktivität (s)', 'idle', s.idle, 'type="number" inputmode="numeric" min="0" max="3600" step="10"') + pick('Face', 'saver', TYPES, s.saver), '0 schaltet den Bildschirmschoner aus.')}
+      ${grp('Bildschirmschoner', field('Nach Inaktivität (s)', 'idle', s.idle, 'type="number" inputmode="numeric" min="0" max="3600" step="10"') + pick('Face', 'saver', TYPES, s.saver) + toggle('Musik statt Bildschirmschoner', 'music', s.music), '0 schaltet den Bildschirmschoner aus. Läuft Musik, erscheint stattdessen das Musik-Face.')}
       ${grp('Helligkeit', slider('Helligkeit', 'bright', 10, 100, 5, s.bright), 'Software-Abdunklung, keine Hardware-Helligkeit.')}
       ${grp('Nachtmodus', toggle('Nachts abdunkeln', 'dim', s.dim) + `<div class="dep ${s.dim ? '' : 'off'}" id="dimdep"><div>
         <label class="row"><span class="l">Von</span><input type="time" data-s="dim_from" value="${esc(s.dim_from.slice(0, 5))}"></label>
         <label class="row"><span class="l">Bis</span><input type="time" data-s="dim_to" value="${esc(s.dim_to.slice(0, 5))}"></label>
         ${slider('Stärke', 'dim_level', 10, 95, 5, s.dim_level)}</div></div>`, 'Ein Tipp hellt das Display für 30 Sekunden auf.')}
-      ${grp('Sprache', pick('Wake Word', 'wake', WAKE, s.wake) + toggle('Antworten stumm', 'mute', s.mute) + toggle('Wake Word unterbricht Antwort', 'barge', s.barge) + slider('Lautstärke der Antworten', 'volume', 0, 100, 5, s.volume) + field('Aufnahme-Zeitlimit (s)', 'listen', s.listen, 'type="number" inputmode="numeric" min="3" max="60"') + pick('Stimme für Ansagen', 'tts', [['', 'Browser-Stimme'], ...ttss], s.tts) + pick('Assist-Pipeline', 'pipeline', [['', 'Standard von Home Assistant'], ...pipelines], s.pipeline), 'Ein Wake Word hält das Mikrofon dauerhaft offen und braucht https. „Stumm“ zeigt Antworten nur als Text.')}
+      ${grp('Sprache', pick('Wake Word', 'wake', WAKE, s.wake) + toggle('Antworten stumm', 'mute', s.mute) + toggle('Wake Word unterbricht Antwort', 'barge', s.barge) + slider('Lautstärke der Antworten', 'volume', 0, 100, 5, s.volume) + field('Aufnahme-Zeitlimit (s)', 'listen', s.listen, 'type="number" inputmode="numeric" min="3" max="60"') + pick('Stimme für Ansagen', 'tts', [['', 'Browser-Stimme'], ...ttss], s.tts) + pick('Assist-Pipeline', 'pipeline', [['', 'Standard von Home Assistant'], ...pipelines], s.pipeline), 'Ein Wake Word hält das Mikrofon dauerhaft offen und braucht https. „Stumm“ zeigt Antworten nur als Text. Damit „Licht an“ den richtigen Raum trifft, dem Gerät des Displays in Home Assistant einen Bereich geben.')}
+      ${grp('Klingel', toggle('Gong beim Klingeln', 'chime', s.chime), 'Klingeln weckt das Display und öffnet die Türkamera. Lautstärke wie bei den Antworten; Ton erst, nachdem das Display einmal berührt wurde (Browser-Regel).')}
       ${grp('Wetter', pick('Wetter-Entity', 'weather', weathers.some(w => w[0] === s.weather) ? weathers : [...weathers, [s.weather, s.weather + ' (nicht gefunden)']], s.weather) + field('Ortsname', 'place', s.place))}
       <div id="liveGrp">${liveHTML(d)}</div>
       ${grp('Verwalten', pick('Konfiguration übernehmen von', 'copy', [['', 'Display wählen …'], ...displays.filter(x => x.id !== sel).map(x => [x.id, x.name])], '', 'data-copy') + `<button class="row red c" data-a="rm">Display entfernen</button>`)}`;
@@ -446,6 +449,9 @@ async function copyFrom(id, selEl) {
 
 // ---- Verbindung & Start ----
 async function connect() {
+  // Im HA-Panel die Verbindung des HA-Frontends (gleicher Origin) statt eines zweiten Logins
+  const p = (() => { try { return parent !== window && parent.hassConnection; } catch { return null; } })();
+  if (p) return (await p).conn;
   const ha = await import('https://cdn.jsdelivr.net/npm/home-assistant-js-websocket@9.7.1/+esm');
   const auth = await ha.getAuth({ hassUrl: location.origin, saveTokens: t => localStorage.hassTokens = JSON.stringify(t), loadTokens: async () => JSON.parse(localStorage.hassTokens || 'null') });
   if (location.search.includes('auth_callback')) history.replaceState(null, '', location.pathname);
@@ -455,7 +461,7 @@ async function poll() {   // Status nachführen, ohne Formulare neu zu zeichnen
   const n = await call('displays').catch(() => null);
   if (!n) return;
   if (n.length !== displays.length) return reload();
-  n.forEach(x => Object.assign(displays.find(d => d.id === x.id) || {}, { connected: x.connected, face: x.face, saver: x.saver, info: x.info, seen: x.seen }));
+  n.forEach(x => Object.assign(displays.find(d => d.id === x.id) || {}, { connected: x.connected, face: x.face, saver: x.saver, info: x.info, seen: x.seen, logs: x.logs }));
   renderSide();
   const d = cur(); if (!d) return;
   pane().querySelectorAll('[data-live=stat]').forEach(x => x.textContent = stat(d));

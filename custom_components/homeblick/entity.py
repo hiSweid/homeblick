@@ -1,8 +1,9 @@
-"""Entities je Display: Steuerung (Face, Screensaver, Neu laden, Assist) und Konfiguration (Screensaver, Dimmen, Wake Word)."""
+"""Entities je Display: Steuerung (Face, Screensaver, Neu laden, Assist, Durchsage) und Konfiguration (Screensaver, Dimmen, Wake Word)."""
 from datetime import time
 
 from homeassistant.components.binary_sensor import BinarySensorDeviceClass, BinarySensorEntity
 from homeassistant.components.button import ButtonEntity
+from homeassistant.components.notify import NotifyEntity, NotifyEntityFeature
 from homeassistant.components.number import NumberEntity, NumberMode
 from homeassistant.components.select import SelectEntity
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
@@ -76,6 +77,17 @@ class ScreensaverSwitch(Live, SwitchEntity):
 class ActionButton(Live, ButtonEntity):
     async def async_press(self) -> None:
         self.hub.push(self.d, {"action": self.key})
+
+
+class Announce(Live, NotifyEntity):
+    """notify.send_message → Durchsage auf dem Display (Text in der Kugel, gesprochen mit der Stimme des Displays)."""
+    _attr_supported_features = NotifyEntityFeature.TITLE
+
+    def __init__(self, hub, d):
+        super().__init__(hub, d, "announce")
+
+    async def async_send_message(self, message: str, title: str | None = None) -> None:
+        self.hub.push(self.d, {"action": "announce", "message": message[:300], **({"title": title[:80]} if title else {})})
 
 
 class Online(Live, BinarySensorEntity):
@@ -183,13 +195,15 @@ class SettingTime(Base, TimeEntity):
 # Plattform → Entities eines Displays
 FACTORY = {
     "select": lambda h, d: [FaceSelect(h, d), SettingSelect(h, d, "saver", FACES), SettingSelect(h, d, "wake", WAKE)],
-    "switch": lambda h, d: [ScreensaverSwitch(h, d), SettingSwitch(h, d, "dim"), SettingSwitch(h, d, "mute"), SettingSwitch(h, d, "barge")],
+    "switch": lambda h, d: [ScreensaverSwitch(h, d), SettingSwitch(h, d, "dim"), SettingSwitch(h, d, "mute"), SettingSwitch(h, d, "barge"),
+                         SettingSwitch(h, d, "music"), SettingSwitch(h, d, "chime")],
     "button": lambda h, d: [ActionButton(h, d, "reload"), ActionButton(h, d, "assist")],
     "number": lambda h, d: [SettingNumber(h, d, "idle", 0, 3600, 10, "s"), SettingNumber(h, d, "dim_level", 10, 95, 5, "%"),
                          SettingNumber(h, d, "listen", 3, 60, 1, "s"), SettingNumber(h, d, "volume", 0, 100, 5, "%"), SettingNumber(h, d, "bright", 10, 100, 5, "%")],
     "binary_sensor": lambda h, d: [Online(h, d)],
     "sensor": lambda h, d: [Seen(h, d), ShownFace(h, d), Resolution(h, d)],
     "time": lambda h, d: [SettingTime(h, d, "dim_from"), SettingTime(h, d, "dim_to")],
+    "notify": lambda h, d: [Announce(h, d)],
 }
 assert set(FACTORY) == set(PLATFORMS)
 

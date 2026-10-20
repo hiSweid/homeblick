@@ -1,6 +1,7 @@
 // Türklingel + Video-Überwachung. Vollbild =  t = 43,4 s („Front Door / Live“, unten rot ✕ / gelb Mic / Glas-Raster).
 // Video kommt aus dem go2rtc von Frigate (WebRTC, sonst MSE) — nie direkt von der Hikvision (verträgt nur wenige Sitzungen).
 // Funktion haben nur ✕ (schließt die Ansicht) und Licht (data-act="toggle" → TAP.light in index.html); Mic, Raster, Öffner, Antworten noch nicht (Wunsch 2026-10-19).
+// Klingeln weckt das Display und spielt einen Gong (Einstellung „Gong beim Klingeln“, Lautstärke = Antworten).
 
 const GO2RTC = '', FRIGATE = '';
 // Entity → Name, go2rtc-/Frigate-Kamera (ohne src: HA-Bild, nur mit ?live), Licht davor, bell = Türklingel (Mic, Öffner, Antworten)
@@ -60,7 +61,7 @@ async function feed(box, e, s, cb, vis = 0) {
 }
 
 // ---------- Vollbild ----------
-let V, api, notch, HASS = '', stat = '', ringT, px = 0, z = Z;
+let V, api, notch, spot, HASS = '', stat = '', ringT, px = 0, z = Z;
 const showStat = s => { if (s) stat = s; $('.cst', V).textContent = V.classList.contains('ring') ? 'Es klingelt' : stat; };
 // 16:9-Bild im Quadrat: nur transform → Compositor
 function pan(p, zz = z) {
@@ -81,8 +82,9 @@ export function camInit(view, fns) {
 <button class="rb all" aria-label="Alle Kameras">${ico('cams')}</button>`;
   // Klingeln: Ansicht fliegt aus der Kamera-Notch oben mittig
   notch = document.createElement('i');
-  notch.id = 'notch'; notch.dataset.e = DOOR;
-  V.after(notch);
+  notch.id = 'notch'; notch.className = 'notch'; notch.dataset.e = DOOR;
+  spot = Object.assign(document.createElement('i'), { className: 'notch' });   // gleiche Stelle für Kameras per HA-Dienst (ohne Klingel-Zustand)
+  V.after(notch, spot);
 
   // Ziehen = schwenken, Doppeltipp = ganzes 16:9-Bild ↔ Quadrat füllen
   let g = null, lastUp = 0;
@@ -111,7 +113,7 @@ export function camInit(view, fns) {
 
 export function camShow(tile, e, s) {
   const cam = CAMS[e] || {}, lt = $('.cb.lt', V);
-  clearTimeout(ringT);
+  clearTimeout(ringT); V._e = e;
   V.classList.toggle('ring', tile === notch);
   V.classList.toggle('bell', !!cam.bell);
   if (tile === notch) ringT = setTimeout(api.close, 60000);   // unbeantwortet → nach 1 min zu
@@ -124,9 +126,50 @@ export function camShow(tile, e, s) {
 }
 export function camHide() { clearTimeout(ringT); const f = $('.feed', V); f._tag = null; f.replaceChildren(); }
 
+export const camRinging = () => api.view() === V && V.classList.contains('ring');
+
+// HA-Dienst homeblick.show_camera: beliebige Kamera aus der Notch; schließt nach secs (0 = offen, bis jemand schließt; Berührung hält offen)
+export function camOpen(e, secs) {
+  const open = api.view();
+  if (open && open !== V || $('#screen').matches('.gallery,.custom')) return;   // wie beim Klingeln: Bearbeiten und andere Vollansichten nicht überdecken
+  if (camRinging()) return;   // Klingel geht vor
+  if (open !== V) { spot.dataset.e = e; api.open(spot, 'cam'); }
+  else if (V._e !== e) { spot.dataset.e = e; camShow(spot, e, ents[e] || { attributes: {} }); }   // gleiche Kamera (Bewegung retriggert): Stream läuft weiter, nur die Zeit beginnt neu
+  clearTimeout(ringT);
+  if (secs) ringT = setTimeout(api.close, secs * 1000);
+}
+
+// Gong (Ding-Dong, synthetisch: Grundton + Glocken-Obertöne). ponytail: kein Audio-Asset; eigener Klingelton als Datei, falls gewünscht
+// Browser starten Ton erst nach einer Berührung → AudioContext bei jeder Berührung entsperren (iOS: nur innerhalb der Geste)
+let ac;
+const unlock = () => { try { ac ||= new AudioContext(); if (ac.state !== 'running') ac.resume().catch(() => {}); } catch {} };
+addEventListener('pointerdown', unlock, { capture: true, passive: true });
+async function gong(vol) {
+  try {
+    unlock();
+    if (ac?.state !== 'running') await Promise.race([ac?.resume(), new Promise(r => setTimeout(r, 300))]).catch(() => {});
+    // gesperrt: nicht einplanen, sonst spielen später alle aufgestauten Gongs gleichzeitig
+    if (ac?.state !== 'running') return console.warn('Gong blockiert: Ton erst nach einer Berührung (Kiosk-Browser: Autoplay erlauben)');
+    const t0 = ac.currentTime, out = ac.createGain();
+    out.gain.value = vol * .4; out.connect(ac.destination);
+    for (const [f, d] of [[659.3, 0], [523.3, .65]])
+      for (const [m, a] of [[1, 1], [2.76, .25], [5.4, .08]]) {
+        const o = ac.createOscillator(), g = ac.createGain(), t = t0 + d;
+        o.frequency.value = f * m;
+        g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(a, t + .01); g.gain.exponentialRampToValueAtTime(.001, t + 1.8);
+        o.connect(g).connect(out); o.start(t); o.stop(t + 1.9);
+      }
+  } catch (e) { console.warn('Gong', e); }
+}
+
 export function ring() {
-  const open = $('#screen .view:not([hidden])');
-  if (open === V) { V.classList.add('ring'); showStat(); return; }
+  api.wake?.();   // Bildschirmschoner und Nacht-Dimmung weg, erster Tipp geht an die Klingel-Ansicht
+  const v = api.sound?.(); if (v) gong(v);
+  const open = api.view();
+  if (open === V) {   // läuft schon eine andere Kamera → auf die Haustür wechseln
+    if (V._e === DOOR) { V.classList.add('ring'); showStat(); } else camShow(notch, DOOR, ents[DOOR] || { attributes: {} });
+    return;
+  }
   if (open || $('#screen').matches('.gallery,.custom')) return;
   api.open(notch, 'cam');
 }
@@ -207,7 +250,7 @@ cam-rtc video{object-fit:cover}
 #cam:not(.bell) :is(.mic,.key,.replies){display:none}
 .rb,.cb.key{transition:scale var(--sd) var(--spring)}
 :is(.rb,.cb,.replies button):active{scale:.88;transition:scale .12s ease-out}
-#notch{position:absolute;left:44cqw;top:-7cqw;width:12cqw;height:12cqw;border-radius:50%;opacity:0;pointer-events:none}
+.notch{position:absolute;left:44cqw;top:-7cqw;width:12cqw;height:12cqw;border-radius:50%;opacity:0;pointer-events:none}
 
 /* ---------- Kamera-Face ---------- */
 .f-cams{display:grid;grid-template:repeat(3,var(--t))/repeat(3,var(--t));gap:var(--gap);padding:var(--pad)}

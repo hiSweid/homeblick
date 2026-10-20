@@ -61,6 +61,12 @@
       },
       "barge": {
         "name": "Wake Word unterbricht Antwort"
+      },
+      "music": {
+        "name": "Musik statt Bildschirmschoner"
+      },
+      "chime": {
+        "name": "Gong beim Klingeln"
       }
     },
     "button": {
@@ -111,6 +117,46 @@
       "resolution": {
         "name": "Auflösung"
       }
+    },
+    "notify": {
+      "announce": {
+        "name": "Durchsage"
+      }
+    }
+  },
+  "services": {
+    "show_camera": {
+      "name": "Kamera zeigen",
+      "description": "Öffnet eine Kamera im Vollbild auf dem Display, z. B. bei Bewegung.",
+      "fields": {
+        "display": {
+          "name": "Display",
+          "description": "Homeblick-Displays (nur geöffnete reagieren)."
+        },
+        "camera": {
+          "name": "Kamera",
+          "description": "Kamera, die erscheinen soll."
+        },
+        "duration": {
+          "name": "Dauer",
+          "description": "Schließt nach so vielen Sekunden; 0 lässt sie offen, bis jemand schließt."
+        }
+      }
+    },
+    "hide_camera": {
+      "name": "Kamera schließen",
+      "description": "Schließt das Kamera-Vollbild auf dem Display.",
+      "fields": {
+        "display": {
+          "name": "Display",
+          "description": "Homeblick-Displays."
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "no_display": {
+      "message": "Das gewählte Gerät ist kein Homeblick-Display."
     }
   }
 }
