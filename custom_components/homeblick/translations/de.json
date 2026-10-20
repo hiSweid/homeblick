@@ -71,6 +71,9 @@
       "black": {
         "name": "Screensaver schwarz"
       },
+      "perf": {
+        "name": "Leistungsmodus"
+      },
       "sched": {
         "name": "Screensaver-Zeitplan"
       }

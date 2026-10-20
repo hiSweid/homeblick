@@ -42,7 +42,7 @@ class Display:
             "idle": s["idle"], "saver": s["saver"], "music": s["music"], "chime": s["chime"],
             "wake": None if s["wake"] == "off" else f"{s['wake']}_v0.1",
             "pipeline": s["pipeline"], "mute": s["mute"], "barge": s["barge"], "listen": s["listen"], "volume": s["volume"], "bright": s["bright"] / 100, "tts": s["tts"], "weather": s["weather"], "place": s["place"],
-            "black": s["black"], "sched": {"from": s["sched_from"], "to": s["sched_to"]} if s["sched"] else None,
+            "black": s["black"], "perf": s["perf"], "sched": {"from": s["sched_from"], "to": s["sched_to"]} if s["sched"] else None,
             "dim": {"from": s["dim_from"], "to": s["dim_to"], "level": s["dim_level"] / 100} if s["dim"] else None,
         }
 

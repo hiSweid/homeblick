@@ -101,6 +101,7 @@ SETTINGS = vol.Schema({
     vol.Optional("saver"): vol.In(FACES),
     vol.Optional("music"): bool,
     vol.Optional("black"): bool,
+    vol.Optional("perf"): bool,
     vol.Optional("sched"): bool,
     vol.Optional("sched_from"): _time,
     vol.Optional("sched_to"): _time,

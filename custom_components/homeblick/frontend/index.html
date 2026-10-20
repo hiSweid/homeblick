@@ -149,6 +149,7 @@ svg.i{width:1em;height:1em;flex:none;fill:none;stroke:currentColor;stroke-width:
 .lv i:first-child{left:27cqw;top:17cqw;width:80cqw;background:radial-gradient(circle closest-side,hsl(calc(var(--h,228) + 66) 75% 55%) 0 48%,hsl(calc(var(--h,228) + 66) 75% 55% / 0) 100%)}
 @keyframes lava{to{transform:translate(-5cqw,3cqw) scale(1.1,.92) rotate(24deg)}}
 @media (prefers-reduced-motion:reduce){.lv i{animation:none}}
+.perf *,.perf *::before,.perf *::after{animation:none!important;transition:none!important}   /* Leistungsmodus (je Display): keine CSS-Animationen/-Übergänge, Wetter-Blitze aus */
 
 /* Analog-Face. Vorlagen (frontal Website faces_enhanced „Analog grün“ und „Relief rosé“, Pixelmaße auf 350 px Face; Video y-MO 01167/07100/08250/07950, TGo 00370/00485):
    Zeiger = dünner Stiel (1 %) + rundes Blatt (3,4 %, ab 7,8 % Länge), Stunde 25,5 %, Minute 43,5 %; Sekunde 0,7 % dünn, Länge 45 %, Gegengewicht 7,4 %; Ring 4 % */
@@ -623,7 +624,7 @@ import { loadEvents, eventsHTML } from './events.js';
 // Ohne Parameter: Demo-Daten. Echtes HA nur mit ?live
 const LIVE = new URLSearchParams(location.search).has('live');
 const CFG = { hass: '', weather: 'weather.home', place: 'Home', pipeline: '', mute: false, barge: false, listen: 15, volume: 100, music: true, chime: true, device: '' };   // Wetter, Ort, Assist-Pipeline: je Display in der Einstellungsseite (applyK); device = HA-Gerät (register)
-const applyK = k => { for (const x of ['weather', 'place', 'tts', 'pipeline', 'mute', 'barge', 'listen', 'volume', 'music', 'chime']) if (k?.[x] != null) CFG[x] = k[x]; };
+const applyK = k => { root.classList.toggle('perf', !!k?.perf); for (const x of ['weather', 'place', 'tts', 'pipeline', 'mute', 'barge', 'listen', 'volume', 'music', 'chime']) if (k?.[x] != null) CFG[x] = k[x]; };
 const HASS = /^\/(local|homeblick)\//.test(location.pathname) ? location.origin : CFG.hass;   // unter /local/ ist die Seite selbst der HA-Origin
 
 const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];

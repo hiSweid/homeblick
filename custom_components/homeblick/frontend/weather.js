@@ -177,7 +177,7 @@ function storm(sky, c) {
   const r = Math.random, bo = c.querySelector('.wbo'), fl = c.querySelector('.wfl'), li = c.querySelector('.wlit');
   const strike = () => {
     if (!c.isConnected) return;
-    if (!document.hidden && !sky.classList.contains('off') && !reduced.matches) {
+    if (!document.hidden && !sky.classList.contains('off') && !reduced.matches && !document.documentElement.classList.contains('perf')) {
       const [m, b, x] = boltPath(r), [g, br, mn] = bo.querySelectorAll('path');
       g.setAttribute('d', m + b); br.setAttribute('d', b); mn.setAttribute('d', m);
       fl.style.setProperty('--x', x + '%');

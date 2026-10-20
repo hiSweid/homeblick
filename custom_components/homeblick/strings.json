@@ -71,6 +71,9 @@
       "black": {
         "name": "Screensaver black"
       },
+      "perf": {
+        "name": "Performance mode"
+      },
       "sched": {
         "name": "Screensaver schedule"
       }
