@@ -1627,6 +1627,30 @@ $('#tedit').addEventListener('input', e => {
   changed();
 });
 
+// Maus ziehen = wischen wie per Touch (Touch scrollt nativ); Klick nach dem Ziehen wird unterdrückt
+{
+  let m = null;
+  faces.addEventListener('pointerdown', e => {
+    if (e.pointerType !== 'mouse' || e.button || mode !== 'normal' || cur || e.target.closest('.prog,.pop,input,.lyrics')) return;
+    m = { x: e.clientX, l: faces.scrollLeft, on: false, v: 0, t: e.timeStamp, last: e.clientX };
+  });
+  addEventListener('pointermove', e => {
+    if (!m) return;
+    if (!m.on && Math.abs(e.clientX - m.x) > 8) { m.on = true; faces.style.scrollSnapType = 'none'; faces.setPointerCapture(e.pointerId); }
+    if (!m.on) return;
+    m.v = (e.clientX - m.last) / Math.max(1, e.timeStamp - m.t); m.last = e.clientX; m.t = e.timeStamp;
+    faces.scrollLeft = m.l - (e.clientX - m.x);
+  });
+  const end = () => {
+    if (!m) return;
+    const { on, v } = m; m = null;
+    if (!on) return;
+    const w = faces.clientWidth, i = Math.max(0, Math.min(faces.children.length - 1, Math.round(faces.scrollLeft / w - Math.sign(v) * (Math.abs(v) > .4 ? .5 : 0))));
+    faces.style.scrollSnapType = ''; faces.scrollTo({ left: i * w, behavior: 'smooth' });
+    const stop = e => e.stopPropagation(); addEventListener('click', stop, true); setTimeout(() => removeEventListener('click', stop, true), 50);
+  };
+  addEventListener('pointerup', end); addEventListener('pointercancel', end);
+}
 // ---------- Gesten ----------
 // Tippen = Aktion · Halten auf Licht (450 ms) = Dimmer · Halten auf Kachel (600 ms) = Anpassen + gleich verschieben
 // Halten sonst = Galerie · im Anpassen-Modus ziehen = umordnen
