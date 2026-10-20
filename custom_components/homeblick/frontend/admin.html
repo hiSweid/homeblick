@@ -313,7 +313,9 @@ function camEdit(t) {
     c.bell = { event: '', camera: '', lock: '', warm: false, ...c.bell, [t.dataset.bell]: t.dataset.bell === 'warm' ? t.value === '1' : t.value };
   } else {
     const x = c.list[+t.closest('[data-ci]').dataset.ci], old = x.entity;
+    const had = !!x.go2rtc;
     x[t.dataset.cam] = t.value.trim();
+    if (t.dataset.cam === 'go2rtc' && had !== !!x.go2rtc) { saveCams(); return fill(top(), stack.at(-1)); }   // Feld „go2rtc-Stream“ ein-/ausblenden
     if (t.dataset.cam === 'entity' && c.bell?.camera === old) c.bell.camera = x.entity;   // Klingel folgt der getauschten Kamera
     saveCams();
     if (t.dataset.cam === 'entity') fill(top(), stack.at(-1));   // Auswahl „Kamera der Klingel“ neu aufbauen
