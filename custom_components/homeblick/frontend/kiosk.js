@@ -14,9 +14,14 @@ export function kioskInit({ faces, conf, busy, touched, onState, music }) {
   let last = Date.now(), back = -1, st = {};   // back = Face vor dem Screensaver
 
   // Display wach halten (braucht https/localhost; unter http gibt es kein wakeLock → still ignorieren)
-  let wl;
-  const lock = () => navigator.wakeLock?.request('screen').then(l => wl = l).catch(() => {});
-  lock(); document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && lock());
+  // System gibt die Sperre frei (Energiesparen, Tab-Wechsel) → bei Sichtbarkeit neu anfordern; Tippen versucht es erneut
+  let wl, req;
+  const lock = () => {
+    if (req || (wl && !wl.released) || document.visibilityState !== 'visible' || !navigator.wakeLock) return;
+    req = navigator.wakeLock.request('screen').then(l => { wl = l; l.addEventListener('release', () => setTimeout(lock, 1000)); })
+      .catch(() => {}).finally(() => req = null);
+  };
+  lock(); document.addEventListener('visibilitychange', lock);
 
   // Dimmen/Helligkeit: schwarze Folie; Tippen hellt für 30 s auf
   const veil = Object.assign(document.createElement('div'), { style: 'position:fixed;inset:0;background:#000;pointer-events:none;z-index:99;opacity:0;transition:opacity 1.5s' });
@@ -24,7 +29,7 @@ export function kioskInit({ faces, conf, busy, touched, onState, music }) {
 
   // Erster Tipp aus dem Screensaver weckt nur (Capture, damit er die Kacheln nicht erreicht)
   const wake = () => { last = Date.now(); if (back < 0) return false; goto(back); back = -1; return true; };
-  document.addEventListener('pointerdown', e => { if (wake()) { e.stopPropagation(); e.preventDefault(); } }, true);
+  document.addEventListener('pointerdown', e => { lock(); if (wake()) { e.stopPropagation(); e.preventDefault(); } }, true);
 
   const find = t => [...faces.children].findIndex(f => f.classList.contains('f-' + t));
   const saver = () => { const m = cfg().music !== false && music?.() ? find('music') : -1; return m >= 0 ? m : find(cfg().saver); };
