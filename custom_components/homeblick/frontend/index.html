@@ -1558,23 +1558,38 @@ function rerender(i) {
 {
   const STEP = () => faces.clientWidth * 1.025, OMEGA = 30;   // ω ≈ 25–35 s⁻¹ gemessen: 98 % nach ≈ 0,2 s
   let raf = 0, m = null;
+  // Kamera-Ansicht (#cam) wischt wie ein Face aus dem Pager (zT8M0BsBO5k 56,35–56,95 s): sie läuft mit scrollLeft mit (camL = Start), dunkler Spalt = Pager-Lücke
+  let camL = null;
+  const follow = () => { if (camL !== null) $('#cam').style.transform = `translateX(${camL - faces.scrollLeft}px)`; };
+  const camDone = () => {
+    if (camL === null) return;
+    const away = Math.round(faces.scrollLeft / STEP()) !== Math.round(camL / STEP()), view = $('#cam');
+    camL = null; view.style.transform = '';
+    if (!away || cur?.view !== view) return;
+    cur = null; view.hidden = true; camHide();
+    if (camStale) { camStale = false; renderAll(curIdx()); }
+  };
   const spin = (target, v0 = 0) => {   // v0 = Geschwindigkeit von scrollLeft in px/s
     cancelAnimationFrame(raf);
     const x0 = faces.scrollLeft, u0 = x0 - target, t0 = performance.now();
     let B = v0 + OMEGA * u0; if (B * u0 < 0) B = 0;   // kein Überschwingen
     const f = now => {
       const t = (now - t0) / 1000, u = (u0 + B * t) * Math.exp(-OMEGA * t);
-      if (Math.abs(u) < .3 || t > .8) return void (faces.scrollLeft = target);
-      faces.scrollLeft = target + u; raf = requestAnimationFrame(f);
+      if (Math.abs(u) < .3 || t > .8) { faces.scrollLeft = target; follow(); return camDone(); }
+      faces.scrollLeft = target + u; follow(); raf = requestAnimationFrame(f);
     };
     raf = requestAnimationFrame(f);
   };
   faces.go = (i, instant) => { const x = Math.max(0, Math.min(faces.children.length - 1, i)) * STEP(); instant ? (cancelAnimationFrame(raf), faces.scrollLeft = x) : spin(x); };
-  faces.addEventListener('pointerdown', e => {
-    if (e.button || cur || e.target.closest('.prog,.pop,input,.lyrics,#pull')) return;
+  const down = e => {
+    const cam = cur?.view.id === 'cam' && e.currentTarget.id === 'cam';
+    if (e.button || (cur && !cam) || (!cam && e.target.closest('.prog,.pop,input,.lyrics,#pull'))) return;
+    if (cam && (camL !== null || !$('#cam').getAnimations().every(a => a.playState === 'finished'))) return;   // nicht mitten im Öffnen/Schließen
     cancelAnimationFrame(raf);
     m = { x: e.clientX, y: e.clientY, l: faces.scrollLeft, on: false, h: [] };
-  });
+    camL = cam ? m.l : null;
+  };
+  faces.addEventListener('pointerdown', down); $('#cam').addEventListener('pointerdown', down);
   addEventListener('pointermove', e => {
     if (!m) return;
     const dx = e.clientX - m.x, dy = e.clientY - m.y;
@@ -1584,12 +1599,12 @@ function rerender(i) {
       m.on = true; faces.setPointerCapture(e.pointerId);
     }
     m.h.push([e.timeStamp, e.clientX]); while (m.h[0][0] < e.timeStamp - 100) m.h.shift();
-    faces.scrollLeft = m.l - dx;
+    faces.scrollLeft = m.l - dx; follow();
   });
   const end = () => {
     if (!m) return;
     const { on, h, l } = m; m = null;
-    if (!on) return;
+    if (!on) return void (camL = null);
     const w = STEP(), v = h.length > 1 ? (h.at(-1)[1] - h[0][1]) / Math.max(16, h.at(-1)[0] - h[0][0]) * 1000 : 0,   // Finger px/s
       d = (faces.scrollLeft - l) / w, i0 = Math.round(l / w), go = Math.abs(d) >= .2 || Math.abs(v) / w >= .5;
     const i = Math.max(0, Math.min(faces.children.length - 1, go ? i0 + (Math.abs(v) / w >= .5 ? -Math.sign(v) : Math.sign(d)) : i0));
@@ -1709,6 +1724,8 @@ dim.addEventListener('pointercancel', () => y0 = null);
 
 // ---------- Start ----------
 if (!LIVE) {
+  // Demo-Kamerabild (Platzhalter, kein Apple-Material): Himmel/Wand oben, Boden unten, ein heller Block
+  const demoPic = h => 'data:image/svg+xml,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 9"><defs><linearGradient id="a" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="hsl(${h} 50% 78%)"/><stop offset=".55" stop-color="hsl(${h} 35% 62%)"/><stop offset=".56" stop-color="hsl(${h + 30} 30% 38%)"/><stop offset="1" stop-color="hsl(${h + 30} 30% 22%)"/></linearGradient></defs><rect width="16" height="9" fill="url(#a)"/><rect x="${3 + h % 5}" y="3" width="4" height="3.5" rx=".4" fill="hsl(${h} 25% 90% / .8)"/><circle cx="${12 - h % 3}" cy="2.2" r=".9" fill="#fff8"/></svg>`);
   const demo = {
     'climate.wohnzimmer_ac_mqtt_hvac': ['heat', { friendly_name: 'Wohnzimmer Klima', hvac_modes: ['off', 'heat', 'cool', 'heat_cool', 'dry', 'fan_only'], temperature: 21, current_temperature: 20.5, current_humidity: 47, target_temp_step: .5, min_temp: 16, max_temp: 30 }],
     'climate.tado_smart_radiator_thermostat_x': ['heat', { friendly_name: 'Büro Heizung', temperature: 22, current_temperature: 21.4, current_humidity: 52, target_temp_step: .5 }],
@@ -1730,8 +1747,10 @@ if (!LIVE) {
     'lock.garagentur': ['locked', { friendly_name: 'Garagentür' }],
     'cover.garagentor': ['closed', { friendly_name: 'Garagentor', device_class: 'garage' }],
     'cover.kuche_rollladen': ['open', { friendly_name: 'Küche Rollladen', device_class: 'shutter' }],
-    'camera.turklingel': ['idle', { friendly_name: 'Türklingel' }],
-    'camera.cx410w_color_x_standardauflosung': ['unavailable', { friendly_name: 'Garten Kamera' }],
+    'camera.turklingel': ['idle', { friendly_name: 'Türklingel', entity_picture: demoPic(200) }],
+    'camera.cx410w_color_x_standardauflosung': ['idle', { friendly_name: 'Garten Kamera', entity_picture: demoPic(110) }],
+    'camera.demo_veranda': ['idle', { friendly_name: 'Veranda', entity_picture: demoPic(30) }],
+    'camera.demo_wohnzimmer': ['idle', { friendly_name: 'Wohnzimmer', entity_picture: demoPic(280) }],
     'event.turklingel_doorbell': [new Date(Date.now() - 47 * 60000).toISOString(), { friendly_name: 'Türklingel Doorbell', event_type: 'ring', device_class: 'doorbell' }],
     'binary_sensor.turklingel_motion': ['off', { friendly_name: 'Türklingel Motion', device_class: 'motion' }],
     'timer.kuche': ['idle', { friendly_name: 'Küche', duration: '0:15:00', remaining: '0:15:00', editable: true }],
@@ -1754,7 +1773,7 @@ timerInit(screen, call);
 const kiosk = kioskInit({ faces, conf: () => CONF, busy: () => cur || AS.className, touched: () => touched,
   music: () => NP && st(NP).state === 'playing' && !/video|movie|tvshow|channel/.test(st(NP).attributes.media_content_type),   // Filme/TV ohne device_class tv nicht als Musik
   onState: st => conn?.sendMessagePromise({ type: 'homeblick/report', display: DISPLAY, ...st, info: info() }).catch(() => {}) });
-if (!LIVE) camConfig({ list: [{ entity: 'camera.turklingel', name: 'Haustür', light: 'light.eingang' }, { entity: 'camera.cx410w_color_x_standardauflosung', name: 'Garten' }], bell: { event: 'event.turklingel_doorbell', camera: 'camera.turklingel' } });
+if (!LIVE) camConfig({ list: [{ entity: 'camera.turklingel', name: 'Haustür', light: 'light.eingang' }, { entity: 'camera.cx410w_color_x_standardauflosung', name: 'Garten' }, { entity: 'camera.demo_veranda', name: 'Veranda' }, { entity: 'camera.demo_wohnzimmer', name: 'Wohnzimmer' }], bell: { event: 'event.turklingel_doorbell', camera: 'camera.turklingel' } });
 camInit($('#cam'), { open, close, view: () => cur?.view, conn: () => conn, hass: HASS, wake: () => kiosk.wake(), sound: () => CFG.chime ? CFG.volume / 100 : 0 });
 // Laufender Zustand für die Einstellungsseite (Mikro braucht https, Wake Word hält es offen, Wake Lock hält den Bildschirm an)
 const INFO = { wake: null, v: undefined };

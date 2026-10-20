@@ -291,7 +291,7 @@ function camsHTML() {
     <div class="tilebar"><span class="arrows"><button data-a="cup" aria-label="Nach oben">${svg('up', '')}</button><button data-a="cdown" aria-label="Nach unten">${svg('down', '')}</button></span><button data-a="cdel" style="color:var(--red);padding:8px 10px">Entfernen</button></div></div>`;
   return `<div class="sec"><div class="sh"><span>Kameras</span></div>${c.list.map(row).join('')}
       <div class="grp"><button class="row btn" data-a="cadd">${svg('plus', 'plus')}<span class="l">Kamera hinzufügen</span></button></div>
-      <div class="sf">${auto ? 'Automatisch erkannt: alle Kameras von Home Assistant. Jede Änderung hier legt die Liste fest.' : 'Die erste Kamera (oder die der Klingel) ist groß zu sehen, bis zu drei weitere Kacheln folgen.'} Das Bild läuft über Home Assistant (WebRTC, sonst HLS oder Standbilder).</div></div>`
+      <div class="sf">${auto ? 'Automatisch erkannt: alle Kameras von Home Assistant. Jede Änderung hier legt die Liste fest.' : 'Das Face „Kameras“ zeigt bis zu vier Kameras als 2×2-Raster, die Klingelkamera (sonst die erste) zuerst.'} Das Bild läuft über Home Assistant (WebRTC, sonst HLS oder Standbilder).</div></div>`
     + grp('Türklingel', pick('Klingel-Ereignis', 'event', [['', 'Keine'], ...withCur(eventEnts, c.bell?.event)], c.bell?.event || '', 'data-bell')
       + pick('Kamera der Klingel', 'camera', [['', 'Keine'], ...c.list.map(x => [x.entity, camName(x)])], c.bell?.camera || '', 'data-bell'),
       'Klingeln weckt alle geöffneten Displays, spielt den Gong und zeigt diese Kamera. Gilt für alle Displays.')

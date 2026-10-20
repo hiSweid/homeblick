@@ -1,23 +1,21 @@
 // Türklingel + Video-Überwachung. Vollbild =  t = 43,4 s („Front Door / Live“, unten rot ✕ / gelb Mic / Glas-Raster).
 // Video über die HA-Verbindung des Displays (camplay.js: WebRTC, sonst HLS, sonst MJPEG) — HA/go2rtc teilt sich die Quelle, die Kamera selbst sieht nur eine Sitzung.
-// Funktion haben nur ✕ (schließt die Ansicht) und Licht (data-act="toggle" → TAP.light in index.html); Mic, Raster, Öffner, Antworten noch nicht (Wunsch 2026-10-19).
+// Funktion haben nur ✕ (schließt die Ansicht), Licht (data-act="toggle" → TAP.light in index.html) und das Raster (Blur-Steuerebene, siehe unten); Mic, Lautsprecher, Öffner, Antworten noch nicht (Wunsch 2026-10-19).
+// Kamera-Detail (nicht Klingel) = Layout QFRp7dbxciE 318,7 s (steuerung/kamera/NOTIZEN.md): dunkle Karte, ✕ oben links, 16:9-Fenster, Raster links, Mic rechts.
+// Wisch links/rechts = nächstes/voriges Face (zT8M0BsBO5k 56,35–56,95 s, STEUERUNG.md Zeile 18): Pager in index.html.
 // Klingeln weckt das Display und spielt einen Gong (Einstellung „Gong beim Klingeln“, Lautstärke = Antworten).
 
 import { live } from './camplay.js';
 
 // Kameras kommen aus der Konfiguration (Einstellungsseite → Face „Kameras“, sonst automatisch erkannt): camConfig({ list: [{ entity, name, light }], bell: { event, camera } })
 let LIST = [], RING = '', DOOR = '';
-const REPLIES = ['Komme gleich', 'Paket ablegen', 'Nicht da'];
 const Z = 16 / 9;   // 16:9-Bild füllt das Quadrat bei Vergrößerung Z
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const camOf = e => LIST.find(c => c.entity === e) || {};
 
 const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const ico = (id, cls = '') => `<svg class="i ${cls}"><use href="#${id}"/></svg>`;
-const when = t => {
-  const d = new Date(t), hm = d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
-  return isNaN(d) ? null : d.toDateString() === new Date().toDateString() ? hm : `${d.toLocaleDateString('de-DE', { weekday: 'short' })} ${hm}`;
-};
 
 // Rückfall ohne Stream (Kamera ohne Stream-Quelle, kein WebRTC/HLS): HA-MJPEG-Proxy bzw. Standbild
 function mjpeg(box, e, s, cb) {
@@ -55,10 +53,8 @@ async function feed(box, e, s, cb) {
 }
 
 // ---------- Vollbild ----------
-let V, api, notch, spot, HASS = '', stat = '', ringT, idleT, px = 0, z = Z;
-// Name und Buttons nach 5 s ohne Berührung ausblenden (wie Video-Steuerung), Tippen holt sie zurück; beim Klingeln bleiben sie stehen
-const wake = () => { V.classList.remove('idle'); clearTimeout(idleT); idleT = setTimeout(() => V.classList.contains('ring') || V.classList.add('idle'), 5000); };
-const showStat = s => { if (s) stat = s; $('.cst', V).textContent = V.classList.contains('ring') ? 'Es klingelt' : stat; };
+let V, api, notch, spot, HASS = '', stat = '', ringT, px = 0, z = Z;
+const showStat = s => { if (s) stat = s; $('.cst', V).textContent = stat; };   // Klingel-Ansicht zeigt wie die Vorlage (zT8M0BsBO5k 25,5 s) „Live“
 // 16:9-Bild im Quadrat: nur transform → Compositor
 function pan(p, zz = z) {
   const max = V.offsetWidth * (zz - 1) / 2;
@@ -68,62 +64,52 @@ function pan(p, zz = z) {
 
 export function camInit(view, fns) {
   V = view; api = fns; HASS = fns.hass;
-  V.innerHTML = `<div class="feed"></div>
+  V.innerHTML = `<div class="feed"></div><i class="veil"></i><i class="live-pill"><i></i>LIVE</i>
 <div class="ctop"><b class="cname"></b><span class="cst"></span></div>
-<button class="cb lt" data-act="toggle" aria-label="Licht">${ico('bulb')}</button>
-<button class="cb key" aria-label="Tür öffnen">${ico('key')}</button>
-<div class="replies">${REPLIES.map((r, i) => `<button style="--i:${i}">${r}</button>`).join('')}</div>
 <button class="rb end" data-act="close" aria-label="Beenden">${ico('xthin')}</button>
 <button class="rb mic" aria-label="Sprechen">${ico('mic')}</button>
-<button class="rb all" aria-label="Alle Kameras">${ico('cams')}</button>`;
+<button class="rb all" aria-label="Steuerebene">${ico('cams')}</button>
+<button class="cb spk" aria-label="Lautsprecher">${ico('vol')}</button>
+<button class="acc" data-act="toggle" aria-label="Licht"><span class="ai">${ico('bulb')}</span><span class="at"><b></b><span></span></span></button>`;
   // Klingeln: Ansicht fliegt aus der Kamera-Notch oben mittig
   notch = document.createElement('i');
   notch.id = 'notch'; notch.className = 'notch';
   spot = Object.assign(document.createElement('i'), { className: 'notch' });   // gleiche Stelle für Kameras per HA-Dienst (ohne Klingel-Zustand)
   V.after(notch, spot);
 
-  // Ziehen = schwenken, Doppeltipp = ganzes 16:9-Bild ↔ Quadrat füllen
+  // Doppeltipp = ganzes 16:9-Bild ↔ Quadrat füllen (nur Klingel-Ansicht); Raster-Button = Blur-Steuerebene; Wischen übernimmt der Pager (index.html)
   let g = null, lastUp = 0;
-  const end = () => { $('.feed', V).classList.remove('drag'); g = null; };
   V.addEventListener('pointerdown', e => {
     clearTimeout(ringT);   // Berührung: Klingel-Ansicht bleibt offen
-    wake();
-    if (e.target.closest('button')) return;
-    g = { x: e.clientX, p: px, on: false };
-    V.setPointerCapture(e.pointerId);
-  });
-  V.addEventListener('pointermove', e => {
-    if (!g || !g.on && Math.abs(e.clientX - g.x) < 6) return;
-    g.on = true; $('.feed', V).classList.add('drag');
-    pan(g.p + e.clientX - g.x);
+    g = e.target.closest('button') ? null : { x: e.clientX, y: e.clientY };
   });
   V.addEventListener('pointerup', e => {
-    const tap = g && !g.on;
-    end();
-    if (!tap) return;
+    if (!g || Math.hypot(e.clientX - g.x, e.clientY - g.y) > 8 || V.classList.contains('ctl') || !V.classList.contains('bell')) return;
     if (e.timeStamp - lastUp < 300) { pan(0, z > 1 ? 1 : Z); lastUp = 0; }
     else lastUp = e.timeStamp;
   });
-  V.addEventListener('pointercancel', end);
-
+  V.addEventListener('pointercancel', () => g = null);
+  // Blur-Steuerebene (QFRp7dbxciE 307,0–309,0 / 317,45–318,75 s, v3wcg4Vi4u0 256,6–263 s): Overlays blenden aus, Bild blurt, Zubehör-Pille (Licht) erscheint; Raster wird weiß; kein Auto-Zurück
+  $('.rb.all', V).addEventListener('click', () => { V.classList.toggle('ctl'); });
 }
 
 export function camShow(tile, e, s) {
-  const cam = camOf(e), lt = $('.cb.lt', V);
+  const cam = camOf(e);
   clearTimeout(ringT); V._e = e;
+  V.classList.remove('ctl');
   V.classList.toggle('ring', tile === notch);
-  V.classList.toggle('bell', !!DOOR && e === DOOR);
+  V.classList.toggle('bell', tile === notch && !!DOOR && e === DOOR);   // randloses Klingel-Layout nur beim Klingeln; Tipp auf Kachel (Home/Kameras-Face) = Kamera-Detail
   if (tile === notch) ringT = setTimeout(api.close, 60000);   // unbeantwortet → nach 1 min zu
   $('.cname', V).textContent = cam.name || s.attributes.friendly_name || e;
-  lt.hidden = !cam.light;
-  if (cam.light) lt.dataset.e = cam.light; else delete lt.dataset.e;
-  $('.feed', V).classList.add('drag'); pan(0, Z);   // ohne Animation zurück auf „füllen“
+  const acc = $('.acc', V); acc.hidden = !cam.light; $('.at b', acc).textContent = ents[cam.light]?.attributes.friendly_name || 'Licht'; accSub();
+  if (cam.light) acc.dataset.e = cam.light; else delete acc.dataset.e;
+  $('.feed', V).classList.add('drag'); pan(0, V.classList.contains('bell') ? Z : 1);   // ohne Animation zurück auf „füllen“ (Klingel) bzw. 16:9-Fenster (Kamera-Detail)
   requestAnimationFrame(() => $('.feed', V).classList.remove('drag'));
   feed($('.feed', V), e, s, showStat);
-  wake();
 }
-export function camHide() { clearTimeout(ringT); clearTimeout(idleT); V.classList.remove('idle'); const f = $('.feed', V); f._stop?.(); f._stop = null; f._tag = null; f.replaceChildren(); }
+export function camHide() { clearTimeout(ringT); V.classList.remove('ctl'); const f = $('.feed', V); f._stop?.(); f._stop = null; f._tag = null; f.replaceChildren(); }
 
+const accSub = () => { const l = V?._e && camOf(V._e).light; if (l) put($('.acc .at span', V), ents[l]?.state === 'on' ? 'Ein' : ents[l]?.state === 'unavailable' ? 'Offline' : 'Aus'); };
 export const camRinging = () => api.view() === V && V.classList.contains('ring');
 
 // HA-Dienst homeblick.show_camera: beliebige Kamera aus der Notch; schließt nach secs (0 = offen, bis jemand schließt; Berührung hält offen)
@@ -166,28 +152,19 @@ export function ring() {
   if (!DOOR) return;   // Klingel ohne zugeordnete Kamera: nur wecken und läuten
   const open = api.view();
   if (open === V) {   // läuft schon eine andere Kamera → auf die Haustür wechseln
-    if (V._e === DOOR) { V.classList.add('ring'); showStat(); wake(); } else camShow(notch, DOOR, ents[DOOR] || { attributes: {} });
+    if (V._e === DOOR) { V.classList.add('ring', 'bell'); pan(0, Z); showStat(); } else camShow(notch, DOOR, ents[DOOR] || { attributes: {} });
     return;
   }
   if (open || $('#screen').matches('.gallery,.custom')) return;
   notch.dataset.e = DOOR; api.open(notch, 'cam');
 }
 
-// ---------- Kamera-Face: Hauptkamera (Klingelkamera, sonst die erste) live (3×2), darunter bis zu drei Kacheln: Licht, Klingel, weitere Kameras ----------
+// ---------- Kamera-Face: randloses 2×2-Raster ohne UI (Vorlage y-MODo3Hye4 04200 s, _TbqCPIIe8g 94,9 s): bis zu vier Kameras live, hauchdünne Trennlinie (≈ 0,4 % Breite), Tippen = Kamera-Detail ----------
+// ponytail: weniger als vier Kameras → leere Zellen bleiben schwarz (Vorlage zeigt immer vier); mehr als vier: die ersten vier
 export function camFace(el) {
-  const main = LIST.find(c => c.entity === DOOR) || LIST[0];
-  if (!main) { el.innerHTML = `<div class="ctile"><div class="lbl"><b>Keine Kamera</b><span>In den Einstellungen wählen</span></div></div>`; return; }
-  const tile = (i, inner, attrs) => `<${attrs.includes('data-act') ? 'button' : 'div'} class="tile" ${attrs} style="grid-area:3/${i + 1};--r:2;--c:${i}">${inner}</${attrs.includes('data-act') ? 'button' : 'div'}>`;
-  const slots = [
-    main.light && [ico('bulb', 'ico') + '<div><div class="ttl">Licht</div><div class="sub">' + esc(main.name || 'Kamera') + '</div></div>', `data-act="toggle" data-e="${esc(main.light)}"`],
-    RING && [ico('bell', 'ico') + '<div><div class="ttl">Klingel</div><div class="sub"></div></div>', 'data-k="ring"'],
-    ...LIST.filter(c => c !== main).map(c => [ico('video', 'ico') + `<div><div class="ttl">${esc(c.name || ents[c.entity]?.attributes.friendly_name || c.entity)}</div><div class="sub">Kamera</div></div>`, `data-act="cam" data-e="${esc(c.entity)}"`]),
-  ].filter(Boolean).slice(0, 3);
-  el.innerHTML = `<button class="ctile" data-act="cam" data-e="${esc(main.entity)}"><div class="feed"></div>
-  <div class="lbl"><b>${esc(main.name || ents[main.entity]?.attributes.friendly_name || main.entity)}</b><span><i class="dot"></i><span class="cst"></span></span></div></button>`
-    + slots.map(([inner, attrs], i) => tile(i, inner, attrs)).join('');
-  const lbl = $('.lbl', el);
-  feed($('.feed', el), main.entity, ents[main.entity] || { attributes: {} }, s => { $('.cst', lbl).textContent = s; lbl.classList.toggle('live', s === 'Live'); });
+  if (!LIST.length) { el.innerHTML = `<div class="ctile"><div><b>Keine Kamera</b><span>In den Einstellungen wählen</span></div></div>`; return; }
+  const main = LIST.find(c => c.entity === DOOR) || LIST[0], cams = [main, ...LIST.filter(c => c !== main)].slice(0, 4);   // Klingelkamera zuerst
+  el.innerHTML = cams.map(c => `<button class="cc" data-act="cam" data-e="${esc(c.entity)}" aria-label="${esc(c.name || ents[c.entity]?.attributes.friendly_name || c.entity)}"><div class="feed"></div></button>`).join('');
 }
 
 // Raster-Kachel: Livebild randlos ohne Beschriftung; ohne Bild bleiben Icon + Text sichtbar.
@@ -216,17 +193,14 @@ export function doorbell(all) {
   const neu = RING && r !== lastRing && Date.now() - Date.parse(r) < 30000;
   lastRing = r;   // vor ring(): open() rendert synchron und landet wieder hier
   if (neu) ring();
-  for (const f of document.querySelectorAll('.f-cams')) {
-    put($('[data-k=ring] .sub', f), when(r) ? 'Zuletzt ' + when(r) : 'Keine');
-    for (const t of f.querySelectorAll('.tile[data-act=cam]')) put($('.sub', t), ents[t.dataset.e]?.state === 'unavailable' || !ents[t.dataset.e] ? 'Offline' : 'Kamera');
-  }
+  for (const b of $$('.f-cams .cc')) camTile(b, b.dataset.e, ents[b.dataset.e] || { attributes: {} });   // Stream startet, sobald der Zustand da ist; läuft weiter, wenn HA das Token wechselt
+  accSub();
 }
 
 document.querySelector('body > svg').insertAdjacentHTML('beforeend', `
 <symbol id="xthin" viewBox="5 5 14 14"><path d="M6 6l12 12M18 6 6 18" stroke-width="1.3"/></symbol>
 <symbol id="mic" viewBox="0 0 24 24"><rect x="8.7" y="2.5" width="6.6" height="12.2" rx="3.3" fill="currentColor" stroke="none"/><path d="M5.6 11.4a6.4 6.4 0 0 0 12.8 0M12 17.9v3.6M8.6 21.5h6.8" stroke-width="1.7"/></symbol>
 <symbol id="cams" viewBox="0 0 24 24"><g fill="currentColor" stroke="none"><rect x="3" y="3" width="8" height="8" rx="1.8"/><rect x="13" y="3" width="8" height="8" rx="1.8"/><rect x="3" y="13" width="8" height="8" rx="1.8"/><rect x="13" y="13" width="8" height="8" rx="1.8"/></g></symbol>
-<symbol id="key" viewBox="0 0 24 24"><circle cx="7.5" cy="12" r="4.3"/><path d="M11.8 12h9M17.5 12v3.4M20.8 12v2.6"/></symbol>
 <symbol id="bell" viewBox="0 0 24 24"><path d="M5.5 17.5v-6.3a6.5 6.5 0 0 1 13 0v6.3l1.6 1.4H3.9z" fill="currentColor" stroke="none"/><path d="M9.8 21.2a2.3 2.3 0 0 0 4.4 0" stroke-width="1.8"/></symbol>`);
 
 document.head.insertAdjacentHTML('beforeend', `<style>
@@ -236,46 +210,70 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 #cam .feed{position:absolute;left:0;top:50%;width:100%;aspect-ratio:16/9;margin-top:-28.125cqw;transition:transform var(--sd) var(--spring)}
 #cam .feed.drag{transition:none}
 .feed>*{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.feed img{-webkit-user-drag:none;user-select:none}   /* Maus-Ziehen startet sonst den nativen Bild-Drag und bricht den Wisch ab (pointercancel) */
 cam-rtc video{object-fit:cover}
 .ctop{position:absolute;top:6.7cqw;inset-inline:0;text-align:center;font-size:3.4cqw;line-height:4.55cqw;text-shadow:0 0 1.2cqw #0009;pointer-events:none;transition:opacity .4s}
-#cam.idle :is(.ctop,.cb,.rb){opacity:0;pointer-events:none}
 .ctop b{display:block;font-weight:600}
 .ctop span{color:#ffffffa6}
-.ring .ctop span{color:#fff;animation:cblink 1.6s ease-in-out infinite}
-@keyframes cblink{50%{opacity:.4}}
 /* Rund ⌀ 14,7 %, Mitten bei x 11,9 / 50 / 88,3 %, y 88,5 % */
 .rb{position:absolute;top:88.5cqw;width:14.7cqw;height:14.7cqw;translate:-50% -50%;border-radius:50%;display:grid;place-items:center;color:#fff}
 .rb.end{left:11.9cqw;background:#ec0d0a;font-size:5.7cqw}
 .rb.mic{left:50cqw;background:#facf14;color:#000;font-size:8.2cqw}
 .rb.all{left:88.3cqw;font-size:7.2cqw}
 /* ponytail: Live-backdrop-filter über dem Video (kleine Flächen); ruckelt das auf dem Tablet → nur #ffffff38 */
-:is(.rb.all,.cb,.replies button){-webkit-backdrop-filter:blur(2.4cqw);backdrop-filter:blur(2.4cqw)}
-:is(.rb.all,.replies button){background:#ffffff38}
+:is(.rb.all,.cb){-webkit-backdrop-filter:blur(2.4cqw);backdrop-filter:blur(2.4cqw)}
+.rb.all{background:#ffffff38}
 /* oben meist Himmel → dunkles Glas, sonst verschwindet das weiße Icon; Licht an = weiß mit gelber Birne wie die Kacheln */
 .cb{position:absolute;top:4cqw;width:10cqw;height:10cqw;border-radius:50%;display:grid;place-items:center;font-size:4.8cqw;background:#1c1c1e4d}
-.cb.lt{left:4cqw;transition:scale var(--sd) var(--spring),background-color .3s,color .3s,opacity .4s}.cb.key{right:4cqw}
-.cb.lt.on{background:#fffffff2;color:#ffb300}
-.cb.na{opacity:.45}
-.replies{position:absolute;left:0;right:0;top:66cqw;display:flex;justify-content:center;gap:2cqw;pointer-events:none}
-.replies button{height:8cqw;padding:0 4cqw;border-radius:9cqw;font-weight:600;font-size:3.4cqw;white-space:nowrap;opacity:0;transform:translateY(5cqw);
-  transition:opacity .25s,transform var(--sd) var(--spring),scale var(--sd) var(--spring)}
-.ring .replies button{opacity:1;transform:none;pointer-events:auto;transition-delay:calc(180ms + var(--i)*50ms),calc(180ms + var(--i)*50ms),0s}
-#cam:not(.bell) :is(.mic,.key,.replies){display:none}
-.rb,.cb.key{transition:scale var(--sd) var(--spring),opacity .4s}
-:is(.rb,.cb,.replies button):active{scale:.88;transition:scale .12s ease-out}
+#cam:not(.bell) .mic{display:none}
+.rb{transition:scale var(--sd) var(--spring),opacity .4s}
+:is(.rb,.cb):active{scale:.88;transition:scale .12s ease-out}
+/* Blur-Steuerebene (QFRp7dbxciE 307,0–309,0 s ein / 317,45–318,75 s aus): ein = Overlays Opacity 150 ms, Bild blurt ≈ 400 ms (ab +80 ms), Pille gleichzeitig;
+   aus = Bild zuerst scharf (≈ 80 ms), Overlays 150 ms zurück → gesamt ≈ 230 ms. Schleier ≈ 24 % Weiß (Navy 10,24,47 → ≈ 67,77,100), Blur σ ≈ 3 % W (Kantenweichheit ≈ 6 %) */
+#cam .feed{filter:blur(0);transition:transform var(--sd) var(--spring),filter .08s linear,scale .1s}
+#cam.ctl .feed{filter:blur(3cqw);transition:transform var(--sd) var(--spring),filter .32s linear .08s,scale .4s ease-out}
+#cam.bell.ctl .feed{scale:1.1}   /* randloses Bild: Überstand, damit der Blur am Rand nicht ins Schwarze ausläuft */
+.veil{position:absolute;inset:0;background:#ffffff3d;opacity:0;pointer-events:none;transition:opacity .08s linear}
+#cam.ctl .veil{opacity:1;transition:opacity .32s linear .08s}
+:is(.ctop,.cb,.rb:not(.all),.live-pill){transition:opacity .15s linear .08s,scale var(--sd) var(--spring),background-color .3s,color .3s}
+#cam.ctl :is(.ctop,.cb,.rb:not(.all),.live-pill){opacity:0;pointer-events:none;transition-delay:0s,0s,0s,0s}
+.rb.all{transition:scale var(--sd) var(--spring),opacity .4s,background-color .12s,color .12s}
+#cam.ctl .rb.all{background:#fff;color:#1c1c1e}   /* aktiv: weiß gefüllt, dunkles Symbol (QFRp 312,0 s) */
+/* Zubehör-Pille (QFRp 312,0 s): Glas, x 5–50 %, y 64–77 % (Höhe ≈ 13–14 % W), links dunkler Kreis ⌀ ≈ 9 % mit Symbol, Name Semibold + Zustand Regular weiß; hier das Licht der Kamera (Vorlage: Türschloss) */
+.acc{position:absolute;left:5cqw;top:64cqw;width:45cqw;height:13.5cqw;border-radius:7cqw;display:flex;align-items:center;gap:3.5cqw;padding:0 2.7cqw;text-align:left;
+  background:#ffffff38;-webkit-backdrop-filter:blur(2.4cqw);backdrop-filter:blur(2.4cqw);opacity:0;pointer-events:none;transition:opacity .15s linear,scale var(--sd) var(--spring)}
+#cam.ctl .acc{opacity:1;pointer-events:auto;transition-delay:.0s}
+.acc:active{scale:.96;transition:scale .12s ease-out}
+.acc .ai{flex:none;width:9cqw;height:9cqw;border-radius:50%;background:#0000004d;display:grid;place-items:center;font-size:4.6cqw;color:#ffffffb3}
+.acc.on .ai{color:#ffd60a}
+.acc .at{display:flex;flex-direction:column;font-size:3.8cqw;line-height:1.3;min-width:0}
+.acc .at b{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Kamera-Detail (QFRp7dbxciE 318,7 s, Maße % Screen): Hintergrund Navy ≈ #0a182f, ✕ Glas Mitte 10/10 ⌀ 9, Lautsprecher Mitte 89/10 ⌀ 8, Titel y ≈ 10 + „Live“ y ≈ 14,
+   16:9-Fenster 88 % breit, Radius ≈ 4 %, „● LIVE“-Pille links oben, Raster unten links Mitte 12/88 ⌀ 15, Mic unten rechts Mitte 88/88 ⌀ 15 gelb */
+#cam:not(.bell){background:#0a182f}
+#cam:not(.bell) .feed{left:6cqw;width:88cqw;margin-top:-24.75cqw;border-radius:4cqw;overflow:hidden;transform:none!important}
+#cam:not(.bell) .ctop{top:7.7cqw}
+#cam:not(.bell) .rb.end{left:10cqw;top:10cqw;width:9cqw;height:9cqw;background:#ffffff3d;font-size:4.2cqw;-webkit-backdrop-filter:blur(2.4cqw);backdrop-filter:blur(2.4cqw)}
+#cam:not(.bell) .rb.all{left:12cqw}
+#cam:not(.bell) .rb.mic{left:88cqw;display:grid}
+.cb.spk{display:none;left:89cqw;right:auto;top:10cqw;translate:-50% -50%;width:8cqw;height:8cqw;background:#ffffff3d;font-size:4.2cqw}
+#cam:not(.bell) .cb.spk{display:grid}
+.live-pill{display:none;position:absolute;left:8.2cqw;top:26.5cqw;height:5.5cqw;padding:0 1.8cqw;border-radius:3cqw;align-items:center;gap:.9cqw;font-style:normal;font-weight:700;font-size:2.9cqw;letter-spacing:.02em;background:#78808c99;-webkit-backdrop-filter:blur(2.4cqw);backdrop-filter:blur(2.4cqw);pointer-events:none}
+.live-pill>i{width:1.4cqw;height:1.4cqw;border-radius:50%;background:#ff3b30}
+#cam:not(.bell) .live-pill{display:flex}
 .notch{position:absolute;left:44cqw;top:-7cqw;width:12cqw;height:12cqw;border-radius:50%;opacity:0;pointer-events:none}
 
-/* ---------- Kamera-Face ---------- */
-.f-cams{display:grid;grid-template:repeat(3,var(--t))/repeat(3,var(--t));gap:var(--gap);padding:var(--pad)}
-.ctile{position:relative;grid-area:1/1/3/4;border-radius:4.3cqw;overflow:hidden;background:#1c1c1e;text-align:left;
-  box-shadow:inset 0 0 0 .12cqw #fff2;transition:transform var(--sd) var(--spring)}
-.ctile:active{transform:scale(.97);transition:transform .12s ease-out}
-.ctile .feed{position:absolute;inset:0}
-.ctile .lbl{position:absolute;inset:auto 0 0;z-index:1;padding:9cqw 4.5cqw 3.8cqw;background:linear-gradient(#0000,#0009);line-height:1.3}
+/* ---------- Kamera-Face: randloses 2×2 (Vorlage y-MODo3Hye4 04200 s, _TbqCPIIe8g 94,9 s; Trennlinie ≈ 0,4 % W) ---------- */
+.f-cams{display:grid;grid-template:1fr 1fr/1fr 1fr;gap:.4cqw;background:#000}
+.cc{position:relative;overflow:hidden;background:#000;transition:scale var(--sd) var(--spring)}
+.cc:active{scale:.97;transition:scale .12s ease-out}
+.cc .feed{position:absolute;inset:0}
+.ctile{grid-area:1/1/3/3;display:grid;place-items:center;text-align:center;color:#fff9}
 .ctile b{display:block;font-size:4.4cqw;font-weight:600}
-.ctile .lbl>span{font-size:3.4cqw;color:#ffffffb3;display:flex;align-items:center;gap:1.2cqw}
-.ctile .dot{width:1.8cqw;height:1.8cqw;border-radius:50%;background:#8e8e93}
-.ctile .live .dot{background:#ff3b30;animation:cblink 2s ease-in-out infinite}
-.f-cams .tile .ico{font-size:9.5cqw}
+.ctile span{font-size:3.4cqw}
+/* Livebild-Kachel im Home-Face (Website dashboard/smart_home_hw): Bild randlos in der Kachel, kein Glasrand, kein Icon/Text; ohne Bild bleiben beide sichtbar */
+.tile>:not(.feed){transition:opacity .3s}
+.tile.live{box-shadow:none;background:#000}
+.tile.live>:not(.feed){opacity:0}
 .tile>.feed{position:absolute;inset:0;border-radius:inherit;overflow:hidden;pointer-events:none}
 </style>`);
