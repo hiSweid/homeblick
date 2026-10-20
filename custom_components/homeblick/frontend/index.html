@@ -355,7 +355,11 @@ input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:tr
 #assist.answer .ans>:nth-child(2){transition-delay:.07s}
 #assist.answer .ans>:nth-child(3){transition-delay:.14s}
 #assist[data-k=voice] :is(.acard,.apill,.acal){display:none}
-#assist .atxt{left:8.6cqw;right:8cqw;top:13.2cqw;font-size:5.6cqw;line-height:1.25}
+/* Antwort (Vorlage siri-ai/gallery_*): 5,9 %, Zeilenhöhe 1,18, Kernfakten fett; lange Texte scrollen statt in die Karte zu laufen */
+#assist .atxt{left:8.6cqw;right:8cqw;top:13.2cqw;max-height:24cqw;overflow-y:auto;scrollbar-width:none;font-size:5.9cqw;line-height:1.18}
+#assist .atxt::-webkit-scrollbar{display:none}
+#assist .atxt b{font-weight:700}
+#assist[data-k=voice] .atxt{max-height:76cqw}
 #assist .acard{left:4.5cqw;right:4.5cqw;top:40cqw;bottom:-6cqw;padding:2.6cqw;border:.25cqw solid #e5e5ea;border-radius:5.8cqw;background:#fff}
 #assist .asky{position:relative;height:44cqw;border-radius:4.2cqw;overflow:hidden;background:linear-gradient(#3b86dc,#a3cdf3);color:#fff}
 #assist .asky .t{position:absolute;left:5cqw;top:2cqw;font-size:13cqw;font-weight:300}
@@ -1054,6 +1058,8 @@ document.addEventListener('wheel', e => { const ll = e.target.closest('.ly .lyri
 // ---------- Assist/Siri ----------
 // Ablauf wie im Video: Tropfen (Goo-SVG, 0,2 s) → Glaskugel hört zu → denkt → weiße Antwortkarte, Kugel wandert nach oben.
 // Demo: feste Wetter-Antwort aus den aktuellen Daten. ponytail: HA-Voice-Anbindung (assist_satellite-Zustand, Antworttext) fehlt noch
+// Kernfakten fett: Zahlen mit Einheit (Grad, %, Uhr, Minuten …) und Uhrzeiten
+const rich = t => esc(t).replace(/\b\d{1,2}:\d{2}\b|\d+(?:[.,]\d+)?(?:\s?(?:°C?|Grad|%|Prozent|Uhr|Minuten?|Sekunden?|Stunden?|Euro|€|km\/h|kWh|Watt|W))?/g, '<b>$&</b>');
 const AS = $('#assist'), ORB = $('.orb', AS), BLOOM = $('.bloom', AS), INK = $('.ink', AS), DROPC = $('circle', AS);
 const goo = (k, ms, ease) => DROPC.animate(k.map(([y, sx, sy = sx]) => ({ transform: `translate(0px,${y}px) scale(${sx},${sy})` })), { duration: ms, easing: ease });
 let asT = [], asEv = null;
@@ -1081,8 +1087,8 @@ async function assistAnswer() {
     $('.acal', AS).innerHTML = list?.length ? eventsHTML(list, 4) : '';
   } else {
     const w = st(CFG.weather), a = w.attributes;
-    $('.atxt', AS).textContent = `Draußen sind es ${Math.round(a.temperature)} Grad, ${($('[data-bind=wxc]', AS).textContent || w.state).toLowerCase()}.`
-      + (forecast ? ` Heute wird es bis zu ${Math.round(forecast.temperature)} Grad warm.` : '');
+    $('.atxt', AS).innerHTML = rich(`Draußen sind es ${Math.round(a.temperature)} Grad, ${($('[data-bind=wxc]', AS).textContent || w.state).toLowerCase()}.`
+      + (forecast ? ` Heute wird es bis zu ${Math.round(forecast.temperature)} Grad warm.` : ''));
     $('.ainfo b', AS).textContent = CFG.place;
   }
   assistShow();
@@ -1138,7 +1144,7 @@ let voice, voiceGen = 0;
 async function assistVoice(conversation) {
   const gen = ++voiceGen, live = () => gen === voiceGen;
   AS.dataset.k = 'voice'; $('.atxt', AS).textContent = ''; $('.atr', AS).textContent = '';
-  const say = t => { $('.atxt', AS).textContent = t; };
+  const say = t => { const el = $('.atxt', AS); el.innerHTML = rich(t); el.scrollTop = 0; };
   const v = await voiceRun(conn, {
     pipeline: CFG.pipeline, device: CFG.device, conversation, mute: CFG.mute, volume: CFG.volume,
     listen: conversation ? Math.min(CFG.listen, 8) : CFG.listen,   // Rückfrage: kürzer warten
