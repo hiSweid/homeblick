@@ -48,6 +48,7 @@ class Hub:
     def __init__(self, hass: HomeAssistant, entry_id: str):
         self.hass, self.entry_id = hass, entry_id
         self.store = Store(hass, STORE_VERSION, DOMAIN)
+        self.version: str | None = None   # Integrationsversion (manifest), gesetzt in async_setup_entry
         self.default: dict | None = None   # Vorlage für neue Displays (Stand vor Mehrfach-Display: die eine gemeinsame Konfiguration)
         self.configs: dict[str, dict] = {}
         self.displays: dict[str, Display] = {}

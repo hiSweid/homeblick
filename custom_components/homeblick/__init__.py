@@ -10,6 +10,7 @@ from homeassistant.core import HomeAssistant, ServiceCall, callback
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.device_registry import DeviceEntry
+from homeassistant.loader import async_get_integration
 from homeassistant.util import dt as dt_util
 
 from .const import DEFAULTS, DOMAIN, FACES, PLATFORMS, URL, WAKE
@@ -32,7 +33,7 @@ async def register(hass, connection, msg):
     """Display meldet sich an (legt sich beim ersten Mal an) und bekommt seine Konfiguration."""
     hub = hass.data[DOMAIN]
     d = await hub.ensure(msg["display"], msg.get("name"))
-    connection.send_result(msg["id"], {"config": hub.config(d.id), "kiosk": d.kiosk(), "device_id": hub.device_id(d)})
+    connection.send_result(msg["id"], {"config": hub.config(d.id), "kiosk": d.kiosk(), "device_id": hub.device_id(d), "version": hub.version})
 
 
 @websocket_api.websocket_command({vol.Required("type"): "homeblick/set_config", **DISPLAY, vol.Required("config"): dict})
@@ -197,6 +198,7 @@ def _targets(hass, call: ServiceCall):
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     old = hass.data.get(DOMAIN)
     hub = hass.data[DOMAIN] = Hub(hass, entry.entry_id)
+    hub.version = str((await async_get_integration(hass, DOMAIN)).version)   # Panels laden neu, wenn sie nach dem Wiederverbinden eine andere sehen
     await hub.load()
     if old:   # Integration neu geladen: offene Panels (WebSocket-Abos) und Laufzustand übernehmen, sonst hängen sie am alten Hub
         for i, d in hub.displays.items():

@@ -1826,12 +1826,17 @@ if (LIVE) {
       conn = await ha.createConnection({ auth, setupRetry: -1 });
     }
     // Display anmelden: eigene Konfiguration + Kiosk-Einstellungen aus HA; ohne gespeicherte Konfiguration bleibt die lokale und wird hochgeladen
-    const hello = conn.sendMessagePromise({ type: 'homeblick/register', display: DISPLAY, name: new URLSearchParams(location.search).get('name') || undefined }).then(c => {
+    const register = () => conn.sendMessagePromise({ type: 'homeblick/register', display: DISPLAY, name: new URLSearchParams(location.search).get('name') || undefined });
+    let version;
+    const hello = register().then(c => {
+      version = c.version;
       CONF.kiosk = c.kiosk; applyK(c.kiosk); CFG.device = c.device_id || '';
       if (c.config?.faces?.length) { CONF = { ...c.config, kiosk: c.kiosk }; try { localStorage.setItem(KEY, JSON.stringify(CONF)); } catch {} renderAll(0); }
       else save();
     }).catch(console.warn);
     ha.subscribeEntities(conn, e => { ents = e; schedule(); });
+    // Nach HA-Neustart (z. B. Update über HACS) wieder verbinden: andere Integrationsversion → Seite neu laden, sonst läuft altes JS weiter
+    conn.addEventListener('ready', () => register().then(c => { if (version && c.version && c.version !== version) location.reload(); }).catch(console.warn));
     // Fehler des Panels ins HA-Protokoll und auf die Einstellungsseite (gleiche Meldung höchstens einmal pro Minute)
     const seenErr = new Map();
     const report = (level, m) => {

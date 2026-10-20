@@ -28,7 +28,7 @@ class Base(Entity):
         self.hub, self.d, self.key = hub, d, key
         self._attr_unique_id = f"{d.id}_{key}"
         self._attr_translation_key = key
-        self._attr_device_info = DeviceInfo(identifiers={(DOMAIN, d.id)}, name=d.name, manufacturer="Homeblick", model="Display")
+        self._attr_device_info = DeviceInfo(identifiers={(DOMAIN, d.id)}, name=d.name, manufacturer="Homeblick", model="Display", sw_version=hub.version)
         if not self.live:
             self._attr_entity_category = EntityCategory.CONFIG
 
