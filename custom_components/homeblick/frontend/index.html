@@ -672,7 +672,7 @@ input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:tr
 <script type="module">
 import { weatherFace, weather, weatherHours, weatherNear, COND } from './weather.js';
 import { energyFace, energy, energyDemo } from './energy.js';
-import { kioskInit, KIOSK_DEF } from './kiosk.js';
+import { kioskInit, KIOSK_DEF, luxLevel } from './kiosk.js';
 import { shot } from './shot.js';
 import { normFaces } from './faces.js';
 import { wakeInit } from './wake.js';
@@ -1977,7 +1977,7 @@ if (!LIVE) {
 }
 if (!LIVE && new URLSearchParams(location.search).has('ring')) setTimeout(() => { ents = { ...ents, 'event.turklingel_doorbell': { ...ents['event.turklingel_doorbell'], state: new Date().toISOString() } }; schedule(); }, 1500);   // Demo-Klingeln wie HA
 timerInit(screen, call, (timer, action) => LIVE && conn.sendMessagePromise({ type: 'homeblick/timer', display: DISPLAY, timer, action }).catch(e => console.warn('Timer', action, e)), () => CFG.chime ? CFG.volume / 100 : 0, () => kiosk.wake());
-const kiosk = kioskInit({ faces, conf: () => CONF, busy: () => cur || AS.className || timerOn(), touched: () => touched,
+const kiosk = kioskInit({ faces, conf: () => CONF, lux: () => { const e = CONF.kiosk?.lux, v = e ? parseFloat(st(e).state) : NaN; return isNaN(v) ? null : luxLevel(v); }, busy: () => cur || AS.className || timerOn(), touched: () => touched,
   music: () => NP && st(NP).state === 'playing' && !/video|movie|tvshow|channel/.test(st(NP).attributes.media_content_type),   // Filme/TV ohne device_class tv nicht als Musik
   onState: st => conn?.sendMessagePromise({ type: 'homeblick/report', display: DISPLAY, ...st, info: info() }).catch(() => {}) });
 if (!LIVE) camConfig({ list: [{ entity: 'camera.turklingel', name: 'Haustür', light: 'light.eingang' }, { entity: 'camera.cx410w_color_x_standardauflosung', name: 'Garten' }, { entity: 'camera.demo_veranda', name: 'Veranda' }, { entity: 'camera.demo_wohnzimmer', name: 'Wohnzimmer' }], bell: { event: 'event.turklingel_doorbell', camera: 'camera.turklingel' } });

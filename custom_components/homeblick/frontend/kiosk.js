@@ -7,7 +7,9 @@ export const inWindow = (now, from, to) => from <= to ? now >= from && now < to 
 
 // faces: Scroll-Container, conf: () => CONF, busy: () => Bearbeiten/Vollbild/Assist aktiv, touched: () => letzte Berührung (ms),
 // onState({ face, saver }) bei Änderung (Meldung an HA), music: () => läuft Musik (dann Musik-Face statt Schoner, Einstellung „music“)
-export function kioskInit({ faces, conf, busy, touched, onState, music }) {
+export const luxLevel = lx => Math.min(1, .3 + .7 * Math.log10(1 + Math.max(0, lx)) / Math.log10(301));   // Lux → Helligkeitsfaktor: ≤0 lx 30 %, ab 300 lx 100 % (logarithmisch wie das Auge)
+
+export function kioskInit({ faces, conf, busy, touched, onState, music, lux }) {
   const cfg = () => ({ ...KIOSK_DEF, ...conf().kiosk });
   const idx = () => Math.round(faces.scrollLeft / (faces.clientWidth * 1.025));
   const goto = (i, behavior = 'smooth') => faces.go(i, behavior !== 'smooth');
@@ -55,7 +57,7 @@ export function kioskInit({ faces, conf, busy, touched, onState, music }) {
     const face = faces.children[idx()]?.className.match(/f-(\w+)/)?.[1] ?? null;
     if (onState && (face !== st.face || (back >= 0) !== st.saver)) onState(st = { face, saver: back >= 0 });
     const d = dim && inWindow(min, mins(dim.from), mins(dim.to)) && Date.now() - last > 30000;
-    veil.style.opacity = back >= 0 && black ? 1 : 1 - (1 - (d ? dim.level ?? .8 : 0)) * (bright ?? 1);   // Helligkeit = Software-Folie (Browser kann die Hardware nicht steuern)
+    veil.style.opacity = back >= 0 && black ? 1 : 1 - (1 - (d ? dim.level ?? .8 : 0)) * (bright ?? 1) * (lux?.() ?? 1);   // Helligkeit = Software-Folie (Browser kann die Hardware nicht steuern)
   }, 1000);
 
   // Face per URL-Fragment (z. B. HA-Automation / Dashboard-Link): #music, #bigclock …

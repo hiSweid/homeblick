@@ -129,6 +129,7 @@ SETTINGS = vol.Schema({
     vol.Optional("tts"): vol.Any("", vol.Match(r"^tts\.\w+$")),
     vol.Optional("chime"): bool,
     vol.Optional("weather"): vol.Match(r"^weather\.\w+$"),
+    vol.Optional("lux"): vol.Any("", vol.Match(r"^sensor\.\w+$")),
     vol.Optional("presence"): vol.Any("", vol.Match(r"^(binary_sensor|input_boolean)\.\w+$")),
     vol.Optional("place"): vol.All(str, vol.Length(max=40)),
 })
