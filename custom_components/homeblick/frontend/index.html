@@ -670,7 +670,7 @@ input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:tr
 </div>
 
 <script type="module">
-import { weatherFace, weather, weatherHours, COND } from './weather.js';
+import { weatherFace, weather, weatherHours, weatherNear, COND } from './weather.js';
 import { energyFace, energy, energyDemo } from './energy.js';
 import { kioskInit, KIOSK_DEF } from './kiosk.js';
 import { shot } from './shot.js';
@@ -1968,7 +1968,8 @@ const kiosk = kioskInit({ faces, conf: () => CONF, busy: () => cur || AS.classNa
   onState: st => conn?.sendMessagePromise({ type: 'homeblick/report', display: DISPLAY, ...st, info: info() }).catch(() => {}) });
 if (!LIVE) camConfig({ list: [{ entity: 'camera.turklingel', name: 'Haustür', light: 'light.eingang' }, { entity: 'camera.cx410w_color_x_standardauflosung', name: 'Garten' }, { entity: 'camera.demo_veranda', name: 'Veranda' }, { entity: 'camera.demo_wohnzimmer', name: 'Wohnzimmer' }], bell: { event: 'event.turklingel_doorbell', camera: 'camera.turklingel' } });
 // Präsenzmelder je Display (Einstellung presence): solange „an“, weckt das Display aus dem Ruhemodus
-setInterval(() => { const p = CONF.kiosk?.presence; if (p && st(p).state === 'on') kiosk.wake(); }, 1000);
+let near;   // Wetter-Face „Bedingungen“: Melder an = Nah (Karte), aus = Fern (nur Text); ohne Melder bleibt Nah
+setInterval(() => { const p = CONF.kiosk?.presence, on = p && st(p).state === 'on'; if (on) kiosk.wake(); if (p && on !== near) weatherNear(near = on); }, 1000);
 camInit($('#cam'), { open, close, view: () => cur?.view, conn: () => conn, hass: HASS, wake: () => kiosk.wake(), sound: () => CFG.chime ? CFG.volume / 100 : 0 });
 // Laufender Zustand für die Einstellungsseite (Mikro braucht https, Wake Word hält es offen, Wake Lock hält den Bildschirm an)
 const INFO = { wake: null, v: undefined };

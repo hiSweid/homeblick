@@ -192,12 +192,12 @@ function storm(sky, c) {
 }
 
 // ---------- Icons (SF-Symbols-Ersatz, eigene Zeichnung) ----------
-const CL = (x = 0, y = 0, s = 1) => `<g transform="translate(${x} ${y}) scale(${s})"><circle cx="11" cy="10.5" r="5.4"/><circle cx="16.6" cy="13.6" r="4"/><circle cx="6" cy="14" r="3.6"/><rect x="6" y="13" width="10.6" height="4.6"/></g>`;
-const RAYS = (cx, cy, r0, r1, n = 8, a0 = 0) => Array.from({ length: n }, (_, i) => {
+const CL = (x = 0, y = 0, s = 1, sy = s) => `<g transform="translate(${x} ${y}) scale(${s} ${sy})"><circle cx="11" cy="10.5" r="5.4"/><circle cx="16.6" cy="13.6" r="4"/><circle cx="6" cy="14" r="3.6"/><rect x="6" y="13" width="10.6" height="4.6"/></g>`;
+const RAYS = (cx, cy, r0, r1, n = 8, a0 = 0, skip = []) => Array.from({ length: n }, (_, i) => i).filter(i => !skip.includes(i)).map(i => {
   const a = a0 + i * 2 * Math.PI / n, c = Math.cos(a), s = Math.sin(a);
   return `M${(cx + c * r0).toFixed(2)} ${(cy + s * r0).toFixed(2)}L${(cx + c * r1).toFixed(2)} ${(cy + s * r1).toFixed(2)}`;
 }).join('');
-const SUN = (cx, cy, r) => `<g class="s"><circle cx="${cx}" cy="${cy}" r="${r}"/><path d="${RAYS(cx, cy, r + 2, r + 4.2)}" fill="none" stroke-width="1.9" stroke-linecap="round"/></g>`;   // .s: in der Stundenleiste gelb
+const SUN = (cx, cy, r, skip, w = 1.9, g = 2, l = 4.2) => `<g class="s"><circle cx="${cx}" cy="${cy}" r="${r}"/><path d="${RAYS(cx, cy, r + g, r + l, 8, 0, skip)}" fill="none" stroke-width="${w}" stroke-linecap="round"/></g>`;   // .s: in der Stundenleiste gelb
 const MOON = (cx, cy, r) => { const id = 'wm' + ++uid; return `<mask id="${id}"><rect x="-9" y="-9" width="50" height="50" fill="#fff"/><circle cx="${cx + r * .62}" cy="${cy - r * .5}" r="${r * .86}" fill="#000"/></mask><circle cx="${cx}" cy="${cy}" r="${r}" mask="url(#${id})"/>`; };
 // vorderes Motiv schneidet eine schmale Lücke ins hintere (wie bei SF Symbols)
 const behind = (back, front) => { const id = 'wm' + ++uid; return `<mask id="${id}"><rect x="-9" y="-9" width="50" height="50" fill="#fff"/><g fill="#000" stroke="#000" stroke-width="3" stroke-linejoin="round">${front}</g></mask><g mask="url(#${id})">${back}</g>${front}`; };
@@ -205,10 +205,10 @@ const UP = CL(1.5, -3.6, 1);
 const lines = (d, w = 1.9) => `<path d="${d}" fill="none" stroke-width="${w}" stroke-linecap="round"/>`;
 const BOLT = '<path d="M14.6 12.5 10.4 18.6h3.4l-1.6 5 5.2-7h-3.5l2-4.1z"/>';
 const ICON = {
-  sunny: () => SUN(14, 12, 4.6),
+  sunny: (n, h) => h ? SUN(14, 9, 4.3, [], 1.1, 2.7, 4.2) : SUN(14, 12, 4.6),   // h: Stundenleiste (feiner, 3 Einheiten höher)
   'clear-night': () => MOON(12.5, 13, 8) + '<path d="M22 3.2l.7 1.6 1.6.7-1.6.7-.7 1.6-.7-1.6-1.6-.7 1.6-.7zM25 9.5l.5 1.1 1.1.5-1.1.5-.5 1.1-.5-1.1-1.1-.5 1.1-.5z"/>',
-  partlycloudy: n => behind(n ? MOON(19, 8, 5) : SUN(18.5, 8.5, 3.6), CL(0, 3.5, 1)),
-  cloudy: () => behind(CL(7, -2.5, .8), CL(.5, 3.8, 1)),
+  partlycloudy: n => behind(n ? MOON(19, 8, 5) : SUN(18.5, 8.5, 3.6, [2]), CL(-.2, 1.3, .9, .83)),
+  cloudy: () => behind(CL(6, -3.6, .72, .66), CL(.3, 1.6, .9, .83)),
   fog: () => UP + lines('M4 18.8h17M7.5 22.3h14'),
   rainy: () => UP + lines('M8 17.5l-1.2 3.4M13 17.5l-1.2 3.4M18 17.5l-1.2 3.4'),
   pouring: () => UP + lines('M6.6 17.3l-2 5.4M11.2 17.3l-2 5.4M15.8 17.3l-2 5.4M20.4 17.3l-2 5.4', 1.7),
@@ -221,7 +221,7 @@ const ICON = {
   'windy-variant': () => CL(5, -4, .85) + lines('M2.5 16.5h15a2.8 2.8 0 1 1-2.8 2.8M2.5 21h8'),
   exceptional: () => '<path fill-rule="evenodd" d="M14 2.8 26 22H2zM12.9 9h2.2l-.4 7.2h-1.4zM14 17.8a1.3 1.3 0 1 0 0 2.6 1.3 1.3 0 0 0 0-2.6z"/>',
 };
-const icon = (cond, night) => `<svg viewBox="0 0 28 24">${(ICON[cond] || ICON.cloudy)(night)}</svg>`;
+const icon = (cond, night, h) => `<svg viewBox="0 0 28 24">${(ICON[cond] || ICON.cloudy)(night, h)}</svg>`;
 const FOOT = {
   set: d => `<svg viewBox="0 0 32 24"><path d="M9 19.6a7 7 0 0 1 14 0z" fill="#fff" stroke="none"/>${lines(`M16 ${d ? '.4v8.2M12.7 5.3 16 8.6l3.3-3.3' : '8.6V.4M12.7 3.7 16 .4l3.3 3.3'}${RAYS(16, 19.6, 9.4, 12, 1, -Math.PI * 3 / 4)}${RAYS(16, 19.6, 9.4, 12, 1, -Math.PI / 4)}M1.8 19.6h3.8M26.4 19.6h3.8M.9 23.2h30.2`, 1.3)}</svg>`,
   wind: `<svg viewBox="0 0 32 24">${lines('M4.5 8.6c4.2-.9 8.6-.9 11.7-.3 2.6.5 4.4-1 4.4-3s-1.6-3.2-3.3-3.2-2.8 1.3-2.7 2.7M4.5 13.4c6-.8 13.2-1 18-.2 2.8.5 5-1.1 5-3.3 0-2-1.6-3.3-3.4-3.3S21 7.9 21.2 9.4M4.5 18.1c3.9-.8 8.3-.9 11.4-.4 2.4.4 4.4 1.1 4.4 3.1s-1.5 3-3.1 3-2.7-1.2-2.6-2.5', 1.2)}</svg>`,
@@ -247,10 +247,14 @@ export function weatherFace(el, f, place = '') {
 // Stil „Bedingungen“ (Vorlage product-viewer/display_endframe, frames/pv-display_1…5): Ort, große Temperatur, Zustand, H/T mittig;
 // darunter Glaskarte mit Segment Temperatur/Niederschlag/Wind und horizontal scrollender Stundenleiste (HA-Vorhersage hourly).
 // Abweichung: Vorlage zeigt unter den Icons nichts mehr (Karte läuft aus dem Bild) → Werte darunter, Zeilen dafür etwas höher
-const MODES = { t: ['Temperatur (°C)', icon('partlycloudy')], p: ['Niederschlag (%)', '<svg viewBox="0 0 28 24"><path d="M14 2.5s-6.5 8-6.5 12.6a6.5 6.5 0 0 0 13 0C20.5 10.5 14 2.5 14 2.5z"/></svg>'], w: ['Wind (km/h)', FOOT.wind] };
-let hours = [];
+const MODES = { t: ['Temperatur (°C)', `<svg viewBox="0 2 28 24">${behind('<circle cx="20" cy="11.3" r="4.2"/>', CL(0, 3.5, 1))}</svg>`], p: ['Niederschlag (%)', '<svg viewBox="0 0 28 24"><path d="M14 2.5s-6.5 8-6.5 12.6a6.5 6.5 0 0 0 13 0C20.5 10.5 14 2.5 14 2.5z"/></svg>'], w: ['Wind (km/h)', FOOT.wind] };
+let hours = [], far = false;   // far: Fern-Ansicht (nur Text), sonst Nah mit Karte
+const setFar = (el, v) => { if (el.closest('.gallery,.custom')) return; el.toggleAttribute('data-far', v); };
+// Aus index.html: Präsenzmelder an → Nah, aus → Fern; ohne Melder bleibt Nah (Tipp wechselt immer)
+export function weatherNear(on) { far = !on; for (const e of $$('.wcond')) setFar(e, far); }
 function condFace(el, place) {
-  el.classList.add('wcond'); el.dataset.m = 't';
+  el.classList.add('wcond'); el.dataset.m = 't'; setFar(el, far);
+  el.addEventListener('click', e => { if (!e.target.closest('.wcard')) setFar(el, !el.hasAttribute('data-far')); });
   el.innerHTML = `<div class="wsky"></div><time data-bind="time"></time>
 <div class="wtop"><b>${place.replace(/[&<>"]/g, c => `&#${c.charCodeAt(0)};`)}</b><div data-bind="wxt"></div><span data-bind="wxc"></span><span data-bind="wxhl"></span></div>
 <section class="wcard"><header><div><b>Bedingungen</b><span class="wsub">${MODES.t[0]}</span></div>
@@ -277,7 +281,7 @@ function fillHours(row, anim) {
   row.innerHTML = list.map((h, i) => {
     const t = Date.parse(h.datetime), n = nightAt(t), c = h.condition === 'sunny' && n ? 'clear-night' : h.condition;
     const v = m === 't' ? Math.round(h.temperature) + '°' : m === 'p' ? (h.precipitation_probability ?? 0) + '<small> %</small>' : h.wind_speed == null ? '–' : Math.round(h.wind_speed) + '';
-    return `<div><b>${i ? new Date(t).getHours() + '<small> Uhr</small>' : 'Jetzt'}</b><i class="wi">${icon(c in ICON ? c : 'cloudy', n)}</i><span>${v}</span></div>`;
+    return `<div><b>${i ? new Date(t).getHours() + '<small> Uhr</small>' : 'Jetzt'}</b><i class="wi">${icon(c in ICON ? c : 'cloudy', n, 1)}</i><span>${v}</span></div>`;
   }).join('');
   if (anim) row.querySelectorAll('span').forEach((x, i) => x.animate([{ opacity: 0, transform: 'translateY(40%)' }, { opacity: 1, transform: 'none' }], { duration: 500, delay: i * 25, easing: getComputedStyle(document.documentElement).getPropertyValue('--spring') || 'ease-out', fill: 'backwards' }));
 }
@@ -399,27 +403,43 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 .f-weather footer div{display:flex;flex-direction:column;align-items:center}
 .f-weather footer b{font-weight:500}
 .f-weather footer span{opacity:.72}
-.wcond>time{right:8.8cqw;top:7.5cqw;font-size:4.4cqw;font-weight:400}
-.wcond .wtop{left:0;right:0;top:17.6cqw;text-align:center;display:flex;flex-direction:column;align-items:center}
-.wcond .wtop b{font-size:7.4cqw;font-weight:600;line-height:1.25}
-.wcond .wtop>div{font-size:16.2cqw;font-weight:250;line-height:1;margin:.6cqw 0 1.4cqw;padding-left:3cqw}
-.wcond .wtop span{font-size:4.4cqw;font-weight:500;line-height:1.05}
-.wcard{left:4.4cqw;right:4.3cqw;top:64.2cqw;bottom:-6cqw;border-radius:5.1cqw;background:rgb(13 55 135/.5);-webkit-backdrop-filter:blur(3cqw);backdrop-filter:blur(3cqw);text-shadow:none;overflow:hidden}
-.wcard header{display:flex;justify-content:space-between;align-items:flex-start;padding:3.4cqw 4.3cqw 0}
-.wcard header b{display:block;font-size:5.2cqw;font-weight:600;line-height:1.15}
-.wsub{display:block;font-size:3.6cqw;color:#8ad8ff;line-height:1.3}
-.wseg{display:flex;margin-top:.5cqw;padding:.6cqw;border-radius:9cqw;background:#00001e1f}
-.wseg button{width:9.2cqw;height:6.1cqw;border-radius:9cqw;display:grid;place-items:center;font-size:3.6cqw;opacity:.85;transition:background-color .25s,scale var(--sd) var(--spring)}
-.wseg button.on{background:#ffffff26;opacity:1}
+/* Stil „Bedingungen“ — Maße aus Website-Bild product-viewer/display_endframe (Nah) und display_startframe (Fern), je auf 784 px skaliert und gemessen:
+   Ort Kappenhöhe 40 px (7,0 cqw, 600, Laufweite −.045em wie SF Display), Temperatur 93 px Ziffernhöhe, Zustand/H-T Kappenhöhe 22 px (3,85 cqw, Regular), Uhr Kappenhöhe 22 px (3,93 cqw);
+   Karte Titel 4,9 cqw, Untertitel 3,3 cqw, Segment 29 × 7,9 cqw (Schaltfläche 9,2 × 6,5), Stundenspalte 14,0 cqw (erste Mitte 12,3 cqw), Symbole 41 px (Sonne mit Strahlen), Gelb #ffcc00.
+   Fern: Text größer (Ort ×1,21, Temperatur ×1,66, Zustand/H-T ×1,45) und tiefer, ohne Uhr und Karte; Nah: Karte + Uhr kommen gestaffelt dazu. Auslöser (Präsenzmelder/Tipp) ist keine Vorlage, nur Annahme. */
+.wcond>time{right:8.8cqw;top:8.4cqw;font-size:3.93cqw;font-weight:400;transition:opacity .4s .2s}
+.wcond .wtop{left:0;right:0;top:0;height:60cqw;text-align:center}
+.wcond .wtop>*{position:absolute;left:0;right:0;line-height:1;transform-origin:50% 0;transition:transform var(--sd,.64s) var(--spring,ease-out)}
+.wcond .wtop b{top:19.1cqw;font-size:7cqw;font-weight:600;letter-spacing:-.045em}
+.wcond .wtop>div{top:27.7cqw;font-size:16.2cqw;font-weight:300;padding-left:3.8cqw}
+.wcond .wtop span{font-size:3.85cqw;font-weight:400;letter-spacing:-.045em}
+.wcond .wtop span:nth-of-type(1){top:44.9cqw}
+.wcond .wtop span:nth-of-type(2){top:49.7cqw;word-spacing:.34em}
+.wcond[data-far] .wtop b{transform:translateY(5.1cqw) scale(1.2)}
+.wcond[data-far] .wtop>div{transform:translateY(7.35cqw) scale(1.66)}
+.wcond[data-far] .wtop span:nth-of-type(1){transform:translateY(18.5cqw) scale(1.46)}
+.wcond[data-far] .wtop span:nth-of-type(2){transform:translateY(20.7cqw) scale(1.44)}
+.wcond[data-far]>time{opacity:0;transition-delay:0s}
+.wcard{left:4.4cqw;right:4.3cqw;top:64.2cqw;bottom:-6cqw;border-radius:5.1cqw;background:rgb(11 78 149/.5);-webkit-backdrop-filter:blur(3cqw);backdrop-filter:blur(3cqw);text-shadow:none;overflow:hidden;transition:transform var(--sd,.64s) var(--spring,ease-out) .1s,opacity .4s .1s}
+.wcond[data-far] .wcard{transform:translateY(40cqw);opacity:0;pointer-events:none;transition-delay:0s}
+.wcard header{display:flex;justify-content:space-between;align-items:flex-start;padding:3.65cqw 4.6cqw 0 4.2cqw}
+.wcard header b{display:block;font-size:4.9cqw;font-weight:600;line-height:1.15;letter-spacing:-.03em}
+.wsub{display:block;margin-top:.25cqw;font-size:3.3cqw;color:#acf4ff;line-height:1.2}
+.wseg{display:flex;margin-top:1.12cqw;padding:.7cqw;border-radius:9cqw;background:#00001e1f}
+.wseg button{width:9.2cqw;height:6.5cqw;border-radius:9cqw;display:grid;place-items:center;font-size:3.6cqw;transition:background-color .25s,scale var(--sd) var(--spring)}
+.wseg button.on{background:#ffffff26}
 .wseg button:active{scale:.9;transition:scale .12s ease-out}
-.wseg .wi{height:1em}
-.whours{display:flex;margin-top:2cqw;padding:0 1.6cqw;overflow-x:auto;scrollbar-width:none;overscroll-behavior-x:contain;touch-action:pan-x}
+.wseg .wi{height:1.32em}
+.wseg [data-m=p] .wi{height:1.06em}
+.wseg [data-m=w] .wi{height:.99em}
+.whours{display:flex;margin-top:2.45cqw;padding:0 .9cqw;overflow-x:auto;scrollbar-width:none;overscroll-behavior-x:contain;touch-action:pan-x}
 .whours::-webkit-scrollbar{display:none}
-.whours>div{flex:0 0 14.1cqw;display:flex;flex-direction:column;align-items:center;gap:1.7cqw}
-.whours b{font-size:3.6cqw;font-weight:600;white-space:nowrap}
-.whours small{font-size:.72em}
-.whours .wi{height:5.6cqw}
-.whours .s{fill:#ffd60a;stroke:#ffd60a}
-.whours span{font-size:3.6cqw;font-weight:500}
+.whours>div{flex:0 0 14cqw;display:flex;flex-direction:column;align-items:center}
+.whours b{font-size:3.2cqw;font-weight:600;line-height:1;white-space:nowrap}
+.whours small{font-size:.76em}
+.whours .wi{height:7.1cqw;margin-top:5.5cqw}
+.whours .s{fill:#ffcc00;stroke:#ffcc00}
+.whours .s path{stroke-width:1.2}
+.whours span{margin-top:0;font-size:3.3cqw;font-weight:500;line-height:1}
 .f-weather footer svg{width:9.3cqmin;height:7cqmin;margin-bottom:2.9cqmin;fill:none;stroke:#fff;stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round;overflow:visible}
 </style>`);
