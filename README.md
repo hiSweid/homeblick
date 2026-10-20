@@ -19,7 +19,7 @@ The energy face reads the entities of the [ha-evcc](https://github.com/marq24/ha
 
 ## Several displays
 
-Each browser/tablet is its own **display** (a device in Home Assistant, created the first time it opens Homeblick; rename it there, or give it a fixed id once per device by opening `https://<your-ha>/homeblick/index.html?display=kitchen&name=Kitchen` in that device's browser). Every display has its own faces and layout (new displays start from the existing one) and its own entities:
+Each browser/tablet is its own **display** (a device in Home Assistant, created the first time it opens Homeblick; rename it there, or give it a fixed id once per device by opening `https://<your-ha>/homeblick/index.html?live&display=kitchen&name=Kitchen` in that device's browser). Every display has its own faces and layout (new displays start from the existing one) and its own entities:
 
 - Control: **Face** (select), **Screensaver** (switch), **Reload** and **Assist** (buttons), **Announcement** (notify entity: `notify.send_message` with message and optional title is shown and spoken on the display) – use them in automations, dashboards or voice like any other entity.
 - Configuration: screensaver delay and face, music face instead of the screensaver while music plays, night dimming (on, from, until, level), wake word (opt-in, keeps the microphone open: `hey_jarvis` or `alexa`) and doorbell chime.
@@ -42,6 +42,12 @@ A ring of the doorbell event wakes the display, plays a chime and opens the door
 **Settings page** (sidebar → *Homeblick Einstellungen*, admins only): one tab per display with online status and remote actions (show face, reload, Assist, screensaver), the faces it shows (order, background, style, grid tiles and their entities), screensaver, night dimming, wake word, Assist pipeline, weather entity/place; copy the setup of one display to another. Changes reach the open display immediately.
 
 Also: `#music`, `#bigclock`, … in the URL switches to that face; the screen is kept awake via the Wake Lock API.
+
+## Kiosk / wall tablet
+
+Open `https://<your-ha>/homeblick/index.html?live` directly in the tablet's browser (full screen, without the Home Assistant sidebar; sign in once). Without `?live` the page shows demo data. Add `&display=<id>&name=<Name>` once to give the tablet a fixed display id. Use a browser in kiosk/full-screen mode (or "Add to home screen") and keep the tablet on power; Homeblick keeps the screen awake via the Wake Lock API.
+
+**https is required** for the microphone (Assist, wake word) and the Wake Lock: browsers only allow them on https or localhost. Reach Home Assistant via https, e.g. Home Assistant Cloud, a reverse proxy with a certificate, or a tunnel. On plain http the display works, but cannot listen and may turn its screen off.
 
 ## Voice (Assist)
 
