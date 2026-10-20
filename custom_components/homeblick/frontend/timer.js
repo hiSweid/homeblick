@@ -2,7 +2,7 @@
 // Strichkranz entlang eines abgerundeten Quadrats (Rest orange ab 12 Uhr im Uhrzeigersinn, Verstrichenes gedimmt),
 // große weiße Restzeit, darunter Gesamtdauer orange („15 MIN“). Zeigt den nächsten laufenden HA-`timer.*`.
 // Nicht in der (nur Annahme): Tippen blendet aus, Timer-Kachel blendet wieder ein, bei Start/Ablauf erscheint er.
-// Assist-Sprach-Timer sind in HA (soweit bekannt) keine Entities → nur Timer-Helper.
+// Sprach-Timer (Assist, am Display gestartet) sind keine Entities: der Server schickt sie (voiceTimers) und sie laufen wie ein timer.*-Helper; angezeigt wird der nächste fällige.
 const DEMO = !new URLSearchParams(location.search).has('live');
 const sec = s => String(s || 0).split(':').reduce((a, v) => a * 60 + +v, 0);
 const hms = t => { t = Math.max(0, Math.ceil(t)); const h = t / 3600 | 0, m = t / 60 % 60 | 0, s = t % 60; return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(s).padStart(2, '0'); };
@@ -26,6 +26,7 @@ const N = 60, TICKS = Array.from({ length: N }, (_, i) => {
   return `<line x1="${(50 + x).toFixed(2)}" y1="${(50 + y).toFixed(2)}" x2="${(50 + x - nx * l).toFixed(2)}" y2="${(50 + y - ny * l).toFixed(2)}"/>`;
 }).join('');
 
+let VOICE = [], lastEnts = {};   // Sprach-Timer des Servers als timer.*-ähnliche Einträge
 let T, call, cur = null, key = '', iv = 0, done = null, doneT = 0, hidden = false;
 const prev = {};   // letzter Zustand je Timer → Ablauf erkennen (active → idle, finishes_at erreicht)
 
@@ -74,7 +75,8 @@ function draw() {
 // Aus index.html bei jedem render()
 export function timers(ents) {
   if (!T) return;
-  const now = Date.now(), list = Object.values(ents).filter(s => s.entity_id.startsWith('timer.'));
+  lastEnts = ents;
+  const now = Date.now(), list = [...Object.values(ents).filter(s => s.entity_id.startsWith('timer.')), ...VOICE];
   for (const s of list) {
     const p = prev[s.entity_id];
     if (p?.state === 'active' && s.state === 'idle' && Date.parse(p.attributes.finishes_at) <= now + 2000) finished(s);
@@ -91,6 +93,18 @@ export function timers(ents) {
   T.querySelector('.tl').textContent = total(sec(a.duration));
   draw();
   iv ||= setInterval(draw, 250);
+}
+
+// list: laufende/pausierte Sprach-Timer {id, name, total, left, active} (left in s ab jetzt); fin: gerade abgelaufener {id, total}; true = neu oder abgelaufen
+export function voiceTimers(list, fin) {
+  const now = Date.now(), ids = VOICE.map(s => s.entity_id);
+  VOICE = (list || []).map(t => ({ entity_id: 'voice.' + t.id, state: t.active ? 'active' : 'paused',
+    attributes: { duration: hms(t.total), remaining: hms(t.left), finishes_at: t.active ? new Date(now + t.left * 1000).toISOString() : undefined } }));
+  const neu = VOICE.some(s => !ids.includes(s.entity_id));
+  if (neu) hidden = false;   // neu gestartet → zeigen
+  timers(lastEnts);
+  if (fin && T) finished({ entity_id: 'voice.' + fin.id, attributes: { duration: hms(fin.total) } });
+  return neu || !!fin;   // Aufrufer weckt das Display
 }
 
 function finished(s) {

@@ -51,7 +51,7 @@ Open `https://<your-ha>/homeblick/index.html?live` directly in the tablet's brow
 
 ## Voice (Assist)
 
-Pull down or say the wake word: the microphone audio goes to your Home Assistant Assist pipeline (speech-to-text, intent, text-to-speech) and the answer is shown and spoken. Give the display's device an **area** in Home Assistant so "turn on the light" means the lights of that room. When the agent asks a follow-up question, the display listens again without the wake word. Browsers only allow the microphone and Wake Lock on **https** (or localhost), so open Home Assistant via https; without it the display says so instead of listening.
+Pull down or say the wake word: the microphone audio goes to your Home Assistant Assist pipeline (speech-to-text, intent, text-to-speech) and the answer is shown and spoken. Give the display's device an **area** in Home Assistant so "turn on the light" means the lights of that room. When the agent asks a follow-up question, the display listens again without the wake word. **Timers**: "set a timer for ten minutes" said at a display runs on that display (Home Assistant's intent timers, registered per display device) in the full-screen timer, wakes the display when it starts and when it ends, and shows the next one due; cancel, pause or extend it by voice. Browsers only allow the microphone and Wake Lock on **https** (or localhost), so open Home Assistant via https; without it the display says so instead of listening.
 
 ## Lyrics
 

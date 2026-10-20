@@ -557,7 +557,7 @@ import { shot } from './shot.js';
 import { wakeInit } from './wake.js';
 import { parseLRC, findLyrics } from './lyrics.js';
 import { voiceOK, voiceRun } from './voice.js';
-import { timerInit, timers, timerDemo, timerShow } from './timer.js';
+import { timerInit, timers, timerDemo, timerShow, voiceTimers } from './timer.js';
 import { camInit, camConfig, camShow, camHide, camFace, camTile, camOpen, camRinging, doorbell } from './doorbell.js';
 import { loadEvents, eventsHTML } from './events.js';
 // Ohne Parameter: Demo-Daten. Echtes HA nur mit ?live
@@ -1835,6 +1835,7 @@ if (LIVE) {
       version = c.version;
       CONF.kiosk = c.kiosk; applyK(c.kiosk); CFG.device = c.device_id || '';
       const cam = setCams(c.cameras);
+      voiceTimers(c.timers);   // beim Anmelden laufende Timer, ohne zu wecken
       if (c.config?.faces?.length) { CONF = { ...c.config, kiosk: c.kiosk }; try { localStorage.setItem(KEY, JSON.stringify(CONF)); } catch {} renderAll(0); }
       else { save(); if (cam) renderAll(curIdx()); }
     }).catch(console.warn);
@@ -1859,6 +1860,7 @@ if (LIVE) {
     hello.then(() => conn.subscribeMessage(c => {
       if (c.kiosk) { const w = [CFG.weather, CFG.place]; CONF.kiosk = c.kiosk; applyK(c.kiosk); if ([CFG.weather, CFG.place] + '' !== w + '') return location.reload(); wk(); }
       else if (c.config?.faces?.length) { const i = curIdx(); CONF = { ...c.config, kiosk: CONF.kiosk }; try { localStorage.setItem(KEY, JSON.stringify(CONF)); } catch {} renderAll(Math.min(i, CONF.faces.length - 1)); }
+      else if (c.timers) { if (voiceTimers(c.timers, c.finished)) kiosk.wake(); }   // Sprach-Timer: Display weckt bei Start und Ablauf
       else if (c.cameras !== undefined) { if (setCams(c.cameras)) cur ? camStale = true : renderAll(curIdx()); }   // offene Ansicht behält ihre Daten, die Faces ziehen nach dem Schließen nach
       else if (c.action === 'face' && c.face) kiosk.show(c.face);
       else if (c.action === 'reload') location.reload();
