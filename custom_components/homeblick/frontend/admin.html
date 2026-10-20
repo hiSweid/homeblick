@@ -356,7 +356,9 @@ const pages = {
       ${grp('Anzeige',
         faces ? all.map(face).join('') : `<div class="row"><span class="l" style="color:var(--sec)">Noch keine Konfiguration. Öffne Homeblick einmal auf dem Gerät.</span></div>`,
         'Die Reihenfolge ist fest. Schalte Faces ein oder aus; Tippe ein eingeschaltetes Face, um Hintergrund, Stil und Kacheln einzustellen.')}
-      ${grp('Bildschirmschoner', field('Nach Inaktivität (s)', 'idle', s.idle, 'type="number" inputmode="numeric" min="0" max="3600" step="10"') + pick('Face', 'saver', TYPES, s.saver) + toggle('Musik statt Bildschirmschoner', 'music', s.music), '0 schaltet den Bildschirmschoner aus. Läuft Musik, erscheint stattdessen das Musik-Face.')}
+      ${grp('Bildschirmschoner', field('Nach Inaktivität (s)', 'idle', s.idle, 'type="number" inputmode="numeric" min="0" max="3600" step="10"') + pick('Face', 'saver', TYPES, s.saver) + toggle('Musik statt Bildschirmschoner', 'music', s.music) + toggle('Ganz schwarz statt Face', 'black', s.black) + toggle('Zeitplan', 'sched', s.sched) + `<div class="dep ${s.sched ? '' : 'off'}" id="schdep"><div>
+        <label class="row"><span class="l">Von</span><input type="time" data-s="sched_from" value="${esc(s.sched_from.slice(0, 5))}"></label>
+        <label class="row"><span class="l">Bis</span><input type="time" data-s="sched_to" value="${esc(s.sched_to.slice(0, 5))}"></label></div></div>`, 'Im Zeitplan startet der Bildschirmschoner nach 30 Sekunden Ruhe, auch wenn die Inaktivitätszeit 0 ist. 0 schaltet den Bildschirmschoner aus. Läuft Musik, erscheint stattdessen das Musik-Face.')}
       ${grp('Helligkeit', slider('Helligkeit', 'bright', 10, 100, 5, s.bright), 'Software-Abdunklung, keine Hardware-Helligkeit.')}
       ${grp('Nachtmodus', toggle('Nachts abdunkeln', 'dim', s.dim) + `<div class="dep ${s.dim ? '' : 'off'}" id="dimdep"><div>
         <label class="row"><span class="l">Von</span><input type="time" data-s="dim_from" value="${esc(s.dim_from.slice(0, 5))}"></label>
@@ -448,6 +450,7 @@ document.addEventListener('change', async e => {
       pane().querySelectorAll('.ttl').forEach((x, i) => stack[i].t === 'display' && (x.textContent = v)); return;
     }
     if (k === 'dim') $('#dimdep').classList.toggle('off', !v);
+    if (k === 'sched') $('#schdep').classList.toggle('off', !v);
     d.settings[k] = v; guard(call('update', { display: sel, settings: { [k]: v } })).catch(() => {});
   } else if (t.dataset.fon) {   // Face ein-/ausschalten: Konfiguration wandert zwischen faces und off, mindestens ein Face bleibt an
     const id = t.dataset.fon, from = t.checked ? 'off' : 'faces', to = t.checked ? 'faces' : 'off', i = cfg[from].findIndex(f => f.id === id);

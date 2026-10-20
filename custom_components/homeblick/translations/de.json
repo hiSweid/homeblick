@@ -67,6 +67,12 @@
       },
       "chime": {
         "name": "Gong beim Klingeln"
+      },
+      "black": {
+        "name": "Screensaver schwarz"
+      },
+      "sched": {
+        "name": "Screensaver-Zeitplan"
       }
     },
     "button": {
@@ -100,6 +106,12 @@
       },
       "dim_to": {
         "name": "Dimmen bis"
+      },
+      "sched_from": {
+        "name": "Screensaver-Zeitplan ab"
+      },
+      "sched_to": {
+        "name": "Screensaver-Zeitplan bis"
       }
     },
     "binary_sensor": {

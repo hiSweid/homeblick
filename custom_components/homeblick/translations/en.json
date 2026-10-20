@@ -67,6 +67,12 @@
       },
       "chime": {
         "name": "Doorbell chime"
+      },
+      "black": {
+        "name": "Screensaver black"
+      },
+      "sched": {
+        "name": "Screensaver schedule"
       }
     },
     "button": {
@@ -100,6 +106,12 @@
       },
       "dim_to": {
         "name": "Dim until"
+      },
+      "sched_from": {
+        "name": "Screensaver schedule from"
+      },
+      "sched_to": {
+        "name": "Screensaver schedule until"
       }
     },
     "binary_sensor": {

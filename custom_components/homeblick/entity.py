@@ -222,7 +222,7 @@ class SettingTime(Base, TimeEntity):
 # Plattform → Entities eines Displays
 FACTORY = {
     "select": lambda h, d: [FaceSelect(h, d), SettingSelect(h, d, "saver", FACES), SettingSelect(h, d, "wake", WAKE)],
-    "switch": lambda h, d: [ScreensaverSwitch(h, d), SettingSwitch(h, d, "dim"), SettingSwitch(h, d, "mute"), SettingSwitch(h, d, "barge"),
+    "switch": lambda h, d: [ScreensaverSwitch(h, d), SettingSwitch(h, d, "dim"), SettingSwitch(h, d, "black"), SettingSwitch(h, d, "sched"), SettingSwitch(h, d, "mute"), SettingSwitch(h, d, "barge"),
                          SettingSwitch(h, d, "music"), SettingSwitch(h, d, "chime")],
     "light": lambda h, d: [ScreenLight(h, d)],
     "button": lambda h, d: [ActionButton(h, d, "reload"), ActionButton(h, d, "assist")],
@@ -230,7 +230,7 @@ FACTORY = {
                          SettingNumber(h, d, "listen", 3, 60, 1, "s"), SettingNumber(h, d, "volume", 0, 100, 5, "%"), SettingNumber(h, d, "bright", 10, 100, 5, "%")],
     "binary_sensor": lambda h, d: [Online(h, d)],
     "sensor": lambda h, d: [Seen(h, d), ShownFace(h, d), Resolution(h, d)],
-    "time": lambda h, d: [SettingTime(h, d, "dim_from"), SettingTime(h, d, "dim_to")],
+    "time": lambda h, d: [SettingTime(h, d, "dim_from"), SettingTime(h, d, "dim_to"), SettingTime(h, d, "sched_from"), SettingTime(h, d, "sched_to")],
     "notify": lambda h, d: [Announce(h, d)],
 }
 assert set(FACTORY) == set(PLATFORMS)

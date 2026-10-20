@@ -1,6 +1,6 @@
 // Wanddisplay-Verhalten im Browser: Idle-Screensaver, Nacht-Dimmen, Display wach halten, Face per #<typ>.
-// Einstellungen: CONF.kiosk = { idle: Sekunden (0 = aus), saver: Face-Typ, dim: { from: 'HH:MM', to: 'HH:MM', level: 0–1 } | null, wake: Modellname | null }
-export const KIOSK_DEF = { idle: 300, saver: 'bigclock', dim: null, wake: null, bright: 1 };   // wake: 'hey_jarvis_v0.1' | 'alexa_v0.1' | null (Mikrofon dauerhaft offen → nur auf Wunsch)
+// Einstellungen: CONF.kiosk = { idle: Sekunden (0 = aus), saver: Face-Typ, dim: { from: 'HH:MM', to: 'HH:MM', level: 0–1 } | null, black: Schoner = 100 % schwarz statt Face, sched: { from, to } | null (im Fenster startet der Schoner nach 30 s, auch bei idle 0), wake: Modellname | null }
+export const KIOSK_DEF = { idle: 300, saver: 'bigclock', black: false, sched: null, dim: null, wake: null, bright: 1 };   // wake: 'hey_jarvis_v0.1' | 'alexa_v0.1' | null (Mikrofon dauerhaft offen → nur auf Wunsch)
 
 const mins = s => { const [h, m] = s.split(':'); return h * 60 + +m; };
 export const inWindow = (now, from, to) => from <= to ? now >= from && now < to : now >= from || now < to;   // über Mitternacht erlaubt
@@ -28,25 +28,30 @@ export function kioskInit({ faces, conf, busy, touched, onState, music }) {
   document.body.append(veil);
 
   // Erster Tipp aus dem Screensaver weckt nur (Capture, damit er die Kacheln nicht erreicht)
-  const wake = () => { last = Date.now(); if (back < 0) return false; goto(back); back = -1; return true; };
+  const wake = () => { last = Date.now(); if (back < 0) return false; goto(back); back = -1; veil.style.opacity = 0; return true; };
   document.addEventListener('pointerdown', e => { lock(); if (wake()) { e.stopPropagation(); e.preventDefault(); } }, true);
 
   const find = t => [...faces.children].findIndex(f => f.classList.contains('f-' + t));
   const saver = () => { const m = cfg().music !== false && music?.() ? find('music') : -1; return m >= 0 ? m : find(cfg().saver); };
 
-  const sleep = () => { const s = saver(); if (back < 0 && s >= 0 && s !== idx()) { back = idx(); goto(s); } };
+  const sleep = () => {
+    if (back >= 0) return;
+    if (cfg().black) { back = idx(); return; }
+    const s = saver(); if (s >= 0 && s !== idx()) { back = idx(); goto(s); }
+  };
 
   setInterval(() => {
-    const { idle, dim, bright } = cfg(), now = new Date();
+    const { idle: idle0, dim, bright, black, sched } = cfg(), now = new Date(), min = now.getHours() * 60 + now.getMinutes();
+    const idle = sched && inWindow(min, mins(sched.from), mins(sched.to)) ? 30 : idle0;
     if (idle && back < 0 && !busy() && Date.now() - Math.max(last, touched()) > idle * 1000) {
       sleep();
-    } else if (back >= 0 && !busy()) {   // im Schoner: Musik startet/endet → passendes Face
+    } else if (back >= 0 && !busy() && !black) {   // im Schoner: Musik startet/endet → passendes Face
       const s = saver(); if (s >= 0 && s !== idx()) goto(s);
     }
     const face = faces.children[idx()]?.className.match(/f-(\w+)/)?.[1] ?? null;
     if (onState && (face !== st.face || (back >= 0) !== st.saver)) onState(st = { face, saver: back >= 0 });
-    const d = dim && inWindow(now.getHours() * 60 + now.getMinutes(), mins(dim.from), mins(dim.to)) && Date.now() - last > 30000;
-    veil.style.opacity = 1 - (1 - (d ? dim.level ?? .8 : 0)) * (bright ?? 1);   // Helligkeit = Software-Folie (Browser kann die Hardware nicht steuern)
+    const d = dim && inWindow(min, mins(dim.from), mins(dim.to)) && Date.now() - last > 30000;
+    veil.style.opacity = back >= 0 && black ? 1 : 1 - (1 - (d ? dim.level ?? .8 : 0)) * (bright ?? 1);   // Helligkeit = Software-Folie (Browser kann die Hardware nicht steuern)
   }, 1000);
 
   // Face per URL-Fragment (z. B. HA-Automation / Dashboard-Link): #music, #bigclock …

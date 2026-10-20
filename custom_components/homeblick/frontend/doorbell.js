@@ -24,11 +24,15 @@ function mjpeg(box, e, s, cb) {
   if (!u) { box.replaceChildren(); return cb('Kein Bild'); }
   // neues Bild über das alte legen (bis zum ersten Frame durchsichtig), altes erst danach weg → kein Aufblitzen
   const img = new Image(), old = [...box.children], drop = () => old.forEach(o => o.remove());
-  img.alt = ''; img.onload = drop; setTimeout(drop, 10000);
+  img.alt = ''; img.onload = () => { drop(); cb('Live'); }; setTimeout(drop, 10000);
   img.onerror = () => { const t = box._tag; setTimeout(() => box._tag === t && box.isConnected && !document.hidden && feed(box, e, ents[e] || s, cb), 5000); };   // Verbindung weg → später neu
   img.src = u;
   box.append(img);
-  cb('Live');
+}
+
+const STILL = {};   // Kamera → { u: Data-URL des letzten Frames, t }
+function grab(e, v) {
+  try { const c = Object.assign(document.createElement('canvas'), { width: 640, height: Math.round(640 * v.videoHeight / v.videoWidth) }); c.getContext('2d').drawImage(v, 0, 0, c.width, c.height); STILL[e] = { u: c.toDataURL('image/jpeg', .7), t: Date.now() }; } catch {}
 }
 
 // Bild in box: sofort das Standbild, darüber der Live-Stream (WebRTC, sonst HLS, sonst MJPEG); cb(Status)
@@ -38,7 +42,9 @@ async function feed(box, e, s, cb) {
   if (!conn) return mjpeg(box, e, s, cb);
   const pic = s.attributes.entity_picture, v = Object.assign(document.createElement('video'), { muted: true, autoplay: true, playsInline: true });
   box.replaceChildren();
-  if (pic?.startsWith('/')) { const i = Object.assign(new Image(), { alt: '', src: HASS + pic }); i.onerror = () => i.remove(); box.append(i); }
+  // Vorschau sofort: letztes Bild dieser Kamera (zuletzt gesehener Frame, höchstens 10 min alt), sonst das HA-Standbild (kann bei manchen Kameras Sekunden dauern)
+  const still = STILL[e] && Date.now() - STILL[e].t < 6e5 ? STILL[e].u : pic?.startsWith('/') ? HASS + pic : '';
+  if (still) { const i = Object.assign(new Image(), { alt: '', src: still }); i.onerror = () => i.remove(); i.onload = () => cb('Verbinde …', true); box.append(i); }
   v.style.opacity = 0; box.append(v);
   cb('Verbinde …');
   let real;
@@ -47,7 +53,7 @@ async function feed(box, e, s, cb) {
   box._stop = end;
   const w = setInterval(() => { if (box._tag !== tag || !box.isConnected) end(); }, 3000);   // Box verschwunden (Face neu gebaut, Ansicht zu) → Stream beenden
   const t = setTimeout(() => fallback('kein Bild nach 15 s'), 15000);
-  v.addEventListener('playing', () => { clearTimeout(t); v.style.opacity = ''; box.querySelectorAll('img').forEach(i => i.remove()); cb('Live'); });
+  v.addEventListener('playing', () => { clearTimeout(t); v.style.opacity = ''; box.querySelectorAll('img').forEach(i => i.remove()); cb('Live'); setTimeout(() => alive() && grab(e, v), 800); });
   try { real = await live(conn, e, v, HASS, fallback); } catch (err) { return fallback(err); }
   if (box._tag !== tag) end();
 }
@@ -169,11 +175,19 @@ export function camFace(el) {
 
 // Raster-Kachel: Livebild randlos ohne Beschriftung; ohne Bild bleiben Icon + Text sichtbar.
 // Aus render(): neu laden nur bei neuer Quelle (HA wechselt access_token alle paar Minuten)
+// Stream nur, solange die Kachel sichtbar ist (Face im Pager, nicht seitlich verdeckt): sonst pausiert Chrome das Video, die Verbindungen (6 je Host) sind belegt und Kameras laufen unnötig
+const vis = new IntersectionObserver(es => es.forEach(en => {
+  const box = en.target, c = box._cam;
+  clearTimeout(box._off);
+  if (en.isIntersecting) { if (!box._on) { box._on = true; feed(box, c.e, ents[c.e] || c.s, (st, still) => c.tile.classList.toggle('live', st === 'Live' || !!still)); } }
+  else box._off = setTimeout(() => { if (!box._on) return; box._on = false; box._stop?.(); box._stop = null; box._tag = null; box.replaceChildren(); c.tile.classList.remove('live'); }, 1500);
+}), { threshold: .01 });
 export function camTile(tile, e, s) {
   const box = tile.querySelector('.feed');
-  if (!box || box._k === e) return;   // Stream läuft weiter, wenn HA das Zugriffs-Token wechselt
-  box._k = e;
-  feed(box, e, s, st => tile.classList.toggle('live', st === 'Live'));
+  if (!box) return;
+  if (box._cam?.e === e) return void (box._cam.s = s);   // Stream läuft weiter, wenn HA das Zugriffs-Token wechselt
+  if (box._cam) { vis.unobserve(box); box._on = false; box._stop?.(); box._tag = null; box.replaceChildren(); }
+  box._cam = { tile, e, s }; vis.observe(box);
 }
 
 // Konfiguration (register / Push vom Server); der Aufrufer baut die Faces danach neu auf
