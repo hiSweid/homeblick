@@ -32,7 +32,11 @@ export function kioskInit({ faces, conf, busy, touched, onState, music }) {
   document.addEventListener('pointerdown', e => { lock(); if (wake()) { e.stopPropagation(); e.preventDefault(); } }, true);
 
   const find = t => [...faces.children].findIndex(f => f.classList.contains('f-' + t));
-  const saver = () => { const m = cfg().music !== false && music?.() ? find('music') : -1; return m >= 0 ? m : find(cfg().saver); };
+  const saver = () => {
+    const m = cfg().music !== false && music?.() ? find('music') : -1; if (m >= 0) return m;
+    const i = find(cfg().saver);
+    return i >= 0 ? i : Math.max(find('bigclock'), find('analog'));   // Schoner-Face ausgeschaltet (Face-Liste) → Uhr, sonst läuft kein Schoner
+  };
 
   const sleep = () => {
     if (back >= 0) return;
