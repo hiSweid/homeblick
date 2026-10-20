@@ -305,6 +305,10 @@ input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:tr
 
 /* ---------- Vollbild-Ansichten ---------- */
 .view{position:absolute;inset:0;z-index:2;transform-origin:0 0;overflow:hidden}
+/* Öffnen aus der Kachel (hkrYiZ_g9tw 111,5–111,9 s): Raster dimmt + blurt (#dim), Karte startet weiß-opak (.wv, wird in fly() angelegt), Chrome folgt später */
+#dim{position:absolute;inset:0;z-index:1;background:#0006;-webkit-backdrop-filter:blur(2cqw);backdrop-filter:blur(2cqw);opacity:0;pointer-events:none}
+.wv{position:absolute;inset:0;z-index:50;background:#fff;opacity:0;pointer-events:none}
+#cam{border-radius:8cqw}   /* Karte steigt von unten mit Display-Radius (v3wcg4Vi4u0 252,4–252,6 s); in Ruhe deckt der Screen-Radius ihn */
 .x{position:absolute;z-index:1;left:4cqw;top:4cqw;width:8.5cqw;height:8.5cqw;border-radius:50%;background:#fff3;display:grid;place-items:center;font-size:4cqw}
 .top{position:absolute;z-index:1;top:5.6cqw;inset-inline:0;text-align:center;font-weight:600;font-size:3.4cqw;pointer-events:none}
 .top time{position:absolute;right:5cqw}
@@ -499,6 +503,7 @@ input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:tr
 
 <div id="screen">
   <div id="faces"></div>
+  <div id="dim"></div>
 
   <section id="climate" class="view" hidden>
     <button class="x" data-act="close" aria-label="Schließen"><svg class="i"><use href="#xt"/></svg></button>
@@ -585,9 +590,12 @@ const bind = (k, v) => { v = String(v); for (const e of $$(`[data-bind=${k}]`)) 
 const shake = el => el.animate([{ translate: '0' }, { translate: '-1.2cqw' }, { translate: '1.2cqw' }, { translate: '0' }], { duration: 280 });
 
 // Feder wie SwiftUI .spring(response, dampingFraction) → CSS linear(), läuft im Compositor
+// damping ≥ 1 = kritisch gedämpft, kein Überschwingen (Kachel → Vollbild, Kamera von unten; STEUERUNG.md P2-1)
 function spring(response = .5, damping = .86, n = 48) {
-  const w = 2 * Math.PI / response, z = damping, wd = w * Math.sqrt(1 - z * z), T = -Math.log(.001) / (z * w);
-  const x = t => 1 - Math.exp(-z * w * t) * (Math.cos(wd * t) + z * w / wd * Math.sin(wd * t));
+  const w = 2 * Math.PI / response, z = damping, crit = z >= 1, wd = w * Math.sqrt(Math.max(0, 1 - z * z));
+  const x = crit ? t => 1 - (1 + w * t) * Math.exp(-w * t) : t => 1 - Math.exp(-z * w * t) * (Math.cos(wd * t) + z * w / wd * Math.sin(wd * t));
+  let T = -Math.log(.001) / (z * w);
+  if (crit) for (T = 0; (1 + w * T) * Math.exp(-w * T) > .001; T += .002);   // Rest < 0,1 %
   const p = Array.from({ length: n + 1 }, (_, i) => +x(i / n * T).toFixed(4));
   console.assert(p[0] === 0 && Math.abs(p[n] - 1) < .005 && Math.max(...p) < 1.05, 'spring', p);
   return [`linear(${p.join()})`, Math.round(T * 1000)];
@@ -595,6 +603,8 @@ function spring(response = .5, damping = .86, n = 48) {
 const [SPRING, SD] = spring(.3);   // response .30 statt .5: Apple-Gesten dauern 130–330 ms (STEUERUNG.md P1-2)
 root.style.setProperty('--spring', SPRING);
 root.style.setProperty('--sd', SD + 'ms');
+const [FLY, FD] = spring(.18, 1);   // Kachel → Vollbild: kritisch gedämpft, 98 % nach ≈ 165 ms (hkrYiZ_g9tw 111,52–111,65 s: 125 ms, mit Nachsetzen ≈ 170 ms)
+const [UP, UD] = spring(.28, 1);   // Kamera von unten ≈ 270 ms (v3wcg4Vi4u0 252,37–252,63 s, QFRp7dbxciE 300,4 s)
 
 // Eigene abstrakte Wallpaper pro Farbton; Blur-Version wird einmal gerastert und als Glas benutzt
 const svgData = s => 'data:image/svg+xml,' + encodeURIComponent(s);
@@ -1453,16 +1463,41 @@ const TAP = {
   timer: (t, id) => st(id).state === 'idle' ? call('timer', 'start', { entity_id: id }) : timerShow(),
 };
 
-// Kachel → Vollbild: FLIP mit Feder, nur transform/opacity (+ Radius)
-// ponytail: borderRadius läuft auf dem Main-Thread; ruckelt das auf dem Tablet → Radius-Keyframes streichen
+// Kachel → Vollbild (hkrYiZ_g9tw 111,48–111,90 s, STEUERUNG.md P2-2): FLIP mit kritisch gedämpfter Feder ≈ 170 ms, Raster dimmt + blurt in ≈ 70 ms (#dim),
+// Karte startet weiß-opak und färbt in ≈ 2 Frames in die Zielfarbe (.wv), Chrome (Titel + Uhr, dann ✕) blendet erst NACH der Expansion ein (≈ +170 / +210 ms, 200 ms Fade).
+// Schließen = Rückflug in die Kachel (Chrome zuerst aus). Kamera (#cam): kein FLIP, Karte steigt von unten und fällt nach unten, Home darunter unverändert (v3wcg4Vi4u0 252,3 / 266,5 s).
+// Nur transform/opacity; borderRadius (Kachelradius) läuft auf dem Main-Thread, ruckelt das auf dem Tablet → Radius-Keyframes streichen
 function fly(tile, view, opening, done) {
-  const a = tile.getBoundingClientRect(), b = screen.getBoundingClientRect(), k = a.width / b.width;
-  const small = { transform: `translate(${a.left - b.left}px,${a.top - b.top}px) scale(${k})`, borderRadius: `${b.width * .043 / k}px` };
-  const big = { transform: 'none', borderRadius: '0px' };
-  view.hidden = false; tile.style.visibility = 'hidden';
-  view.animate(opening ? [small, big] : [big, small], { duration: SD, easing: SPRING });
-  const f = view.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 200, easing: 'ease-out', fill: 'both', direction: opening ? 'normal' : 'reverse', delay: opening ? 0 : SD - 300 });
-  if (!opening) f.onfinish = () => { tile.style.visibility = ''; f.cancel(); if (cur?.view === view) return; view.hidden = true; done?.(); };   // während des Schließens neu geöffnet → offen lassen
+  view._an?.forEach(a => a.cancel()); view._an = [];   // laufendes Öffnen/Schließen ersetzen
+  clearTimeout(view._tt); if (view._tile && view._tile !== tile) view._tile.style.visibility = '';
+  const A = (el, kf, o) => { const a = el.animate(kf, { fill: opening ? 'backwards' : 'forwards', ...o }); view._an.push(a); return a; };
+  let main;
+  view.hidden = false;
+  if (view.id === 'cam') {
+    main = opening ? A(view, [{ transform: 'translateY(100%)' }, { transform: 'none' }], { duration: UD, easing: UP })
+      : A(view, [{ transform: 'none' }, { transform: 'translateY(100%)' }], { duration: 150, easing: 'cubic-bezier(.4,0,1,1)' });   // fällt: ease-in, ≈ 150 ms
+  } else {
+    const a = tile.getBoundingClientRect(), b = screen.getBoundingClientRect(), k = a.width / b.width, dim = $('#dim');
+    const small = { transform: `translate(${a.left - b.left}px,${a.top - b.top}px) scale(${k})`, borderRadius: `${b.width * .043 / k}px` };
+    const big = { transform: 'none', borderRadius: `${b.width * .08}px` };   // Ende = Display-Radius (hkrYiZ_g9tw 111,6 s: Karte behält große Rundung bis zum Rand)
+    const wv = $('.wv', view) || view.appendChild(Object.assign(document.createElement('i'), { className: 'wv' }));
+    const top = $(':scope > .top', view), x = $(':scope > .x', view);
+    view._tile = tile; tile.style.visibility = 'hidden';
+    main = A(view, opening ? [small, big] : [big, small], { duration: FD, easing: FLY });
+    if (opening) {
+      A(wv, [{ opacity: 1 }, { opacity: 1, offset: .5 }, { opacity: 0 }], { duration: 90 });   // weiß → Zielfarbe: Frame 2 weiß, Frame 3 gefärbt (24 fps)
+      A(dim, [{ opacity: 0 }, { opacity: 1 }], { duration: 70, fill: 'both' });   // bleibt, bis das Schließen es ablöst
+      if (top) A(top, [{ opacity: 0 }, { opacity: 1 }], { duration: 200, delay: 170, easing: 'ease-out' });
+      if (x) A(x, [{ opacity: 0 }, { opacity: 1 }], { duration: 200, delay: 210, easing: 'ease-out' });
+    } else {
+      for (const c of [top, x]) if (c) A(c, [{ opacity: 1 }, { opacity: 0 }], { duration: 100 });
+      A(wv, [{ opacity: 0 }, { opacity: 0, offset: 1 - 90 / FD }, { opacity: 1 }], { duration: FD });
+      A(view, [{ opacity: 1 }, { opacity: 1, offset: 1 - 60 / FD }, { opacity: 0 }], { duration: FD });   // letzte 60 ms: weiße Karte blendet in die Kachel über
+      A(dim, [{ opacity: 1 }, { opacity: 1, offset: 1 - 70 / FD }, { opacity: 0 }], { duration: FD });
+      view._tt = setTimeout(() => tile.style.visibility = '', FD - 60);
+    }
+  }
+  if (!opening) main.onfinish = () => { view._an.forEach(a => a.cancel()); view._an = []; if (view._tile) view._tile.style.visibility = ''; if (cur?.view === view) return; view.hidden = true; done?.(); };   // während des Schließens neu geöffnet → offen lassen
 }
 let cur = null, y0 = null, p0, camStale = false;   // camStale: Kamera-Konfiguration kam bei offener Ansicht, Faces noch alt
 function open(tile, id) {
