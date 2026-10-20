@@ -25,10 +25,11 @@ svg.i{width:1em;height:1em;flex:none;fill:none;stroke:currentColor;stroke-width:
 
 /* Quadratischer Screen, alle Maße in cqw (1cqw = 1 % Breite) — Werte aus SPEC.md */
 #screen{position:relative;width:min(100vw,100dvh);aspect-ratio:1;container-type:size;overflow:hidden;border-radius:calc(min(100vw,100dvh)*.08);background:#000}
-#faces{position:absolute;inset:0;display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain;transition:transform var(--sd) var(--spring)}
+/* Face-Pager (STEUERUNG.md P1-1): Karten mit Spalt, Wischen/Auslauf in JS (Pager-Block unten), scrollLeft bleibt die API; Schritt = Breite + Spalt */
+#faces{position:absolute;inset:0;display:flex;gap:2.5cqw;overflow:hidden;touch-action:pan-y;transition:transform var(--sd) var(--spring)}
 #faces::-webkit-scrollbar{display:none}
 .face{--pad:1.9cqw;--gap:1.65cqw;--t:calc((100cqw - 2*var(--pad) - 2*var(--gap))/3);--tint:hsl(calc(var(--h,0) - 4) 80% 72% / .85);
-  flex:0 0 100cqw;height:100cqw;scroll-snap-align:center;scroll-snap-stop:always;position:relative;overflow:hidden;
+  flex:0 0 100cqw;height:100cqw;border-radius:8cqw;position:relative;overflow:hidden;
   background:var(--wp) 0 0/100% 100%;transition:scale var(--sd) var(--spring),border-radius .3s,opacity .3s}
 .face.mono{--tint:#ebebf599}
 .face.light{--tint:#3c3c4399;color:#1c1c1e}
@@ -76,7 +77,12 @@ svg.i{width:1em;height:1em;flex:none;fill:none;stroke:currentColor;stroke-width:
 .thermo[data-size="1x1"] .chev{display:none}
 .thermo[data-size="1x1"] .foot{justify-content:center}
 .foot{position:absolute;inset:auto 0 5.5cqw;display:flex;align-items:center;justify-content:space-between;padding:0 4.8cqw}
-.chev{font-size:5cqw;padding:2cqw}
+.chev{font-size:5cqw;padding:2cqw;position:relative}
+.chev::before{content:"";position:absolute;left:50%;top:50%;width:13cqw;height:13cqw;translate:-50% -50%;border-radius:50%;background:#fff;opacity:0;transition:opacity .13s linear;pointer-events:none}
+.chev:active::before{opacity:.22;transition:none}
+.x:active{background:#fff6}
+#climate .num,.thermo .num{font-variant-numeric:tabular-nums}
+.num i{display:inline-block;font-style:normal}
 
 .greet{grid-area:1/1/2/4;display:flex;justify-content:space-between;align-items:flex-start;padding:5cqw 3cqw;font-size:5cqw;font-weight:600;text-transform:uppercase;line-height:1.25}
 .greet>div>div:first-child{opacity:.7;font-weight:500}
@@ -184,7 +190,7 @@ svg.i{width:1em;height:1em;flex:none;fill:none;stroke:currentColor;stroke-width:
 :is(.ly,.qm)>.minfo{transform:translateY(-8cqw)}
 .lyrics{position:absolute;inset:0 0 21cqw;overflow:hidden;opacity:0;pointer-events:none;
   -webkit-mask-image:linear-gradient(#0000 6cqw,#000 24cqw,#000 60cqw,#0000);mask-image:linear-gradient(#0000 6cqw,#000 24cqw,#000 60cqw,#0000)}
-.lyrics{transform:translateY(-6cqw);touch-action:pan-x}
+.lyrics{transform:translateY(-6cqw);touch-action:none}
 .ly .lyrics{opacity:1;pointer-events:auto;transform:none}
 /* --o = von Hand gescrollt; nach 3 s federt es zurück zur aktiven Zeile */
 .ll{padding:0 12cqw 0 9cqw;transform:translateY(var(--o,0px));transition:transform var(--sd) var(--spring)}
@@ -522,7 +528,7 @@ function spring(response = .5, damping = .86, n = 48) {
   console.assert(p[0] === 0 && Math.abs(p[n] - 1) < .005 && Math.max(...p) < 1.05, 'spring', p);
   return [`linear(${p.join()})`, Math.round(T * 1000)];
 }
-const [SPRING, SD] = spring();
+const [SPRING, SD] = spring(.3);   // response .30 statt .5: Apple-Gesten dauern 130–330 ms (STEUERUNG.md P1-2)
 root.style.setProperty('--spring', SPRING);
 root.style.setProperty('--sd', SD + 'ms');
 
@@ -777,8 +783,15 @@ function roll(el, txt, dir = 0) {
   const old = el.lastElementChild, n = document.createElement('span');
   n.textContent = txt; el.append(n);
   if (!dir || !old) { old?.remove(); return; }
-  old.animate([{ transform: 'none', opacity: 1 }, { transform: `translateY(${-dir * 40}%)`, opacity: 0 }], { duration: 220, easing: 'ease-in' }).onfinish = () => old.remove();
-  n.animate([{ transform: `translateY(${dir * 40}%)`, opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: SD, easing: SPRING });
+  // Apple (STEUERUNG.md P2-5): nur die geänderte Ziffer rollt, 55 % Zeichenhöhe, Blur, ~300 ms; sinkt der Wert: alt nach unten, neu von oben
+  const out = { transform: `translateY(${-dir * 55}%)`, opacity: 0, filter: 'blur(.8cqw)' }, inn = { transform: `translateY(${dir * 55}%)`, opacity: 0, filter: 'blur(.8cqw)' }, id = { transform: 'none', opacity: 1, filter: 'none' };
+  const roll1 = (o, m) => { o.animate([id, out], { duration: 150, easing: 'ease-in', fill: 'forwards' }); m.animate([inn, id], { duration: 300, easing: SPRING }); };
+  const chars = s => { s.innerHTML = [...s.textContent].map(c => `<i>${c}</i>`).join(''); return [...s.children]; };
+  if (el.dataset.temp !== undefined && old.textContent.length === txt.length) {
+    const o = chars(old), m = chars(n);
+    m.forEach((c, i) => c.textContent === o[i].textContent ? o[i].style.visibility = 'hidden' : roll1(o[i], c));
+  } else roll1(old, n);
+  setTimeout(() => old.remove(), 160);
 }
 const rollBind = (k, v) => { for (const el of $$(`[data-bind=${k}]`)) if (el.lastElementChild?.textContent !== v) roll(el, v, el.firstChild ? 1 : 0); };
 function tick() {
@@ -1365,13 +1378,13 @@ async function openEvents(face) {
 }
 
 // ---------- Bearbeiten ----------
-const curIdx = () => Math.round(faces.scrollLeft / faces.clientWidth);
+const curIdx = () => Math.round(faces.scrollLeft / (faces.clientWidth * 1.025));
 const curEl = () => faces.children[curIdx()];
 const markCur = () => [...faces.children].forEach((f, i) => f.classList.toggle('cur', i === curIdx()));
 function refresh() { npKey = ''; tick(); render(); times(); fillLyrics(); }
 function renderAll(idx = 0) {
   faces.replaceChildren(...CONF.faces.map(f => buildFace(f)));
-  faces.scrollLeft = idx * faces.clientWidth;
+  faces.scrollLeft = idx * faces.clientWidth * 1.025;
   markCur(); refresh();
 }
 // Tag ↔ Nacht: betroffene Faces neu aufbauen, Überblendung per View Transition (Compositor); nicht im Vollbild → nächster tick/render holt es nach
@@ -1391,37 +1404,66 @@ function rerender(i) {
   if (cur?.tile === old) cur.tile = n;   // offene Terminliste: Schließen fliegt aufs neue Face (Tageswechsel)
   old.replaceWith(n); refresh();
 }
-// Maus ziehen = wischen wie per Touch (Touch scrollt nativ); Klick nach dem Ziehen wird unterdrückt
+// Face-Pager (STEUERUNG.md P1-1): Karte folgt dem Finger 1:1 (Touch + Maus), Auslauf = kritisch gedämpfte Feder mit Übernahme der Fingergeschwindigkeit
+// ponytail: Weiter-Schwelle ≥ 20 % Breite oder ≥ 0,5 Breiten/s ist Annahme (Apple-Schwelle nicht belegt); kein Gummiband am Rand (unbelegt)
 {
-  let m = null;
+  const STEP = () => faces.clientWidth * 1.025, OMEGA = 30;   // ω ≈ 25–35 s⁻¹ gemessen: 98 % nach ≈ 0,2 s
+  let raf = 0, m = null;
+  const spin = (target, v0 = 0) => {   // v0 = Geschwindigkeit von scrollLeft in px/s
+    cancelAnimationFrame(raf);
+    const x0 = faces.scrollLeft, u0 = x0 - target, t0 = performance.now();
+    let B = v0 + OMEGA * u0; if (B * u0 < 0) B = 0;   // kein Überschwingen
+    const f = now => {
+      const t = (now - t0) / 1000, u = (u0 + B * t) * Math.exp(-OMEGA * t);
+      if (Math.abs(u) < .3 || t > .8) return void (faces.scrollLeft = target);
+      faces.scrollLeft = target + u; raf = requestAnimationFrame(f);
+    };
+    raf = requestAnimationFrame(f);
+  };
+  faces.go = (i, instant) => { const x = Math.max(0, Math.min(faces.children.length - 1, i)) * STEP(); instant ? (cancelAnimationFrame(raf), faces.scrollLeft = x) : spin(x); };
   faces.addEventListener('pointerdown', e => {
-    if (e.pointerType !== 'mouse' || e.button || cur || e.target.closest('.prog,.pop,input,.lyrics')) return;
-    m = { x: e.clientX, l: faces.scrollLeft, on: false, v: 0, t: e.timeStamp, last: e.clientX };
+    if (e.button || cur || e.target.closest('.prog,.pop,input,.lyrics,#pull')) return;
+    cancelAnimationFrame(raf);
+    m = { x: e.clientX, y: e.clientY, l: faces.scrollLeft, on: false, h: [] };
   });
   addEventListener('pointermove', e => {
     if (!m) return;
-    if (!m.on && Math.abs(e.clientX - m.x) > 8) { m.on = true; faces.style.scrollSnapType = 'none'; faces.setPointerCapture(e.pointerId); }
-    if (!m.on) return;
-    m.v = (e.clientX - m.last) / Math.max(1, e.timeStamp - m.t); m.last = e.clientX; m.t = e.timeStamp;
-    faces.scrollLeft = m.l - (e.clientX - m.x);
+    const dx = e.clientX - m.x, dy = e.clientY - m.y;
+    if (!m.on) {
+      if (Math.abs(dy) > 8 && Math.abs(dy) > Math.abs(dx)) return void (m = null);   // senkrecht gehört anderen Gesten
+      if (Math.abs(dx) <= 8) return;
+      m.on = true; faces.setPointerCapture(e.pointerId);
+    }
+    m.h.push([e.timeStamp, e.clientX]); while (m.h[0][0] < e.timeStamp - 100) m.h.shift();
+    faces.scrollLeft = m.l - dx;
   });
   const end = () => {
     if (!m) return;
-    const { on, v } = m; m = null;
+    const { on, h, l } = m; m = null;
     if (!on) return;
-    const w = faces.clientWidth, i = Math.max(0, Math.min(faces.children.length - 1, Math.round(faces.scrollLeft / w - Math.sign(v) * (Math.abs(v) > .4 ? .5 : 0))));
-    faces.style.scrollSnapType = ''; faces.scrollTo({ left: i * w, behavior: 'smooth' });
+    const w = STEP(), v = h.length > 1 ? (h.at(-1)[1] - h[0][1]) / Math.max(16, h.at(-1)[0] - h[0][0]) * 1000 : 0,   // Finger px/s
+      d = (faces.scrollLeft - l) / w, i0 = Math.round(l / w), go = Math.abs(d) >= .2 || Math.abs(v) / w >= .5;
+    const i = Math.max(0, Math.min(faces.children.length - 1, go ? i0 + (Math.abs(v) / w >= .5 ? -Math.sign(v) : Math.sign(d)) : i0));
+    spin(i * w, -v);
     const stop = e => e.stopPropagation(); addEventListener('click', stop, true); setTimeout(() => removeEventListener('click', stop, true), 50);
   };
   addEventListener('pointerup', end); addEventListener('pointercancel', end);
 }
 // ---------- Gesten ----------
+function bump(b) {
+  const id = b.closest('[data-e]')?.dataset.e || cur?.e, a = st(id).attributes, d = b.dataset.act === 'up' ? 1 : -1, now = T[id] ?? a.temperature;
+  if (now == null) return;
+  const v = Math.min(a.max_temp ?? 35, Math.max(a.min_temp ?? 5, now + d * (a.target_temp_step || .5)));
+  if (v !== now) { setTemp(id, v, d); sendTemp(id); }
+}
 // Tippen = Aktion · Halten auf Licht (450 ms) = Dimmer
 let lp, suppress = false, px = 0, py = 0, pull = false;
 document.addEventListener('pointerdown', e => {
   suppress = false; px = e.clientX; py = e.clientY; touched = Date.now(); pull = e.target.id === 'pull';
   const amb = $('.amb');
   if (amb) { amb.classList.remove('amb'); if (amb === curEl()) { suppress = true; return; } }   // erster Tipp weckt nur
+  const ch = e.target.closest('[data-act=up],[data-act=down]');
+  if (ch) { bump(ch); suppress = true; return; }   // Wert ändert sich bei Touch-down (Apple, STEUERUNG.md P2-4)
   if (cur) return;
   if (!e.target.closest('.face') || e.target.closest('.pop')) return;
   const ll = e.target.closest('.ly .lyrics')?.firstElementChild;
@@ -1462,13 +1504,7 @@ document.addEventListener('click', e => {
   if (act === 'assist') return assistStart();
   if (e.target.closest('#assist')) { assistEnd(); if (act !== 'go') return; }   // Tipp schließt; Pille führt zusätzlich hin
   if (pop && !e.target.closest('.pop')) return pop.classList.remove('open');   // Tipp daneben schließt nur
-  if (act === 'up' || act === 'down') {
-    const id = b.closest('[data-e]')?.dataset.e || cur?.e, a = st(id).attributes, d = act === 'up' ? 1 : -1, now = T[id] ?? a.temperature;
-    if (now == null) return;
-    const v = Math.min(a.max_temp ?? 35, Math.max(a.min_temp ?? 5, now + d * (a.target_temp_step || .5)));
-    if (v !== now) { setTemp(id, v, d); sendTemp(id); }
-  }
-  else if (act === 'close') close();
+  if (act === 'close') close();
   else if (act === 'power') call('climate', st(cur.e).state === 'off' ? 'turn_on' : 'turn_off', { entity_id: cur.e });
   else if (act === 'hvac') {
     const c = st(cur.e), m = c.attributes.hvac_modes || [];
@@ -1491,7 +1527,7 @@ document.addEventListener('click', e => {
   else if (act === 'toggle') st(b.dataset.e).state === 'unavailable' ? shake(b) : TAP[b.dataset.e.split('.')[0]]?.(b, b.dataset.e);   // Licht im Klingel-Bild / Kameras-Face
   else if (act === 'avatars') b.closest('.greet').classList.toggle('fan');
   else if (act === 'avpick') { who = b.dataset.v; try { localStorage.hb_person = who; } catch {} b.closest('.greet').classList.remove('fan'); render(); }
-  else if (act === 'go') { const i = CONF.faces.findIndex(f => f.type === b.dataset.v); if (i >= 0) faces.scrollTo({ left: i * faces.clientWidth, behavior: 'smooth' }); }
+  else if (act === 'go') { const i = CONF.faces.findIndex(f => f.type === b.dataset.v); if (i >= 0) faces.go(i); }
   else if (act === 'play') NP && call('media_player', 'media_play_pause', { entity_id: NP });
   else if (act === 'prev') NP && (isPod(NP) ? skip(-15) : call('media_player', 'media_previous_track', { entity_id: NP }));
   else if (act === 'next') NP && (isPod(NP) ? skip(30) : call('media_player', 'media_next_track', { entity_id: NP }));

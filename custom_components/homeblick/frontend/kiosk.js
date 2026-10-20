@@ -9,8 +9,8 @@ export const inWindow = (now, from, to) => from <= to ? now >= from && now < to 
 // onState({ face, saver }) bei Änderung (Meldung an HA), music: () => läuft Musik (dann Musik-Face statt Schoner, Einstellung „music“)
 export function kioskInit({ faces, conf, busy, touched, onState, music }) {
   const cfg = () => ({ ...KIOSK_DEF, ...conf().kiosk });
-  const idx = () => Math.round(faces.scrollLeft / faces.clientWidth);
-  const goto = (i, behavior = 'smooth') => faces.scrollTo({ left: i * faces.clientWidth, behavior });
+  const idx = () => Math.round(faces.scrollLeft / (faces.clientWidth * 1.025));
+  const goto = (i, behavior = 'smooth') => faces.go(i, behavior !== 'smooth');
   let last = Date.now(), back = -1, st = {};   // back = Face vor dem Screensaver
 
   // Display wach halten (braucht https/localhost; unter http gibt es kein wakeLock → still ignorieren)
