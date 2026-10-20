@@ -73,6 +73,9 @@
       "black": {
         "name": "Screensaver schwarz"
       },
+      "micmute": {
+        "name": "Mikrofon stumm"
+      },
       "hold": {
         "name": "Screensaver halten"
       },
