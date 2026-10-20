@@ -308,19 +308,50 @@ input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:tr
 .x{position:absolute;z-index:1;left:4cqw;top:4cqw;width:8.5cqw;height:8.5cqw;border-radius:50%;background:#fff3;display:grid;place-items:center;font-size:4cqw}
 .top{position:absolute;z-index:1;top:5.6cqw;inset-inline:0;text-align:center;font-weight:600;font-size:3.4cqw;pointer-events:none}
 .top time{position:absolute;right:5cqw}
-#climate{background:var(--cc);transition:background-color .4s;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.5cqw}
-#climate .mode{font-size:4.6cqw;font-weight:500;padding:1.2cqw 4cqw;border-radius:9cqw;background:#ffffff26}
-#climate .row{display:flex;align-items:center;gap:6cqw}
-#climate .num{font-size:26cqw;font-weight:400}
-#climate .chev{font-size:6cqw}
-#climate .meta{font-size:3.4cqw;opacity:.9}
-.pw{position:absolute;right:4cqw;bottom:4cqw;width:10cqw;height:10cqw;border-radius:50%;background:#fff3;display:grid;place-items:center;font-size:5cqw}
-#dimmer{background:#fefced;color:#1c1c1e;touch-action:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2cqw}
-#dimmer .fill{position:absolute;inset:0;background:#f2ca06;transform-origin:bottom;transform:scaleY(var(--p))}
+/* Klima + Licht Vollbild: Maße als % W aus dem Frontalbild des Apple-Videos (ref/t43.4.jpg, 2560-px-Frame 43,4 s, Display 328 px) und ref/vorlagen/_Tbq…/01260 (Beschriftung),
+   y-MO ab 153 s (Modus-Menü, nur Handkamera); Schrift Inter statt SF (Breite abgeglichen), Zahl Medium */
+#climate,#dimmer{--ty:-86.35%}   /* Inter bei line-height 1: Grundlinie bei 86,35 % der Zeilenhöhe → `top` = Grundlinie, Maße direkt aus dem Frame */
+#climate .x,#dimmer .x{left:6cqw;top:5.8cqw;width:8.75cqw;height:8.75cqw;font-size:6.8cqw}   /* ⌀ 8,75, Mitte 10,4 / 10,2 */
+#climate .x{background:var(--cb)}
+#climate .x{transition:background-color .13s linear}
+#climate .x:active{background:#fff4;transition:none}
+#climate .top,#dimmer .top{top:10.6cqw;translate:0 -50%;line-height:1;font-size:3.8cqw;font-weight:400}   /* Titel mittig, Mitte y 10,3; Breite „Bedroom Air“ 22,3 % */
+#climate .top time,#dimmer .top time{right:8.6cqw}   /* Uhrzeit endet bei 91,4 %, gleiche Farbe wie der Titel */
+#climate{--cb:#fff3;--cm:color-mix(in srgb,var(--cc) 55%,#fff);--ct:#1c1c1e;background:var(--cc);transition:background-color .4s}
+#climate.cool{--cb:#08bdfc;--cm:#00c9fa;--ct:#003a73}   /* ✕ #0bc1fc, Knopf #05b9fc, Menü ≈ #00c9fa (Frame/Handkamera), Menütext #003a73 */
+#climate .mode{position:absolute;left:0;right:0;top:33.9cqw;translate:0 var(--ty);text-align:center;font-size:4.8cqw;font-weight:400;line-height:1}   /* „Cooling to“: Mitte 50,4, Grundlinie 33,9, Text ohne Pille */
+#climate .num{position:absolute;left:0;right:0;top:60.7cqw;translate:0 var(--ty);font-size:29cqw;font-weight:500;justify-items:center;height:1em;pointer-events:none}   /* „74“: Ziffernhöhe 21 %, Grundlinie 60,7; pointer-events:none, sonst deckt die volle Breite die Chevrons ab (Touch erreichte sie nicht) */
+#climate .num span.dec{font-size:24cqw}   /* Dezimalstellen (0,5-Schritte) hat die Vorlage nicht (°F ganzzahlig): kleiner, damit die Chevrons frei bleiben */
+#climate .chev{position:absolute;top:50.6cqw;translate:-50% -50%;font-size:9.2cqw;display:grid;place-items:center}   /* Chevron 6,1 × 3,4, Mitten x 15,2 / 85,1, y 50,6 */
+#climate .chev[data-act=down]{left:15.2cqw}
+#climate .chev[data-act=up]{left:85.1cqw}
+#climate .meta{position:absolute;left:0;right:0;top:65.8cqw;display:flex;justify-content:center;align-items:center;font-size:4.55cqw;font-weight:500;line-height:1}   /* Ist-Temp + Feuchte: Ziffernhöhe 3,3, Grundlinie 69,7, gesamt 29,7 breit */
+#climate .meta .i{font-size:4.9cqw;margin-right:.3cqw}
+#climate .meta span+.i{margin-left:1.6cqw}
+#climate .meta .i:first-child{margin-right:-.7cqw}
+#climate .meta span:last-child{margin-left:0}
+.pw{position:absolute;right:4.3cqw;bottom:4.3cqw;width:14.7cqw;height:14.7cqw;border-radius:50%;background:var(--cb);display:grid;place-items:center;font-size:8cqw;transition:opacity .12s linear}   /* Thermometer + drei Punkte, ⌀ 14,7, Mitte 88,3 / 88,1 */
+#climate.mo .pw{opacity:0;pointer-events:none}
+/* Modus-Menü (y-MO 153–156 s): wächst aus dem Knopf, 45,3 × 42,5 (4 Zeilen à 10,1), Rand rechts 6, unten 5,8; „Off/Cool/Heat/Auto“, Haken vor der aktiven Zeile, Tipp daneben schließt */
+.hm{position:absolute;z-index:2;right:6cqw;bottom:5.8cqw;width:45.3cqw;padding:1cqw 0;border-radius:5.5cqw;background:var(--cm);color:var(--ct);backdrop-filter:blur(2.5cqw);font-size:3cqw;
+  transform-origin:87% 86%;opacity:0;scale:.33;pointer-events:none;transition:opacity .12s linear,scale .16s ease-in}
+.hm.open{opacity:1;scale:1;pointer-events:auto;transition:opacity .12s linear,scale var(--sd) var(--spring)}
+.hm button{position:relative;display:block;width:100%;height:10.1cqw;padding-left:9.2cqw;text-align:left;opacity:0;transition:opacity .1s linear}
+.hm.open button{opacity:1;transition:opacity .15s linear .07s}
+.hm .i{position:absolute;left:5.4cqw;top:50%;translate:0 -50%;font-size:3cqw;opacity:0}
+.hm .on .i{opacity:1}
+#dimmer{background:#fefaec;color:#111;touch-action:none}   /* Creme #fefaec, Füllung #f9c100, Zahl fast schwarz */
+#dimmer .fill{position:absolute;inset:0;overflow:hidden;background:#f9c100;transform:translateY(calc((1 - var(--f,0)) * 100%))}   /* Füllung nur per transform; --f = Füllhöhe (setLight) */
+#dimmer .fill .in{position:absolute;inset:0;transform:translateY(calc((1 - var(--f,0)) * -100%))}   /* Innen-Layer steht still: helle Zahl/Glühbirne werden an der Füllkante geteilt (Vorlage y-MO 0,5 s, zT8 42,0 s) */
+#dimmer .fill .ico,#dimmer .fill .pct{color:#fefaec}
+#dimmer .fill small{color:#fefaecb0}
 #dimmer .x{background:#0000000f}
-#dimmer .ico{position:relative;font-size:9cqw;fill:currentColor}
-#dimmer .pct{position:relative;font-size:24cqw;font-weight:500;line-height:1}
-#dimmer small{font-size:8cqw;color:#8e8e93}
+#dimmer .top{color:#1c1c1e}
+#dimmer .ico{position:absolute;left:50%;top:19.9cqw;translate:-50% 0;width:7.75cqw;height:12.9cqw;font-size:inherit;fill:currentColor;stroke:none}   /* Glühbirne 7,75 × 12,9, oben 19,9 */
+#dimmer .pct{position:absolute;left:50%;top:60.2cqw;translate:-50% var(--ty);font-size:29cqw;font-weight:500;line-height:1;letter-spacing:-.02em;white-space:nowrap}   /* „33“: Ziffernhöhe ≈ 21,3, Grundlinie 60,2, Zahl fest mittig */
+#dimmer small{display:inline-block;width:0;margin-left:.9cqw;font-size:14cqw;font-weight:400;letter-spacing:0;color:#0000006e}   /* „%“ 10,3 hoch, hängt rechts neben der Zahl (nicht mitzentriert), Schwarz 43 % */
+/* Griff: kurzer Strich 8,8 × 1,2 an der Füllkante (Frame 43,4 s: Kante 60,8, Griff 62,3–63,5; Füllhöhe gegen Wert siehe STEUERUNG F7, unverändert) */
+#dimmer .grip{position:absolute;left:50%;top:0;width:8.8cqw;height:1.2cqw;margin-left:-4.4cqw;border-radius:.6cqw;background:#000000a0;transform:translateY(calc((1 - var(--f,0)) * 100cqw + 1.9cqw))}
 /* Musikauswahl (Video 36 s: hell, Titel mittig, Zurück rund, 3 Spalten) */
 #lib{background:#f2f2f7;color:#1c1c1e}
 #lib .x{background:#0000000f}
@@ -454,6 +485,11 @@ input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:tr
   <symbol id="quote" viewBox="0 0 24 24"><path d="M5 4.5h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-7.5L7 21v-3.5H5a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2z" style="fill:var(--bf,none)"/><circle cx="9.2" cy="10.2" r="1.7" stroke="none" style="fill:var(--qf,currentColor)"/><circle cx="14.8" cy="10.2" r="1.7" stroke="none" style="fill:var(--qf,currentColor)"/><path d="M10.8 10.4c0 1.7-.7 2.7-2 3.3M16.4 10.4c0 1.7-.7 2.7-2 3.3" stroke-width="1.4" style="stroke:var(--qf,currentColor)"/></symbol>
   <symbol id="back" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" stroke-width="2.4"/></symbol>
   <symbol id="fwd" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" stroke-width="2.4"/></symbol>
+  <symbol id="xt" viewBox="0 0 24 24"><path d="M6.6 6.6l10.8 10.8M17.4 6.6 6.6 17.4" stroke-width="1.4"/></symbol>
+  <symbol id="thm" viewBox="0 0 24 24"><g stroke-width="1.5"><path d="M8.4 14V5.2a2.4 2.4 0 0 1 4.8 0V14a4.4 4.4 0 1 1-4.8 0z"/></g><circle cx="10.8" cy="17.2" r="1.5" fill="currentColor" stroke="none"/><g fill="currentColor" stroke="none"><circle cx="16.2" cy="4.6" r=".8"/><circle cx="16.2" cy="7.8" r=".8"/><circle cx="16.2" cy="11" r=".8"/></g></symbol>
+  <symbol id="hum" viewBox="0 0 24 24"><path d="M2 6.2c2-2.2 4-2.2 6 0s4 2.2 6 0 3-1.8 4.6-1.2M2 11.6c2-2.2 4-2.2 6 0 1.8 2 3.4 2.2 5 1M2 17c2-2.2 4-2.2 6 0 .9 1 1.8 1.4 2.8 1.5" stroke-width="1.6"/><path d="M18 10.6s3.7 3.8 3.7 6.6a3.7 3.7 0 0 1-7.4 0c0-2.8 3.7-6.6 3.7-6.6z" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="tmode" viewBox="0 0 24 24"><path d="M9.7 10.84V4.1a2.3 2.3 0 0 1 4.6 0v6.74A3.75 3.75 0 1 1 9.7 10.84z" stroke-width="1.2" fill="none"/><circle cx="12" cy="13.8" r="1.5" fill="currentColor" stroke="none"/><g fill="currentColor" stroke="none"><circle cx="6.3" cy="21.6" r="1.35"/><circle cx="12" cy="21.6" r="1.35"/><circle cx="17.7" cy="21.6" r="1.35"/></g></symbol>
+  <symbol id="bulbf" viewBox="0 0 62 103"><path d="M31 0C14 0 0 13 0 30c0 14 8 22 12 32 2 6 3 12 3 20h32c0-8 1-14 3-20 4-10 12-18 12-32C62 13 48 0 31 0z" fill="currentColor" stroke="none"/><g fill="currentColor" stroke="none" opacity=".55"><rect x="14.5" y="86" width="33" height="5" rx="2.5"/><path d="M18 95h26a13 9 0 0 1-26 0z"/></g></symbol>
   <symbol id="check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" stroke-width="3"/></symbol>
   <symbol id="shuffle" viewBox="0 0 24 24"><path d="M3 7h3.5c4 0 6.5 10 11 10H21M3 17h3.5c1.8 0 3-1.8 4.2-4M14 9c1-1.3 2.2-2 3.5-2H21M18 4l3 3-3 3M18 14l3 3-3 3"/></symbol>
   <symbol id="repeat" viewBox="0 0 24 24"><path d="M4 11V9a3 3 0 0 1 3-3h12M16 3l3 3-3 3M20 13v2a3 3 0 0 1-3 3H5M8 21l-3-3 3-3"/></symbol>
@@ -465,24 +501,27 @@ input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:tr
   <div id="faces"></div>
 
   <section id="climate" class="view" hidden>
-    <button class="x" data-act="close" aria-label="Schließen"><svg class="i"><use href="#x"/></svg></button>
+    <button class="x" data-act="close" aria-label="Schließen"><svg class="i"><use href="#xt"/></svg></button>
     <div class="top"><span data-bind="vname"></span><time data-bind="time"></time></div>
-    <button class="mode" data-act="hvac" data-bind="mode" aria-label="Modus wechseln"></button>
-    <div class="row">
-      <button class="chev" data-act="down" aria-label="Kälter"><svg class="i"><use href="#down"/></svg></button>
-      <div class="num"></div>
-      <button class="chev" data-act="up" aria-label="Wärmer"><svg class="i"><use href="#up"/></svg></button>
-    </div>
-    <div class="meta"><svg class="i"><use href="#thermo"/></svg> <span data-bind="cur"></span>&nbsp;&nbsp;<svg class="i"><use href="#drop"/></svg> <span data-bind="hum"></span></div>
-    <button class="pw" data-act="power" aria-label="Ein/Aus"><svg class="i"><use href="#power"/></svg></button>
+    <div class="mode" data-bind="mode"></div>
+    <button class="chev" data-act="down" aria-label="Kälter"><svg class="i"><use href="#down"/></svg></button>
+    <div class="num"></div>
+    <button class="chev" data-act="up" aria-label="Wärmer"><svg class="i"><use href="#up"/></svg></button>
+    <div class="meta"><svg class="i"><use href="#thm"/></svg><span data-bind="cur"></span><svg class="i"><use href="#hum"/></svg><span data-bind="hum"></span></div>
+    <button class="pw" data-act="hvac" aria-label="Modus"><svg class="i"><use href="#tmode"/></svg></button>
+    <div class="hm" role="menu"></div>
   </section>
 
   <section id="dimmer" class="view" hidden>
-    <div class="fill"></div>
-    <button class="x" data-act="close" aria-label="Schließen"><svg class="i"><use href="#x"/></svg></button>
-    <div class="top" data-bind="vname"></div>
-    <svg class="i ico"><use href="#bulb"/></svg>
+    <svg class="ico" viewBox="0 0 62 103"><use href="#bulbf"/></svg>
     <div class="pct"><span data-bind="light"></span><small>%</small></div>
+    <div class="fill"><div class="in">
+      <svg class="ico" viewBox="0 0 62 103"><use href="#bulbf"/></svg>
+      <div class="pct"><span data-bind="light"></span><small>%</small></div>
+    </div></div>
+    <div class="grip"></div>
+    <button class="x" data-act="close" aria-label="Schließen"><svg class="i"><use href="#xt"/></svg></button>
+    <div class="top"><span data-bind="vname"></span><time data-bind="time"></time></div>
   </section>
 
   <section id="lib" class="view" hidden>
@@ -824,6 +863,7 @@ function initDials(scope) {
 function roll(el, txt, dir = 0) {
   const old = el.lastElementChild, n = document.createElement('span');
   n.textContent = txt; el.append(n);
+  if (el.closest('#climate')) n.classList.toggle('dec', txt.includes(','));   // Klima: Dezimalzahl kleiner – nur an der neuen Zahl, die ausrollende alte behält ihre Größe
   if (!dir || !old) { old?.remove(); return; }
   // Apple (STEUERUNG.md P2-5): nur die geänderte Ziffer rollt, 55 % Zeichenhöhe, Blur, ~300 ms; sinkt der Wert: alt nach unten, neu von oben
   const out = { transform: `translateY(${-dir * 55}%)`, opacity: 0, filter: 'blur(.8cqw)' }, inn = { transform: `translateY(${dir * 55}%)`, opacity: 0, filter: 'blur(.8cqw)' }, id = { transform: 'none', opacity: 1, filter: 'none' };
@@ -864,7 +904,7 @@ const fmt = v => v == null ? '–' : (+v).toLocaleString('de-DE', { maximumFract
 const pct = s => s.state === 'on' ? Math.round((s.attributes.brightness ?? 255) / 2.55) : 0;
 const mmss = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 const ON = { climate: s => /^(heating|cooling)$/.test(s.attributes.hvac_action), /* Ruhezustand = Glas, an nur bei aktivem Heizen/Kühlen oder kurz nach Bedienung */ light: s => s.state === 'on', fan: s => s.state === 'on', lock: s => s.state !== 'locked', cover: s => s.state !== 'closed', media_player: s => s.state === 'playing', timer: s => s.state === 'active' };
-const MODES = { heat: ['Heizen auf', '#ff9500'], cool: ['Kühlen auf', '#0cacf8'], heat_cool: ['Automatisch', '#30b0c7'], dry: ['Entfeuchten', '#5ac8fa'], fan_only: ['Lüften', '#34c759'], off: ['Aus', '#636366'] };
+const MODES = { heat: ['Heizen auf', '#ff9500'], cool: ['Kühlen auf', '#009efc'], heat_cool: ['Automatisch', '#30b0c7'], dry: ['Entfeuchten', '#5ac8fa'], fan_only: ['Lüften', '#34c759'], off: ['Aus', '#636366'] };
 
 // ---------- Demo-Bibliothek (erfundene Titel, generierte Cover) ----------
 const coverArt = (h, k) => svgData(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><linearGradient id="a" x2="1" y2="1"><stop stop-color="hsl(${h},75%,62%)"/><stop offset="1" stop-color="hsl(${h + 40},70%,24%)"/></linearGradient></defs><rect width="100" height="100" fill="url(#a)"/>${[
@@ -942,10 +982,20 @@ const call = (domain, service, data) => LIVE ? conn.sendMessagePromise({ type: '
 // Service mit Antwort (z. B. sonos.get_queue)
 const ask = (domain, service, data) => conn.sendMessagePromise({ type: 'call_service', domain, service, service_data: data, return_response: true }).then(r => r.response);
 
+// Modus-Menü der Klima-Ansicht: Reihenfolge wie im Video (Off, Cool, Heat, Auto), weitere HA-Modi dahinter
+const HVAC = { off: 'Aus', cool: 'Kühlen', heat: 'Heizen', heat_cool: 'Auto', auto: 'Auto', dry: 'Entfeuchten', fan_only: 'Lüften' };
+function fillModes(c) {
+  const m = Object.keys(HVAC), l = (c.attributes.hvac_modes || []).filter(k => HVAC[k]).sort((a, b) => m.indexOf(a) - m.indexOf(b)), mm = $('#climate .hm');
+  const html = l.map(k => `<button role="menuitemradio" data-act="hvacset" data-v="${k}"${k === c.state ? ' class="on" aria-checked="true"' : ''}><svg class="i"><use href="#check"/></svg>${HVAC[k]}</button>`).join('');
+  if (mm.dataset.k !== html) { mm.dataset.k = html; mm.innerHTML = html; }
+  $('#climate .pw').hidden = !l.length;
+}
+const modeMenu = on => { $('#climate').classList.toggle('mo', on); $('#climate .hm').classList.toggle('open', on); };
 const T = {};   // Soll-Temperatur je Klima-Entity
 function setTemp(id, v, dir = 0) { T[id] = v; for (const el of $$(`[data-temp="${id}"]`)) roll(el, fmt(v), dir); }
 const S = { light: 0 };
-function setLight(p) { S.light = p; $('#dimmer').style.setProperty('--p', p / 100); bind('light', p); }
+// Füllhöhe ≈ Wert + 6 Punkte (Gerade durch drei Messpunkte 33/37/80 %, bei 100 % geklammert; Enden unbelegt, STEUERUNG F7)
+function setLight(p) { S.light = p; $('#dimmer').style.setProperty('--f', p ? Math.min(1, .079 + .0096 * p) : 0); bind('light', p); }
 function npPos(id = NP) {
   const s = st(id), a = s.attributes, dur = a.media_duration || 0;
   if (a.media_position == null) return [0, dur];
@@ -1031,7 +1081,9 @@ function render() {
   if (cur?.view.id === 'climate') {
     const c = st(cur.e), a = c.attributes, [mode, color] = MODES[c.state] || [c.state, '#636366'];
     bind('mode', mode); $('#climate').style.setProperty('--cc', color);
-    bind('cur', fmt(a.current_temperature) + '°'); bind('hum', a.current_humidity == null ? '–' : Math.round(a.current_humidity) + ' %');
+    $('#climate').classList.toggle('cool', c.state === 'cool');   // Glasfarben nur für Kühlen gemessen (Blau), übrige Modi: Weiß-Glas
+    bind('cur', fmt(a.current_temperature) + '°'); bind('hum', a.current_humidity == null ? '–' : Math.round(a.current_humidity) + '%');
+    fillModes(c);
   }
   if (cur?.view.id === 'dimmer' && y0 === null && !held(cur.e)) setLight(pct(st(cur.e)));
 
@@ -1418,7 +1470,7 @@ function open(tile, id) {
   cur = { tile, view, e };
   bind('vname', (tile._t ? tile._t.sub : $('.sub', tile)?.textContent) || st(e).attributes.friendly_name || '');   // Konfig-Wert: render() hängt beim Thermostat „• Ist°“ an
   if (id === 'dimmer') setLight(pct(st(e)));
-  if (id === 'climate') { const n = $('.num', view); n.dataset.temp = e; n.replaceChildren(); }
+  if (id === 'climate') { const n = $('.num', view); n.dataset.temp = e; n.replaceChildren(); modeMenu(false); }
   if (id === 'cam') camShow(tile, e, st(e));
   render();
   fly(tile, view, true);
@@ -1524,8 +1576,10 @@ document.addEventListener('pointerdown', e => {
   suppress = false; px = e.clientX; py = e.clientY; touched = Date.now(); pull = e.target.id === 'pull';
   const amb = $('.amb');
   if (amb) { amb.classList.remove('amb'); if (amb === curEl()) { suppress = true; return; } }   // erster Tipp weckt nur
+  if ($('#climate .hm.open') && !e.target.closest('.hm')) { modeMenu(false); suppress = true; return; }   // Modus-Menü: Tipp daneben schließt nur (y-MO 156 s)
   const ch = e.target.closest('[data-act=up],[data-act=down]');
   if (ch) { bump(ch); suppress = true; return; }   // Wert ändert sich bei Touch-down (Apple, STEUERUNG.md P2-4)
+  if (e.target.closest('#climate .x, #dimmer .x')) { suppress = true; setTimeout(close, 50); return; }   // ✕: Scheibe, Schließen 1-2 Frames später, Finger noch drauf (Engadget 152 s, AppleInsider 266,6 s; STEUERUNG P2-4)
   if (cur) return;
   if (!e.target.closest('.face') || e.target.closest('.pop')) return;
   const ll = e.target.closest('.ly .lyrics')?.firstElementChild;
@@ -1567,11 +1621,8 @@ document.addEventListener('click', e => {
   if (e.target.closest('#assist')) { assistEnd(); if (act !== 'go') return; }   // Tipp schließt; Pille führt zusätzlich hin
   if (pop && !e.target.closest('.pop')) return pop.classList.remove('open');   // Tipp daneben schließt nur
   if (act === 'close') close();
-  else if (act === 'power') call('climate', st(cur.e).state === 'off' ? 'turn_on' : 'turn_off', { entity_id: cur.e });
-  else if (act === 'hvac') {
-    const c = st(cur.e), m = c.attributes.hvac_modes || [];
-    if (m.length) call('climate', 'set_hvac_mode', { entity_id: cur.e, hvac_mode: m[(m.indexOf(c.state) + 1) % m.length] });
-  }
+  else if (act === 'hvac') modeMenu(true);
+  else if (act === 'hvacset') { call('climate', 'set_hvac_mode', { entity_id: cur.e, hvac_mode: b.dataset.v }); modeMenu(false); }
   else if (act === 'lib') { pop?.classList.remove('open'); openLib($('.mb', b.closest('.face'))); }
   else if (act === 'libgo') libGo(+b.dataset.v);
   else if (act === 'libback') { if (libStack.length > 1) { libStack.pop(); showLib(-1); } else close(); }
