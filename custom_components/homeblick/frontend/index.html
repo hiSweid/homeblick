@@ -1857,6 +1857,7 @@ if (LIVE) {
       else if (c.action === 'screenshot') shot().then(image => conn.sendMessagePromise({ type: 'homeblick/shot', display: DISPLAY, image })).catch(console.warn);
       else if (c.action === 'assist') { kiosk.wake(); assistStart(); }
       else if (c.action === 'stop') { try { speechSynthesis.cancel(); } catch {} assistEnd(); }
+      else if (c.action === 'navigate' && /^\/(?![\/\\])/.test(c.path || '')) location.assign(c.path);   // nur Pfade derselben Herkunft
       else if (c.action === 'announce' && c.message) { kiosk.wake(); announce(c.message, c.title); }
       else if (c.action === 'camera' && c.camera) { kiosk.wake(); camOpen(c.camera, c.duration); }
       else if (c.action === 'camera_close' && cur?.view.id === 'cam' && !camRinging()) close();   // Klingel nicht wegschließen
