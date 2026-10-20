@@ -168,6 +168,10 @@ svg.i{width:1em;height:1em;flex:none;fill:none;stroke:currentColor;stroke-width:
 .f-music .c:active{scale:.85;transition-duration:.1s}
 .c.lyr{left:12cqw;font-size:6.6cqw;color:#ffffff99}
 .c.prev{left:28.3cqw;font-size:11.9cqw}
+/* Podcast (media_content_type podcast/episode; Vorlage highlights/sound_visuals): 15 s zurück / 30 s vor statt Titelwechsel, Titel läuft aus (Maske) statt …  */
+.f-music .c svg.pod{display:none}.f-music.pod .c svg.pod{display:block}.f-music.pod .c svg.std{display:none}
+.f-music.pod .minfo b{text-transform:none;text-overflow:clip;-webkit-mask:linear-gradient(90deg,#000 88%,#0000);mask:linear-gradient(90deg,#000 88%,#0000)}
+.f-music.pod .c:is(.prev,.next){font-size:9.6cqw}
 .c.play{left:50cqw;font-size:11cqw}
 .c.next{left:71.5cqw;font-size:11.9cqw}
 .c.queue{left:88cqw;font-size:6.6cqw;color:#ffffff99}
@@ -410,6 +414,8 @@ input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:tr
   <symbol id="play" viewBox="0 0 24 24"><path d="M7 4.8v14.4L19 12z" fill="currentColor" stroke-width="1.6"/></symbol>
   <symbol id="pause" viewBox="0 0 24 24"><rect x="5.2" y="3.5" width="5" height="17" rx="1.6" fill="currentColor" stroke="none"/><rect x="13.8" y="3.5" width="5" height="17" rx="1.6" fill="currentColor" stroke="none"/></symbol>
   <symbol id="prev" viewBox="0 0 24 24"><path d="M11.5 7v10L3.5 12zM20.5 7v10l-8-5z" fill="currentColor" stroke-width="1.5"/></symbol>
+  <symbol id="back15" viewBox="0 0 24 24"><path d="M12 5a8 8 0 1 1-5.66 2.34M12 1.8 8.8 5 12 8.2" stroke-width="1.7"/><text x="12" y="16.2" text-anchor="middle" font-size="7.6" font-weight="700" fill="currentColor" stroke="none">15</text></symbol>
+  <symbol id="fwd30" viewBox="0 0 24 24"><path d="M12 5a8 8 0 1 0 5.66 2.34M12 1.8 15.2 5 12 8.2" stroke-width="1.7"/><text x="12" y="16.2" text-anchor="middle" font-size="7.6" font-weight="700" fill="currentColor" stroke="none">30</text></symbol>
   <symbol id="next" viewBox="0 0 24 24"><path d="M3.5 7v10l8-5zM12.5 7v10l8-5z" fill="currentColor" stroke-width="1.5"/></symbol>
   <symbol id="note" viewBox="0 0 24 24"><path d="M9 17.5V6l10-2v11.5"/><circle cx="6.6" cy="17.6" r="2.6" fill="currentColor"/><circle cx="16.6" cy="15.6" r="2.6" fill="currentColor"/></symbol>
   <symbol id="cast" viewBox="0 0 24 24"><path d="M6.5 16.5a7.5 7.5 0 1 1 11 0M9 14a4 4 0 1 1 6 0"/><path d="M12 14.5l4 5.5H8z" fill="currentColor" stroke-width="1.2"/></symbol>
@@ -720,9 +726,9 @@ const FACE = {
 <div class="prog"><b><i></i></b></div>
 <div class="times"><span data-bind="npe"></span><span data-bind="npr"></span></div>
 <button class="c lyr" data-act="lyrics" aria-label="Liedtext">${svg('quote')}</button>
-<button class="c prev" data-act="prev" aria-label="Zurück">${svg('prev')}</button>
+<button class="c prev" data-act="prev" aria-label="Zurück">${svg('prev', 'std')}${svg('back15', 'pod')}</button>
 <button class="c play" data-act="play" aria-label="Abspielen/Pause">${svg('play')}</button>
-<button class="c next" data-act="next" aria-label="Weiter">${svg('next')}</button>
+<button class="c next" data-act="next" aria-label="Weiter">${svg('next', 'std')}${svg('fwd30', 'pod')}</button>
 <button class="c queue" data-act="queue" aria-label="Warteschlange">${svg('queue')}</button>
 <div class="pop outs"></div><div class="pop menu"></div>`,
   bigclock: (el, f) => el.innerHTML = f.style === 'depth' ? depthHTML(f) : `<div class="dl" data-bind="dlong"></div>` + (f.style === 'line'
@@ -897,6 +903,8 @@ function progress(bar) {
   if (dur && st(NP).state === 'playing') bar.animate([{ transform: `scaleX(${p})` }, { transform: 'scaleX(1)' }], { duration: (dur - pos) * 1000, easing: 'linear', fill: 'forwards' });
 }
 
+const isPod = id => /^(podcast|episode)$/.test(st(id).attributes.media_content_type);
+function skip(d) { const [p, dur] = npPos(); call('media_player', 'media_seek', { entity_id: NP, seek_position: Math.max(0, dur ? Math.min(dur - 1, p + d) : p + d) }); }
 let queued = 0;
 const schedule = () => queued ||= requestAnimationFrame(() => { queued = 0; render(); });
 // Mehrbenutzer: Avatare aus person.*, Tipp fächert die übrigen im Viertelbogen auf, Auswahl setzt Name/Akzent
@@ -963,6 +971,7 @@ function render() {
   const np = ents[CONF.player] || mps.find(e => e.state === 'playing' && has(e) && e.attributes.media_content_type === 'music') || mps.find(e => e.state === 'playing' && has(e))
     || mps.find(e => e.state === 'paused' && has(e)) || mps.find(e => e.attributes.device_class === 'speaker') || mps[0], a = np?.attributes || {};
   NP = np?.entity_id;
+  for (const f of $$('.f-music')) f.classList.toggle('pod', !!NP && isPod(NP));
   timerMusic(np, HASS);
   bind('npt', a.media_title || 'Nichts läuft');
   bind('npa', a.media_artist || a.friendly_name || '');
@@ -1484,8 +1493,8 @@ document.addEventListener('click', e => {
   else if (act === 'avpick') { who = b.dataset.v; try { localStorage.hb_person = who; } catch {} b.closest('.greet').classList.remove('fan'); render(); }
   else if (act === 'go') { const i = CONF.faces.findIndex(f => f.type === b.dataset.v); if (i >= 0) faces.scrollTo({ left: i * faces.clientWidth, behavior: 'smooth' }); }
   else if (act === 'play') NP && call('media_player', 'media_play_pause', { entity_id: NP });
-  else if (act === 'prev') NP && call('media_player', 'media_previous_track', { entity_id: NP });
-  else if (act === 'next') NP && call('media_player', 'media_next_track', { entity_id: NP });
+  else if (act === 'prev') NP && (isPod(NP) ? skip(-15) : call('media_player', 'media_previous_track', { entity_id: NP }));
+  else if (act === 'next') NP && (isPod(NP) ? skip(30) : call('media_player', 'media_next_track', { entity_id: NP }));
   else if (act === 'seek') NP && call('media_player', 'media_seek', { entity_id: NP, seek_position: +b.dataset.t });
   else if (act === 'lyrics' || act === 'queue') {
     const f = b.closest('.face'), [c, other] = act === 'lyrics' ? ['ly', 'qm'] : ['qm', 'ly'];
