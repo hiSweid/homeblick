@@ -970,6 +970,7 @@ const reliefNums = () => {
       return `<g opacity="${o}"><g filter="url(#${id})"><text transform="translate(${50 + 40 * Math.sin(a)} ${50 - 40 * Math.cos(a)}) rotate(${n > 3 && n < 11 ? n * 30 - 180 : n * 30})" text-anchor="middle" dy=".36em">${n}</text></g></g>`;   // Deckkraft außerhalb des Filters: sonst wird SourceAlpha teiltransparent und die Ziffer füllt sich
     }).join('')}</g></svg>`;
 };
+let mpPrev = {};
 let hands = [], lastDay;
 function initDials(scope) {
   for (const d of $$('.dial', scope)) {
@@ -1213,7 +1214,9 @@ function render() {
 
   // Musik: gewählter Player (AirPlay-Menü), sonst laufende Musik, sonst pausiert, sonst erster Lautsprecher
   const mps = players(), has = e => e.attributes.media_title;
-  const np = ents[CONF.player] || mps.find(e => e.state === 'playing' && has(e) && e.attributes.media_content_type === 'music') || mps.find(e => e.state === 'playing' && has(e))
+  const started = mps.find(e => e.state === 'playing' && has(e) && mpPrev[e.entity_id] !== 'playing'), cp = ents[NP];   // frisch gestartet → übernimmt; sonst bleibt der bediente Player, auch pausiert (sonst springt die Anzeige beim Pausieren auf einen anderen laufenden Player und der Schoner kommt nie)
+  mpPrev = Object.fromEntries(mps.map(e => [e.entity_id, e.state]));
+  const np = ents[CONF.player] || started || (cp && has(cp) && /^(playing|paused)$/.test(cp.state) ? cp : null) || mps.find(e => e.state === 'playing' && has(e) && e.attributes.media_content_type === 'music') || mps.find(e => e.state === 'playing' && has(e))
     || mps.find(e => e.state === 'paused' && has(e)) || mps.find(e => e.attributes.device_class === 'speaker') || mps[0], a = np?.attributes || {};
   NP = np?.entity_id;
   for (const f of $$('.f-music')) f.classList.toggle('pod', !!NP && isPod(NP));
