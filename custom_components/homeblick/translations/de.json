@@ -122,6 +122,11 @@
       "announce": {
         "name": "Durchsage"
       }
+    },
+    "light": {
+      "screen": {
+        "name": "Bildschirm"
+      }
     }
   },
   "services": {

@@ -1,7 +1,7 @@
 DOMAIN = "homeblick"
 URL = "/homeblick"
 STORE_VERSION = 1
-PLATFORMS = ["select", "switch", "button", "number", "time", "binary_sensor", "sensor", "notify"]
+PLATFORMS = ["select", "switch", "button", "light", "number", "time", "binary_sensor", "sensor", "notify"]
 FACES = ["bigclock", "analog", "weather", "music", "grid", "calendar", "energy", "info", "cams"]
 WAKE = ["off", "hey_jarvis", "alexa"]
 # Einstellungen je Display (Entities der Kategorie „Konfiguration“); music = Musik-Face statt Bildschirmschoner, solange Musik läuft; chime = Gong beim Klingeln

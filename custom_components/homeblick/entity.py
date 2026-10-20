@@ -3,6 +3,7 @@ from datetime import time
 
 from homeassistant.components.binary_sensor import BinarySensorDeviceClass, BinarySensorEntity
 from homeassistant.components.button import ButtonEntity
+from homeassistant.components.light import ATTR_BRIGHTNESS, ColorMode, LightEntity
 from homeassistant.components.notify import NotifyEntity, NotifyEntityFeature
 from homeassistant.components.number import NumberEntity, NumberMode
 from homeassistant.components.select import SelectEntity
@@ -72,6 +73,32 @@ class ScreensaverSwitch(Live, SwitchEntity):
 
     async def async_turn_off(self, **kw) -> None:
         self.hub.push(self.d, {"action": "wake"})
+
+
+class ScreenLight(Live, LightEntity):
+    """Bildschirm als Licht: an = wach, aus = Bildschirmschoner, Helligkeit = Einstellung „bright“ (10–100 %)."""
+    _attr_color_mode = ColorMode.BRIGHTNESS
+    _attr_supported_color_modes = {ColorMode.BRIGHTNESS}
+
+    def __init__(self, hub, d):
+        super().__init__(hub, d, "screen")
+
+    @property
+    def is_on(self) -> bool:
+        return not self.d.saver
+
+    @property
+    def brightness(self) -> int:
+        return round(self.d.settings["bright"] * 255 / 100)
+
+    async def async_turn_on(self, **kw) -> None:
+        if ATTR_BRIGHTNESS in kw:
+            await self.hub.set_setting(self.d, "bright", max(10, min(100, round(kw[ATTR_BRIGHTNESS] * 100 / 255))))
+        if self.d.saver:
+            self.hub.push(self.d, {"action": "wake"})
+
+    async def async_turn_off(self, **kw) -> None:
+        self.hub.push(self.d, {"action": "screensaver"})
 
 
 class ActionButton(Live, ButtonEntity):
@@ -197,6 +224,7 @@ FACTORY = {
     "select": lambda h, d: [FaceSelect(h, d), SettingSelect(h, d, "saver", FACES), SettingSelect(h, d, "wake", WAKE)],
     "switch": lambda h, d: [ScreensaverSwitch(h, d), SettingSwitch(h, d, "dim"), SettingSwitch(h, d, "mute"), SettingSwitch(h, d, "barge"),
                          SettingSwitch(h, d, "music"), SettingSwitch(h, d, "chime")],
+    "light": lambda h, d: [ScreenLight(h, d)],
     "button": lambda h, d: [ActionButton(h, d, "reload"), ActionButton(h, d, "assist")],
     "number": lambda h, d: [SettingNumber(h, d, "idle", 0, 3600, 10, "s"), SettingNumber(h, d, "dim_level", 10, 95, 5, "%"),
                          SettingNumber(h, d, "listen", 3, 60, 1, "s"), SettingNumber(h, d, "volume", 0, 100, 5, "%"), SettingNumber(h, d, "bright", 10, 100, 5, "%")],
