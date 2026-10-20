@@ -1584,8 +1584,10 @@ if (LIVE) {
       else { save(); if (cam) renderAll(curIdx()); }
     }).catch(console.warn);
     ha.subscribeEntities(conn, e => { ents = e; schedule(); });
+    // Neu laden am HTTP-Cache vorbei: eigene Dateien (Ordner dieser Seite) erst frisch holen, sonst laufen nach einem Update alte Module weiter
+    const hardReload = () => { const dir = new URL('.', location.href).href; return Promise.allSettled([location.href, ...performance.getEntriesByType('resource').map(e => e.name)].filter(u => u.startsWith(dir)).map(u => fetch(u, { cache: 'reload' }))).then(() => location.reload()); };
     // Nach HA-Neustart (z. B. Update über HACS) wieder verbinden: andere Integrationsversion → Seite neu laden, sonst läuft altes JS weiter
-    conn.addEventListener('ready', () => register().then(c => { if (version && c.version && c.version !== version) location.reload(); }).catch(console.warn));
+    conn.addEventListener('ready', () => register().then(c => { if (version && c.version && c.version !== version) hardReload(); }).catch(console.warn));
     // Fehler des Panels ins HA-Protokoll und auf die Einstellungsseite (gleiche Meldung höchstens einmal pro Minute)
     const seenErr = new Map();
     const report = (level, m) => {
@@ -1607,7 +1609,7 @@ if (LIVE) {
       else if (c.timers) { if (voiceTimers(c.timers, c.finished)) kiosk.wake(); }   // Sprach-Timer: Display weckt bei Start und Ablauf
       else if (c.cameras !== undefined) { if (setCams(c.cameras)) cur ? camStale = true : renderAll(curIdx()); }   // offene Ansicht behält ihre Daten, die Faces ziehen nach dem Schließen nach
       else if (c.action === 'face' && c.face) kiosk.show(c.face);
-      else if (c.action === 'reload') location.reload();
+      else if (c.action === 'reload') hardReload();
       else if (c.action === 'screensaver') kiosk.sleep();
       else if (c.action === 'wake') kiosk.wake();
       else if (c.action === 'screenshot') shot().then(image => conn.sendMessagePromise({ type: 'homeblick/shot', display: DISPLAY, image })).catch(console.warn);
