@@ -120,6 +120,7 @@ SETTINGS = vol.Schema({
     vol.Optional("tts"): vol.Any("", vol.Match(r"^tts\.\w+$")),
     vol.Optional("chime"): bool,
     vol.Optional("weather"): vol.Match(r"^weather\.\w+$"),
+    vol.Optional("presence"): vol.Any("", vol.Match(r"^(binary_sensor|input_boolean)\.\w+$")),
     vol.Optional("place"): vol.All(str, vol.Length(max=40)),
 })
 assert set(DEFAULTS) == {k.schema for k in SETTINGS.schema}

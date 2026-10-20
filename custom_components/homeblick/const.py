@@ -6,5 +6,5 @@ FACES = ["bigclock", "analog", "weather", "music", "grid", "calendar", "date", "
 WAKE = ["off", "hey_jarvis", "alexa"]
 # Einstellungen je Display (Entities der Kategorie „Konfiguration“); music = Musik-Face statt Bildschirmschoner, solange Musik läuft; chime = Gong beim Klingeln
 DEFAULTS = {"idle": 300, "saver": "bigclock", "black": False, "perf": False, "hold": False, "sched": False, "sched_from": "22:30:00", "sched_to": "06:00:00", "music": True, "dim": False, "dim_from": "22:30:00", "dim_to": "06:00:00", "dim_level": 80, "wake": "off",
-            "pipeline": "", "mute": False, "barge": False, "listen": 15, "volume": 100, "bright": 100, "tts": "", "chime": True, "weather": "weather.home", "place": "Home"}
+            "pipeline": "", "mute": False, "barge": False, "listen": 15, "volume": 100, "bright": 100, "tts": "", "chime": True, "weather": "weather.home", "presence": "", "place": "Home"}
 LOGS = 50   # letzte Meldungen je Display (nur im Speicher)
