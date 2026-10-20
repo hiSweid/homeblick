@@ -97,14 +97,18 @@ class Hub:
         if self.cams is not None:
             return self.cams
         states, reg = self.hass.states, er.async_get(self.hass)
-        cams = [{"entity": s.entity_id, "name": s.name} for s in sorted(states.async_all("camera"), key=lambda s: s.entity_id)][:8]
+        cams = [{"entity": s.entity_id, "name": s.name} for s in sorted(states.async_all("camera"), key=lambda s: s.entity_id)]
         ev = next((s for s in sorted(states.async_all("event"), key=lambda s: s.entity_id) if s.attributes.get("device_class") == "doorbell"), None)
         if not ev:
-            return {"list": cams, "bell": None}
+            return {"list": cams[:8], "bell": None}
         dev = getattr(reg.async_get(ev.entity_id), "device_id", None)
         base = ev.object_id.rsplit("_", 1)[0]   # event.haustuer_doorbell ↔ camera.haustuer_*
-        cam = next((c["entity"] for c in cams if dev and getattr(reg.async_get(c["entity"]), "device_id", None) == dev), None) \
-            or next((c["entity"] for c in cams if c["entity"].split(".", 1)[1].startswith(base)), "")
+        cam = next((c for c in cams if dev and getattr(reg.async_get(c["entity"]), "device_id", None) == dev), None) \
+            or next((c for c in cams if c["entity"].split(".", 1)[1].startswith(base)), None)
+        cams = cams[:8]
+        if cam and cam not in cams:   # Klingelkamera bleibt in der Liste, auch wenn es mehr als 8 Kameras gibt
+            cams[-1] = cam
+        cam = cam["entity"] if cam else ""
         return {"list": cams, "bell": {"event": ev.entity_id, "camera": cam}}
 
     async def set_cameras(self, cams: dict | None) -> None:

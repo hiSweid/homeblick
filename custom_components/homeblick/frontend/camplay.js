@@ -20,11 +20,11 @@ async function webrtc(conn, e, video, fail) {
   pc.ontrack = ev => { ms.addTrack(ev.track); video.srcObject = ms; };
   pc.onconnectionstatechange = () => pc.connectionState === 'failed' && die(new Error('WebRTC-Verbindung fehlgeschlagen'));
   pc.onicecandidate = ev => ev.candidate && (sid ? send(ev.candidate.toJSON()) : queue.push(ev.candidate.toJSON()));
-  pc.addTransceiver('video', { direction: 'recvonly' });
-  pc.addTransceiver('audio', { direction: 'recvonly' });   // Kamera ohne Ton lehnt die Zeile ab; HA-Frontend macht es genauso
-  if (dataChannel) pc.createDataChannel(dataChannel);
-  await pc.setLocalDescription(await pc.createOffer());
   try {
+    pc.addTransceiver('video', { direction: 'recvonly' });
+    pc.addTransceiver('audio', { direction: 'recvonly' });   // Kamera ohne Ton lehnt die Zeile ab; HA-Frontend macht es genauso
+    if (dataChannel) pc.createDataChannel(dataChannel);
+    await pc.setLocalDescription(await pc.createOffer());
     unsub = await conn.subscribeMessage(ev => {
       if (dead) return;
       if (ev.type === 'session') { sid = ev.session_id; queue.splice(0).forEach(send); }

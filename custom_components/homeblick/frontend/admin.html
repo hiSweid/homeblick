@@ -278,18 +278,28 @@ function camsHTML() {
     + (auto ? '' : grp('', `<button class="row btn c" data-a="creset">Automatisch erkennen</button>`));
 }
 let cst;
-const saveCams = () => { clearTimeout(cst); camState.auto = false; cst = setTimeout(() => guard(call('set_cameras', { cameras: camState.cameras })).catch(() => {}), 500); };
+const saveCams = () => {
+  clearTimeout(cst); camState.auto = false;
+  const { list, bell } = camState.cameras;   // Klingelkamera darf im Formular vor dem Ereignis gewählt werden; gespeichert wird erst mit Ereignis
+  cst = setTimeout(() => guard(call('set_cameras', { cameras: { list, bell: bell?.event ? bell : null } })).catch(() => {}), 500);
+};
 function camEdit(t) {
   const c = camState.cameras;
   if (t.dataset.bell) {
-    const b = c.bell || { event: '', camera: '' }; b[t.dataset.bell] = t.value;
-    c.bell = b.event ? b : null;
-  } else c.list[+t.closest('[data-ci]').dataset.ci][t.dataset.cam] = t.value.trim();
+    c.bell = { event: '', camera: '', ...c.bell, [t.dataset.bell]: t.value };
+  } else {
+    const x = c.list[+t.closest('[data-ci]').dataset.ci], old = x.entity;
+    x[t.dataset.cam] = t.value.trim();
+    if (t.dataset.cam === 'entity' && c.bell?.camera === old) c.bell.camera = x.entity;   // Klingel folgt der getauschten Kamera
+    saveCams();
+    if (t.dataset.cam === 'entity') fill(top(), stack.at(-1));   // Auswahl „Kamera der Klingel“ neu aufbauen
+    return;
+  }
   saveCams();
 }
 async function camAction(a, i) {
   const c = camState.cameras;
-  if (a === 'creset') { await guard(call('set_cameras', { cameras: null })); camState = await call('cameras'); return fill(top(), stack.at(-1)); }
+  if (a === 'creset') { clearTimeout(cst); await guard(call('set_cameras', { cameras: null })); camState = await call('cameras'); return fill(top(), stack.at(-1)); }
   if (a === 'cadd') {
     const e = (camEnts.find(k => !c.list.some(x => x.entity === k[0])) || [])[0];
     if (!e) return toast(camEnts.length ? 'Alle Kameras sind schon in der Liste' : 'Keine Kamera in Home Assistant', true);

@@ -1394,7 +1394,7 @@ function fly(tile, view, opening, done) {
   const f = view.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 200, easing: 'ease-out', fill: 'both', direction: opening ? 'normal' : 'reverse', delay: opening ? 0 : SD - 300 });
   if (!opening) f.onfinish = () => { tile.style.visibility = ''; f.cancel(); if (cur?.view === view) return; view.hidden = true; done?.(); };   // während des Schließens neu geöffnet → offen lassen
 }
-let cur = null, y0 = null, p0;
+let cur = null, y0 = null, p0, camStale = false;   // camStale: Kamera-Konfiguration kam bei offener Ansicht, Faces noch alt
 function open(tile, id) {
   const view = $('#' + id), e = tile.dataset.e;
   cur = { tile, view, e };
@@ -1409,7 +1409,7 @@ function close() {
   if (!cur) return;   // schon beim Schließen (z. B. Kamera-Timer)
   const { tile, view } = cur;
   cur = null;
-  fly(tile, view, false, camHide);
+  fly(tile, view, false, () => { camHide(); if (camStale && !cur) { camStale = false; renderAll(curIdx()); } });
 }
 // Termine aller calendar.*-Entities (Demo: erfundene, relativ zu heute); null = kein Kalender erreichbar
 const events = () => loadEvents(Object.keys(ents).filter(id => id.startsWith('calendar.')).sort(), LIVE && ask).catch(e => (console.warn('Kalender', e), null));
@@ -1854,7 +1854,7 @@ if (LIVE) {
     hello.then(() => conn.subscribeMessage(c => {
       if (c.kiosk) { const w = [CFG.weather, CFG.place]; CONF.kiosk = c.kiosk; applyK(c.kiosk); if ([CFG.weather, CFG.place] + '' !== w + '') return location.reload(); wk(); }
       else if (c.config?.faces?.length) { const i = curIdx(); CONF = { ...c.config, kiosk: CONF.kiosk }; try { localStorage.setItem(KEY, JSON.stringify(CONF)); } catch {} renderAll(Math.min(i, CONF.faces.length - 1)); }
-      else if (c.cameras !== undefined) { if (setCams(c.cameras) && !cur) renderAll(curIdx()); }   // offene Kameraansicht behält ihre Daten, die Faces ziehen beim nächsten Aufbau nach
+      else if (c.cameras !== undefined) { if (setCams(c.cameras)) cur ? camStale = true : renderAll(curIdx()); }   // offene Ansicht behält ihre Daten, die Faces ziehen nach dem Schließen nach
       else if (c.action === 'face' && c.face) kiosk.show(c.face);
       else if (c.action === 'reload') location.reload();
       else if (c.action === 'screensaver') kiosk.sleep();
