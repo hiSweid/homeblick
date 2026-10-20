@@ -210,6 +210,8 @@ const wide = () => matchMedia('(min-width:820px)').matches;
 
 // ---- Rückmeldung ----
 let tt;
+let area = '';   // Ziel der Gruppenaktionen: '' = alle, sonst Bereichsname
+const inArea = () => displays.filter(x => !area || x.area === area);
 function toast(t, bad) { const e = $('#toast'); e.textContent = t; e.classList.toggle('bad', !!bad); e.classList.add('show'); clearTimeout(tt); tt = setTimeout(() => e.classList.remove('show'), 1600); }
 const guard = p => p.then(r => (toast('Gespeichert'), r), e => (toast(e?.message || 'Fehler', true), Promise.reject(e)));
 // Alert / Sheet; löst mit dem data-r der angetippten Schaltfläche auf (null = Hintergrund)
@@ -264,10 +266,12 @@ function listHTML() {
   const warn = displays.map(d => [d, issues(d)]).filter(x => x[1].length)
     .map(([d, l]) => `<button class="row" data-d="${esc(d.id)}">${ico('disp')}<span class="l two"><b>${esc(d.name)}</b><small>${esc(l.join(' · '))}</small></span>${svg('chev')}</button>`).join('');
   const rows = displays.map(d => `<button class="row ${d.id === sel ? 'sel-row' : ''}" data-d="${esc(d.id)}">${ico('disp')}<span class="l two"><b>${esc(d.name)}</b><small>${esc(stat(d))}</small></span><span class="dot ${d.connected ? 'on' : ''}"></span>${svg('chev')}</button>`).join('');
-  const on = displays.filter(x => x.connected).length, dis = on ? '' : 'disabled';
-  const allGrp = displays.length > 1 ? grp(`Alle Displays · ${on} online`, `<div class="quick">${[['reload', 'Neu laden', 'refresh'], ['assist', 'Assist', 'mic'], ['stop', 'Abbrechen', 'x'], ['screensaver', 'Ruhemodus', 'moon'], ['wake', 'Aufwecken', 'sun']].map(([c, n, i]) => `<button class="q" data-all="${c}" ${dis}><span class="qi">${svg(i, '')}</span>${n}</button>`).join('')}</div>`
+  const areas = [...new Set(displays.map(x => x.area).filter(Boolean))].sort();
+  if (!areas.includes(area)) area = '';
+  const on = inArea().filter(x => x.connected).length, dis = on ? '' : 'disabled';
+  const allGrp = displays.length > 1 ? grp(`${area ? esc(area) : 'Alle Displays'} · ${on} online`, (areas.length ? pick('Bereich', 'area', [['', 'Alle'], ...areas.map(a => [a, a])], area, 'data-area') : '') + `<div class="quick">${[['reload', 'Neu laden', 'refresh'], ['assist', 'Assist', 'mic'], ['stop', 'Abbrechen', 'x'], ['screensaver', 'Ruhemodus', 'moon'], ['wake', 'Aufwecken', 'sun']].map(([c, n, i]) => `<button class="q" data-all="${c}" ${dis}><span class="qi">${svg(i, '')}</span>${n}</button>`).join('')}</div>`
     + pick('Face anzeigen', 'allface', [['', 'Wählen …'], ...TYPES], '', 'data-allface')
-    + `<button class="row btn" data-alls="1"><span class="l">Nachtmodus auf allen an</span></button><button class="row btn" data-alls="0"><span class="l">Nachtmodus auf allen aus</span></button>`, 'Befehle gehen an alle Displays, die gerade geöffnet sind.') : '';
+    + `<button class="row btn" data-alls="1"><span class="l">Nachtmodus auf allen an</span></button><button class="row btn" data-alls="0"><span class="l">Nachtmodus auf allen aus</span></button>`, `Befehle gehen an alle Displays${area ? ` im Bereich „${esc(area)}“` : ''}, die gerade geöffnet sind.${areas.length ? '' : ' Bekommen die Display-Geräte in Home Assistant einen Bereich, lassen sich die Befehle auf einen Bereich beschränken.'}`) : '';
   return `<div class="lt">Homeblick</div><div class="lsub">Displays im Haus</div>` +
     (displays.length ? (warn ? grp('Hinweise', warn) : '') + grp('Displays', rows, 'Ein Display legt sich an, sobald Homeblick einmal auf dem Gerät geöffnet wurde.') + allGrp
       : grp('', `<div class="row"><span class="l">Noch kein Display angemeldet</span></div>`, 'Öffne Homeblick auf dem Gerät, am besten mit <code>?display=kueche&amp;name=Küche</code> hinter der Adresse.'));
@@ -439,6 +443,7 @@ document.addEventListener('change', async e => {
     d.settings[k] = v; guard(call('update', { display: sel, settings: { [k]: v } })).catch(() => {});
   } else if (t.dataset.cam || t.dataset.bell) camEdit(t);
   else if (t.dataset.t) { cfg.faces[stack.at(-1).i].tiles[+t.closest('[data-ti]').dataset.ti][t.dataset.t] = t.value.trim(); saveCfg(); }
+  else if (t.dataset.area !== undefined) { area = t.value; renderSide(); }
   else if (t.dataset.allface !== undefined) { if (t.value) all({ action: 'face', face: t.value }); t.value = ''; t.closest('.pick').querySelector('.val').textContent = 'Wählen …'; }
   else if (t.dataset.show !== undefined) { if (t.value) guard(call('command', { display: sel, action: 'face', face: t.value })).catch(() => {}); t.value = ''; t.closest('.pick').querySelector('.val').textContent = 'Wählen …'; }
   else if (t.dataset.copy !== undefined && t.value) copyFrom(t.value, t);
@@ -448,7 +453,7 @@ document.addEventListener('click', async e => {
   if (!b) return;
   if (b.dataset.d) return open(b.dataset.d);
   if (b.dataset.all) return all({ action: b.dataset.all });
-  if (b.dataset.alls !== undefined) { const v = !!+b.dataset.alls; return guard(Promise.all(displays.map(x => (x.settings.dim = v, call('update', { display: x.id, settings: { dim: v } })))).then(() => { const d = cur(); if (d) refresh(); })).catch(() => {}); }
+  if (b.dataset.alls !== undefined) { const v = !!+b.dataset.alls; return guard(Promise.all(inArea().map(x => (x.settings.dim = v, call('update', { display: x.id, settings: { dim: v } })))).then(() => { const d = cur(); if (d) refresh(); })).catch(() => {}); }
   const onFace = stack.at(-1)?.t === 'face';
   if (b.dataset.c) return guard(call('command', { display: sel, action: b.dataset.c, ...(b.dataset.c === 'face' && { face: cfg.faces[stack.at(-1).i].type }) })).catch(() => {});
   const a = b.dataset.a;
@@ -502,7 +507,7 @@ document.addEventListener('click', async e => {
 });
 
 // Gruppenaktion: Befehl an alle Displays, die gerade ein Panel offen haben
-const all = p => guard(Promise.all(displays.filter(x => x.connected).map(x => call('command', { display: x.id, ...p })))).catch(() => {});
+const all = p => guard(Promise.all(inArea().filter(x => x.connected).map(x => call('command', { display: x.id, ...p })))).catch(() => {});
 
 async function copyFrom(id, selEl) {
   const src = displays.find(x => x.id === id);

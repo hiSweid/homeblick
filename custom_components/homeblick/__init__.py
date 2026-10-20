@@ -8,7 +8,7 @@ from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall, callback
 from homeassistant.exceptions import ServiceValidationError
-from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers import area_registry as ar, config_validation as cv, device_registry as dr
 from homeassistant.helpers.device_registry import DeviceEntry
 from homeassistant.loader import async_get_integration
 from homeassistant.util import dt as dt_util
@@ -122,9 +122,10 @@ assert set(DEFAULTS) == {k.schema for k in SETTINGS.schema}
 @websocket_api.websocket_command({vol.Required("type"): "homeblick/displays"})
 @callback
 def displays(hass, connection, msg):
-    hub = hass.data[DOMAIN]
+    hub, devs, areas = hass.data[DOMAIN], dr.async_get(hass), ar.async_get(hass)
+    area = lambda d: (a := (dev := devs.async_get_device(identifiers={(DOMAIN, d.id)})) and dev.area_id and areas.async_get_area(dev.area_id)) and a.name   # noqa: E731
     connection.send_result(msg["id"], [
-        {"id": d.id, "name": d.name, "connected": d.connected, "face": d.face, "saver": d.saver, "settings": d.settings, "info": d.info, "seen": d.seen, "logs": list(d.logs)[-10:],
+        {"id": d.id, "area": area(d) or None, "name": d.name, "connected": d.connected, "face": d.face, "saver": d.saver, "settings": d.settings, "info": d.info, "seen": d.seen, "logs": list(d.logs)[-10:],
          "outdated": bool(d.info.get("v")) and d.info.get("v") != hub.version,   # Panel läuft noch mit JS einer anderen Integrationsversion
          "faces": [{"type": f.get("type"), "bg": f.get("bg")} for f in (hub.config(d.id) or {}).get("faces", [])]}
         for d in hub.displays.values()])
