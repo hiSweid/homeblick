@@ -1629,13 +1629,18 @@ if (LIVE) {
       const o = console[k].bind(console);
       console[k] = (...a) => { o(...a); report(level, a.map(x => x?.message ?? x).join(' ')); };
     }
+    let faceBack;
     // Befehle und geänderte Einstellungen aus HA (Entities des Displays)
     hello.then(() => conn.subscribeMessage(c => {
       if (c.kiosk) { const w = [CFG.weather, CFG.place]; CONF.kiosk = c.kiosk; applyK(c.kiosk); if ([CFG.weather, CFG.place] + '' !== w + '') return location.reload(); wk(); }
       else if (c.config?.faces?.length) { const i = curIdx(); CONF = { ...c.config, kiosk: CONF.kiosk }; try { localStorage.setItem(KEY, JSON.stringify(CONF)); } catch {} renderAll(Math.min(i, CONF.faces.length - 1)); }
       else if (c.timers) { if (voiceTimers(c.timers, c.finished)) kiosk.wake(); }   // Sprach-Timer: Display weckt bei Start und Ablauf
       else if (c.cameras !== undefined) { if (setCams(c.cameras)) cur ? camStale = true : renderAll(curIdx()); }   // offene Ansicht behält ihre Daten, die Faces ziehen nach dem Schließen nach
-      else if (c.action === 'face' && c.face) kiosk.show(c.face);
+      else if (c.action === 'face' && c.face) {
+        const prev = faces.children[curIdx()]?.className.match(/f-(\w+)/)?.[1];   // Face mit Dauer: danach zurück zum vorherigen
+        clearTimeout(faceBack); kiosk.show(c.face);
+        if (c.duration && prev && prev !== c.face) faceBack = setTimeout(() => kiosk.show(prev), c.duration * 1000);
+      }
       else if (c.action === 'reload') hardReload();
       else if (c.action === 'screensaver') kiosk.sleep();
       else if (c.action === 'wake') kiosk.wake();

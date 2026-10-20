@@ -191,11 +191,11 @@ async def admin_config(hass, connection, msg):
 
 
 @websocket_api.require_admin
-@websocket_api.websocket_command({vol.Required("type"): "homeblick/command", **DISPLAY, vol.Required("action"): vol.In(["face", "reload", "screensaver", "wake", "assist", "screenshot", "announce", "stop", "navigate"]), vol.Optional("face"): vol.In(FACES), vol.Optional("path"): vol.All(str, vol.Match(r"^/(?![/\\])[^\x00-\x20\\]*\Z"), vol.Length(max=300)), vol.Optional("message"): vol.All(str, vol.Length(min=1, max=300))})
+@websocket_api.websocket_command({vol.Required("type"): "homeblick/command", **DISPLAY, vol.Required("action"): vol.In(["face", "reload", "screensaver", "wake", "assist", "screenshot", "announce", "stop", "navigate"]), vol.Optional("face"): vol.In(FACES), vol.Optional("duration"): vol.All(int, vol.Range(min=1, max=3600)), vol.Optional("path"): vol.All(str, vol.Match(r"^/(?![/\\])[^\x00-\x20\\]*\Z"), vol.Length(max=300)), vol.Optional("message"): vol.All(str, vol.Length(min=1, max=300))})
 @callback
 def command(hass, connection, msg):
     if d := _display(hass, connection, msg):
-        hass.data[DOMAIN].push(d, {k: msg[k] for k in ("action", "face", "message", "path") if k in msg})
+        hass.data[DOMAIN].push(d, {k: msg[k] for k in ("action", "face", "message", "path", "duration") if k in msg})
         connection.send_result(msg["id"])
 
 
