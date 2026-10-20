@@ -181,11 +181,11 @@ document.documentElement.style.setProperty('--sd', SD + 'ms');
 
 const FACE = {
   grid: ['Smart Home', '#ff9500', 'grid'], music: ['Musik', '#ff2d55', 'music'], bigclock: ['Uhr digital', '#636366', 'clock'], analog: ['Uhr analog', '#5856d6', 'clock'],
-  calendar: ['Kalender', '#ff3b30', 'cal'], weather: ['Wetter', '#32ade6', 'sun'], energy: ['Energie', '#34c759', 'bolt'], info: ['Info', '#30b0c7', 'info'], cams: ['Kameras', '#8e8e93', 'cam'],
+  calendar: ['Kalender', '#ff3b30', 'cal'], date: ['Datum', '#8e8e93', 'cal'], weather: ['Wetter', '#32ade6', 'sun'], energy: ['Energie', '#34c759', 'bolt'], info: ['Info', '#30b0c7', 'info'], cams: ['Kameras', '#8e8e93', 'cam'],
 };
 const TYPES = Object.entries(FACE).map(([k, v]) => [k, v[0]]);
-const BG = [['auto', 'Tageszeit'], ['black', 'Schwarz'], ['white', 'Weiß'], ['metal', 'Metall'], [30, 'Orange'], [5, 'Rot'], [340, 'Rosa'], [285, 'Violett'], [228, 'Blau'], [205, 'Türkis'], [212, 'Himmel'], [150, 'Grün']];
-const STYLES = { weather: [['', 'Kompakt'], ['cond', 'Bedingungen']], bigclock: [['stack', 'Gestapelt'], ['line', 'Lavalampe']], analog: [['big', 'Große Ziffern'], ['relief', 'Relief']] };
+const BG = [['auto', 'Tageszeit'], ['black', 'Schwarz'], ['white', 'Weiß'], ['metal', 'Metall'], [30, 'Orange'], [5, 'Rot'], [340, 'Rosa'], [285, 'Violett'], [307, 'Pink'], [228, 'Blau'], [205, 'Türkis'], [212, 'Himmel'], [150, 'Grün']];
+const STYLES = { weather: [['', 'Kompakt'], ['cond', 'Bedingungen']], bigclock: [['stack', 'Gestapelt'], ['line', 'Lavalampe']], analog: [['big', 'Große Ziffern'], ['relief', 'Relief']], info: [['events', 'Termine'], ['music', 'Musik']] };
 const LEGACY = { bigclock: [['depth', 'Tiefe']], analog: [['numbers', 'Zahlen'], ['ticks', 'Striche'], ['minimal', 'Minimal']] };   // ohne Vorlage: nur sichtbar, wenn gespeichert
 const WAKE = [['off', 'Aus'], ['hey_jarvis', 'Hey Jarvis'], ['alexa', 'Alexa']];
 const bgCss = bg => bg === 'auto' ? 'linear-gradient(135deg,#ffb36b,#5a6bb5)' : bg === 'black' ? '#1c1c1e' : bg === 'white' ? '#f2f2f7' : bg === 'metal' ? 'linear-gradient(135deg,#b5c4d6,#8795ad)' : typeof bg === 'number' ? `linear-gradient(135deg,hsl(${bg} 75% 66%),hsl(${bg + 25} 70% 52%))` : '#8e8e93';

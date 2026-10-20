@@ -33,9 +33,9 @@ function demo(t0) {
   const day = d => ymd(new Date(t0.getFullYear(), t0.getMonth(), t0.getDate() + d));
   const ev = (summary, start, end) => ({ summary, start, end });
   return {
-    'calendar.familie': { events: [ev('Elternabend', at(0, 19), at(0, 20, 30)), ev('Zahnarzt', at(3, 10, 30), at(3, 11, 15)), ev('Kinoabend', at(9, 20), at(9, 22, 30))] },
-    'calendar.geburtstage': { events: [ev('Omas Geburtstag', day(1), day(2)), ev('Leons Geburtstag', day(12), day(13))] },
-    'calendar.mullabfuhr': { events: [ev('Papiertonne', day(2), day(3)), ev('Restmüll', day(6), day(7))] },
+    'calendar.familie': { events: [ev('Elternabend', at(0, 19), at(0, 20, 30)), ev('Telefonat mit Oma', at(0, 20, 45), at(0, 21)), ev('Yoga', at(0, 21, 15), at(0, 22)), ev('Lesen', at(0, 22, 15), at(0, 22, 45)), ev('Zahnarzt', at(3, 10, 30), at(3, 11, 15)), ev('Kinoabend', at(9, 20), at(9, 22, 30))] },
+    'calendar.geburtstage': { events: [ev('Weltkindertag', day(0), day(1)), ev('Omas Geburtstag', day(1), day(2)), ev('Leons Geburtstag', day(12), day(13))] },
+    'calendar.mullabfuhr': { events: [ev('Gelber Sack', day(0), day(1)), ev('Papiertonne', day(2), day(3)), ev('Restmüll', day(6), day(7))] },
   };
 }
 
@@ -55,36 +55,49 @@ export function eventsHTML(list, max = Infinity) {
   return html;
 }
 
+// Info-Face (Vorlage Video y-MO 08500 / _Tbq 01230): nur heute — „N ganztägig“, die nächsten zwei Termine mit Zeit, „N weitere Termine“
+export function infoHTML(list, now = new Date()) {
+  const t0 = new Date(now); t0.setHours(0, 0, 0, 0);
+  const t1 = new Date(t0.getFullYear(), t0.getMonth(), t0.getDate() + 1);
+  const day = list.filter(e => e.start < t1 && e.end > t0), ad = day.filter(e => e.allDay), tm = day.filter(e => !e.allDay && e.end > now), more = tm.length - 2;
+  return (ad.length ? `<div class="ea"><i><svg class="i"><use href="#evcal"/></svg></i>${ad.length} ganztägig</div>` : '')
+    + tm.slice(0, 2).map(e => `<div class="ee"><b>${hm(e.start < t0 ? t0 : e.start)}–${hm(e.end)}</b><span>${esc(e.title)}</span></div>`).join('')
+    + (more > 0 ? `<div class="em">${more} weitere${more > 1 ? '' : 'r'} Termin${more > 1 ? 'e' : ''}</div>` : ad.length || tm.length ? '' : '<div class="em">Keine Termine heute</div>');
+}
+
 // Selbstcheck: Sortierung (ganztägig vor Uhrzeit am selben Tag), Gruppierung, Escaping
 {
   const d = new Date(2030, 0, 5, 9), list = [{ color: '#f00', title: 'A<b>', allDay: false, start: d, end: new Date(+d + 36e5) }, { color: '#0f0', title: 'B', allDay: true, start: new Date(2030, 0, 5), end: new Date(2030, 0, 6) }]
     .sort((a, b) => a.start - b.start || b.allDay - a.allDay);
   const h = eventsHTML(list);
-  console.assert(list[0].title === 'B' && (h.match(/<h4/g) || []).length === 1 && h.includes('A&#60;b>') && h.includes('09:00–10:00'), 'eventsHTML');
+  console.assert(list[0].title === 'B' && (h.match(/<h4/g) || []).length === 1 && h.includes('A&#60;b&#62;') && h.includes('09:00–10:00'), 'eventsHTML');
 }
 
 document.querySelector('body > svg').insertAdjacentHTML('beforeend', `
 <symbol id="evcal" viewBox="0 0 24 24"><rect x="5.5" y="6.5" width="13" height="12" rx="2.4" stroke-width="1.7"/><path d="M5.5 10h13" stroke-width="1.7"/><g fill="currentColor" stroke="none"><circle cx="9" cy="13" r=".95"/><circle cx="12" cy="13" r=".95"/><circle cx="15" cy="13" r=".95"/><circle cx="9" cy="15.8" r=".95"/><circle cx="12" cy="15.8" r=".95"/></g></symbol>
 <symbol id="evclock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" stroke-width="2"/><path d="M12 7.5V12l3 2" stroke-width="2"/></symbol>`);
 
-// Maße aus der zur Screenbreite: Pille 91 % breit, 10,7 % hoch (mit Zeit 13 %), Überschrift 10 % eingerückt
+// Maße aus der Vorlage Website siri-ai/gallery_context (Frontalbild, Kalender-Antwort; % Displaybreite, Schrift Inter breitenabgeglichen): Pille 91,2 % breit (x 4,4–95,6), ganztägig 10,9 % hoch mit Kreis ⌀ 4,95 (x 7,5),
+// Titel 2,95 % Semibold ab x 14,75, „all-day“ 2,6 % rechts mit 3,1 % Rand; Termin 13,0 % hoch, Balken 1,3 × 7,1 (x 7,4), Titel ab x 11,2 (Grundlinie 6,0 unter Pillenkante), Zeile Uhr + Datum/Zeit 2,75 % (Grundlinie 9,5);
+// Tagesüberschrift 3,1 % Semibold (x 10,4), Grundlinie 2,45 über der Pille, 7,6 unter der vorigen. Farben: Pille 15 % Kalenderfarbe auf Weiß, Titel 40 %, Zeitzeile 66 % Kalenderfarbe auf Schwarz.
 document.head.insertAdjacentHTML('beforeend', `<style>
 #events{background:#fff;color:#1c1c1e}
 #events .x{background:#0000000f}
 #events .top{font-size:3.8cqw}
 .evl{position:absolute;inset:15cqw 0 0;overflow-y:auto;scrollbar-width:none;padding:0 4.4cqw 8cqw}
 .evl::-webkit-scrollbar{display:none}
-.evl h4,.acal h4{font-size:3.6cqw;font-weight:600;padding:4.5cqw 0 1.5cqw 5.8cqw}
+.evl h4,.acal h4{font-size:3.1cqw;line-height:1;font-weight:600;padding:4.91cqw 0 2.03cqw 5.9cqw}
 .evl h4:first-child,.acal h4:first-child{padding-top:0}
-.ev{position:relative;display:flex;align-items:center;gap:2.6cqw;min-height:10.7cqw;padding:2.2cqw 4cqw 2.2cqw 2.7cqw;border-radius:6cqw;
-  background:color-mix(in srgb,var(--c) 15%,#fff);color:color-mix(in srgb,var(--c) 55%,#000);font-size:3.4cqw;line-height:1.3}
+.ev{position:relative;display:flex;align-items:center;gap:2.35cqw;height:10.88cqw;padding:0 3.1cqw 0 3.07cqw;border-radius:6cqw;
+  background:color-mix(in srgb,var(--c) 15%,#fff);color:color-mix(in srgb,var(--c) 40%,#000);font-size:2.95cqw;line-height:1}
 .ev b{flex:1;min-width:0;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ev.ad>svg{flex:none;width:5.1cqw;height:5.1cqw;padding:.7cqw;border-radius:50%;background:var(--c);color:#fff}
-.ev.ad span{color:color-mix(in srgb,var(--c) 30%,#3c3c43);font-size:3cqw}
-.ev:not(.ad){flex-direction:column;align-items:flex-start;gap:.3cqw;min-height:13cqw;padding-left:6.8cqw}
-.ev:not(.ad)::before{content:"";position:absolute;left:2.9cqw;top:50%;width:1.3cqw;height:7cqw;margin-top:-3.5cqw;border-radius:1cqw;background:var(--c)}
-.ev:not(.ad) b{width:100%}
-.ev:not(.ad) span{display:flex;align-items:center;gap:1cqw;font-size:3cqw;color:color-mix(in srgb,var(--c) 80%,#000)}
+.ev.ad>svg{flex:none;width:4.95cqw;height:4.95cqw;padding:.8cqw;border-radius:50%;background:var(--c);color:#fff}
+.ev.ad span{font-size:2.6cqw}
+.ev:not(.ad){display:block;height:12.98cqw;padding:3.41cqw 3cqw 0 6.83cqw}
+.ev:not(.ad)::before{content:"";position:absolute;left:3cqw;top:3cqw;width:1.29cqw;height:7.13cqw;border-radius:1cqw;background:var(--c)}
+.ev:not(.ad) b{display:block}
+.ev:not(.ad) span{display:flex;align-items:center;gap:.3cqw;margin-top:.77cqw;font-size:2.75cqw;color:color-mix(in srgb,var(--c) 66%,#000)}
+.ev:not(.ad) span svg{width:2.4cqw;height:2.4cqw}
 .ev+.ev{margin-top:2cqw}
 .evnone{text-align:center;color:#8e8e93;padding-top:20cqw;font-size:3.8cqw}
 /* Einblenden wie Assist-Antwort: von unten mit der Feder, gestaffelt */

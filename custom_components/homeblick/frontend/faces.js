@@ -1,7 +1,7 @@
 // Faces haben eine feste Reihenfolge, auf allen Displays gleich (wie bei Apple): pro Display nur ein-/ausschalten.
 // conf.faces = eingeschaltete Faces in dieser Reihenfolge, conf.off = ausgeschaltete mit ihrer Konfiguration (bleibt erhalten).
 // Neue Faces: id hier ergänzen und in DEF (index.html) aufnehmen.
-export const ORDER = ['grid', 'music', 'bigclock', 'grid2', 'weather', 'energy', 'calendar', 'analog', 'info', 'cams'];
+export const ORDER = ['grid', 'music', 'bigclock', 'grid2', 'weather', 'energy', 'calendar', 'date', 'analog', 'info', 'cams'];
 
 const ids = list => { const n = {}; for (const f of list) f.id ||= (n[f.type] = (n[f.type] || 0) + 1) > 1 ? f.type + n[f.type] : f.type; };
 const rank = f => { const i = ORDER.indexOf(f.id); return i < 0 ? ORDER.length : i; };

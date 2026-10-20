@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@200..700&family=Roboto+Flex:opsz,wdth,wght,XOPQ,YOPQ,YTFI@144,25..151,400..500,27..175,25..135,560..788&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@200..700&family=Patrick+Hand+SC&family=Roboto+Flex:opsz,wdth,wght,XOPQ,YOPQ,YTFI@144,25..151,400..500,27..175,25..135,560..788&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0}
 html,body{height:100%;overflow:hidden;background:#000;color:#fff;font:400 16px Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
@@ -185,37 +185,95 @@ svg.i{width:1em;height:1em;flex:none;fill:none;stroke:currentColor;stroke-width:
 
 
 /* ---------- Kalender ---------- */
-.f-calendar{padding:7cqw 6cqw;display:flex;flex-direction:column;gap:3cqw}
-.f-calendar .big{position:absolute;inset:0;display:grid;place-items:center;font-size:85cqw;font-weight:700;letter-spacing:-.06em;color:#ff3b30;opacity:.13}
-.f-calendar header{position:relative;display:flex;justify-content:space-between;font-size:5cqw;font-weight:600}
-.f-calendar header b{color:#ff3b30}
-.f-calendar .days{position:relative;flex:1;display:grid;grid-template-columns:repeat(7,1fr);align-items:center;justify-items:center;font-size:4.8cqw;font-weight:500}
-.f-calendar .days i{font-style:normal;font-weight:700;font-size:3.6cqw;opacity:.5}
+/* Vorlage Website faces_enhanced (Kalender, April 2026, Frontalbild, Maße in % Displaybreite): Fläche #ebebeb; Kopf „Monat Jahr“ rot links, Uhrzeit rot rechts (6,3 %, Grundlinie 13,5 %);
+   7 Spalten (Mitten 13,7 + 12,08·n), Wochentage (blau, fett 5,75 %) auf 24,2 %, 6 Wochen (immer 42 Tage) ab 35,0 % im Abstand 10,75 %, Zahlen blau 6,15 % Semibold;
+   Tage außerhalb des Monats = gleiche Zahl mit 30 % Deckkraft; heute = Kreis ⌀ 10,6 % in Navy #002452 mit weißer Zahl; große Tageszahl rot #ff5552 (Zifferhöhe 55 %, Grundlinie 84,7 %)
+   liegt unter den Zahlen, die per Multiply durchscheinen. Nacht-Variante: keine Vorlage, bisherige Farben (weiß auf Schwarz, roter Kreis) im neuen Raster. Sonntag-zuerst (US) → Montag-zuerst (DE) */
+.f-calendar{--paper:#ebebeb;--cb:#0064ff;--cr:#ff4646;--cd:#ff5552;--cc:#002452;isolation:isolate}
+.f-calendar.mono{--cb:#fff;--cr:#ff3b30;--cd:#ff3b30;--cc:#ff3b30}
+.f-calendar .big{position:absolute;left:0;right:0;top:19.07cqw;line-height:1;text-align:center;font-size:76cqw;font-weight:530;letter-spacing:-.04em;color:var(--cd)}
+.f-calendar.mono .big{opacity:.13}
+.f-calendar header b{font-weight:inherit}
+.f-calendar header{position:absolute;left:8.3cqw;right:9cqw;top:8.1cqw;display:flex;justify-content:space-between;font-size:6.3cqw;line-height:1;font-weight:500;color:var(--cr)}
+.f-calendar.mono header time{color:#fff}
+.f-calendar .days{position:absolute;left:7.66cqw;top:18.83cqw;width:84.56cqw;display:grid;grid-template-columns:repeat(7,1fr);grid-auto-rows:10.66cqw;align-items:center;justify-items:center;font-size:6.15cqw;line-height:1;font-weight:600;color:var(--cb)}
+.f-calendar .days>*{mix-blend-mode:multiply}
+.f-calendar.mono .days>*{mix-blend-mode:normal}
+.f-calendar .days i{font-style:normal;font-weight:700;font-size:5.75cqw}
+.f-calendar.mono .days i{color:#ffffff8c}
 .f-calendar .o{opacity:.3}
-.f-calendar .t{color:#fff;background:#ff3b30;border-radius:50%;width:8.5cqw;height:8.5cqw;display:grid;place-items:center;font-weight:700}
+.f-calendar .t{position:relative;z-index:0;mix-blend-mode:normal;color:#fff;font-weight:700}
+.f-calendar .t::before{content:"";position:absolute;left:50%;top:50%;width:10.6cqw;height:10.6cqw;margin:-5.3cqw;border-radius:50%;background:var(--cc);z-index:-1}
+
+/* ---------- Datum ---------- */
+/* Vorlage Website faces_enhanced (Datums-Face hell/dunkel, Frontalbild, % Displaybreite) + Video y-MO 07530: Wochentag in Handschrift-Versalien mittig (Höhe der Versalien 7,9 %, Grundlinie 22,1 %), riesige Tageszahl
+   (Zifferhöhe 54,8 %, Grundlinie 84,4 %, Strichstärke wie Kalender-Zahl), hell = Grau #d6d6d6 mit Halbtonpunkten + Zahl #242424, dunkel = #222 + Zahl #e2e2e2.
+   Ohne die Figuren (Snoopy/Woodstock: Apple-Asset, SPEC.md); Handschrift = Patrick Hand SC als freier Ersatz für die Peanuts-Schrift */
+.f-date{--paper:#d6d6d6;--ink:#242424}
+.f-date.mono{--ink:#e2e2e2;--blk:#222;color:#f2f2f2}
+.f-date.light{background-image:linear-gradient(180deg,#eaeaea,#c2c2c2)}
+.f-date::before{content:"";position:absolute;inset:0;background:radial-gradient(circle,#0000001f 0 .16cqw,#0000 .24cqw) 0 0/.8cqw .8cqw;opacity:.55;pointer-events:none}
+.f-date.mono::before{display:none}
+.f-date .wk{position:absolute;left:0;right:0;top:12.2cqw;text-align:center;font:400 11.85cqw/1 'Patrick Hand SC',Inter,sans-serif;letter-spacing:.01em;white-space:nowrap}
+.f-date .dn{position:absolute;left:0;right:0;top:19.66cqw;text-align:center;font-size:75.2cqw;line-height:1;font-weight:530;letter-spacing:-.04em;color:var(--ink)}
 
 /* ---------- Wetter: Face, Himmel-Animationen und Icons in weather.js ---------- */
 
 /* ---------- Info ---------- */
-/* Maße aus (hell) / hero_endframe (dunkel): Datum + Tag zentriert über der linken Spalte, keine Zifferblatt-Scheibe */
-.f-info{--paper:#92abb1;display:grid;grid-template:1fr 1fr/1fr 1fr;padding:6cqw;gap:4cqw;align-items:end}
-.f-info>div:first-child{text-align:center}
-.f-info .date{font-size:8.5cqw;font-weight:600}.f-info .date b{color:#ff9f0a;font-weight:600}.f-info .date span{color:#8e8e93}
-.f-info .day{font-size:33cqw;font-weight:600;line-height:.85;letter-spacing:-.04em}
-.f-info .dial{width:100%;align-self:start}.f-info .ss{background:#ff9f0a}
-.f-info .wx{position:relative}.f-info .mn{position:absolute;left:-9cqw;top:.3cqw;font-size:6cqw;color:#ff9f0a}
-/* Hell = Graublau: schwarze Zeiger, weißer Sekundenzeiger, Wochentag, Ort und Note weiß */
-.f-info.light .ss{background:#fff}.f-info.light .pin{background:#1c1c1e;box-shadow:0 0 0 .35cqw #fff}
-.f-info.light :is(.date b,.wx .loc,.mn){color:#fff}.f-info.light .date span{color:#343c3f}.f-info.light .np>span{color:#455154}.f-info.light .np button{background:#00000026}.f-info.light .np button span{color:inherit}
+/* Vorlage Website faces_enhanced (Info hell, Frontalbild; Maße in % Displaybreite, Grundlinien = y) + hero_endframe (dunkel, schräg, nur Farben) + Video y-MO 08500 / _Tbq 01230 / TGo 00115·00179·00387 / _Tbq 00605 (Farbvarianten, Termine).
+   Datum: Zeile „Wed Apr“ 8,5 % Semibold, Grundlinie 15,4 %; Tageszahl 34,3 % (Ziffernhöhe 24,9 %) Semibold, Grundlinie 44,7 %; beide über der linken Spalte zentriert (Mitte 26 %).
+   Zifferblatt: Ø ≈ 40 %, Mitte 73,4 % / 26,4 %, Ziffern wie Home-Kachel hell (Radius 76 % der Strichkante, 4,6 %). Cover 21,8 % (x 6,2, y 53,0, Radius 1,5 %), Titel Grundlinie 79,4 %, Künstler 83,4 %, Pille 21,5 × 7,8 bei y 85,9.
+   Wetter-Spalte ab x 53,4: Ort 4,3 % (Grundlinie 56,2), Temperatur 20,8 % Medium (Grundlinie 74,35), Symbol y 80–84, Zustand 3,55 % (88,8), Hoch/Tief (93,7). ♫ zwischen den Spalten (x 42,2, y 53) nur beim Musikblock.
+   Farben: hell = Graublau #92abb1 (Wochentag/Ort/♫/Sekundenzeiger weiß, Monat #333c3f, Rest schwarz, Pille 20 % Schwarz); dunkel = schwarz mit Orange (#ff9f0a) für Wochentag/Ort/♫/Sekundenzeiger;
+   Farbvarianten (Video): flache Fläche hsl(Ton 85 % 66 %), Text dunkler Ton des Farbtons, Monat mittlerer Ton, Akzent (Wochentag, Ort, Sekundenzeiger, Termin-Balken/-Zeit) hellerer Nachbarton (Ton −35°). */
+.f-info{--h:190;--fb:var(--bg);--bg:hsl(var(--h) 85% 66%);--t1:hsl(var(--h) 80% 15%);--t2:hsl(var(--h) 58% 40%);--acc:hsl(var(--h) 100% 92%);--ar:hsl(var(--h) 70% 28%);--btn:#0000001f;--paper:#92abb1;color:var(--t1)}
+.f-info:not(.light):not(.mono){background:var(--bg)}
+.f-info.light{--fb:var(--paper);--paper:#92abb1;--t1:#000;--t2:#333c3f;--acc:#fff;--ar:#4c595d;--btn:#00000033}
+.f-info.mono{--fb:#000;--t1:#fff;--t2:#8e8e93;--acc:#ff9f0a;--ar:#8e8e93;--btn:#2c2c2e}
+.f-info>*{position:absolute}
+.f-info .dcol{left:6cqw;width:40cqw;top:0;text-align:center;white-space:nowrap}
+.f-info .date{position:absolute;left:-6cqw;right:-6cqw;top:8.36cqw;font-size:8.5cqw;line-height:1;font-weight:600}.f-info .date b{color:var(--acc);font-weight:600}.f-info .date span{color:var(--t2)}
+.f-info .day{position:absolute;left:-6cqw;right:-6cqw;top:15.2cqw;font-size:34.3cqw;line-height:1;font-weight:600;letter-spacing:-.04em}
+.f-info .dial{left:53.4cqw;top:6.35cqw;width:40cqw}
+.f-info .dial .n{font-size:4.6cqw;color:var(--t1)}
+.f-info .dial svg g{stroke:var(--t1)}
+.f-info .hand{background:var(--t1)}
+.f-info .hh{height:27.4%;width:3.3%}.f-info .mm{height:47%;width:3%}
+.f-info .ss{height:50%;width:.6%;background:var(--acc)}
+.f-info .ss::after{content:"";position:absolute;left:0;right:0;top:100%;height:15%;background:inherit}
+.f-info .pin{width:5.6%;height:5.6%;margin:-2.8%;background:radial-gradient(circle,var(--fb) 0 17%,var(--acc) 21% 62%,#0000 66%)}
 .cover{background:#3a3a3c var(--art) center/cover}
-.np .cover{width:22cqw;aspect-ratio:1;border-radius:2.4cqw}
-.np b,.np span{display:block;font-size:3.3cqw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.np b{margin-top:2cqw;text-transform:uppercase}.np span{color:#8e8e93}
-.np button{display:inline-flex;align-items:center;gap:1.2cqw;margin-top:1.5cqw;font-size:3.8cqw;padding:1.3cqw 3.6cqw;border-radius:9cqw;background:#2c2c2e}
-.wx .loc{color:#ff9f0a;font-size:4cqw;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.wx .tmp{font-size:19.5cqw;font-weight:500;line-height:1}
-.wx div{font-size:3.6cqw}
-.f-info .wx .wi{display:block;font-size:5cqw;margin:1cqw 0 .6cqw}
+.np{left:0;top:0;width:100%;height:100%;pointer-events:none}.np>*{pointer-events:auto}
+.np .cover{position:absolute;left:6.2cqw;top:53.03cqw;width:21.76cqw;aspect-ratio:1;border-radius:1.5cqw}
+.np b,.np>span{position:absolute;left:6.2cqw;width:34cqw;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.np b{top:76.64cqw;font-size:3.18cqw;font-weight:600;text-transform:uppercase}
+.np>span{top:80.84cqw;font-size:3cqw;color:var(--ar)}
+.np button{position:absolute;left:6.2cqw;top:85.88cqw;width:21.5cqw;height:7.78cqw;display:flex;align-items:center;justify-content:center;gap:1.2cqw;font-size:3.8cqw;border-radius:9cqw;background:var(--btn);color:var(--t1)}
+.np button span{color:inherit}
+.f-info .mn{left:41.1cqw;top:51.6cqw;width:6.65cqw;height:8.55cqw;color:var(--acc)}
+.f-info.evon .mn,.f-info.evon .np,.f-info:not(.evon) .evb{display:none}
+.wx{left:53.2cqw;top:52cqw;width:41cqw;height:42cqw}
+.wx>*{position:absolute;left:0;line-height:1;white-space:nowrap}
+.wx .loc{top:.49cqw;color:var(--acc);font-size:4.3cqw;font-weight:600;letter-spacing:-.045em}
+.wx .tmp{top:4.39cqw;font-size:20.8cqw;font-weight:500;letter-spacing:-.065em}
+.wx .wc{top:27.6cqw;height:5.2cqw}
+.wx .wc .wi{display:block;height:5.2cqw;color:var(--t1)}
+.wx .cond{top:33.89cqw;font-size:3.55cqw}
+.wx .hl{top:38.85cqw;font-size:3.55cqw}
+/* Termine (Video y-MO 08500, Maße auf Bildschirmkante normiert): Kalenderkreis ⌀ 6,4 % (Akzent) + „N ganztägig“ 4,2 %, je Termin Balken (0,9 % breit, 9,2 % hoch, Akzent) + Zeit Semibold in Akzent + Titel (4 %, Grundlinien 4,8 % auseinander),
+   „N weitere Termine“ blass; Abstand Balken zu Balken 12 %. Untermalte Annahmen: Deutsch 24-h statt AM/PM, ohne Termine „Keine Termine heute“ (Vorlage zeigt immer Termine). */
+.evb{left:6.7cqw;top:54.6cqw;width:42cqw;line-height:1;white-space:nowrap}
+.evb .ea{display:flex;align-items:center;gap:2.2cqw;height:6.4cqw;font-size:4.2cqw;color:var(--t1)}
+.evb .ea i{width:6.4cqw;height:6.4cqw;border-radius:50%;background:var(--acc);display:grid;place-items:center;color:var(--ar)}
+.f-info.mono .evb .ea i{color:#000}
+.evb .ea svg{width:3.9cqw;height:3.9cqw;stroke-width:1.9}
+.evb .ee{position:relative;margin:2.8cqw 0 0 2.1cqw;height:9.2cqw;padding-left:0;font-size:4cqw}
+.evb .ea+.ee{margin-top:2.2cqw}
+.evb .ee::before{content:"";position:absolute;left:-2.1cqw;top:0;width:.9cqw;height:100%;border-radius:1cqw;background:var(--acc)}
+.evb .ee b{position:absolute;left:0;top:.45cqw;font-weight:600;color:var(--acc)}
+.evb .ee span{position:absolute;left:0;top:5.3cqw;max-width:36cqw;overflow:hidden;text-overflow:ellipsis;color:var(--t1)}
+.evb .em{margin:2.85cqw 0 0 .3cqw;font-size:4cqw;color:var(--t2);opacity:.85}
+.evb .ee+.em{margin-top:2.85cqw}
 
 /* ---------- Musik (Maße aus Video t = 36 s) ---------- */
 .f-music{background:#1c1c1e}
@@ -484,7 +542,9 @@ input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:tr
 #assist .apill{left:7.2cqw;right:7.2cqw;top:89.5cqw;height:9cqw;border-radius:9cqw;background:#0a7cff;color:#fff;font-size:4.2cqw;font-weight:600;display:flex;align-items:center;justify-content:center;gap:2cqw}
 #assist.answer .apill:active{scale:.96}
 /* Kalender-Antwort: Liste statt Wetterkarte, läuft unten aus dem Screen; Pillen in events.js */
-#assist .acal{left:4.4cqw;right:4.4cqw;top:35cqw;bottom:0;overflow:hidden}
+#assist .acal{left:4.4cqw;right:4.4cqw;top:36.65cqw;bottom:0;overflow:hidden}
+/* Kalender-Antwort Frontalbild gallery_context: Text 5,3 % / Zeilenabstand 6,9 %, Oberkante der Versalien 15,2 % (die Wetter-Antwort aus dem Video bleibt bei 5,9 %) */
+#assist[data-k=cal] .atxt{top:14cqw;font-size:5.3cqw;line-height:6.9cqw}
 #assist:not([data-k=cal]) .acal,#assist[data-k=cal] :is(.acard,.apill){display:none}
 /* Auslöser: Kamera oben Mitte antippen oder herunterziehen */
 #pull{position:absolute;left:30cqw;right:30cqw;top:0;height:3cqw;z-index:19;touch-action:none}
@@ -620,7 +680,7 @@ import { parseLRC, findLyrics } from './lyrics.js';
 import { voiceOK, voiceRun } from './voice.js';
 import { timerInit, timers, timerDemo, timerShow, timerMusic, voiceTimers } from './timer.js';
 import { camInit, camConfig, camShow, camHide, camFace, camTile, camOpen, camRinging, doorbell } from './doorbell.js';
-import { loadEvents, eventsHTML } from './events.js';
+import { loadEvents, eventsHTML, infoHTML } from './events.js';
 // Ohne Parameter: Demo-Daten. Echtes HA nur mit ?live
 const LIVE = new URLSearchParams(location.search).has('live');
 const CFG = { hass: '', weather: 'weather.home', place: 'Home', pipeline: '', mute: false, barge: false, listen: 15, volume: 100, music: true, chime: true, device: '' };   // Wetter, Ort, Assist-Pipeline: je Display in der Einstellungsseite (applyK); device = HA-Gerät (register)
@@ -684,7 +744,7 @@ const wall = h => wallCache[h] ||= h === 'metal' ? [svgUrl(wpMetal()), svgUrl(wp
 const TOD = new URLSearchParams(location.search).get('tod');
 const isNight = () => TOD ? TOD === 'night' : ents['sun.sun'] ? ents['sun.sun'].state === 'below_horizon' : (h => h < 6.5 || h >= 19.5)(new Date().getHours() + new Date().getMinutes() / 60);
 // bg 'auto': Tag/Nacht — Home orange/violett, Widget hell/dunkel (faces_enhanced/hero_endframe)
-const AUTO = { info: ['white', 'black'], calendar: ['white', 'black'] };
+const AUTO = { info: ['white', 'black'], calendar: ['white', 'black'], date: ['white', 'black'] };
 const bgOf = f => f.bg === 'auto' ? (AUTO[f.type] || [30, 240])[+isNight()] : f.bg;
 // bg: Farbton (Zahl) | 'metal' (helles Graublau) | 'black' | 'white' | { photo, blur }
 function applyBg(el, bg) {
@@ -694,7 +754,7 @@ function applyBg(el, bg) {
   for (const k of ['--ink', '--ink2']) el.style.removeProperty(k);
   if (hue) { const [a, b] = wall(bg); el.style.setProperty('--h', h); el.style.setProperty('--wp', a); el.style.setProperty('--wpb', b); el.style.setProperty('--ink', `hsl(${h} 96% 28%)`); el.style.setProperty('--ink2', `hsl(${h} 65% 38%)`); }
   else if (bg?.photo) { el.style.setProperty('--wp', `url(${bg.photo})`); el.style.setProperty('--wpb', `url(${bg.blur})`); }
-  else { el.style.setProperty('--wp', 'none'); el.style.setProperty('--wpb', 'none'); el.style.backgroundColor = bg === 'white' ? '#fff' : '#000'; }
+  else { el.style.setProperty('--wp', 'none'); el.style.setProperty('--wpb', 'none'); el.style.backgroundColor = bg === 'white' ? 'var(--paper,#fff)' : 'var(--blk,#000)'; }
 }
 // ---------- Konfiguration (localStorage) ----------
 // night: Variante der Kachel nach Sonnenuntergang; bg 'auto' = Farbe nach Tageszeit
@@ -724,6 +784,7 @@ const DEF = { cams: 1, energy: 1, dyn: 2, faces: [   // Flags: Migrationen unten
   { type: 'weather', bg: 212 },
   { type: 'energy', bg: 'black' },
   { type: 'calendar', bg: 'white' },
+  { type: 'date', bg: 'auto' },
   { type: 'analog', bg: 150 },
   { type: 'info', bg: 'auto' },
   { type: 'cams', bg: 'black' },
@@ -817,7 +878,7 @@ function tileEl(c) {
 }
 function calHTML() {
   const d = new Date(), y = d.getFullYear(), m = d.getMonth(), first = (new Date(y, m, 1).getDay() + 6) % 7;
-  const n = Math.ceil((first + new Date(y, m + 1, 0).getDate()) / 7) * 7;
+  const n = 42;   // Vorlage: immer 6 Wochen
   const days = Array.from({ length: n }, (_, i) => {
     const x = new Date(y, m, i - first + 1);
     return `<span class="${x.getMonth() !== m ? 'o' : x.getDate() === d.getDate() ? 't' : ''}">${x.getDate()}</span>`;
@@ -922,13 +983,22 @@ const FACE = {
     el.innerHTML = (k === 'big' ? bigNums : reliefNums()) + (k === 'big' ? '<div class="fdate" data-bind="wdd"></div>' : '') + '<div class="dial fl"></div>';
   },
   calendar: el => { el.innerHTML = calHTML(); el.dataset.act = 'events'; },
+  date: el => el.innerHTML = '<div class="wk" data-bind="wdl"></div><div class="dn" data-bind="day"></div>',
   weather: (el, f) => weatherFace(el, f, CFG.place),
   energy: el => energyFace(el),
   cams: el => camFace(el),
-  info: el => el.innerHTML = `<div><div class="date"><b data-bind="wd"></b> <span data-bind="mo"></span></div><div class="day" data-bind="day"></div></div>
+  info: (el, f) => {
+    // Farbtöne laut Vorlage: Türkis y-MO 08500 = 190; Himmel (hellblau, TGo 00179) ≈ 203; Blau (dunkelblau, TGo 00387) ≈ 213; Metall = Graublau #92abb1 (helle Variante)
+    const hh = { 205: 190, 212: 203, 228: 213 }[f.bg]; if (hh) el.style.setProperty('--h', hh);
+    if (f.bg === 'metal') { el.classList.add('light'); el.style.backgroundColor = 'var(--paper)'; el.style.setProperty('--wp', 'none'); el.style.setProperty('--wpb', 'none'); }   // Türkis: Vorlage y-MO 08500 #5adbf1 = Ton 190 (Swatch 205 wäre hellblau)
+    if (f.style !== 'music') el.dataset.ev = '';   // Standard: Termine links unten (Vorlage Video), „Musik“ = Now Playing (Vorlage Website); ohne Kalender bleibt Musik
+    el.innerHTML = `<div class="dcol"><div class="date"><b data-bind="wd"></b> <span data-bind="mo"></span></div><div class="day" data-bind="day"></div></div>
 <div class="dial nums mt"></div>
 <div class="np"><div class="cover" data-act="go" data-v="music"></div><b data-bind="npt"></b><span data-bind="npa"></span><button data-act="play">${svg('play')} <span data-bind="npb"></span></button></div>
-<div class="wx" data-act="go" data-v="weather">${svg('note', 'mn')}<div class="loc">${esc(CFG.place)} ${svg('arrow')}</div><div class="tmp" data-bind="wxt"></div><div><i class="wi" data-wxi></i> <span data-bind="wxc"></span></div><div data-bind="wxhl"></div></div>`,
+<div class="evb" data-act="events"></div>
+${svg('note', 'mn')}
+<div class="wx" data-act="go" data-v="weather"><div class="loc">${esc(CFG.place)} ${svg('arrow')}</div><div class="tmp" data-bind="wxt"></div><div class="wc"><i class="wi" data-wxi></i></div><div class="cond" data-bind="wxc"></div><div class="hl" data-bind="wxhl"></div></div>`;
+  },
 };
 function buildFace(f) {
   const el = document.createElement('div');
@@ -951,8 +1021,9 @@ const numsAt = r => Array.from({ length: 12 }, (_, i) => {
 }).join('');
 const nums = numsAt(40);
 // Minutenkranz: 60 Striche, Stunden kräftig, Minuten halbtransparent, Zahlen weiter innen
-const mticks = `<svg viewBox="-50 -50 100 100"><g stroke="#fff" stroke-linecap="round">${Array.from({ length: 60 }, (_, i) =>
-  `<line y1="-48" y2="${i % 5 ? -45.5 : -44.5}" stroke-width="${i % 5 ? .9 : 1.7}"${i % 5 ? ' stroke-opacity=".45"' : ''} transform="rotate(${i * 6})"/>`).join('')}</g></svg>` + numsAt(34);
+const mtickSvg = hw => `<svg viewBox="-50 -50 100 100"><g stroke="#fff" stroke-linecap="round">${Array.from({ length: 60 }, (_, i) =>
+  `<line y1="-48" y2="${i % 5 ? -45.5 : -44.5}" stroke-width="${i % 5 ? .9 : hw}"${i % 5 ? ' stroke-opacity=".45"' : ''} transform="rotate(${i * 6})"/>`).join('')}</g></svg>`;
+const mticks = mtickSvg(1.7) + numsAt(34), mticksI = mtickSvg(1.4) + numsAt(37);   // Info-Face: Ziffern bei 76 % der Strichkante (Website faces_enhanced)
 // Analog „Große Ziffern“ (Website faces_enhanced, Pixelmaße auf 350 px): 12/9/6/3 in Inter Light, Höhe 41,4 %, 5 % Abstand zum Rand, y = Grundlinie
 const bigNums = `<svg class="fnum" viewBox="0 0 100 100">${[['12', 43.8, 45.7, 'middle'], ['9', 1.4, 71, 'start'], ['3', 98.7, 71, 'end'], ['6', 49, 94.7, 'middle']]
   .map(([t, x, y, a]) => `<text transform="translate(${x} ${y}) scale(1.08 1)" text-anchor="${a}"${t === '12' ? ' letter-spacing="-8"' : ''}>${t}</text>`).join('')}</svg>`;
@@ -974,7 +1045,7 @@ let mpPrev = {};
 let hands = [], lastDay;
 function initDials(scope) {
   for (const d of $$('.dial', scope)) {
-    d.insertAdjacentHTML('afterbegin', (d.classList.contains('fl') ? '' : d.classList.contains('mt') ? mticks : d.classList.contains('nums') ? nums : d.closest('.f-grid.light') ? mticks : d.closest('.f-grid') ? gticks : ticks) +'<i class="hand hh"></i><i class="hand mm"></i><i class="hand ss"></i><b class="pin"></b>');
+    d.insertAdjacentHTML('afterbegin', (d.classList.contains('fl') ? '' : d.classList.contains('mt') ? mticksI : d.classList.contains('nums') ? nums : d.closest('.f-grid.light') ? mticks : d.closest('.f-grid') ? gticks : ticks) +'<i class="hand hh"></i><i class="hand mm"></i><i class="hand ss"></i><b class="pin"></b>');
     for (const [c, per] of [['hh', 43200], ['mm', 3600], ['ss', 60]])
       hands.push([per, $('.' + c, d).animate([{ transform: 'translateX(-50%) rotate(0)' }, { transform: 'translateX(-50%) rotate(1turn)' }], { duration: per * 1000, iterations: Infinity })]);
   }
@@ -997,7 +1068,7 @@ function roll(el, txt, dir = 0) {
 }
 const rollBind = (k, v) => { for (const el of $$(`[data-bind=${k}]`)) if (el.lastElementChild?.textContent !== v) roll(el, v, el.firstChild ? 1 : 0); };
 function tick() {
-  phase();
+  phase(); infoEv();
   const d = new Date(), s = (d - new Date(d).setHours(0, 0, 0, 0)) / 1000;
   hands = hands.filter(([, a]) => a.effect.target.isConnected || a.cancel());
   for (const [per, a] of hands) a.currentTime = (s % per) * 1000;
@@ -1006,6 +1077,7 @@ function tick() {
   bind('wd', d.toLocaleDateString('de-DE', { weekday: 'short' }));
   bind('mo', d.toLocaleDateString('de-DE', { month: 'short' }));
   bind('day', d.getDate());
+  bind('wdl', d.toLocaleDateString('de-DE', { weekday: 'long' }).toUpperCase());
   bind('wdd', `${d.toLocaleDateString('de-DE', { weekday: 'short' }).replace('.', '').toUpperCase()} ${d.getDate()}`);   // „DI 20“ (Vorlage „WED 1“, „TUE 13“)
   const h = d.getHours();
   bind('greet', h < 11 ? 'Guten Morgen,' : h < 18 ? 'Guten Tag,' : 'Guten Abend,');
@@ -1174,7 +1246,7 @@ function statusLine(t, d, s) {
   if (sub.textContent !== out) sub.textContent = out;
 }
 function render() {
-  phase(); avatars();
+  phase(); avatars(); if (!evList) infoEv();   // Kalender-Entities kommen live erst nach dem ersten Aufbau
   for (const t of $$('[data-e]')) {
     const id = t.dataset.e, s = st(id), d = id.split('.')[0];
     t.classList.toggle('na', s.state === 'unavailable');
@@ -1343,7 +1415,7 @@ function assistStart(k = '') {
 async function assistAnswer() {
   if (asEv) {
     const list = await asEv;
-    if (AS.className !== 'think') return;   // inzwischen abgebrochen
+    if (!AS.classList.contains('think')) return;   // inzwischen abgebrochen
     $('.atxt', AS).textContent = !list ? 'Ich erreiche deinen Kalender gerade nicht.' : list.length ? 'Das sind deine nächsten Termine:' : 'In deinem Kalender steht nichts an.';
     $('.acal', AS).innerHTML = list?.length ? eventsHTML(list, 4) : '';
   } else {
@@ -1630,6 +1702,15 @@ function close() {
 }
 // Termine aller calendar.*-Entities (Demo: erfundene, relativ zu heute); null = kein Kalender erreichbar
 const events = () => loadEvents(Object.keys(ents).filter(id => id.startsWith('calendar.')).sort(), LIVE && ask).catch(e => (console.warn('Kalender', e), null));
+// Info-Face: Termine heute links unten (Standard), alle 10 min neu geladen, jede Minute neu gefiltert; ohne calendar.*-Entities bleibt der Musikblock
+let evList, evAt = 0, evBusy = false;
+async function infoEv() {
+  const fs = $$('.f-info[data-ev]');
+  if (!fs.length) return;
+  const have = Object.keys(ents).some(id => id.startsWith('calendar.'));
+  if (have && !evBusy && Date.now() - evAt > 6e5) { evBusy = true; evList = await events(); evAt = evList ? Date.now() : Date.now() - 57e4; evBusy = false; }
+  for (const f of fs) { f.classList.toggle('evon', !!(have && evList)); if (have && evList) $('.evb', f).innerHTML = infoHTML(evList); }
+}
 async function openEvents(face) {
   const l = $('#events .evl');
   l.innerHTML = '<p class="evnone">Lädt …</p>';
