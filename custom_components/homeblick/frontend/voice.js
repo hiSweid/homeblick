@@ -20,27 +20,42 @@ export async function openMic(onFrame) {
   return { stop: () => { stream.getTracks().forEach(t => t.stop()); ctx.close().catch(() => {}); } };
 }
 
-// h: { onThink(text?), onAnswer(text), onEnd(next?), onError(msg), base, pipeline?, device?, conversation? } → { stop() }
+// HA-Fehlercodes → Klartext fürs Display (unbekannte Codes: HA-Meldung durchreichen)
+const ERR = {
+  'stt-no-text-recognized': 'Ich habe nichts verstanden.', 'stt-stream-failed': 'Die Spracherkennung hat nicht geklappt.', 'stt-provider-missing': 'Keine Spracherkennung eingerichtet.',
+  'pipeline-not-found': 'Die Assist-Pipeline wurde nicht gefunden.', 'intent-failed': 'Das habe ich nicht verstanden.', 'tts-failed': 'Die Sprachausgabe hat nicht geklappt.',
+  timeout: 'Keine Antwort von Home Assistant.', empty: 'Ich habe keine Antwort bekommen.', NotAllowedError: 'Mikrofon-Zugriff verweigert.', NotFoundError: 'Kein Mikrofon gefunden.',
+};
+const errText = (code, msg) => ERR[code] || 'Das hat nicht geklappt' + (msg ? ': ' + msg : '.');
+
+// h: { onThink(text?), onAnswer(text, response_type), onEnd(next?), onError(msg), base, pipeline?, device?, conversation? } → { stop() }
 // device = HA-Geräte-ID des Displays (Raum für „Licht an“); next = { conversation } wenn der Agent eine Rückfrage stellt
 export async function voiceRun(conn, h) {
-  let mic, unsub, audio, id, next, sent = false, dead = false;
-  const cleanup = () => { dead = true; mic?.stop(); unsub?.(); audio?.pause(); clearTimeout(cap); };
-  const endAudio = () => { if (sent || id == null) return; sent = true; conn.socket.send(new Uint8Array([id])); mic?.stop(); };
+  let mic, unsub, audio, id, next, sent = false, dead = false, answered = false, wd;
+  const cleanup = () => { dead = true; mic?.stop(); unsub?.(); audio?.pause(); clearTimeout(cap); clearTimeout(wd); };
+  // Wachhund: kommt in der jeweiligen Phase nichts mehr von HA, nicht ewig „zuhören“ (Pipeline hängt, Verbindung weg, kein Lauf gestartet)
+  const arm = ms => { clearTimeout(wd); wd = setTimeout(() => fail('timeout'), ms); };
+  const endAudio = () => { if (sent || id == null) return; sent = true; conn.socket.send(new Uint8Array([id])); mic?.stop(); arm(15000); };
   const cap = setTimeout(endAudio, (h.listen || 15) * 1000);   // ponytail: Zeitlimit statt eigener VAD; HA meldet das Sprechende meist früher (stt-vad-end)
-  const fail = m => { cleanup(); h.onError(m); };
+  // schon beantwortet (z. B. nur TTS kaputt): Antworttext stehen lassen, nur beenden
+  const fail = (code, msg) => { cleanup(); answered ? h.onEnd(next) : h.onError(errText(code, msg)); };
   try {
     mic = await openMic(f => { if (id != null && !sent && !dead) conn.socket.send(pcm16(id, f)); });
+    arm(8000);   // bis run-start
     unsub = await conn.subscribeMessage(ev => {
+      if (dead) return;
       const d = ev.data;
-      if (ev.type === 'run-start') id = d.runner_data.stt_binary_handler_id;
+      if (ev.type === 'run-start') { id = d.runner_data.stt_binary_handler_id; arm((h.listen || 15) * 1000 + 8000); }
       else if (ev.type === 'stt-vad-end') { endAudio(); h.onThink(); }
       else if (ev.type === 'stt-end') { endAudio(); h.onThink(d.stt_output?.text); }
       else if (ev.type === 'intent-end') {
         const o = d.intent_output;
         if (o?.continue_conversation) next = { conversation: o.conversation_id };
-        h.onAnswer(o?.response?.speech?.plain?.speech || '');
+        answered = true; arm(20000);   // bis tts-end/run-end
+        h.onAnswer(o?.response?.speech?.plain?.speech || '', o?.response?.response_type);
       }
       else if (ev.type === 'tts-end') {
+        clearTimeout(wd);
         if (h.mute) { cleanup(); return h.onEnd(next); }   // stumm: Text erscheint, kein Ton
         audio = new Audio(h.base + d.tts_output.url);
         audio.volume = (h.volume ?? 100) / 100;
@@ -48,11 +63,11 @@ export async function voiceRun(conn, h) {
         audio.play().catch(() => { cleanup(); h.onEnd(next); });
       } else if (ev.type === 'error') {
         if (h.conversation && d.code === 'stt-no-text-recognized') { cleanup(); h.onEnd(); }   // Rückfrage ohne Antwort: still schließen
-        else fail(d.message || d.code);
+        else fail(d.code, d.message);
       }
-      else if (ev.type === 'run-end' && !audio) { cleanup(); h.onEnd(next); }
+      else if (ev.type === 'run-end' && !audio) { if (answered) { cleanup(); h.onEnd(next); } else fail('empty'); }   // Lauf zu Ende ohne Antwort: nicht stumm schließen
     }, { type: 'assist_pipeline/run', start_stage: 'stt', end_stage: 'tts', input: { sample_rate: 16000 },
       ...(h.pipeline && { pipeline: h.pipeline }), ...(h.device && { device_id: h.device }), ...(h.conversation && { conversation_id: h.conversation }) });
-  } catch (e) { fail(e.message || String(e)); }
+  } catch (e) { fail(e.name === 'NotAllowedError' || e.name === 'NotFoundError' ? e.name : e.code, e.message || String(e)); }
   return { stop: cleanup };
 }

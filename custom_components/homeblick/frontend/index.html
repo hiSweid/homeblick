@@ -1396,6 +1396,17 @@ const rich = t => esc(t).replace(/\b\d{1,2}:\d{2}\b|\d+(?:[.,]\d+)?(?:\s?(?:°C?
 const AS = $('#assist'), ORB = $('.orb', AS), BLOOM = $('.bloom', AS), INK = $('.ink', AS), DROPC = $('circle', AS);
 const goo = (k, ms, ease) => DROPC.animate(k.map(([y, sx, sy = sx]) => ({ transform: `translate(0px,${y}px) scale(${sx},${sy})` })), { duration: ms, easing: ease });
 let asT = [], asEv = null;
+// Demo ?asim=error|empty|stt|nostart|tts: simulierte HA-Pipeline (Fehlerantwort, leerer Lauf, nichts verstanden, Lauf startet nie, TTS-Fehler) über das echte voice.js – Mikro: Chrome-Fake-Gerät
+const ASIM = new URLSearchParams(location.search).get('asim');
+const asSim = () => ({ socket: { send() {} }, subscribeMessage: async cb => {
+  const at = (ms, type, data = {}) => setTimeout(() => cb({ type, data }), ms), msg = (speech, response_type) => ({ intent_output: { response: { response_type, speech: { plain: { speech } } } } });
+  if (ASIM !== 'nostart') at(100, 'run-start', { runner_data: { stt_binary_handler_id: 1 } });
+  if (ASIM === 'error') { at(1500, 'stt-end', { stt_output: { text: 'Wie wird das Wetter heute?' } }); at(2300, 'intent-end', msg('Kein Bereich mit dem Namen Wetter heute vorhanden', 'error')); at(2500, 'run-end'); }
+  if (ASIM === 'empty') { at(1500, 'stt-end', { stt_output: { text: 'Hallo' } }); at(2300, 'run-end'); }
+  if (ASIM === 'stt') at(1500, 'error', { code: 'stt-no-text-recognized', message: 'No text recognized' });
+  if (ASIM === 'tts') { at(1500, 'stt-end', { stt_output: { text: 'Wie spät ist es?' } }); at(2300, 'intent-end', msg('Es ist 14 Uhr 30.', 'query_answer')); at(2600, 'error', { code: 'tts-failed', message: 'TTS failed' }); }
+  return () => {};
+} });
 // k = 'cal' → Kalender-Antwort (Taste K), sonst Wetter (Taste S / Zug von oben)
 function assistStart(k = '') {
   if (AS.className) return;
@@ -1408,6 +1419,7 @@ function assistStart(k = '') {
     ORB.animate([{ transform: 'translateY(-6cqw) scale(.55,.72)' }, { transform: 'none' }], { duration: SD, easing: SPRING });
     INK.animate([{ opacity: 1 }, { opacity: 1, offset: .2 }, { opacity: 0 }], { duration: 420, easing: 'ease-out' });
     // Live nie die Demo-Antwort: ohne Mikrofon (http) bzw. Verbindung nur ein Hinweis
+    if (!LIVE && ASIM) return assistVoice();
     if (LIVE) return conn && voiceOK() ? assistVoice() : assistHint(conn ? isSecureContext ? 'Kein Mikrofon verfügbar.' : 'Sprachsteuerung braucht https.' : 'Keine Verbindung zu Home Assistant.');
     asT = [setTimeout(() => { AS.className = 'think'; transcript(k === 'cal' ? 'Was steht in meinem Kalender?' : 'Wie wird das Wetter heute?'); }, 2400), setTimeout(assistAnswer, 3600)];
   };
@@ -1478,13 +1490,13 @@ async function assistVoice(conversation) {
   const gen = ++voiceGen, live = () => gen === voiceGen;
   AS.dataset.k = 'voice'; $('.atxt', AS).textContent = ''; $('.atr', AS).textContent = '';
   const say = t => { const el = $('.atxt', AS); el.innerHTML = rich(t); el.scrollTop = 0; };
-  const v = await voiceRun(conn, {
+  const v = await voiceRun(LIVE ? conn : asSim(), {
     pipeline: CFG.pipeline, device: CFG.device, conversation, mute: CFG.mute, volume: CFG.volume,
     listen: conversation ? Math.min(CFG.listen, 8) : CFG.listen,   // Rückfrage: kürzer warten
     base: location.origin === 'null' ? '' : location.origin,
     onThink: t => { if (!live()) return; if (AS.className === 'listen') AS.className = 'think'; if (t && AS.classList.contains('think')) transcript(t); },
-    onAnswer: t => { if (!live()) return; say(t || 'Erledigt.'); assistShow(60000); },   // schließt beim TTS-Ende (onEnd); 60 s nur als Sicherung
-    onError: m => { if (!live()) return; say('Das hat nicht geklappt: ' + m); assistShow(6000); },
+    onAnswer: (t, type) => { if (!live()) return; say(t || (type === 'error' ? 'Das habe ich nicht verstanden.' : 'Erledigt.')); assistShow(60000); },   // schließt beim TTS-Ende (onEnd); 60 s nur als Sicherung
+    onError: m => { if (!live()) return; say(m); assistShow(6000); },   // m = fertiger Klartext aus voice.js
     onEnd: next => {
       if (!live()) return;
       if (AS.className !== 'answer') return assistEnd();
