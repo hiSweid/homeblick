@@ -197,7 +197,7 @@ const RAYS = (cx, cy, r0, r1, n = 8, a0 = 0) => Array.from({ length: n }, (_, i)
   const a = a0 + i * 2 * Math.PI / n, c = Math.cos(a), s = Math.sin(a);
   return `M${(cx + c * r0).toFixed(2)} ${(cy + s * r0).toFixed(2)}L${(cx + c * r1).toFixed(2)} ${(cy + s * r1).toFixed(2)}`;
 }).join('');
-const SUN = (cx, cy, r) => `<circle cx="${cx}" cy="${cy}" r="${r}"/><path d="${RAYS(cx, cy, r + 2, r + 4.2)}" fill="none" stroke-width="1.9" stroke-linecap="round"/>`;
+const SUN = (cx, cy, r) => `<g class="s"><circle cx="${cx}" cy="${cy}" r="${r}"/><path d="${RAYS(cx, cy, r + 2, r + 4.2)}" fill="none" stroke-width="1.9" stroke-linecap="round"/></g>`;   // .s: in der Stundenleiste gelb
 const MOON = (cx, cy, r) => { const id = 'wm' + ++uid; return `<mask id="${id}"><rect x="-9" y="-9" width="50" height="50" fill="#fff"/><circle cx="${cx + r * .62}" cy="${cy - r * .5}" r="${r * .86}" fill="#000"/></mask><circle cx="${cx}" cy="${cy}" r="${r}" mask="url(#${id})"/>`; };
 // vorderes Motiv schneidet eine schmale Lücke ins hintere (wie bei SF Symbols)
 const behind = (back, front) => { const id = 'wm' + ++uid; return `<mask id="${id}"><rect x="-9" y="-9" width="50" height="50" fill="#fff"/><g fill="#000" stroke="#000" stroke-width="3" stroke-linejoin="round">${front}</g></mask><g mask="url(#${id})">${back}</g>${front}`; };
@@ -230,7 +230,8 @@ const FOOT = {
 };
 
 // ---------- Face ----------
-export function weatherFace(el) {
+export function weatherFace(el, f, place = '') {
+  if (f?.style === 'cond') return condFace(el, place);
   el.innerHTML = `<div class="wsky"></div>
 <header><div class="wc"><i class="wi" data-wxi></i><span data-bind="wxc"></span></div><div data-bind="wxhl"></div></header>
 <time data-bind="time"></time>
@@ -243,6 +244,46 @@ export function weatherFace(el) {
     weather(...last);
   });
 }
+// Stil „Bedingungen“ (Vorlage product-viewer/display_endframe, frames/pv-display_1…5): Ort, große Temperatur, Zustand, H/T mittig;
+// darunter Glaskarte mit Segment Temperatur/Niederschlag/Wind und horizontal scrollender Stundenleiste (HA-Vorhersage hourly).
+// Abweichung: Vorlage zeigt unter den Icons nichts mehr (Karte läuft aus dem Bild) → Werte darunter, Zeilen dafür etwas höher
+const MODES = { t: ['Temperatur (°C)', icon('partlycloudy')], p: ['Niederschlag (%)', '<svg viewBox="0 0 28 24"><path d="M14 2.5s-6.5 8-6.5 12.6a6.5 6.5 0 0 0 13 0C20.5 10.5 14 2.5 14 2.5z"/></svg>'], w: ['Wind (km/h)', FOOT.wind] };
+let hours = [];
+function condFace(el, place) {
+  el.classList.add('wcond'); el.dataset.m = 't';
+  el.innerHTML = `<div class="wsky"></div><time data-bind="time"></time>
+<div class="wtop"><b>${place.replace(/[&<>"]/g, c => `&#${c.charCodeAt(0)};`)}</b><div data-bind="wxt"></div><span data-bind="wxc"></span><span data-bind="wxhl"></span></div>
+<section class="wcard"><header><div><b>Bedingungen</b><span class="wsub">${MODES.t[0]}</span></div>
+<div class="wseg">${Object.entries(MODES).map(([k, [, ic]], i) => `<button data-m="${k}"${i ? '' : ' class="on"'}><i class="wi">${ic}</i></button>`).join('')}</div></header>
+<div class="whours"></div></section>`;
+  io.observe(el.firstChild); ro.observe(el.firstChild);
+  el.querySelector('.wseg').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b || el.closest('.gallery,.custom')) return;
+    el.dataset.m = b.dataset.m; el.querySelector('.wseg .on')?.classList.remove('on'); b.classList.add('on');
+    el.querySelector('.wsub').textContent = MODES[b.dataset.m][0];
+    fillHours(el.querySelector('.whours'), true);
+  });
+  fillHours(el.querySelector('.whours'));
+}
+// Nacht je Stunde aus sun.sun (nächster Unter-/Aufgang), sonst grob 20–6 Uhr
+function nightAt(t) {
+  const a = last[1]?.attributes, ns = Date.parse(a?.next_setting), nr = Date.parse(a?.next_rising);
+  if (!ns || !nr) { const h = new Date(t).getHours(); return h < 6 || h >= 20; }
+  return nr > ns ? t >= ns && t < nr : t < nr || t >= ns;
+}
+function fillHours(row, anim) {
+  const m = row.closest('.wcond').dataset.m, cut = Date.now() - 3600e3;
+  const list = hours.filter(h => Date.parse(h.datetime) > cut).slice(0, 24);
+  row.innerHTML = list.map((h, i) => {
+    const t = Date.parse(h.datetime), n = nightAt(t), c = h.condition === 'sunny' && n ? 'clear-night' : h.condition;
+    const v = m === 't' ? Math.round(h.temperature) + '°' : m === 'p' ? (h.precipitation_probability ?? 0) + '<small> %</small>' : h.wind_speed == null ? '–' : Math.round(h.wind_speed) + '';
+    return `<div><b>${i ? new Date(t).getHours() + '<small> Uhr</small>' : 'Jetzt'}</b><i class="wi">${icon(c in ICON ? c : 'cloudy', n)}</i><span>${v}</span></div>`;
+  }).join('');
+  if (anim) row.querySelectorAll('span').forEach((x, i) => x.animate([{ opacity: 0, transform: 'translateY(40%)' }, { opacity: 1, transform: 'none' }], { duration: 500, delay: i * 25, easing: getComputedStyle(document.documentElement).getPropertyValue('--spring') || 'ease-out', fill: 'backwards' }));
+}
+// Aus index.html: Stundenvorhersage (weather/subscribe_forecast hourly)
+export function weatherHours(list) { hours = list || []; for (const r of $$('.whours')) fillHours(r); }
+
 const LIST = [...Object.keys(COND).filter(c => c !== 'clear-night').map(c => [c, 'day']), ['clear-night', 'night'],
   ['partlycloudy', 'night'], ['cloudy', 'night'], ['rainy', 'night'], ['snowy', 'night'], ['lightning-rainy', 'night'], ['sunny', 'dusk'], ['partlycloudy', 'dusk'], ['rainy', 'dusk']];
 let pick = null, last = [], now = [];
@@ -358,5 +399,27 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 .f-weather footer div{display:flex;flex-direction:column;align-items:center}
 .f-weather footer b{font-weight:500}
 .f-weather footer span{opacity:.72}
+.wcond>time{right:8.8cqw;top:7.5cqw;font-size:4.4cqw;font-weight:400}
+.wcond .wtop{left:0;right:0;top:17.6cqw;text-align:center;display:flex;flex-direction:column;align-items:center}
+.wcond .wtop b{font-size:7.4cqw;font-weight:600;line-height:1.25}
+.wcond .wtop>div{font-size:16.2cqw;font-weight:250;line-height:1;margin:.6cqw 0 1.4cqw;padding-left:3cqw}
+.wcond .wtop span{font-size:4.4cqw;font-weight:500;line-height:1.05}
+.wcard{left:4.4cqw;right:4.3cqw;top:64.2cqw;bottom:-6cqw;border-radius:5.1cqw;background:rgb(13 55 135/.5);-webkit-backdrop-filter:blur(3cqw);backdrop-filter:blur(3cqw);text-shadow:none;overflow:hidden}
+.wcard header{display:flex;justify-content:space-between;align-items:flex-start;padding:3.4cqw 4.3cqw 0}
+.wcard header b{display:block;font-size:5.2cqw;font-weight:600;line-height:1.15}
+.wsub{display:block;font-size:3.6cqw;color:#8ad8ff;line-height:1.3}
+.wseg{display:flex;margin-top:.5cqw;padding:.6cqw;border-radius:9cqw;background:#00001e1f}
+.wseg button{width:9.2cqw;height:6.1cqw;border-radius:9cqw;display:grid;place-items:center;font-size:3.6cqw;opacity:.85;transition:background-color .25s,scale var(--sd) var(--spring)}
+.wseg button.on{background:#ffffff26;opacity:1}
+.wseg button:active{scale:.9;transition:scale .12s ease-out}
+.wseg .wi{height:1em}
+.whours{display:flex;margin-top:2cqw;padding:0 1.6cqw;overflow-x:auto;scrollbar-width:none;overscroll-behavior-x:contain;touch-action:pan-x}
+.whours::-webkit-scrollbar{display:none}
+.whours>div{flex:0 0 14.1cqw;display:flex;flex-direction:column;align-items:center;gap:1.7cqw}
+.whours b{font-size:3.6cqw;font-weight:600;white-space:nowrap}
+.whours small{font-size:.72em}
+.whours .wi{height:5.6cqw}
+.whours .s{fill:#ffd60a;stroke:#ffd60a}
+.whours span{font-size:3.6cqw;font-weight:500}
 .f-weather footer svg{width:9.3cqmin;height:7cqmin;margin-bottom:2.9cqmin;fill:none;stroke:#fff;stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round;overflow:visible}
 </style>`);

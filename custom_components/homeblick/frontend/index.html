@@ -301,51 +301,6 @@ input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:tr
 .li small{font-size:3cqw;color:#8e8e93}
 .lnone{grid-column:1/-1;text-align:center;color:#8e8e93;padding-top:20cqw;font-size:3.8cqw}
 
-/* ---------- Bearbeiten: Galerie (lang drücken) → Anpassen → Kachel-Editor ---------- */
-#screen.gallery #faces{transform:scale(.8)}
-.gallery .face,.custom .face{border-radius:7cqw}
-.gallery .face{scale:.94}
-.gallery .face *{pointer-events:none}
-#screen.custom #faces{transform:translateY(-11cqw) scale(.72);overflow:hidden;touch-action:none}
-#screen.custom.tedit #faces{transform:translateY(-29cqw) scale(.4)}
-.custom .face:not(.cur){opacity:0}
-.custom .face.cur [data-ti] *{pointer-events:none}
-@keyframes wig{from{rotate:-.9deg}to{rotate:.9deg}}
-.custom .face.cur [data-ti]{animation:wig .13s ease-in-out infinite alternate}
-.custom .face.cur [data-ti]:nth-child(odd){animation-direction:alternate-reverse}
-[data-ti].lift{z-index:5;scale:1.08;animation:none!important}
-[data-ti].editing{outline:.7cqw solid #0a84ff;outline-offset:.7cqw}
-.del{display:none;position:absolute;z-index:2;left:-1.6cqw;top:-1.6cqw;width:6cqw;height:6cqw;border-radius:50%;background:#3a3a3cf0;color:#fff;place-items:center;font-size:3.4cqw;box-shadow:0 .3cqw 1cqw #0005}
-.custom .face.cur [data-ti] .del{display:grid;pointer-events:auto}
-
-#gal{position:absolute;inset:0;z-index:3;pointer-events:none;opacity:0;transition:opacity .25s}
-.gallery #gal{opacity:1}
-.gallery #gal button{pointer-events:auto}
-.gbtn{width:8cqw;height:8cqw;border-radius:50%;background:#ffffff26;display:grid;place-items:center;font-size:4cqw;transition:background-color .2s}
-.trash{position:absolute;top:2cqw;right:13cqw}
-.gbar{position:absolute;left:0;right:0;bottom:1.8cqw;display:flex;justify-content:center;gap:2cqw}
-.pill{height:8cqw;padding:0 4.5cqw;border-radius:9cqw;background:#ffffff26;font-weight:600;font-size:3.4cqw;display:inline-flex;align-items:center;gap:1.5cqw;white-space:nowrap;transition:background-color .2s}
-.pill.blue{background:#0a84ff}.pill.red{background:#ff3b30}
-[data-arm].pill,[data-arm].gbtn{background:#ff3b30}
-
-.sheet{position:absolute;inset:auto 0 0;z-index:4;display:flex;flex-direction:column;gap:2.4cqw;padding:3cqw 4cqw 3.5cqw;border-radius:6cqw 6cqw 0 0;
-  background:#1c1c1ef0;-webkit-backdrop-filter:blur(30px);backdrop-filter:blur(30px);color:#fff;font-size:3.4cqw;transform:translateY(105%);transition:transform var(--sd) var(--spring)}
-.custom:not(.tedit) #sheet,.custom.tedit #tedit,.picking #picker{transform:none}
-.srow{display:flex;gap:2cqw;align-items:center}
-.srow input,#tedit>input{flex:1;min-width:0;height:8cqw;padding:0 3cqw;border-radius:2.4cqw;background:#ffffff1a}
-#tedit>input{flex:none}   /* Spalte: flex:1 quetschte das Entity-Feld auf die halbe Höhe */
-.sheet.nogrid .gridonly,.sheet.nobg .sws,.styles:empty,#tedit:not(.isclock) .cs,#tedit.isclock .noclock,#tedit:not(.istile) .nt,#tedit:not(.hasn) [data-act=ndel],#tedit:not(.nm) [data-act=ndel],#tedit.nm .kr,#tedit.nm .seg[data-k=size]{display:none}
-.sws{display:flex;gap:2.2cqw;align-items:center}
-.sw{width:7cqw;height:7cqw;border-radius:50%;flex:none;display:grid;place-items:center;font-size:3.6cqw;cursor:pointer}
-.sw.sel{outline:.5cqw solid #fff;outline-offset:.5cqw}
-.seg{display:flex;background:#ffffff1a;border-radius:2.4cqw;padding:.6cqw}
-.seg button{padding:1.4cqw 2.6cqw;border-radius:1.8cqw;transition:background-color .2s}
-.seg button.sel{background:#ffffff40}
-.icons{display:flex;gap:1.2cqw}
-.icons button{width:6.4cqw;height:6.4cqw;border-radius:1.8cqw;background:#ffffff14;display:grid;place-items:center;font-size:3.8cqw}
-.icons button.sel{background:#0a84ff}
-#picker .types{display:grid;grid-template-columns:repeat(4,1fr);gap:2cqw}
-#picker .types button{height:12cqw;border-radius:3cqw;background:#ffffff1a;font-weight:600;font-size:3.2cqw}
 /* ---------- Assist/Siri (Video 15,3–18 s) ----------
    Tropfen: schwarzer Kreis + Kamerarand im Goo-Filter (Blur + Alpha-Schwelle) → Metaball-Hals, reißt ab (~0,2 s);
    dann übernimmt die Glaskugel (20 % W, Mitte 50 %/17 %). Antwort: weiße Karte, Kugel klein oben (9,5 % W, y 9 %). */
@@ -503,47 +458,6 @@ input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:tr
     <div class="evl"></div>
   </section>
 
-  <div id="gal">
-    <button class="gbtn trash" data-act="delface" aria-label="Ansicht löschen"><svg class="i"><use href="#trash"/></svg></button>
-    <div class="gbar"><button class="gbtn" data-act="mvface" data-v="-1" aria-label="Ansicht nach links"><svg class="i"><use href="#back"/></svg></button><button class="pill" data-act="customize">Anpassen</button><button class="gbtn" data-act="addface" aria-label="Ansicht hinzufügen"><svg class="i"><use href="#plus"/></svg></button><button class="gbtn" data-act="mvface" data-v="1" aria-label="Ansicht nach rechts"><svg class="i"><use href="#fwd"/></svg></button></div>
-  </div>
-
-  <div id="sheet" class="sheet">
-    <div class="sws"></div>
-    <div class="seg styles" style="align-self:flex-start"></div>
-    <div class="srow">
-      <input class="gridonly" data-k="greet" placeholder="Begrüßung: Name" autocomplete="off">
-      <button class="pill gridonly" data-act="addtile"><svg class="i"><use href="#plus"/></svg> Kachel</button>
-      <span style="flex:1"></span>
-      <button class="pill blue" data-act="done">Fertig</button>
-    </div>
-  </div>
-
-  <div id="tedit" class="sheet">
-    <div class="srow">
-      <div class="seg nt" data-k="ph"><button data-act="seg" data-v="day">Tag</button><button data-act="seg" data-v="night">Nacht</button></div>
-      <div class="seg kr" data-k="kind"><button data-act="seg" data-v="tile">Kachel</button><button data-act="seg" data-v="thermo">Thermostat</button><button data-act="seg" data-v="wx">Wetter</button><button data-act="seg" data-v="clock">Uhr</button></div>
-      <span style="flex:1"></span>
-      <button class="pill" data-act="ndel">Nacht entfernen</button>
-    </div>
-    <div class="srow cs">
-      <div class="seg" data-k="cs"><button data-act="seg" data-v="ticks">Striche</button><button data-act="seg" data-v="numbers">Zahlen</button><button data-act="seg" data-v="digital">Digital</button></div>
-    </div>
-    <input class="noclock" data-k="e" list="ents" placeholder="Entity, z. B. light.flur" autocomplete="off">
-    <div class="srow noclock"><input data-k="title" placeholder="Titel" autocomplete="off"><input data-k="sub" placeholder="Untertitel" autocomplete="off"></div>
-    <div class="icons noclock"></div>
-    <div class="srow">
-      <div class="seg" data-k="size"><button data-act="seg" data-v="1x1">1×1</button><button data-act="seg" data-v="2x1">2×1</button><button data-act="seg" data-v="2x2">2×2</button></div>
-      <span style="flex:1"></span>
-      <button class="pill red" data-act="tdel">Löschen</button><button class="pill blue" data-act="tdone">Fertig</button>
-    </div>
-  </div>
-
-  <div id="picker" class="sheet">
-    <div class="types"></div>
-    <div class="srow"><button class="pill" data-act="reset">Standard wiederherstellen</button><span style="flex:1"></span><button class="pill blue" data-act="pclose">Abbrechen</button></div>
-  </div>
-  <datalist id="ents"></datalist>
 
   <button id="pull" data-act="assist" aria-label="Assist"></button>
   <div id="assist">
@@ -567,8 +481,7 @@ input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:tr
 </div>
 
 <script type="module">
-import { weatherFace, weather, COND } from './weather.js';
-import { cutout } from './depth.js';
+import { weatherFace, weather, weatherHours, COND } from './weather.js';
 import { energyFace, energy, energyDemo } from './energy.js';
 import { kioskInit, KIOSK_DEF } from './kiosk.js';
 import { shot } from './shot.js';
@@ -637,22 +550,9 @@ function applyBg(el, bg) {
   else if (bg?.photo) { el.style.setProperty('--wp', `url(${bg.photo})`); el.style.setProperty('--wpb', `url(${bg.blur})`); }
   else { el.style.setProperty('--wp', 'none'); el.style.setProperty('--wpb', 'none'); el.style.backgroundColor = bg === 'white' ? 'var(--paper,#f2f2f7)' : '#000'; }
 }
-// Foto quadratisch zuschneiden + eine stark verkleinerte Blur-Version fürs Glas
-async function photoBg(file) {
-  const img = await createImageBitmap(file), s = Math.min(img.width, img.height);
-  const cut = (size, blur = 0) => {
-    const c = document.createElement('canvas'), x = c.getContext('2d'), m = blur * 3;
-    c.width = c.height = size;
-    if (blur) x.filter = `blur(${blur}px)`;
-    x.drawImage(img, (img.width - s) / 2, (img.height - s) / 2, s, s, -m, -m, size + 2 * m, size + 2 * m);
-    return c.toDataURL('image/jpeg', .85);
-  };
-  return { photo: cut(1080), blur: cut(256, 12) };
-}
-
 // ---------- Konfiguration (localStorage) ----------
 // night: Variante der Kachel nach Sonnenuntergang; bg 'auto' = Farbe nach Tageszeit
-// Nachts: „Gute Nacht“ am Kameraplatz, Intercom an der Stelle von „Guten Morgen“; noop = Tippen ohne Funktion (kein Editor)
+// Nachts: „Gute Nacht“ am Kameraplatz, Intercom an der Stelle von „Guten Morgen“; noop = Tippen ohne Funktion
 const NIGHT_SCENE = { e: 'scene.gute_nacht', icon: 'moon', title: 'Gute Nacht', sub: 'Szene' };
 const NIGHT_INTERCOM = { e: '', noop: true, icon: 'intercom', title: 'Intercom', sub: 'Überall' };
 const DEF = { cams: 1, energy: 1, dyn: 2, faces: [   // Flags: Migrationen unten gelten nur für ältere gespeicherte Konfigurationen
@@ -718,11 +618,6 @@ if ((CONF.dyn || 0) < 2) {
 }
 
 const ICON = { light: 'bulb', lock: 'lock', cover: 'garage', camera: 'video', climate: 'thermo', scene: 'sun', script: 'sun', media_player: 'play', fan: 'fan', timer: 'timer' };
-const ICONS = ['bulb', 'lock', 'garage', 'blind', 'video', 'sun', 'moon', 'intercom', 'house', 'fan', 'thermo', 'drop', 'note', 'power'];
-const TYPES = { grid: 'Smart Home', music: 'Musik', bigclock: 'Uhr digital', analog: 'Uhr analog', calendar: 'Kalender', weather: 'Wetter', energy: 'Energie', info: 'Info', cams: 'Kameras' };
-const STYLES = { bigclock: [['stack', 'Gestapelt'], ['line', 'Zeile'], ['depth', 'Tiefe']], analog: [['numbers', 'Zahlen'], ['ticks', 'Striche'], ['minimal', 'Minimal']] };
-const NEWBG = { grid: 150, music: 'black', bigclock: 205, analog: 340, calendar: 'white', weather: 212, info: 'black', cams: 'black' };
-const HUES = [30, 5, 340, 285, 250, 205, 150];
 
 // 3er-Raster packen: jede Kachel an die erste freie Stelle von oben links (wie iOS-Widgets)
 const rows = f => f.greet ? 2 : 3;
@@ -757,11 +652,9 @@ const chev = d => `<button class="chev" data-act="${d}">${svg(d)}</button>`;
 const kindOf = t => t.kind || (t.e?.startsWith('climate.') ? 'thermo' : 'tile');
 const iconOf = t => { const d = t.e?.split('.')[0]; return t.icon || (d === 'cover' && st(t.e).attributes.device_class !== 'garage' ? 'blind' : ICON[d]) || 'house'; };
 function tileEl(c) {
-  const t = c.night && (c === editT ? edNight : isNight()) ? { ...c, ...c.night } : c;
+  const t = c.night && isNight() ? { ...c, ...c.night } : c;
   const el = document.createElement('div'), kind = kindOf(t), label = `<div><div class="ttl">${esc(t.title)}</div><div class="sub">${esc(t.sub)}</div></div>`;
   el._t = c; el.dataset.ti = ''; el.dataset.size = `${t.w || 1}x${t.h || 1}`;
-  // Touch: Halten → Ziehen darf nicht die Faces scrollen (Geste begann im Normalmodus). Nur an Kacheln, damit Wischen sonst nicht blockiert
-  el.addEventListener('touchmove', e => drag && e.preventDefault(), { passive: false });
   if (t.e) el.dataset.e = t.e;
   if (t.noop) el.dataset.noop = '';
   if (kind === 'clock') {
@@ -771,8 +664,6 @@ function tileEl(c) {
   else if (kind === 'wx') { el.className = 'tile wxtile'; el.dataset.act = 'go'; el.dataset.v = 'weather'; el.innerHTML = `<div class="loc">${esc(CFG.place)}</div><div class="tmp" data-bind="wxt"></div><i class="wi" data-wxi></i>`; }
   else if (kind === 'thermo') { el.className = 'tile thermo'; el.innerHTML = `<div class="num" data-temp="${esc(t.e)}"></div><div class="foot">${chev('down')}${label}${chev('up')}</div>`; }
   else { el.className = 'tile'; el.innerHTML = (t.e?.startsWith('camera.') ? '<div class="feed"></div>' : '') + svg(iconOf(t), 'ico') + label; }   // Livebild: camTile in render()
-  if (c === editT) el.classList.add('editing');
-  el.insertAdjacentHTML('beforeend', `<button class="del" data-act="deltile" aria-label="Kachel entfernen">${svg('minus')}</button>`);
   return el;
 }
 function calHTML() {
@@ -807,12 +698,6 @@ function depthHTML(f) {
   };
   return [0, 1, 2, 3].map(layer).join('') + (f.bg?.fg ? `<div class="dfg" style="background-image:url(${f.bg.fg})"></div>` : '');
 }
-// Foto auf Uhr-Face: Person freistellen; gefunden → gleich Stil „Tiefe“
-async function addCut(f) {
-  const fg = await cutout(f.bg.photo).catch(e => (console.warn('Freistellen', e), null));
-  if (!fg) return false;
-  f.bg.fg = fg; f.style = 'depth'; return true;
-}
 const FACE = {
   grid: (el, f) => {
     if (f.greet) el.insertAdjacentHTML('beforeend', `<div class="greet"><div><div data-bind="greet"></div><div data-bind="who">${esc(f.greet)}</div></div><div class="gw" data-act="go" data-v="weather" data-bind="wxt"></div><button class="av" data-act="avatars" hidden></button></div>`);
@@ -840,7 +725,7 @@ const FACE = {
     : `<div class="num" data-bind="hh"></div><div class="num" data-bind="mm"></div>`),
   analog: (el, f) => el.innerHTML = `<div class="dial ${{ ticks: '', minimal: 'minimal' }[f.style] ?? 'nums'}"></div>`,
   calendar: el => { el.innerHTML = calHTML(); el.dataset.act = 'events'; },
-  weather: el => weatherFace(el),
+  weather: (el, f) => weatherFace(el, f, CFG.place),
   energy: el => energyFace(el),
   cams: el => camFace(el),
   info: el => el.innerHTML = `<div><div class="date"><b data-bind="wd"></b> <span data-bind="mo"></span></div><div class="day" data-bind="day"></div></div>
@@ -1091,7 +976,7 @@ function times() {
   if (!sk) { bind('npe', mmss(p)); bind('npr', dur ? '−' + mmss(dur - p) : s.attributes.media_title ? 'LIVE' : ''); }
   // Demo: am Songende weiter (bzw. Titel wiederholen)
   if (!LIVE && dur && p >= dur && s.state === 'playing') demoCall('media_player', s.attributes.repeat === 'one' ? 'media_seek' : 'media_next_track', { entity_id: NP, seek_position: 0 });
-  if (f?.classList.contains('f-music') && s.attributes.media_title && mode === 'normal' && !cur && !AS.className && Date.now() - touched > IDLE && !f.classList.contains('amb')) {
+  if (f?.classList.contains('f-music') && s.attributes.media_title && !cur && !AS.className && Date.now() - touched > IDLE && !f.classList.contains('amb')) {
     f.classList.add('amb'); $$('.pop.open', f).forEach(x => x.classList.remove('open'));
   }
 }
@@ -1174,7 +1059,7 @@ const goo = (k, ms, ease) => DROPC.animate(k.map(([y, sx, sy = sx]) => ({ transf
 let asT = [], asEv = null;
 // k = 'cal' → Kalender-Antwort (Taste K), sonst Wetter (Taste S / Zug von oben)
 function assistStart(k = '') {
-  if (AS.className || mode !== 'normal') return;
+  if (AS.className) return;
   touched = Date.now(); $$('.amb').forEach(x => x.classList.remove('amb'));
   AS.className = 'drop'; AS.dataset.k = k;
   asEv = k === 'cal' ? events() : null;
@@ -1204,7 +1089,7 @@ async function assistAnswer() {
 }
 // Ansage aus dem Admin-Panel bzw. notify.send_message: Text (Titel fett) in der Kugel, gesprochen per HA- oder Browser-Stimme (Stumm/Lautstärke gelten)
 function announce(m, title) {
-  if (AS.className || mode !== 'normal') return;
+  if (AS.className) return;
   const t = title ? `${title}. ${m}` : m;
   AS.dataset.k = 'voice'; AS.className = 'listen'; $('.atxt', AS).innerHTML = (title ? `<b>${esc(title)}</b><br>` : '') + esc(m);
   let ms = 8000 + t.length * 60;
@@ -1452,28 +1337,21 @@ async function openEvents(face) {
 }
 
 // ---------- Bearbeiten ----------
-let mode = 'normal', editT = null, edNight = false;   // edNight: Editor bearbeitet die Nacht-Variante
 const curIdx = () => Math.round(faces.scrollLeft / faces.clientWidth);
-const curEl = () => faces.children[curIdx()], curFace = () => CONF.faces[curIdx()];
+const curEl = () => faces.children[curIdx()];
 const markCur = () => [...faces.children].forEach((f, i) => f.classList.toggle('cur', i === curIdx()));
-function setMode(m) {
-  mode = m; markCur();
-  screen.classList.toggle('gallery', m === 'gallery');
-  screen.classList.toggle('custom', m === 'custom');
-  if (m !== 'custom') closeEditor();
-}
 function refresh() { npKey = ''; tick(); render(); times(); fillLyrics(); }
 function renderAll(idx = 0) {
   faces.replaceChildren(...CONF.faces.map(f => buildFace(f)));
   faces.scrollLeft = idx * faces.clientWidth;
   markCur(); refresh();
 }
-// Tag ↔ Nacht: betroffene Faces neu aufbauen, Überblendung per View Transition (Compositor); nicht mitten im Bearbeiten/Vollbild → nächster tick/render holt es nach
+// Tag ↔ Nacht: betroffene Faces neu aufbauen, Überblendung per View Transition (Compositor); nicht im Vollbild → nächster tick/render holt es nach
 let night;
 function phase() {
   const n = isNight();
   if (night === undefined) return night = n;   // erster Aufbau lief schon mit n
-  if (n === night || mode !== 'normal' || cur) return;
+  if (n === night || cur) return;
   night = n;
   const dyn = CONF.faces.map((f, i) => f.bg === 'auto' || f.tiles?.some(t => t.night) ? i : -1).filter(i => i >= 0);
   const go = () => dyn.forEach(rerender);
@@ -1485,183 +1363,11 @@ function rerender(i) {
   if (cur?.tile === old) cur.tile = n;   // offene Terminliste: Schließen fliegt aufs neue Face (Tageswechsel)
   old.replaceWith(n); refresh();
 }
-function syncSheet() {
-  const f = curFace(), v = f.bg?.photo ? 'photo' : String(f.bg);
-  $('#sheet').classList.toggle('nogrid', f.type !== 'grid');
-  $('#sheet').classList.toggle('nobg', f.type === 'music' || f.type === 'weather');
-  $('#sheet [data-k=greet]').value = f.greet || '';
-  const sty = STYLES[f.type] || [];
-  $('#sheet .styles').innerHTML = sty.map(([v, n]) => `<button data-act="fstyle" data-v="${v}" class="${(f.style || sty[0][0]) === v ? 'sel' : ''}">${n}</button>`).join('');
-  for (const s of $$('.sw')) s.classList.toggle('sel', (s.dataset.v ?? 'photo') === v);
-}
-function openEditor(el) {
-  editT = el._t; edNight = !!editT.night && isNight();   // Tab = was gerade zu sehen ist
-  $$('.editing').forEach(x => x.classList.remove('editing'));
-  el.classList.add('editing');
-  $('#ents').innerHTML = Object.keys(ents).sort().map(id => `<option value="${id}">${esc(st(id).attributes.friendly_name)}</option>`).join('');
-  syncEditor();
-  screen.classList.add('tedit');
-}
-function closeEditor() {
-  const stale = editT && edNight !== isNight();   // Tab zeigte die andere Phase → Face wieder auf die aktuelle bringen
-  editT = null; edNight = false; screen.classList.remove('tedit'); $$('.editing').forEach(x => x.classList.remove('editing'));
-  if (stale) rerender(curIdx());
-}
-// Nacht-Variante = nur die abweichenden Felder (e, title, sub, icon); Größe/Art bleiben die der Tag-Kachel
-const edView = () => edNight ? { ...editT, ...editT.night } : editT;
-function syncEditor() {
-  const b = editT, t = edView();
-  for (const i of $$('#tedit input[data-k]')) if (document.activeElement !== i) i.value = t[i.dataset.k] || '';
-  const val = { kind: kindOf(b), size: `${b.w || 1}x${b.h || 1}`, cs: b.cs || 'ticks', ph: edNight ? 'night' : 'day' };
-  for (const x of $$('#tedit .seg button')) x.classList.toggle('sel', x.dataset.v === val[x.parentElement.dataset.k]);
-  $('#tedit').classList.toggle('isclock', val.kind === 'clock');
-  $('#tedit').classList.toggle('istile', val.kind === 'tile');
-  $('#tedit').classList.toggle('hasn', !!b.night);
-  $('#tedit').classList.toggle('nm', edNight);
-  for (const x of $$('#tedit .icons button')) x.classList.toggle('sel', x.dataset.v === iconOf(t));
-}
-const changed = () => { rerender(curIdx()); syncEditor(); save(); };
-const tileOf = t => $$('[data-ti]', curEl()).find(x => x._t === t);
-// Umordnen/Entfernen: alle anderen Kacheln gleiten per FLIP an ihren neuen Platz
-function flipPlace(faceEl, f, except) {
-  const els = $$('[data-ti]', faceEl), before = new Map(els.map(el => [el, [el.offsetLeft, el.offsetTop]]));
-  place(faceEl, f);
-  for (const el of els) {
-    if (el === except) continue;
-    const [l, t] = before.get(el), dx = l - el.offsetLeft, dy = t - el.offsetTop;
-    if (dx || dy) el.animate([{ translate: `${dx}px ${dy}px` }, { translate: '0px 0px' }], { duration: SD, easing: SPRING, composite: 'add' });
-  }
-}
-function removeTile(el) {
-  const f = curFace(), faceEl = curEl();
-  el.animate([{ scale: '1', opacity: 1 }, { scale: '.2', opacity: 0 }], { duration: 200, easing: 'ease-in', fill: 'forwards' }).onfinish = () => {
-    f.tiles.splice(f.tiles.indexOf(el._t), 1); el.remove(); flipPlace(faceEl, f); save();
-  };
-}
-let drag = null;
-function dragMove(e) {
-  const d = drag, k = faces.getBoundingClientRect().width / faces.offsetWidth;
-  if (!d.on) {
-    if (Math.hypot(e.clientX - d.x, e.clientY - d.y) < 6) return;
-    d.on = true; suppress = true; d.el.classList.add('lift');
-  }
-  const pos = () => d.el.style.translate = `${(e.clientX - d.x) / k + d.l - d.el.offsetLeft}px ${(e.clientY - d.y) / k + d.t - d.el.offsetTop}px`;
-  pos();
-  if (Date.now() < d.cool) return;
-  const over = document.elementsFromPoint(e.clientX, e.clientY).find(x => x !== d.el && x.matches('.face.cur [data-ti]'));
-  if (!over) return;
-  const f = curFace(), n = placed(f), from = f.tiles.indexOf(d.el._t), to = f.tiles.indexOf(over._t);
-  f.tiles.splice(to, 0, f.tiles.splice(from, 1)[0]);
-  if (placed(f) < n) { f.tiles.splice(from, 0, f.tiles.splice(to, 1)[0]); return; }
-  flipPlace(curEl(), f, d.el);
-  pos(); d.cool = Date.now() + 250;
-}
-function dragEnd() {
-  const d = drag;
-  drag = null;
-  if (!d.on) return;
-  const tr = d.el.style.translate;
-  d.el.style.translate = ''; d.el.classList.remove('lift');
-  d.el.animate([{ translate: tr }, { translate: '0px 0px' }], { duration: SD, easing: SPRING });
-  save();
-}
-const EDIT = {
-  customize: () => { setMode('custom'); syncSheet(); },
-  addface: () => screen.classList.add('picking'),
-  pclose: () => screen.classList.remove('picking'),
-  newface: b => {
-    const i = curIdx() + 1, type = b.dataset.v;
-    CONF.faces.splice(i, 0, { type, bg: NEWBG[type], ...(type === 'grid' && { tiles: [{ kind: 'clock' }] }) });
-    save(); screen.classList.remove('picking'); renderAll(i);
-    faces.children[i].animate([{ opacity: 0, scale: '.6' }, { opacity: 1, scale: '.94' }], { duration: SD, easing: SPRING });
-  },
-  reset: b => { if (!armed(b)) return; CONF = structuredClone(DEF); save(); screen.classList.remove('picking'); renderAll(0); },
-  delface: b => {
-    if (CONF.faces.length < 2) return shake(b);
-    if (!armed(b)) return;
-    const i = curIdx();
-    faces.children[i].animate([{ opacity: 1 }, { opacity: 0, scale: '.6' }], { duration: 250, easing: 'ease-in', fill: 'forwards' }).onfinish = () => {
-      CONF.faces.splice(i, 1); save(); renderAll(Math.min(i, CONF.faces.length - 1));
-    };
-  },
-  done: () => { setMode('normal'); save(); },
-  bg: b => { curFace().bg = isNaN(b.dataset.v) ? b.dataset.v : +b.dataset.v; save(); rerender(curIdx()); syncSheet(); },
-  addtile: b => {
-    const f = curFace(), t = { title: 'Neu', sub: 'Raum' };
-    f.tiles.push(t);
-    if (!pack(f.tiles, rows(f)).at(-1)) { f.tiles.pop(); return shake(b); }
-    save(); rerender(curIdx());
-    const el = tileOf(t);
-    el.animate([{ scale: '0', opacity: 0 }, { scale: '1', opacity: 1 }], { duration: SD, easing: SPRING });
-    openEditor(el);
-  },
-  deltile: b => removeTile(b.closest('[data-ti]')),
-  tdel: () => { const el = tileOf(editT); closeEditor(); if (el) removeTile(el); },
-  tdone: () => closeEditor(),
-  seg: b => {
-    const k = b.parentElement.dataset.k, v = b.dataset.v, t = editT;
-    if (k === 'ph') edNight = v === 'night';
-    else if (k === 'kind') { t.kind = v; if (v !== 'tile') delete t.night; }
-    else if (k === 'cs') t.cs = v;
-    else {
-      const f = curFace(), n = placed(f), old = [t.w, t.h];
-      [t.w, t.h] = v.split('x').map(Number);
-      if (placed(f) < n || !pack(f.tiles, rows(f))[f.tiles.indexOf(t)]) { [t.w, t.h] = old; return shake(b); }
-    }
-    changed();
-  },
-  icon: b => { (edNight ? editT.night ||= {} : editT).icon = b.dataset.v; changed(); },
-  ndel: () => { delete editT.night; edNight = false; changed(); },
-  fstyle: async b => {
-    const f = curFace(); f.style = b.dataset.v;
-    if (f.style === 'depth' && f.bg?.photo && !f.bg.fg) await addCut(f);
-    save(); rerender(curIdx()); syncSheet();
-  },
-  mvface: b => {
-    const i = curIdx(), j = i + +b.dataset.v;
-    if (j < 0 || j >= CONF.faces.length) return shake(b);
-    [CONF.faces[i], CONF.faces[j]] = [CONF.faces[j], CONF.faces[i]];
-    // Snap aus, solange das Face verschoben ist: Chrome snappt sonst auf die transformierte Box um → falsches Face
-    save(); faces.style.scrollSnapType = 'none'; renderAll(j);
-    const a = faces.children[j].animate([{ translate: `${(i - j) * 100}% 0` }, { translate: '0 0' }], { duration: SD, easing: SPRING });
-    a.onfinish = a.oncancel = () => { faces.style.scrollSnapType = ''; faces.scrollLeft = curIdx() * faces.clientWidth; };
-  },
-};
-$('.sws').innerHTML = HUES.map(h => `<button class="sw" data-act="bg" data-v="${h}" style="background:linear-gradient(135deg,hsl(${h} 70% 62%),hsl(${h - 10} 75% 28%))"></button>`).join('')
-  + `<button class="sw" data-act="bg" data-v="black" style="background:#000;box-shadow:inset 0 0 0 .3cqw #fff3"></button><button class="sw" data-act="bg" data-v="white" style="background:#f2f2f7"></button>`
-  + `<button class="sw" data-act="bg" data-v="auto" aria-label="Nach Tageszeit" style="background:linear-gradient(135deg,hsl(30 75% 58%) 50%,hsl(240 65% 55%) 50%)"></button>`
-  + `<label class="sw" style="background:#ffffff1a"><input type="file" accept="image/*" hidden>${svg('image')}</label>`;
-$('#tedit .icons').innerHTML = ICONS.map(i => `<button data-act="icon" data-v="${i}">${svg(i)}</button>`).join('');
-$('#picker .types').innerHTML = Object.entries(TYPES).map(([k, n]) => `<button data-act="newface" data-v="${k}">${n}</button>`).join('');
-$('#sheet input[type=file]').addEventListener('change', async e => {
-  const file = e.target.files[0];
-  if (!file) return;
-  const f = curFace(); f.bg = await photoBg(file); e.target.value = '';
-  save(); rerender(curIdx()); syncSheet();
-  if (f.type === 'bigclock' && await addCut(f)) { save(); rerender(CONF.faces.indexOf(f)); syncSheet(); }
-});
-$('#sheet').addEventListener('input', e => {
-  if (e.target.dataset.k !== 'greet') return;
-  curFace().greet = e.target.value.trim() || undefined; save(); rerender(curIdx());
-});
-$('#tedit').addEventListener('input', e => {
-  const k = e.target.dataset.k;
-  if (!k) return;
-  const t = edNight ? editT.night ||= {} : editT, v = e.target.value.trim();
-  t[k] = v || undefined;
-  // Neue Kachel an Entity gebunden → Name übernehmen, solange noch der Platzhalter-Titel drinsteht
-  const w = edView(), fn = k === 'e' && ents[w.e]?.attributes.friendly_name;
-  if (fn && (!w.title || w.title === 'Neu')) [t.title, t.sub] = [fn, w.sub === 'Raum' ? undefined : w.sub];
-  // Nacht: leeres Feld = wie tagsüber (Spread würde undefined sonst übernehmen); nur „Entity leer“ bleibt '' (= Kachel ohne Aktion)
-  if (edNight) { for (const x in t) if (t[x] === undefined) delete t[x]; if (k === 'e' && !v) t.e = ''; }
-  changed();
-});
-
 // Maus ziehen = wischen wie per Touch (Touch scrollt nativ); Klick nach dem Ziehen wird unterdrückt
 {
   let m = null;
   faces.addEventListener('pointerdown', e => {
-    if (e.pointerType !== 'mouse' || e.button || mode !== 'normal' || cur || e.target.closest('.prog,.pop,input,.lyrics')) return;
+    if (e.pointerType !== 'mouse' || e.button || cur || e.target.closest('.prog,.pop,input,.lyrics')) return;
     m = { x: e.clientX, l: faces.scrollLeft, on: false, v: 0, t: e.timeStamp, last: e.clientX };
   });
   addEventListener('pointermove', e => {
@@ -1682,36 +1388,23 @@ $('#tedit').addEventListener('input', e => {
   addEventListener('pointerup', end); addEventListener('pointercancel', end);
 }
 // ---------- Gesten ----------
-// Tippen = Aktion · Halten auf Licht (450 ms) = Dimmer · Halten auf Kachel (600 ms) = Anpassen + gleich verschieben
-// Halten sonst = Galerie · im Anpassen-Modus ziehen = umordnen
+// Tippen = Aktion · Halten auf Licht (450 ms) = Dimmer
 let lp, suppress = false, px = 0, py = 0, pull = false;
-const grab = t => drag = { el: t, x: px, y: py, l: t.offsetLeft, t: t.offsetTop, on: false, cool: 0 };
 document.addEventListener('pointerdown', e => {
   suppress = false; px = e.clientX; py = e.clientY; touched = Date.now(); pull = e.target.id === 'pull';
   const amb = $('.amb');
   if (amb) { amb.classList.remove('amb'); if (amb === curEl()) { suppress = true; return; } }   // erster Tipp weckt nur
   if (cur) return;
-  if (mode === 'custom') {
-    const t = !screen.classList.contains('tedit') && e.target.closest('.face.cur [data-ti]');
-    if (t && !e.target.closest('.del')) grab(t);
-    return;
-  }
-  if (mode !== 'normal' || !e.target.closest('.face') || e.target.closest('.pop')) return;
+  if (!e.target.closest('.face') || e.target.closest('.pop')) return;
   const ll = e.target.closest('.ly .lyrics')?.firstElementChild;
   if (ll?.children.length) ls = { ll, y: e.clientY, o: lyrOff(ll), on: false };
   const pg = e.target.closest('.prog');
   if (pg) { if (npPos()[1]) { sk = pg; pg.classList.add('drag'); seekMove(e); } return; }
-  const light = e.target.closest('.tile[data-e^="light."]'), tile = e.target.closest('.f-grid [data-ti]');
-  lp = setTimeout(() => {
-    suppress = true;
-    if (light) return open(light, 'dimmer');
-    if (!tile) return setMode('gallery');
-    setMode('custom'); syncSheet(); grab(tile);
-  }, light ? 450 : 600);
+  const light = e.target.closest('.tile[data-e^="light."]');
+  if (light) lp = setTimeout(() => { suppress = true; open(light, 'dimmer'); }, 450);
 });
 document.addEventListener('pointermove', e => {
   if (Math.hypot(e.clientX - px, e.clientY - py) > 8) clearTimeout(lp);
-  if (drag) dragMove(e);
   if (sk) seekMove(e);
   if (ls && (ls.on || Math.abs(e.clientY - ls.y) > 8)) { ls.on = true; lyrScroll(ls.ll, ls.o + e.clientY - ls.y); }
   if (pull && e.clientY - py > 20) { pull = false; suppress = true; assistStart(); }
@@ -1720,7 +1413,6 @@ for (const ev of ['pointerup', 'pointercancel']) document.addEventListener(ev, (
   clearTimeout(lp);
   if (ls?.on) suppress = true;   // Scrollen ist kein Tipp auf eine Zeile
   ls = null;
-  if (drag) dragEnd();
   if (sk) { call('media_player', 'media_seek', { entity_id: NP, seek_position: sk.f * npPos()[1] }); sk.classList.remove('drag'); sk = null; suppress = true; }
 });
 document.addEventListener('contextmenu', e => e.preventDefault());
@@ -1736,9 +1428,6 @@ document.addEventListener('click', e => {
   if (act === 'assist') return assistStart();
   if (e.target.closest('#assist')) { assistEnd(); if (act !== 'go') return; }   // Tipp schließt; Pille führt zusätzlich hin
   if (pop && !e.target.closest('.pop')) return pop.classList.remove('open');   // Tipp daneben schließt nur
-  if (EDIT[act]) return EDIT[act](b);
-  if (mode === 'gallery') { if (e.target.closest('.face')) { screen.classList.remove('picking'); setMode('normal'); } return; }
-  if (mode === 'custom') { const t = e.target.closest('.face.cur [data-ti]'); if (t) openEditor(t); return; }
   if (act === 'up' || act === 'down') {
     const id = b.closest('[data-e]')?.dataset.e || cur?.e, a = st(id).attributes, d = act === 'up' ? 1 : -1, now = T[id] ?? a.temperature;
     if (now == null) return;
@@ -1782,7 +1471,7 @@ document.addEventListener('click', e => {
     const t = e.target.closest('[data-ti]');
     if (!t?.classList.contains('tile')) return;
     const id = t.dataset.e;
-    if (!id) { if ('noop' in t.dataset) return; setMode('custom'); syncSheet(); return openEditor(t); }   // leere Kachel → gleich einrichten
+    if (!id) return;
     if (st(id).state === 'unavailable') return shake(t);
     TAP[id.split('.')[0]]?.(t, id);
   }
@@ -1838,10 +1527,11 @@ if (!LIVE) {
   put(demo); put(energyDemo());
   setInterval(() => { put(energyDemo()); schedule(); }, 3000);
   forecast = { temperature: 14, templow: 6 };
+  weatherHours(Array.from({ length: 24 }, (_, i) => ({ datetime: new Date(Date.now() + i * 3600e3).toISOString(), condition: ['partlycloudy', 'partlycloudy', 'sunny', 'sunny', 'cloudy', 'rainy'][i % 6], temperature: 12 + Math.round(3 * Math.sin(i / 4)), precipitation_probability: i % 6 === 5 ? 60 : 10, wind_speed: 8 + i % 5 })));   // Demo-Stundenleiste
 }
 if (!LIVE && new URLSearchParams(location.search).has('ring')) setTimeout(() => { ents = { ...ents, 'event.turklingel_doorbell': { ...ents['event.turklingel_doorbell'], state: new Date().toISOString() } }; schedule(); }, 1500);   // Demo-Klingeln wie HA
 timerInit(screen, call);
-const kiosk = kioskInit({ faces, conf: () => CONF, busy: () => mode !== 'normal' || cur || AS.className, touched: () => touched,
+const kiosk = kioskInit({ faces, conf: () => CONF, busy: () => cur || AS.className, touched: () => touched,
   music: () => NP && st(NP).state === 'playing' && !/video|movie|tvshow|channel/.test(st(NP).attributes.media_content_type),   // Filme/TV ohne device_class tv nicht als Musik
   onState: st => conn?.sendMessagePromise({ type: 'homeblick/report', display: DISPLAY, ...st, info: info() }).catch(() => {}) });
 if (!LIVE) camConfig({ list: [{ entity: 'camera.turklingel', name: 'Haustür', light: 'light.eingang' }, { entity: 'camera.cx410w_color_x_standardauflosung', name: 'Garten' }], bell: { event: 'event.turklingel_doorbell', camera: 'camera.turklingel' } });
@@ -1944,6 +1634,7 @@ if (LIVE) {
       INFO.wake = wkCtl ? m : null; kiosk.report();
     };
     hello.then(() => conn.subscribeMessage(f => { forecast = f.forecast?.[0]; schedule(); }, { type: 'weather/subscribe_forecast', forecast_type: 'daily', entity_id: CFG.weather })).catch(console.warn);
+    hello.then(() => conn.subscribeMessage(f => weatherHours(f.forecast), { type: 'weather/subscribe_forecast', forecast_type: 'hourly', entity_id: CFG.weather })).catch(console.warn);   // Stundenleiste (Stil „Bedingungen“); Wetter ohne hourly → Fehler, Leiste bleibt leer
   } catch (err) {
     // In KS heißt ERR_INVALID_AUTH: Teilen aus / keine Custom Page. Kein Reload, sonst Endlosschleife.
     if (KS) console.error('KS: „Share Home Assistant connection“ einschalten bzw. Seite als Custom Page eintragen', err);
