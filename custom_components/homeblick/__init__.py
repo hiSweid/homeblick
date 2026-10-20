@@ -112,6 +112,7 @@ SETTINGS = vol.Schema({
     vol.Optional("perf"): bool,
     vol.Optional("hold"): bool,
     vol.Optional("micmute"): bool,
+    vol.Optional("dnd"): bool,
     vol.Optional("sched"): bool,
     vol.Optional("sched_from"): _time,
     vol.Optional("sched_to"): _time,

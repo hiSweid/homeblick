@@ -73,6 +73,9 @@
       "black": {
         "name": "Screensaver black"
       },
+      "dnd": {
+        "name": "Do not disturb"
+      },
       "micmute": {
         "name": "Microphone muted"
       },
