@@ -92,7 +92,7 @@ export function pickEntity({ title = 'Entity wählen', domains, current = '' } =
         e.preventDefault(); hi = Math.max(0, Math.min(items.length - 1, hi + (e.key === 'ArrowDown' ? 1 : -1))); mark(); list.children[hi]?.scrollIntoView({ block: 'nearest' });
       }
     };
-    draw(); document.body.append(o);
+    draw(); hi = Math.max(0, items.findIndex(e => e.id === current)); mark(); document.body.append(o);
     requestAnimationFrame(() => { o.classList.add('in'); q.focus({ preventScroll: true }); list.querySelector('.pki.hi')?.scrollIntoView({ block: 'nearest' }); });
   });
 }

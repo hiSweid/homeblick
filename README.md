@@ -55,7 +55,7 @@ A ring of the doorbell event wakes the display, plays a chime and opens the door
 
 **Control centre** (per display, on by default): swipe down from the top-right corner (at least 40 % of the height) for brightness and volume sliders, switches (do not disturb, answers muted, microphone muted, keep screen on, sleep), the now-playing card and tiles for doors, scenes and lights from the Home faces. Close it with a swipe up from the bottom-right edge, a tap beside the controls or Escape. Can be turned off on the settings page.
 
-**Settings page** (sidebar → *Homeblick Einstellungen*, admins only): one tab per display with online status and remote actions (show face, reload, Assist, screensaver), the faces it shows (order, background, style, grid tiles and their entities), screensaver, night dimming, wake word, Assist pipeline, weather entity/place; copy the setup of one display to another. Changes reach the open display immediately.
+**Settings page** (sidebar → *Homeblick Einstellungen*, admins only): one tab per display with online status and remote actions (show face, reload, Assist, screensaver), the faces it shows (order, background, style, grid tiles; entities are chosen with a searchable picker like Home Assistant's, filtered to what a tile can control), screensaver, night dimming, wake word, Assist pipeline, weather entity/place; copy the setup of one display to another. Changes reach the open display immediately.
 
 Also: `#music`, `#bigclock`, … in the URL switches to that face; the screen is kept awake via the Wake Lock API.
 
