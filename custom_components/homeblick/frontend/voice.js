@@ -28,7 +28,7 @@ const ERR = {
 };
 const errText = (code, msg) => ERR[code] || 'Das hat nicht geklappt' + (msg ? ': ' + msg : '.');
 
-// h: { onThink(text?), onAnswer(text, response_type), onEnd(next?), onError(msg), base, pipeline?, device?, conversation? } → { stop() }
+// h: { wake? (Wake-Word-Modell, für HAs Doppelwecken-Sperre), onThink(text?), onAnswer(text, response_type), onEnd(next?), onError(msg), base, pipeline?, device?, conversation? } → { stop() }
 // device = HA-Geräte-ID des Displays (Raum für „Licht an“); next = { conversation } wenn der Agent eine Rückfrage stellt
 export async function voiceRun(conn, h) {
   let mic, unsub, audio, id, next, sent = false, dead = false, answered = false, wd;
@@ -62,11 +62,11 @@ export async function voiceRun(conn, h) {
         audio.onended = audio.onerror = () => { cleanup(); h.onEnd(next); };
         audio.play().catch(() => { cleanup(); h.onEnd(next); });
       } else if (ev.type === 'error') {
-        if (h.conversation && d.code === 'stt-no-text-recognized') { cleanup(); h.onEnd(); }   // Rückfrage ohne Antwort: still schließen
+        if (d.code === 'duplicate_wake_up_detected' || (h.conversation && d.code === 'stt-no-text-recognized')) { cleanup(); h.onEnd(); }   // anderes Display war schneller / Rückfrage ohne Antwort: still schließen
         else fail(d.code, d.message);
       }
       else if (ev.type === 'run-end' && !audio) { if (answered) { cleanup(); h.onEnd(next); } else fail('empty'); }   // Lauf zu Ende ohne Antwort: nicht stumm schließen
-    }, { type: 'assist_pipeline/run', start_stage: 'stt', end_stage: 'tts', input: { sample_rate: 16000 },
+    }, { type: 'assist_pipeline/run', start_stage: 'stt', end_stage: 'tts', input: { sample_rate: 16000, ...(h.wake && { wake_word_phrase: h.wake }) },
       ...(h.pipeline && { pipeline: h.pipeline }), ...(h.device && { device_id: h.device }), ...(h.conversation && { conversation_id: h.conversation }) });
   } catch (e) { fail(e.name === 'NotAllowedError' || e.name === 'NotFoundError' ? e.name : e.code, e.message || String(e)); }
   return { stop: cleanup };

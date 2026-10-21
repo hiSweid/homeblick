@@ -1486,12 +1486,14 @@ function relisten() {
 // Stellt der Agent eine Rückfrage (continue_conversation), hört die Kugel ohne Wake Word gleich wieder zu (gleiche conversation_id)
 // voiceGen: jeder Lauf hat eine Nummer; assistEnd/neuer Lauf entwerten ältere (auch solange voiceRun noch das Mikro öffnet)
 let voice, voiceGen = 0;
+let wakeNow;   // Modell des Wake Words, das diesen Lauf ausgelöst hat (einmalig)
 async function assistVoice(conversation) {
+  const wake = wakeNow; wakeNow = null;
   const gen = ++voiceGen, live = () => gen === voiceGen;
   AS.dataset.k = 'voice'; $('.atxt', AS).textContent = ''; $('.atr', AS).textContent = '';
   const say = t => { const el = $('.atxt', AS); el.innerHTML = rich(t); el.scrollTop = 0; };
   const v = await voiceRun(LIVE ? conn : asSim(), {
-    pipeline: CFG.pipeline, device: CFG.device, conversation, mute: CFG.mute, volume: CFG.volume,
+    pipeline: CFG.pipeline, device: CFG.device, conversation, wake, mute: CFG.mute, volume: CFG.volume,
     listen: conversation ? Math.min(CFG.listen, 8) : CFG.listen,   // Rückfrage: kürzer warten
     base: location.origin === 'null' ? '' : location.origin,
     onThink: t => { if (!live()) return; if (AS.className === 'listen') AS.className = 'think'; if (t && AS.classList.contains('think')) transcript(t); },
@@ -2083,8 +2085,8 @@ if (LIVE) {
       if (m && voiceOK()) wkCtl = await wakeInit({ model: m, threshold: () => 1 - ({ ...KIOSK_DEF, ...CONF.kiosk }.wake_sens ?? 50) / 100, onWake: () => {
         kiosk.wake(); ping(CFG.chime ? CFG.volume / 100 : 0);   // Hörbereit-Ton (aus bei DND/Klingel-Gong aus)
         // Barge-in: Wake Word während der Antwort bricht sie ab und hört neu zu
-        if (CFG.barge && AS.className === 'answer' && voice) { voice.stop(); relisten(); assistVoice(); return; }
-        assistStart();
+        if (CFG.barge && AS.className === 'answer' && voice) { wakeNow = m; voice.stop(); relisten(); assistVoice(); return; }
+        wakeNow = m; assistStart();
         return new Promise(r => { const t = setInterval(() => (!AS.className || (CFG.barge && AS.className === 'answer')) && (clearInterval(t), r()), 300); });
       } }).catch(e => console.warn('Wake Word', e));
       INFO.wake = wkCtl ? m : null; kiosk.report();
