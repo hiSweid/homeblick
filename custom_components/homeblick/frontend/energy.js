@@ -147,7 +147,7 @@ function paint(f) {
 }
 function drawIn(f) {
   if (still()) return;
-  const cw = f.querySelector('.cw'), o = { duration: 1100, easing: SPR(), fill: 'backwards' };
+  const cw = f.querySelector('.cw'), o = { duration: 2000, easing: SPR(), fill: 'backwards' };   // Feder auf 2 s gestreckt: ≈ 90 % nach 0,6 s, läuft weich aus
   // Wischblende nur per transform: Fenster läuft nach rechts, Inhalt steht (Gegenbewegung); weiche Kante liegt in Ruhe außerhalb der Kachel
   cw.animate([{ transform: 'translateX(-38.5cqw)' }, { transform: 'none' }], o);
   cw.firstElementChild.animate([{ transform: 'translateX(38.5cqw)' }, { transform: 'none' }], o);
@@ -186,7 +186,7 @@ export function energy(ents, roll) {
   const faces = $$('.f-energy');
   if (!faces.length) return;
   rb('e_pv', kw(pv)); rb('e_home', kw(home)); rb('e_grid', kw(grid)); rb('e_bat', String(Math.round(soc))); rb('e_car', String(Math.round(carSoc)));
-  const use = home + Math.max(0, car), aut = use > 0 ? Math.round(100 * (1 - Math.min(1, Math.max(0, grid) / use))) : 100;   // Autarkie = Anteil des Verbrauchs (Haus + Auto) ohne Netzbezug
+  const use = home + Math.max(0, car), aut = use > 0 ? Math.round(100 * (1 - Math.min(1, (grid > 50 ? grid : 0) / use))) : 100;   // Autarkie = Anteil des Verbrauchs (Haus + Auto) ohne Netzbezug; < 50 W = Regelrauschen („Ausgeglichen“)
   rb('e_aut', String(aut));
   const today = kwh(H.pv.filter(p => p[0] >= day0()));
   bd('e_pvd', H.pv.length > 1 ? `Heute ${de(today)} kWh` : '');
@@ -201,6 +201,7 @@ export function energy(ents, roll) {
     f.querySelector('.et.car').style.setProperty('--f', carSoc / 100);
     $$('.ad .t1 line', f).forEach((l, i) => l.classList.toggle('on', i < Math.round(aut * .6)));
     for (const sm of $$('.sm', f)) flow(sm, flows[sm.dataset.fl], ok[sm.dataset.fl] && ok.home);
+    for (const a of f._fl) still() || !f._vis ? a.pause() : a.play();   // Leistungsmodus kann zur Laufzeit wechseln (applyK)
     paint(f);
   }
   detail();
@@ -231,7 +232,7 @@ export function energyDetail(k) {
   view.style.setProperty('--f', 0); getComputedStyle(view).transform;
   setTimeout(go, 140);
   if (k === 'pv') {
-    const o = { duration: 1100, delay: 140, easing: SPR(), fill: 'backwards' };
+    const o = { duration: 2000, delay: 140, easing: SPR(), fill: 'backwards' };
     view.querySelector('.ew').animate([{ transform: 'translateX(-112cqw)' }, { transform: 'none' }], o);
     view.querySelector('.ef').animate([{ transform: 'translateX(112cqw)' }, { transform: 'none' }], o);
   }
@@ -245,7 +246,7 @@ function detail() {
     bd('ed_m', pv > 50 ? 'Erzeugt gerade' : 'Keine Erzeugung');
     rb('ed_v', kw(pv));
     bd('ed_x', s.length > 1 ? `Heute ${de(kwh(s))} kWh · Spitze ${kw(peak)} kW` : '');
-    const p = pvPath(46);   // Spitze bei 46 % Höhe: reicht bis in die Zahl, Teilung zeigt beide Farben
+    const p = pvPath(74);   // Fläche unter dem Text (Spitze bei 74 % Höhe), wie die Stundenkarte der Wetter-App unten (y-MO 08900)
     view.style.setProperty('--m', p ? `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="none"><path d="${p.ar}"/></svg>`)}")` : 'none');
     return;
   }

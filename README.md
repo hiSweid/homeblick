@@ -59,6 +59,8 @@ A ring of the doorbell event wakes the display, plays a chime and opens the door
 
 **Tiles** (grid faces): every tile opens its own page on the settings page: entity (picker), title, subtitle, an optional live value behind the subtitle (state or any attribute), symbol, size (1×1, 2×1, 2×2), symbol colour when on, and an own action for tap and for hold (default, toggle, call a service with JSON data, open a face, nothing). Also addable: analogue/digital clock and weather tiles. Entities of switch, input_boolean, button and sensor/binary_sensor domains work as tiles too.
 
+**Live preview** (settings page, window ≥ 1180 px wide): a column on the right shows the face being edited exactly as the display renders it (real entity states, nothing is saved from it). Drag a tile to another cell to move it, tap it to open its page.
+
 Also: `#music`, `#bigclock`, … in the URL switches to that face; the screen is kept awake via the Wake Lock API.
 
 ## Kiosk / wall tablet

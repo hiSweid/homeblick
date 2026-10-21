@@ -842,12 +842,58 @@ import { camInit, camConfig, camShow, camHide, camFace, camTile, camOpen, camRin
 import { loadEvents, eventsHTML, infoHTML } from './events.js';
 // Ohne Parameter: Demo-Daten. Echtes HA nur mit ?live
 const LIVE = new URLSearchParams(location.search).has('live');
+// ?preview: Vorschau in der Einstellungsseite – Konfiguration und Zustände kommen per postMessage, nichts wird gespeichert
+const PREVIEW = new URLSearchParams(location.search).has('preview');
 const CFG = { hass: '', weather: 'weather.home', place: 'Home', pipeline: '', mute: false, barge: false, listen: 15, volume: 100, music: true, chime: true, device: '' };   // Wetter, Ort, Assist-Pipeline: je Display in der Einstellungsseite (applyK); device = HA-Gerät (register)
 const applyK = k => { root.classList.toggle('perf', !!k?.perf); for (const x of ['weather', 'place', 'tts', 'pipeline', 'mute', 'barge', 'listen', 'volume', 'music', 'chime']) if (k?.[x] != null) CFG[x] = k[x]; };
 const HASS = /^\/(local|homeblick)\//.test(location.pathname) ? location.origin : CFG.hass;   // unter /local/ ist die Seite selbst der HA-Origin
 
 const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const root = document.documentElement, screen = $('#screen'), faces = $('#faces');
+// Vorschau: Eingaben sind gesperrt (dieser Handler steht vor allen anderen und stoppt jedes Ereignis); Kacheln lassen sich ziehen (→ move) oder antippen (→ tile)
+if (PREVIEW) {
+  let g = null;
+  const idx = () => Math.round(faces.scrollLeft / (faces.clientWidth * 1.025));
+  const tracks = (v, o, gap) => v.split(' ').map(w => { const a = [o, o + parseFloat(w)]; o = a[1] + gap; return a; });
+  const cellAt = (f, el, x, y) => {   // Rasterzelle (Zeile, Spalte) unter dem Punkt
+    const cs = getComputedStyle(el), r = el.getBoundingClientRect(), off = f.greet ? 1 : 0;
+    const rs = tracks(cs.gridTemplateRows, r.top + parseFloat(cs.paddingTop), parseFloat(cs.rowGap) || 0), cl = tracks(cs.gridTemplateColumns, r.left + parseFloat(cs.paddingLeft), parseFloat(cs.columnGap) || 0);
+    const at = (a, v) => Math.min(a.length - 1, a.filter(([, e]) => v > e).length);
+    return [Math.max(0, at(rs, y) - off), at(cl, x)];
+  };
+  const to = (t, f) => { const r = t.getBoundingClientRect(); return cellAt(f, t.closest('.face'), r.left + 10, r.top + 10); };   // Zelle der linken oberen Ecke der gezogenen Kachel
+  const mark = (face, f, t, c) => { let h = face._hl; if (!h) { h = face._hl = document.createElement('div'); h.style.cssText = 'pointer-events:none;border:.6cqw solid #ffffffb3;border-radius:4.3cqw'; face.append(h); } h.style.gridArea = `${c[0] + 1 + (f.greet ? 1 : 0)} / ${c[1] + 1} / span ${t.h || 1} / span ${t.w || 1}`; };
+  const gesture = e => {
+    e.stopImmediatePropagation(); e.preventDefault?.();
+    const f = CONF.faces[idx()], face = faces.children[idx()];
+    if (e.type === 'pointerdown') { const t = e.target.closest?.('[data-ti]'); g = t && f?.type === 'grid' && face.contains(t) ? { t, x: e.clientX, y: e.clientY, on: false, f, face } : null; }
+    else if (g && e.type === 'pointermove') {
+      const dx = e.clientX - g.x, dy = e.clientY - g.y;
+      if (!g.on && Math.hypot(dx, dy) > 6) { g.on = true; g.t.style.cssText += ';z-index:9;transition:none'; }
+      if (g.on) { g.t.style.transform = `translate(${dx}px,${dy}px) scale(1.04)`; mark(g.face, g.f, g.t._t, to(g.t, g.f)); }
+    }
+    else if (g && (e.type === 'pointerup' || e.type === 'pointercancel')) {
+      const j = g.f.tiles.indexOf(g.t._t), c = g.on && e.type === 'pointerup' ? to(g.t, g.f) : null;
+      if (g.on) { g.t.style.transform = g.t.style.zIndex = g.t.style.transition = ''; g.face._hl?.remove(); g.face._hl = null; }
+      if (e.type === 'pointerup') parent.postMessage(c ? { hb: 'move', face: g.f.id, j, cell: c } : { hb: 'tile', face: g.f.id, j }, location.origin);
+      g = null;
+    }
+  };
+  for (const n of ['pointerdown', 'pointermove', 'pointerup', 'pointercancel', 'click', 'contextmenu', 'keydown', 'wheel', 'touchstart', 'touchmove']) addEventListener(n, n.startsWith('pointer') ? gesture : e => { e.stopImmediatePropagation(); e.preventDefault(); }, { capture: true, passive: false });
+  addEventListener('message', e => {
+    const m = e.data;
+    if (e.source !== parent || e.origin !== location.origin || m?.hb !== 'preview') return;
+    if (m.states) { ents = m.states; schedule(); }
+    if (m.conf) {
+      const old = CONF.faces, k = { idle: 0, kz: false };
+      CONF = { ...m.conf, kiosk: k };
+      if (old.length === CONF.faces.length && old.every((f, i) => f.id === CONF.faces[i].id)) CONF.faces.forEach((f, i) => JSON.stringify(f) !== JSON.stringify(old[i]) && rerender(i));
+      else renderAll(0);
+    }
+    if (m.face) { const i = CONF.faces.findIndex(f => f.id === m.face); if (i >= 0 && i !== idx()) faces.go(i, true); }
+  });
+  addEventListener('load', () => parent.postMessage({ hb: 'preview-ready' }, location.origin));
+}
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => `&#${c.charCodeAt(0)};`);
 const bind = (k, v) => { v = String(v); for (const e of $$(`[data-bind=${k}]`)) if (e.textContent !== v) e.textContent = v; };
 const shake = el => el.animate([{ translate: '0' }, { translate: '-1.2cqw' }, { translate: '1.2cqw' }, { translate: '0' }], { duration: 280 });
@@ -952,16 +998,17 @@ let conn;   // vor save(): die Migrationen unten rufen save() schon vor der Verb
 const KEY = 'homeview.v1';
 // Jedes Display hat seine Kennung (pro Gerät/Browser); in HA: eigenes Gerät mit Entities, eigene Faces und Einstellungen
 // ?display=kueche (einmal pro Gerät öffnen) legt die Kennung fest und merkt sie sich
-const DISPLAY = (() => {
+const DISPLAY = PREVIEW ? 'preview' : (() => {
   const p = (new URLSearchParams(location.search).get('display') || '').toLowerCase().replace(/[^a-z0-9_-]/g, '');
   try { if (p) localStorage.homeblickDisplay = p; return localStorage.homeblickDisplay ||= 'd' + Math.random().toString(36).slice(2, 8); } catch { return p || 'd0'; }
 })();
 let CONF;
-try { CONF = JSON.parse(localStorage.getItem(KEY)); } catch {}
+if (!PREVIEW) try { CONF = JSON.parse(localStorage.getItem(KEY)); } catch {}
 if (!CONF?.faces?.length) CONF = structuredClone(DEF);
+if (PREVIEW) CONF.kiosk = { idle: 0, kz: false };
 const normSave = () => { if (normFaces(CONF, DEF.faces)) save(); };
 // ponytail: Fotos als data-URL im localStorage (~5 MB Limit); bei vielen Fotos → IndexedDB
-const save = () => { try { localStorage.setItem(KEY, JSON.stringify(CONF)); conn?.sendMessagePromise({ type: 'homeblick/set_config', display: DISPLAY, config: CONF }).catch(() => {}); } catch (e) { console.warn('Speichern fehlgeschlagen', e); } };
+const save = () => { if (PREVIEW) return; try { localStorage.setItem(KEY, JSON.stringify(CONF)); conn?.sendMessagePromise({ type: 'homeblick/set_config', display: DISPLAY, config: CONF }).catch(() => {}); } catch (e) { console.warn('Speichern fehlgeschlagen', e); } };
 // Neue Faces (Kameras, Energie) einmalig an gespeicherte Konfigurationen anhängen; danach entscheidet der User (Löschen bleibt gelöscht)
 for (const t of ['cams', 'energy']) if (!CONF[t] && localStorage.getItem(KEY)) { CONF[t] = 1; if (!CONF.faces.some(f => f.type === t)) CONF.faces.push({ type: t, bg: 'black' }); save(); }
 // Dynamische Faces einmalig in gespeicherte Standard-Faces übernehmen (Home orange → Tageszeit + Gute Nacht, Info schwarz → Tageszeit); Swatch stellt zurück
@@ -2006,9 +2053,10 @@ function fly(tile, view, opening, done) {
     const big = { transform: 'none', borderRadius: `${b.width * .08}px` };   // Ende = Display-Radius (hkrYiZ_g9tw 111,6 s: Karte behält große Rundung bis zum Rand)
     const wv = $('.wv', view) || view.appendChild(Object.assign(document.createElement('i'), { className: 'wv' }));
     const top = $(':scope > .top', view), x = $(':scope > .x', view);
-    view._tile = tile; tile.style.visibility = 'hidden';
+    view._tile = tile; tile.style.visibility = 'hidden'; dim.style.visibility = '';
     main = A(view, opening ? [small, big] : [big, small], { duration: FD, easing: FLY });
     if (opening) {
+      main.onfinish = () => { if (cur?.view === view) dim.style.visibility = 'hidden'; };   // Ansicht deckt alles: Blur-Scrim aus, sonst rechnet der Compositor den backdrop-filter jeden Frame (≈ 30 fps headless); Schließen schaltet ihn oben wieder an
       A(wv, [{ opacity: 1 }, { opacity: 1, offset: .5 }, { opacity: 0 }], { duration: 90 });   // weiß → Zielfarbe: Frame 2 weiß, Frame 3 gefärbt (24 fps)
       A(dim, [{ opacity: 0 }, { opacity: 1 }], { duration: 70, fill: 'both' });   // bleibt, bis das Schließen es ablöst
       if (top) A(top, [{ opacity: 0 }, { opacity: 1 }], { duration: 200, delay: 170, easing: 'ease-out' });

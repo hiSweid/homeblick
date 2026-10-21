@@ -32,6 +32,15 @@ svg{display:block}
 .lt{font:700 34px/1.15 -apple-system,Inter,system-ui,sans-serif;letter-spacing:.2px;margin:18px 4px 2px}
 .lsub{color:var(--sec);margin:0 4px 18px}
 
+/* Vorschau: nur auf breiten Fenstern, eigene Spalte */
+#pv{display:none}
+@media(min-width:1180px){
+  #app{grid-template-columns:340px 1fr 440px}
+  #pv{display:flex;flex-direction:column;gap:12px;align-items:stretch;padding:max(env(safe-area-inset-top),20px) 20px;border-left:.5px solid var(--sep);overflow-y:auto}
+}
+.pvh{display:flex;flex-direction:column;gap:2px;min-height:44px}.pvh b{font-size:17px;font-weight:600}.pvh small{color:var(--sec);font-size:13px}
+#pvf{width:100%;aspect-ratio:1;border:0;border-radius:28px;background:#000;box-shadow:0 8px 30px #0003}
+
 /* Seiten im Detail-Bereich */
 .page{position:absolute;inset:0;display:flex;flex-direction:column;background:var(--wall) fixed;transition:transform var(--sd) var(--spring),opacity .3s}
 .page.under{transform:translateX(-28%);opacity:.55;pointer-events:none}
@@ -196,6 +205,7 @@ textarea.r{text-align:right}
 <div id="app" data-open="0">
   <aside id="side"></aside>
   <main id="pane"></main>
+  <aside id="pv"><div class="pvh"><b id="pvt"></b><small>Kacheln ziehen zum Verschieben, antippen zum Bearbeiten.</small></div><iframe id="pvf" title="Vorschau"></iframe></aside>
 </div>
 <div id="toast"></div>
 
@@ -266,7 +276,7 @@ const ask = async (title, msg, ok, danger = true) => await overlay('alert', `<di
 
 // ---- Speichern: Einstellungen sofort, Faces leicht verzögert ----
 let st;
-const saveCfg = () => { clearTimeout(st); st = setTimeout(() => guard(call('admin_config', { display: sel, config: cfg })).catch(() => {}), 500); };
+const saveCfg = () => { pvSend(); clearTimeout(st); st = setTimeout(() => guard(call('admin_config', { display: sel, config: cfg })).catch(() => {}), 500); };
 
 // ---- Anzeigeteile ----
 const ago = iso => {
@@ -473,6 +483,7 @@ function fill(el, e) {
   const p = pages[e.t](e), sc = el.querySelector('.body')?.scrollTop || 0;
   el.innerHTML = `<header class="nav"><div>${p.back ? `<button class="back" data-a="back">${svg('chev', '')}<span>${esc(p.back)}</span></button>` : ''}</div><b class="ttl">${esc(p.title)}</b><div></div></header><div class="body">${p.body}</div>`;
   el.querySelector('.body').scrollTop = sc;
+  queueMicrotask(pvSend);
 }
 const top = () => pane().lastElementChild;
 const refresh = () => stack.forEach((e, i) => fill(pane().children[i], e));
@@ -507,6 +518,54 @@ async function reload() {
 }
 
 // ---- Eingaben ----
+// ---- Vorschau: index.html?preview im iframe (Konfiguration und Zustände per postMessage, Ziehen/Antippen kommt zurück) ----
+const pvf = $('#pvf');
+let pvReady = false, pvConf = '', pvFace = '', pvStates = {};
+const pvPost = m => pvf.contentWindow?.postMessage({ hb: 'preview', ...m }, location.origin);
+function pvSend() {
+  if (!pvReady || !cfg || !wide()) return;
+  const m = {}, j = JSON.stringify(cfg.faces), top = stack.at(-1), f = top?.i != null ? cfg.faces[top.i] : cfg.faces.find(x => x.id === pvFace) || cfg.faces[0];
+  if (j !== pvConf) { pvConf = j; m.conf = cfg; }
+  if (f && f.id !== pvFace) { pvFace = f.id; m.face = f.id; }
+  if (m.conf) m.face = pvFace;
+  if (Object.keys(m).length) pvPost(m);
+  $('#pvt').textContent = `${cur()?.name || ''}${f ? ' · ' + (FACE[f.type]?.[0] || f.type) : ''}`;
+}
+// Kachel j so einsortieren, dass sie auf Rasterzelle (r, c) landet; sonst die nächstliegende mögliche Stelle
+function moveTo(tiles, j, [r, c], n) {
+  const t = tiles[j], rest = tiles.filter((_, k) => k !== j);
+  let best = j, bd = Infinity;
+  for (let k = 0; k <= rest.length; k++) {
+    const p = pack([...rest.slice(0, k), t, ...rest.slice(k)], n)[k];
+    if (!p) continue;
+    const d = (p[0] - r) ** 2 + (p[1] - c) ** 2;
+    if (d < bd || (d === bd && Math.abs(k - j) < Math.abs(best - j))) { bd = d; best = k; }
+  }
+  return [...rest.slice(0, best), t, ...rest.slice(best)];
+}
+addEventListener('message', async e => {
+  const m = e.data;
+  if (e.source !== pvf.contentWindow || e.origin !== location.origin) return;
+  if (m?.hb === 'preview-ready') {
+    pvReady = true; pvConf = ''; pvFace = '';
+    pvPost({ states: pvStates }); pvSend();
+  } else if (m?.hb === 'move' || m?.hb === 'tile') {
+    const i = cfg?.faces.findIndex(x => x.id === m.face);
+    if (i < 0 || i == null) return;
+    const f = cfg.faces[i];
+    if (m.hb === 'move') { f.tiles = moveTo(f.tiles, m.j, m.cell, rows(f)); pvConf = ''; saveCfg(); return refresh(); }
+    const top = stack.at(-1);
+    if (top.t === 'tile' && top.i === i && top.j === m.j) return;
+    if (top.t === 'tile') await pop();
+    if (stack.at(-1).t === 'display') push({ t: 'face', i }, false);
+    push({ t: 'tile', i, j: m.j });
+  }
+});
+// Zustände für die Vorschau (Namen, Werte, Symbole echter Entities); alle 15 s nachziehen
+const pvStatesLoad = () => conn.sendMessagePromise({ type: 'get_states' }).then(a => { pvStates = Object.fromEntries(a.map(x => [x.entity_id, x])); pvPost({ states: pvStates }); }).catch(() => {});
+if (matchMedia('(min-width:1180px)').matches) pvf.src = 'index.html?preview';
+addEventListener('resize', () => { if (!pvf.getAttribute('src') && matchMedia('(min-width:1180px)').matches) pvf.src = 'index.html?preview'; });
+
 // Domains, die eine Kachel bedienen kann (TAP in index.html)
 const TILE_DOM = ['light', 'switch', 'input_boolean', 'lock', 'cover', 'climate', 'scene', 'script', 'media_player', 'fan', 'timer', 'camera', 'button', 'input_button', 'sensor', 'binary_sensor'];
 const TOGGLE_DOM = ['light', 'switch', 'input_boolean', 'fan', 'cover', 'media_player', 'script'];   // Domains mit Dienst .toggle
@@ -683,6 +742,7 @@ try {
   const nameOf = x => x.attributes.friendly_name || x.entity_id, byDomain = d => states.filter(x => x.entity_id.startsWith(d + '.')).map(x => [x.entity_id, nameOf(x)]).sort((a, b) => a[1].localeCompare(b[1], 'de'));
   camEnts = byDomain('camera');
   await loadEntities(conn, states);
+  pvStates = Object.fromEntries(states.map(x => [x.entity_id, x])); setInterval(() => { if (!document.hidden) pvStatesLoad(); }, 15000);
   ttss = states.filter(x => x.entity_id.startsWith('tts.')).map(x => [x.entity_id, x.attributes.friendly_name || x.entity_id]);
   pipelines = pl?.pipelines?.map(p => [p.id, p.name]) || [];
   await reload();
