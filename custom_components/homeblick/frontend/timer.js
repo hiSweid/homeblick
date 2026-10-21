@@ -59,6 +59,18 @@ function beep(vol) {
     }
   } catch (e) { console.warn('Timer-Ton', e); }
 }
+// Kurzer aufsteigender Zweiklang als Hörbereit-Signal nach dem Wake Word (leiser als der Timer)
+export function ping(vol) {
+  try {
+    if (!vol) return; unlock(); if (ac?.state !== 'running') return;
+    const t0 = ac.currentTime, out = ac.createGain(); out.gain.value = vol * .2; out.connect(ac.destination);
+    [784, 1175].forEach((f, i) => {
+      const o = ac.createOscillator(), g = ac.createGain(), t = t0 + i * .09;
+      o.frequency.value = f; g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(1, t + .01); g.gain.linearRampToValueAtTime(0, t + .09);
+      o.connect(g).connect(out); o.start(t); o.stop(t + .1);
+    });
+  } catch {}
+}
 const ringStop = () => { clearInterval(ring); ring = 0; };
 
 // callFn: HA-Dienst (domain, service, data); voiceFn(id, 'pause'|'resume'|'cancel'): Sprach-Timer am Server (sind keine Entities)

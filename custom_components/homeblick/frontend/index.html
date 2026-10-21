@@ -678,7 +678,7 @@ import { normFaces } from './faces.js';
 import { wakeInit } from './wake.js';
 import { parseLRC, findLyrics } from './lyrics.js';
 import { voiceOK, voiceRun } from './voice.js';
-import { timerInit, timers, timerDemo, timerShow, timerOn, timerMusic, voiceTimers } from './timer.js';
+import { timerInit, timers, timerDemo, timerShow, timerOn, timerMusic, voiceTimers, ping } from './timer.js';
 import { camInit, camConfig, camShow, camHide, camFace, camTile, camOpen, camRinging, doorbell } from './doorbell.js';
 import { loadEvents, eventsHTML, infoHTML } from './events.js';
 // Ohne Parameter: Demo-Daten. Echtes HA nur mit ?live
@@ -2081,7 +2081,7 @@ if (LIVE) {
       if (m === wkModel) return;
       wkModel = m; wkCtl?.stop(); wkCtl = null; INFO.wake = null;
       if (m && voiceOK()) wkCtl = await wakeInit({ model: m, threshold: () => 1 - ({ ...KIOSK_DEF, ...CONF.kiosk }.wake_sens ?? 50) / 100, onWake: () => {
-        kiosk.wake();
+        kiosk.wake(); ping(CFG.chime ? CFG.volume / 100 : 0);   // Hörbereit-Ton (aus bei DND/Klingel-Gong aus)
         // Barge-in: Wake Word während der Antwort bricht sie ab und hört neu zu
         if (CFG.barge && AS.className === 'answer' && voice) { voice.stop(); relisten(); assistVoice(); return; }
         assistStart();
