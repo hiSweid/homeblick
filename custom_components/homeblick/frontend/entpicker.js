@@ -11,13 +11,14 @@ export const DOM = {
   script: ['Skript', '#8e8e93', 'script'], media_player: ['Medien', '#ff2d55', 'play'], fan: ['Ventilator', '#30b0c7', 'fan'],
   timer: ['Timer', '#ff9f0a', 'timer'], camera: ['Kamera', '#5856d6', 'cam'], sensor: ['Sensor', '#007aff', 'pulse'],
   binary_sensor: ['Binärsensor', '#007aff', 'pulse'], weather: ['Wetter', '#32ade6', 'sun'], calendar: ['Kalender', '#ff3b30', 'cal'],
-  event: ['Ereignis', '#af52de', 'bolt'], input_boolean: ['Schalter', '#8e8e93', 'switch'], button: ['Taster', '#8e8e93', 'switch'],
+  event: ['Ereignis', '#af52de', 'bolt'], input_boolean: ['Schalter', '#8e8e93', 'switch'], button: ['Taster', '#8e8e93', 'switch'], input_button: ['Taster', '#8e8e93', 'switch'],
 };
 const STATE = { on: 'an', off: 'aus', locked: 'verriegelt', unlocked: 'entsperrt', open: 'offen', closed: 'zu', opening: 'öffnet', closing: 'schließt',
   playing: 'spielt', paused: 'pausiert', idle: 'bereit', active: 'läuft', unavailable: 'nicht verfügbar', unknown: 'unbekannt', home: 'zuhause', not_home: 'abwesend',
   heat: 'Heizen', cool: 'Kühlen', heat_cool: 'Auto', auto: 'Auto', dry: 'Trocknen', fan_only: 'Lüften', standby: 'Standby', detected: 'erkannt', clear: 'frei' };
 const NOSTATE = ['scene', 'button', 'event', 'script'];   // Zustand ist ein Zeitstempel oder nichtssagend
 
+const SKIP = new Set(['friendly_name', 'icon', 'entity_picture', 'supported_features', 'device_class', 'unit_of_measurement', 'state_class', 'attribution', 'editable', 'id', 'restored', 'entity_id']);
 let EN = [], BY = new Map();
 export const entOf = id => BY.get(id);
 
@@ -29,7 +30,7 @@ export async function loadEntities(conn, states) {
   EN = states.map(s => {
     const id = s.entity_id, r = reg[id] || {}, d = dev[r.device_id], a = s.attributes;
     return { id, domain: id.split('.')[0], name: a.friendly_name || id, area: area[r.area_id || d?.area_id] || '', device: d ? d.name_by_user || d.name || '' : '',
-      state: s.state, unit: a.unit_of_measurement, hide: !!(r.disabled_by || r.hidden_by || r.entity_category) };
+      state: s.state, unit: a.unit_of_measurement, dc: a.device_class, attrs: Object.keys(a).filter(k => !SKIP.has(k) && ['number', 'string'].includes(typeof a[k])), hide: !!(r.disabled_by || r.hidden_by || r.entity_category) };
   });
   BY = new Map(EN.map(e => [e.id, e]));
 }

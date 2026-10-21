@@ -16,3 +16,21 @@ export function normFaces(conf, defs = []) {
   conf.faces.sort((a, b) => rank(a) - rank(b)); conf.off.sort((a, b) => rank(a) - rank(b));
   return JSON.stringify([conf.faces, conf.off]) !== before;
 }
+
+// 3er-Raster packen: jede Kachel an die erste freie Stelle von oben links (wie iOS-Widgets); null = passt nicht mehr
+export const rows = f => f.greet ? 2 : 3;
+export function pack(tiles, n) {
+  const used = new Set();
+  return tiles.map(t => {
+    const w = t.w || 1, h = t.h || 1;
+    for (let r = 0; r + h <= n; r++) for (let c = 0; c + w <= 3; c++) {
+      const cells = [];
+      for (let y = r; y < r + h; y++) for (let x = c; x < c + w; x++) cells.push(y * 3 + x);
+      if (cells.every(k => !used.has(k))) { cells.forEach(k => used.add(k)); return [r, c]; }
+    }
+    return null;
+  });
+}
+
+// Standard-Symbol je Domain (Kachel)
+export const ICON = { light: 'bulb', lock: 'lock', cover: 'garage', camera: 'video', climate: 'thermo', scene: 'sun', script: 'sun', media_player: 'play', fan: 'fan', timer: 'timer', switch: 'power', input_boolean: 'power', button: 'power', input_button: 'power' };

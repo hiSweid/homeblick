@@ -129,6 +129,11 @@ input::-webkit-calendar-picker-indicator{display:none!important}
 .shs{width:min(560px,100%);transform:translateY(110%);transition:transform var(--sd) var(--spring)}
 #ov.in .shs{transform:none}
 .shs .grp{margin-bottom:10px;background:var(--glass);backdrop-filter:blur(40px) saturate(1.8);-webkit-backdrop-filter:blur(40px) saturate(1.8)}
+.ico{color:#fff}
+.ig{display:flex;flex-wrap:wrap;gap:10px;padding:14px}.ig button{width:52px;height:52px;border-radius:14px;background:var(--fill);display:grid;place-items:center}
+.ig button.on{box-shadow:0 0 0 2.5px var(--blue)}.ig svg{width:28px;height:28px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.dg2{display:flex;align-items:center;gap:8px;color:var(--sec)}
+textarea.r{text-align:right}
 #ov.pkov{align-items:flex-end;justify-content:center}
 .pk{width:min(620px,100%);height:min(700px,92dvh);display:flex;flex-direction:column;border-radius:28px 28px 0 0;background:var(--glass);backdrop-filter:blur(40px) saturate(1.8);-webkit-backdrop-filter:blur(40px) saturate(1.8);overflow:hidden;transform:translateY(12%);transition:transform var(--sd) var(--spring)}
 #ov.in .pk{transform:none}
@@ -195,7 +200,7 @@ input::-webkit-calendar-picker-indicator{display:none!important}
 <div id="toast"></div>
 
 <script type="module">
-import { ORDER, normFaces } from './faces.js';
+import { ICON, ORDER, normFaces, pack, rows } from './faces.js';
 import { DOM, entOf, loadEntities, pickEntity } from './entpicker.js';
 // Einstellungsseite: Seitenleiste mit allen Displays → Display → Face (Kacheln). Läuft als Admin-Panel in HA
 // (gleicher Login wie das Panel, Tokens im localStorage).
@@ -420,22 +425,45 @@ const pages = {
   },
 
   face(e) {
-    const entRow = t => { const en = entOf(t.e); return `<button class="row" data-a="tent"><span class="l">Entity</span><span class="v"><span class="two" style="align-items:flex-end;min-width:0"><span class="val" style="${t.e && !en ? 'color:var(--red)' : ''}">${esc(en?.name || t.e || 'Wählen …')}</span>${en ? `<small class="val">${esc(t.e)}</small>` : t.e ? '<small>nicht gefunden</small>' : ''}</span>${svg('chev')}</span></button>`; };
     const f = cfg.faces[e.i], meta = FACE[f.type] || [f.type, '#8e8e93', 'grid'], d = cur();
     const photo = f.bg && typeof f.bg === 'object', sty = STYLES[f.type];
-    const tile = (t, j) => `<div class="grp tilecard" data-ti="${j}">
-        ${field('Titel', 'title', t.title, '', 'data-t')}${field('Untertitel', 'sub', t.sub, '', 'data-t')}
-        ${t.kind === 'clock' ? `<div class="row"><span class="l">Analoguhr</span><span class="v">ohne Entity</span></div>` : entRow(t)}
-        <div class="tilebar"><span class="arrows"><button data-a="tup" aria-label="Nach oben">${svg('up', '')}</button><button data-a="tdown" aria-label="Nach unten">${svg('down', '')}</button></span><button data-a="tdel" style="color:var(--red);padding:8px 10px">Entfernen</button></div></div>`;
+    const tileRow = (t, j) => {
+      const en = entOf(t.e), sz = `${t.w || 1}×${t.h || 1}`, c = t.kind ? '#8e8e93' : DOM[en?.domain]?.[1] || '#8e8e93';
+      return `<div class="row" data-ti="${j}"><button class="go" data-a="tile"><span class="ico" style="background:${c}">${xi(tileIcon(t))}</span><span class="l two"><b>${esc(tileTitle(t))}</b><small>${esc([t.sub, t.kind ? '' : en?.name || t.e, sz !== '1×1' && sz].filter(Boolean).join(' · '))}</small></span></button>
+        <span class="arrows"><button data-a="tup" aria-label="Nach oben">${svg('up', '')}</button><button data-a="tdown" aria-label="Nach unten">${svg('down', '')}</button></span></div>`;
+    };
     const body = `
       <div class="prev" style="background:${bgCss(f.bg)}">${ico(meta[2], meta[1])}</div>
       ${photo ? '' : grp('Hintergrund', `<div class="sw-grid">${BG.filter(([v]) => !['calendar', 'date'].includes(f.type) || ['auto', 'black', 'white'].includes(v)).map(([v, n]) => `<button data-a="bg" data-v="${v}" class="${String(v) === String(f.bg) ? 'on' : ''}"><i style="background:${bgCss(v)}"></i>${n}</button>`).join('')}</div>`)}
       ${sty ? `<div class="sec"><div class="sh">Stil</div><div class="grp"><div class="seg">${sty.concat((LEGACY[f.type] || []).filter(([v]) => v === f.style)).map(([v, n]) => `<button data-a="style" data-v="${v}" class="${(f.style || sty[0][0]) === v ? 'on' : ''}">${n}</button>`).join('')}</div></div></div>` : ''}
-      ${f.type === 'grid' ? `<div class="sec"><div class="sh"><span>Kacheln</span></div>${(f.tiles || []).map(tile).join('')}<div class="grp"><button class="row btn" data-a="tadd">${svg('plus', 'plus')}<span class="l">Kachel hinzufügen</span></button></div>
-        <div class="sf">Kacheln folgen der Reihenfolge von oben links. Nachtvarianten bleiben erhalten.</div></div>` : ''}
-      ${f.type === 'cams' ? camsHTML() : ''}
+      ${f.type === 'grid' ? (n => `<div class="sec"><div class="sh"><span>Kacheln</span></div><div class="grp">${(f.tiles || []).map(tileRow).join('')}<button class="row btn" data-a="tadd">${svg('plus', 'plus')}<span class="l">Kachel hinzufügen</span></button></div>
+        <div class="sf">${n ? `${n} Kachel${n > 1 ? 'n passen' : ' passt'} nicht mehr ins Raster und ${n > 1 ? 'werden' : 'wird'} nicht angezeigt. ` : ''}Kacheln folgen der Reihenfolge von oben links. Nachtvarianten bleiben erhalten.</div></div>`)(pack(f.tiles || [], rows(f)).filter(x => !x).length) : ''} 'cams' ? camsHTML() : ''}
       ${grp('', `<button class="row btn c" data-c="face" ${d.connected ? '' : 'disabled style="opacity:.4"'}>Auf dem Display anzeigen</button>`)}`;
     return { back: d.name, title: meta[0], body };
+  },
+
+  tile(e) {
+    const f = cfg.faces[e.i], t = f.tiles[e.j], meta = FACE[f.type] || [f.type], d = cur(), en = entOf(t.e), clock = t.kind === 'clock', wx = t.kind === 'wx', ent = !clock && !wx;
+    const placed = pack(f.tiles, rows(f))[e.j], sz = `${t.w || 1}x${t.h || 1}`;
+    const faceList = cfg.faces.map(x => [x.id, (FACE[x.type] || [x.type])[0] + (x.id !== x.type ? ' ' + x.id.replace(x.type, '') : '')]);
+    const acts = [['default', 'Standard'], ...(TOGGLE_DOM.includes(en?.domain) ? [['toggle', 'Umschalten']] : []), ['service', 'Dienst aufrufen'], ['face', 'Face öffnen'], ['none', 'Nichts']];
+    const act = (k, label) => { const a = t[k] || {}; return pick(label, k + '.do', acts, a.do || 'default', 'data-t')
+      + (a.do === 'service' ? field('Dienst', k + '.service', a.service || '', 'placeholder="light.turn_on" autocapitalize="off" autocorrect="off" spellcheck="false"', 'data-t') + field('Daten (JSON)', k + '.data', a.data ? JSON.stringify(a.data) : '', 'placeholder=\'{"brightness_pct":50}\' autocapitalize="off" autocorrect="off" spellcheck="false"', 'data-t') : '')
+      + (a.do === 'face' ? pick('Face', k + '.face', faceList, a.face || faceList[0]?.[0], 'data-t') : ''); };
+    const vals = [['', 'Keine'], ['state', 'Zustand'], ...(en?.attrs || []).map(a => [a, a])];
+    const body = `
+      <div class="hero"><span class="ico" style="background:${DOM[en?.domain]?.[1] || '#8e8e93'}">${xi(tileIcon(t))}</span><h2>${esc(tileTitle(t))}</h2><p>${esc(clock ? 'Uhr' : wx ? 'Wetter' : en ? en.name : t.e || '')}</p></div>
+      ${grp('', (ent ? `<button class="row" data-a="tent"><span class="l">Entity</span><span class="v"><span class="two" style="align-items:flex-end;min-width:0"><span class="val" style="${t.e && !en ? 'color:var(--red)' : ''}">${esc(en?.name || t.e || 'Wählen …')}</span>${en ? `<small class="val">${esc(t.e)}</small>` : t.e ? '<small>nicht gefunden</small>' : ''}</span>${svg('chev')}</span></button>` : '')
+        + (clock ? pick('Stil', 'cs', [['', 'Striche'], ['numbers', 'Zahlen'], ['digital', 'Digital']], t.cs || '', 'data-t') : '')
+        + (ent ? field('Titel', 'title', t.title, '', 'data-t') + field('Untertitel', 'sub', t.sub, '', 'data-t') + (t.kind === 'thermo' ? '' : pick('Zusätzlich anzeigen', 'val', t.val && !vals.some(v => v[0] === t.val) ? [...vals, [t.val, t.val]] : vals, t.val || '', 'data-t')) : ''),
+        ent && t.kind !== 'thermo' ? 'Zustand oder Attribut der Entity steht live hinter dem Untertitel.' : '')}
+      ${grp('Aussehen', (ent ? `<button class="row" data-a="ticon"><span class="l">Symbol</span><span class="v"><span class="ico" style="background:${DOM[en?.domain]?.[1] || '#8e8e93'}">${xi(tileIcon(t))}</span>${svg('chev')}</span></button>` : '')
+        + `<div class="seg" data-size>${SIZES.map(([v, n]) => `<button data-a="tsize" data-v="${v}" class="${sz === v ? 'on' : ''}">${n}</button>`).join('')}</div>`
+        + (ent ? `<div class="sw-grid">${COLORS.map(([v, n]) => `<button data-a="tcolor" data-v="${v}" class="${(t.color || '') === v ? 'on' : ''}"><i style="background:${v || 'linear-gradient(135deg,#d8d8dc,#8e8e93)'}"></i>${n}</button>`).join('')}</div>` : ''),
+        placed ? (ent ? 'Größe in Rasterfeldern; die Farbe färbt das Symbol, wenn die Kachel an ist.' : 'Größe in Rasterfeldern.') : 'Kein Platz mehr im Raster: die Kachel wird nicht angezeigt.')}
+      ${ent && t.kind !== 'thermo' ? grp('Aktionen', act('tap', 'Tippen') + act('hold', 'Halten'), 'Standard: Licht schaltet, Halten öffnet den Dimmer; Schloss, Tor, Szene … wie bisher.') : ''}
+      ${grp('', `<button class="row red c" data-a="tdel">Kachel entfernen</button>`)}`;
+    return { back: meta[0], title: tileTitle(t), body };
   },
 };
 
@@ -480,7 +508,22 @@ async function reload() {
 
 // ---- Eingaben ----
 // Domains, die eine Kachel bedienen kann (TAP in index.html)
-const TILE_DOM = ['light', 'lock', 'cover', 'climate', 'scene', 'script', 'media_player', 'fan', 'timer', 'camera'];
+const TILE_DOM = ['light', 'switch', 'input_boolean', 'lock', 'cover', 'climate', 'scene', 'script', 'media_player', 'fan', 'timer', 'camera', 'button', 'input_button', 'sensor', 'binary_sensor'];
+const TOGGLE_DOM = ['light', 'switch', 'input_boolean', 'fan', 'cover', 'media_player', 'script'];   // Domains mit Dienst .toggle
+const SIZES = [['1x1', '1 × 1'], ['2x1', '2 × 1'], ['2x2', '2 × 2']];
+const COLORS = [['', 'Standard'], ['#ff9500', 'Orange'], ['#ff3b30', 'Rot'], ['#ff2d55', 'Rosa'], ['#af52de', 'Violett'], ['#007aff', 'Blau'], ['#30b0c7', 'Türkis'], ['#34c759', 'Grün']];
+const ICONS = ['bulb', 'pendant', 'lock', 'unlock', 'garage', 'blind', 'video', 'fan', 'timer', 'sun', 'moon', 'house', 'power', 'play', 'thermo', 'drop', 'wind', 'cloud', 'intercom', 'note'];
+// Symbole der Kachel-Icons liegen nur in index.html (eine Quelle): beim Start holen und als #x-<name> einhängen
+fetch('index.html').then(r => r.text()).then(h => {
+  const syms = [...new DOMParser().parseFromString(h, 'text/html').querySelectorAll('symbol')].filter(x => ICONS.includes(x.id));
+  document.body.insertAdjacentHTML('beforeend', `<svg width="0" height="0" style="position:absolute">${syms.map(x => x.outerHTML.replace('id="', 'id="x-')).join('')}</svg>`);
+  refresh();
+}).catch(() => {});
+const xi = id => `<svg><use href="#x-${id}"/></svg>`;
+const tileIcon = t => t.icon || (t.kind === 'clock' ? 'timer' : t.kind === 'wx' ? 'cloud' : (e => e?.domain === 'cover' && e.dc !== 'garage' ? 'blind' : ICON[t.e?.split('.')[0]])(entOf(t.e))) || 'house';
+const tileTitle = t => t.title || (t.kind === 'clock' ? 'Uhr' : t.kind === 'wx' ? 'Wetter' : entOf(t.e)?.name || t.e || 'Kachel');
+const autoTitle = en => ['sensor', 'binary_sensor'].includes(en.domain) ? en.name : DOM[en.domain]?.[0] || en.name;
+const setPath = (o, path, v) => { const k = path.split('.'); const last = k.pop(); for (const x of k) o = o[x] ||= {}; if (v === undefined) delete o[last]; else o[last] = v; };
 const swap = (a, i, j) => j >= 0 && j < a.length && ([a[i], a[j]] = [a[j], a[i]]);
 document.addEventListener('input', e => {
   const t = e.target;
@@ -507,7 +550,16 @@ document.addEventListener('change', async e => {
     if (i < 0 || (!t.checked && cfg.faces.length < 2)) { if (!t.checked) toast('Mindestens ein Face', true); return refresh(); }
     cfg[to].push(...cfg[from].splice(i, 1)); normFaces(cfg); saveCfg(); refresh();
   } else if (t.dataset.cam || t.dataset.bell) camEdit(t);
-  else if (t.dataset.t) { cfg.faces[stack.at(-1).i].tiles[+t.closest('[data-ti]').dataset.ti][t.dataset.t] = t.value.trim(); saveCfg(); }
+  else if (t.dataset.t) {   // Kachel-Seite: Pfad wie „tap.service“
+    const at = stack.at(-1), tl = cfg.faces[at.i].tiles[at.j], k = t.dataset.t, [o, p] = k.split('.');
+    let v = t.value.trim();
+    if (p === 'do') { if (v === 'default') delete tl[o]; else tl[o] = { do: v, ...(v === 'face' && { face: cfg.faces[0].id }) }; }
+    else if (p === 'data') {
+      try { v = v ? JSON.parse(v) : undefined; if (v && (typeof v !== 'object' || Array.isArray(v))) throw 0; } catch { return toast('Daten müssen ein JSON-Objekt sein', true); }
+      setPath(tl, k, v);
+    } else setPath(tl, k, k === 'title' || k === 'sub' || v ? v : undefined);
+    saveCfg(); if (p === 'do' || k === 'val') fill(top(), at);
+  }
   else if (t.dataset.area !== undefined) { area = t.value; renderSide(); }
   else if (t.dataset.allface !== undefined) { if (t.value) all({ action: 'face', face: t.value, ...dur() }); t.value = ''; t.closest('.pick').querySelector('.val').textContent = 'Wählen …'; }
   else if (t.dataset.show !== undefined) { if (t.value) guard(call('command', { display: sel, action: 'face', face: t.value, ...dur() })).catch(() => {}); t.value = ''; t.closest('.pick').querySelector('.val').textContent = 'Wählen …'; }
@@ -545,22 +597,38 @@ document.addEventListener('click', async e => {
   if (/^c(add|up|down|del|reset)$/.test(a)) return camAction(a, +b.closest('[data-ci]')?.dataset.ci);
   if (a === 'face') return push({ t: 'face', i: +b.closest('[data-fi]').dataset.fi });
   // Face-Seite
-  const i = stack.at(-1).i, f = cfg.faces[i], tiles = f.tiles, j = +b.closest('[data-ti]')?.dataset.ti;
+  const at = stack.at(-1), i = at.i, f = cfg.faces[i], tiles = f.tiles, j = at.j ?? +b.closest('[data-ti]')?.dataset.ti;
   if (a === 'bg') f.bg = bgVal(b.dataset.v);
   else if (a === 'style') f.style = b.dataset.v;
+  else if (a === 'tile') return push({ t: 'tile', i, j });
+  else if (a === 'tsize') { const t = tiles[j], [w, h] = b.dataset.v.split('x').map(Number); w > 1 ? t.w = w : delete t.w; h > 1 ? t.h = h : delete t.h; }
+  else if (a === 'tcolor') b.dataset.v ? tiles[j].color = b.dataset.v : delete tiles[j].color;
+  else if (a === 'ticon') {
+    const t = tiles[j], r = await overlay('sheet', `<div class="shs"><div class="grp"><div class="ig">${ICONS.map(n => `<button data-r="${n}" class="${t.icon === n ? 'on' : ''}" aria-label="${n}">${xi(n)}</button>`).join('')}</div></div><div class="grp"><button class="row btn c" data-r="-">Standard-Symbol</button></div><div class="grp"><button class="row btn c" data-r="" style="font-weight:600">Abbrechen</button></div></div>`);
+    if (!r) return; r === '-' ? delete t.icon : t.icon = r;
+  }
   else if (a === 'tadd' || a === 'tent') {
-    const t = a === 'tent' ? tiles[j] : null, en = await pickEntity({ title: 'Entity der Kachel', domains: t?.kind === 'thermo' ? ['climate'] : TILE_DOM, current: t?.e });
+    let t = a === 'tent' ? tiles[j] : null;
+    if (!t) {   // Art der Kachel; Uhr und Wetter brauchen keine Entity
+      const k = await overlay('sheet', `<div class="shs"><div class="grp">${[['entity', 'Entity …'], ['clock', 'Analoguhr'], ['digital', 'Digitaluhr'], ['wx', 'Wetter']].map(([v, n]) => `<button class="row btn c" data-r="${v}">${n}</button>`).join('')}</div><div class="grp"><button class="row btn c" data-r="" style="font-weight:600">Abbrechen</button></div></div>`);
+      if (!k) return;
+      if (k !== 'entity') { tiles.push(k === 'wx' ? { kind: 'wx' } : { kind: 'clock', ...(k === 'digital' && { cs: 'digital' }) }); saveCfg(); return fill(top(), at); }
+    }
+    const en = await pickEntity({ title: 'Entity der Kachel', domains: t?.kind === 'thermo' ? ['climate'] : TILE_DOM, current: t?.e });
     if (!en) return;
-    if (!t) tiles.push({ e: en.id, title: DOM[en.domain]?.[0] || en.name, sub: en.area });
+    if (!t) { t = { e: en.id, title: autoTitle(en), sub: en.area }; tiles.push(t); }
     else {   // Titel/Untertitel mitführen, solange sie noch die Vorgabe der alten Entity sind
       const old = entOf(t.e);
-      if (!t.title || t.title === 'Neu' || t.title === DOM[old?.domain]?.[0]) t.title = DOM[en.domain]?.[0] || en.name;
+      if (!t.title || t.title === 'Neu' || (old && t.title === autoTitle(old))) t.title = autoTitle(en);
       if (!t.sub || t.sub === old?.area) t.sub = en.area;
       t.e = en.id;
+      if (t.val && t.val !== 'state' && !en.attrs.includes(t.val)) delete t.val;
+      for (const x of ['tap', 'hold']) if (t[x]?.do === 'toggle' && !TOGGLE_DOM.includes(en.domain)) delete t[x];
     }
+    if (en.domain === 'sensor' || en.domain === 'binary_sensor') t.val ||= 'state';
   }
   else if (a === 'tup' || a === 'tdown') swap(tiles, j, j + (a === 'tup' ? -1 : 1));
-  else if (a === 'tdel') tiles.splice(j, 1);
+  else if (a === 'tdel') { tiles.splice(j, 1); saveCfg(); return pop(); }
   saveCfg(); fill(top(), stack.at(-1));
 });
 

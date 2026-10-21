@@ -791,6 +791,12 @@ input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:tr
 
   <section id="cam" class="view" hidden></section>   <!-- Inhalt: doorbell.js -->
 
+  <section id="edet" class="view" hidden>   <!-- Energie-Vollbild (Solar/Akku/e-Golf): Inhalt + Stil energy.js -->
+    <button class="x" data-act="close" aria-label="Schließen"><svg class="i"><use href="#xt"/></svg></button>
+    <div class="top"><span data-bind="edn"></span><time data-bind="time"></time></div>
+    <div class="ed"></div>
+  </section>
+
   <section id="events" class="view" hidden>   <!-- Pillen + Stil: events.js -->
     <button class="x" data-act="close" aria-label="Schließen"><svg class="i"><use href="#x"/></svg></button>
     <div class="top"><span>Termine</span><time data-bind="time"></time></div>
@@ -824,10 +830,10 @@ input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:tr
 
 <script type="module">
 import { weatherFace, weather, weatherHours, weatherNear, COND } from './weather.js';
-import { energyFace, energy, energyDemo } from './energy.js';
+import { energyFace, energy, energyDemo, energyInit, energyDetail } from './energy.js';
 import { kioskInit, KIOSK_DEF, luxLevel } from './kiosk.js';
 import { shot } from './shot.js';
-import { normFaces } from './faces.js';
+import { ICON, normFaces, pack, rows } from './faces.js';
 import { wakeInit } from './wake.js';
 import { parseLRC, findLyrics } from './lyrics.js';
 import { voiceOK, voiceRun } from './voice.js';
@@ -935,7 +941,7 @@ const DEF = { cams: 1, energy: 1, dyn: 2, faces: [   // Flags: Migrationen unten
     { kind: 'thermo', e: 'climate.wohnzimmer_ac_mqtt_hvac', title: 'Thermostat', sub: 'Wohnzimmer' },
   ] },
   { type: 'weather', bg: 212 },
-  { type: 'energy', bg: 'black' },
+  { type: 'energy', bg: 'auto' },   // Glas auf Wallpaper wie das Home-Face (Tag/Nacht)
   { type: 'calendar', bg: 'white' },
   { type: 'date', bg: 'auto' },
   { type: 'analog', bg: 150 },
@@ -980,22 +986,7 @@ if ((CONF.dyn || 0) < 2) {
 
 normSave();
 
-const ICON = { light: 'bulb', lock: 'lock', cover: 'garage', camera: 'video', climate: 'thermo', scene: 'sun', script: 'sun', media_player: 'play', fan: 'fan', timer: 'timer' };
 
-// 3er-Raster packen: jede Kachel an die erste freie Stelle von oben links (wie iOS-Widgets)
-const rows = f => f.greet ? 2 : 3;
-function pack(tiles, n) {
-  const used = new Set();
-  return tiles.map(t => {
-    const w = t.w || 1, h = t.h || 1;
-    for (let r = 0; r + h <= n; r++) for (let c = 0; c + w <= 3; c++) {
-      const cells = [];
-      for (let y = r; y < r + h; y++) for (let x = c; x < c + w; x++) cells.push(y * 3 + x);
-      if (cells.every(k => !used.has(k))) { cells.forEach(k => used.add(k)); return [r, c]; }
-    }
-    return null;
-  });
-}
 console.assert(JSON.stringify(pack([{ w: 2, h: 2 }, {}, {}, {}, {}, {}], 3)) === '[[0,0],[0,2],[1,2],[2,0],[2,1],[2,2]]' && pack([{ w: 2, h: 2 }, { w: 2, h: 2 }], 3)[1] === null, 'pack');
 const placed = f => pack(f.tiles, rows(f)).filter(Boolean).length;
 function place(el, f) {
@@ -1017,7 +1008,8 @@ const iconOf = t => { const d = t.e?.split('.')[0]; return t.icon || (d === 'cov
 function tileEl(c) {
   const t = c.night && isNight() ? { ...c, ...c.night } : c;
   const el = document.createElement('div'), kind = kindOf(t), label = `<div><div class="ttl">${esc(t.title)}</div><div class="sub">${esc(t.sub)}</div></div>`;
-  el._t = c; el._sub = t.sub; el.dataset.ti = ''; el.dataset.size = `${t.w || 1}x${t.h || 1}`;
+  el._t = c; el._sub = el._base = t.sub; el._val = t.val; el._tap = t.tap; el._hold = t.hold; el.dataset.ti = '';
+  if (t.color) el.style.setProperty('--accent', t.color); el.dataset.size = `${t.w || 1}x${t.h || 1}`;
   if (t.e) el.dataset.e = t.e;
   if (t.noop) el.dataset.noop = '';
   if (kind === 'clock') {
@@ -1213,7 +1205,7 @@ function roll(el, txt, dir = 0) {
   const out = { transform: `translateY(${-dir * 55}%)`, opacity: 0, filter: 'blur(.8cqw)' }, inn = { transform: `translateY(${dir * 55}%)`, opacity: 0, filter: 'blur(.8cqw)' }, id = { transform: 'none', opacity: 1, filter: 'none' };
   const roll1 = (o, m) => { o.animate([id, out], { duration: 150, easing: 'ease-in', fill: 'forwards' }); m.animate([inn, id], { duration: 300, easing: SPRING }); };
   const chars = s => { s.innerHTML = [...s.textContent].map(c => `<i>${c}</i>`).join(''); return [...s.children]; };
-  if (el.dataset.temp !== undefined && old.textContent.length === txt.length) {
+  if ((el.dataset.temp ?? el.dataset.digits) !== undefined && old.textContent.length === txt.length) {   // data-digits: Energie-Zahlen rollen ebenfalls ziffernweise
     const o = chars(old), m = chars(n);
     m.forEach((c, i) => c.textContent === o[i].textContent ? o[i].style.visibility = 'hidden' : roll1(o[i], c));
   } else roll1(old, n);
@@ -1250,7 +1242,7 @@ const hold = {}, held = id => hold[id] > Date.now();   // lokale Eingabe gewinnt
 const fmt = v => v == null ? '–' : (+v).toLocaleString('de-DE', { maximumFractionDigits: 1 });
 const pct = s => s.state === 'on' ? Math.round((s.attributes.brightness ?? 255) / 2.55) : 0;
 const mmss = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
-const ON = { climate: s => /^(heating|cooling)$/.test(s.attributes.hvac_action), /* Ruhezustand = Glas, an nur bei aktivem Heizen/Kühlen oder kurz nach Bedienung */ light: s => s.state === 'on', fan: s => s.state === 'on', lock: s => s.state !== 'locked', cover: s => s.state !== 'closed', media_player: s => s.state === 'playing', timer: s => s.state === 'active' };
+const ON = { climate: s => /^(heating|cooling)$/.test(s.attributes.hvac_action), /* Ruhezustand = Glas, an nur bei aktivem Heizen/Kühlen oder kurz nach Bedienung */ light: s => s.state === 'on', fan: s => s.state === 'on', lock: s => s.state !== 'locked', cover: s => s.state !== 'closed', media_player: s => s.state === 'playing', timer: s => s.state === 'active', switch: s => s.state === 'on', input_boolean: s => s.state === 'on', binary_sensor: s => s.state === 'on' };
 const MODES = { heat: ['Heizen auf', '#ff9500'], cool: ['Kühlen auf', '#009efc'], heat_cool: ['Automatisch', '#30b0c7'], dry: ['Entfeuchten', '#5ac8fa'], fan_only: ['Lüften', '#34c759'], off: ['Aus', '#636366'] };
 
 // ---------- Demo-Bibliothek (erfundene Titel, generierte Cover) ----------
@@ -1337,6 +1329,8 @@ function demoCall(domain, service, data) {
 const call = (domain, service, data) => LIVE ? conn.sendMessagePromise({ type: 'call_service', domain, service, service_data: data }).catch(e => console.warn('HA', service, e)) : demoCall(domain, service, data);
 // Service mit Antwort (z. B. sonos.get_queue)
 const ask = (domain, service, data) => conn.sendMessagePromise({ type: 'call_service', domain, service, service_data: data, return_response: true }).then(r => r.response);
+// Energie-Tageskurven: HA-History per WebSocket (nur lesend); Demo simuliert selbst
+energyInit((ids, start) => LIVE && conn ? conn.sendMessagePromise({ type: 'history/history_during_period', start_time: start.toISOString(), entity_ids: ids, minimal_response: true, no_attributes: true, significant_changes_only: false }) : null);
 
 // Modus-Menü der Klima-Ansicht: Reihenfolge wie im Video (Off, Cool, Heat, Auto), weitere HA-Modi dahinter
 const HVAC = { off: 'Aus', cool: 'Kühlen', heat: 'Heizen', heat_cool: 'Auto', auto: 'Auto', dry: 'Entfeuchten', fan_only: 'Lüften' };
@@ -1433,6 +1427,16 @@ function statusSub(t, d, s) {
   if (t._ls && t._ls !== 'unavailable' && s.state !== 'unavailable') { t._flash = Date.now() + 2500; setTimeout(schedule, 2600); }
   t._ls = s.state;
 }
+const SDE = { on: 'An', off: 'Aus', locked: 'Verriegelt', unlocked: 'Entriegelt', open: 'Offen', closed: 'Zu', opening: 'Öffnet', closing: 'Schließt', playing: 'Spielt', paused: 'Pausiert', idle: 'Bereit', active: 'Läuft', home: 'Zuhause', not_home: 'Abwesend', heat: 'Heizen', cool: 'Kühlen', auto: 'Auto', heat_cool: 'Auto', dry: 'Trocknen', fan_only: 'Lüften', standby: 'Standby', unknown: '', unavailable: '' };
+const ATTR_U = [[/temperature$/, '°'], [/humidity$|^battery|percentage$/, ' %']];
+function valText(s, k) {
+  const v = k === 'state' ? s.state : s.attributes[k];
+  if (v == null || v === '' || s.state === 'unavailable') return '';
+  if (k === 'state' && v in SDE) return SDE[v];
+  if (k === 'brightness') return Math.round(v / 2.55) + ' %';
+  if (typeof v !== 'number' && !/^-?\d+(\.\d+)?$/.test(v)) return String(v);
+  return fmt(v) + (k === 'state' ? (s.attributes.unit_of_measurement ? ' ' + s.attributes.unit_of_measurement : '') : ATTR_U.find(([r]) => r.test(k))?.[1] || '');
+}
 function statusLine(t, d, s) {
   const sub = $('.sub', t); if (!sub || !t._sub) return;
   const f = STATUS[d](s), out = f && (/ing$|jammed/.test(s.state) || t._flash > Date.now()) ? f : t._sub;
@@ -1453,6 +1457,10 @@ function render() {
     }
     else if (d === 'lock') { const sv = $('svg.lk', t); if (sv) sv.classList.toggle('open', s.state !== 'locked'); }
     if (d === 'camera' && t.dataset.ti != null) camTile(t, id, s);
+    if (t._val && d !== 'climate' && t.classList.contains('tile')) {   // Zusatzanzeige (Zustand/Attribut) hinter dem Untertitel
+      t._sub = [t._base, valText(s, t._val)].filter(Boolean).join(' • ');
+      const sub = $('.sub', t); if (!STATUS[d] && sub && sub.textContent !== t._sub) sub.textContent = t._sub;
+    }
     if (STATUS[d] && t.classList.contains('tile') && t.dataset.ti != null) { statusSub(t, d, s); statusLine(t, d, s); }
   }
   for (const el of $$('[data-temp]')) {
@@ -1474,7 +1482,7 @@ function render() {
 
   weather(st(CFG.weather), ents['sun.sun'], forecast);
   doorbell(ents);
-  energy(ents, rollBind);
+  energy(ents, roll);
   if (timers(ents)) kiosk.wake();   // Timer abgelaufen → Display weckt
 
   // Musik: gewählter Player (AirPlay-Menü), sonst laufende Musik, sonst pausiert, sonst erster Lautsprecher
@@ -1963,6 +1971,10 @@ const TAP = {
   camera: t => open(t, 'cam'),
   light: (t, id) => { hold[id] = Date.now() + 1500; t.classList.toggle('on'); call(id.split('.')[0], 'toggle', { entity_id: id }); },
   fan: (t, id) => TAP.light(t, id),
+  switch: (t, id) => TAP.light(t, id),
+  input_boolean: (t, id) => TAP.light(t, id),
+  button: (t, id) => { hold[id] = Date.now() + 1200; t.classList.add('on'); setTimeout(() => t.classList.remove('on'), 1200); call(id.split('.')[0], 'press', { entity_id: id }); },
+  input_button: (t, id) => TAP.button(t, id),
   lock: (t, id) => st(id).state === 'locked' ? armed(t) && call('lock', 'unlock', { entity_id: id }) : call('lock', 'lock', { entity_id: id }),
   cover: (t, id) => {
     const s = st(id), opening = s.state === 'closed';
@@ -2159,7 +2171,14 @@ function bump(b) {
   const v = Math.min(a.max_temp ?? 35, Math.max(a.min_temp ?? 5, now + d * (a.target_temp_step || .5)));
   if (v !== now) { setTemp(id, v, d); sendTemp(id); }
 }
-// Tippen = Aktion · Halten auf Licht (450 ms) = Dimmer
+// Eigene Aktion einer Kachel (Einstellungsseite: tap/hold = { do: toggle | service | face | none, service, data, face }); default/fehlt = Standard
+function tileAct(t, id, a) {
+  if (a.do === 'toggle') call(id.split('.')[0], 'toggle', { entity_id: id });
+  else if (a.do === 'service') { const [d, sv] = (a.service || '').split('.'); if (d && sv) call(d, sv, { entity_id: id, ...a.data }); }
+  else if (a.do === 'face') { const i = CONF.faces.findIndex(f => f.id === a.face); if (i >= 0) faces.go(i); }
+}
+const own = a => a && a.do !== 'default';
+// Tippen = Aktion · Halten (450 ms): eigene Aktion, auf Licht sonst der Dimmer
 let lp, suppress = false, px = 0, py = 0, pull = false;
 document.addEventListener('pointerdown', e => {
   suppress = false; px = e.clientX; py = e.clientY; touched = Date.now(); pull = e.target.id === 'pull';
@@ -2168,15 +2187,16 @@ document.addEventListener('pointerdown', e => {
   if ($('#climate .hm.open') && !e.target.closest('.hm')) { modeMenu(false); suppress = true; return; }   // Modus-Menü: Tipp daneben schließt nur (y-MO 156 s)
   const ch = e.target.closest('[data-act=up],[data-act=down]');
   if (ch) { bump(ch); suppress = true; return; }   // Wert ändert sich bei Touch-down (Apple, STEUERUNG.md P2-4)
-  if (e.target.closest('#climate .x, #dimmer .x')) { suppress = true; setTimeout(close, 50); return; }   // ✕: Scheibe, Schließen 1-2 Frames später, Finger noch drauf (Engadget 152 s, AppleInsider 266,6 s; STEUERUNG P2-4)
+  if (e.target.closest('#climate .x, #dimmer .x, #edet .x')) { suppress = true; setTimeout(close, 50); return; }   // ✕: Scheibe, Schließen 1-2 Frames später, Finger noch drauf (Engadget 152 s, AppleInsider 266,6 s; STEUERUNG P2-4)
   if (cur) return;
   if (!e.target.closest('.face') || e.target.closest('.pop')) return;
   const ll = e.target.closest('.ly .lyrics')?.firstElementChild;
   if (ll?.children.length) ls = { ll, y: e.clientY, o: lyrOff(ll), on: false };
   const pg = e.target.closest('.prog');
   if (pg) { if (npPos()[1]) { sk = pg; pg.classList.add('drag'); seekMove(e); } return; }
-  const light = e.target.closest('.tile[data-e^="light."]');
-  if (light) lp = setTimeout(() => { suppress = true; open(light, 'dimmer'); }, 450);
+  const ht = e.target.closest('.tile[data-ti]'), light = e.target.closest('.tile[data-e^="light."]');
+  if (ht?.dataset.e && own(ht._hold)) lp = setTimeout(() => { suppress = true; tileAct(ht, ht.dataset.e, ht._hold); }, 450);
+  else if (light) lp = setTimeout(() => { suppress = true; open(light, 'dimmer'); }, 450);
 });
 document.addEventListener('pointermove', e => {
   if (Math.hypot(e.clientX - px, e.clientY - py) > 8) clearTimeout(lp);
@@ -2251,6 +2271,7 @@ document.addEventListener('click', e => {
   else if (act === 'qplay') NP && call(LIVE ? 'sonos' : 'media_player', 'play_queue', { entity_id: NP, queue_position: +b.dataset.v });
   else if (act === 'cam') st(b.dataset.e).state === 'unavailable' ? shake(b) : open(b, 'cam');
   else if (act === 'events') openEvents(b);
+  else if (act === 'edet') { open(b, 'edet'); energyDetail(b.dataset.v); }   // Energie-Kachel → Vollbild (FLIP wie Klima/Licht)
   else if (act === 'toggle') st(b.dataset.e).state === 'unavailable' ? shake(b) : TAP[b.dataset.e.split('.')[0]]?.(b, b.dataset.e);   // Licht im Klingel-Bild / Kameras-Face
   else if (act === 'avatars') b.closest('.greet').classList.toggle('fan');
   else if (act === 'avpick') { who = b.dataset.v; try { localStorage.hb_person = who; } catch {} b.closest('.greet').classList.remove('fan'); render(); }
@@ -2273,6 +2294,7 @@ document.addEventListener('click', e => {
     if (!t?.classList.contains('tile')) return;
     const id = t.dataset.e;
     if (!id) return;
+    if (own(t._tap)) return tileAct(t, id, t._tap);
     if (st(id).state === 'unavailable') return shake(t);
     TAP[id.split('.')[0]]?.(t, id);
   }
@@ -2412,6 +2434,8 @@ if (!LIVE) {
     'climate.wohnzimmer_ac_mqtt_hvac': ['heat', { friendly_name: 'Wohnzimmer Klima', hvac_modes: ['off', 'heat', 'cool', 'heat_cool', 'dry', 'fan_only'], temperature: 21, current_temperature: 20.5, current_humidity: 47, target_temp_step: .5, min_temp: 16, max_temp: 30 }],
     'climate.tado_smart_radiator_thermostat_x': ['heat', { friendly_name: 'Büro Heizung', temperature: 22, current_temperature: 21.4, current_humidity: 52, target_temp_step: .5 }],
     'light.flur': ['on', { friendly_name: 'Flur', brightness: 84 }],
+    'switch.steckdose': ['off', { friendly_name: 'Steckdose' }],
+    'sensor.buro_temperatur': ['21.5', { friendly_name: 'Büro Temperatur', unit_of_measurement: '°C', device_class: 'temperature' }],
     'light.eingang': ['off', { friendly_name: 'Hauseingang' }],
     'light.wohnzimmer': ['off', { friendly_name: 'Wohnzimmer' }],
     'light.kuche': ['off', { friendly_name: 'Küche' }],

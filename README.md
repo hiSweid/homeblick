@@ -57,6 +57,8 @@ A ring of the doorbell event wakes the display, plays a chime and opens the door
 
 **Settings page** (sidebar → *Homeblick Einstellungen*, admins only): one tab per display with online status and remote actions (show face, reload, Assist, screensaver), the faces it shows (order, background, style, grid tiles; entities are chosen with a searchable picker like Home Assistant's, filtered to what a tile can control), screensaver, night dimming, wake word, Assist pipeline, weather entity/place; copy the setup of one display to another. Changes reach the open display immediately.
 
+**Tiles** (grid faces): every tile opens its own page on the settings page: entity (picker), title, subtitle, an optional live value behind the subtitle (state or any attribute), symbol, size (1×1, 2×1, 2×2), symbol colour when on, and an own action for tap and for hold (default, toggle, call a service with JSON data, open a face, nothing). Also addable: analogue/digital clock and weather tiles. Entities of switch, input_boolean, button and sensor/binary_sensor domains work as tiles too.
+
 Also: `#music`, `#bigclock`, … in the URL switches to that face; the screen is kept awake via the Wake Lock API.
 
 ## Kiosk / wall tablet
