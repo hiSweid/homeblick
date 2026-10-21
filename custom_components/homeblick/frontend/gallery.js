@@ -4,6 +4,23 @@ import { entsFor, entsIn, findEnts, pickEntity } from './entpicker.js';
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const fold = s => String(s ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 
+// Karussell auch mit der Maus bedienbar: Ziehen, Mausrad (senkrecht → waagerecht); danach rastet es auf die nächste Karte ein
+export function swipable(el) {
+  let d = null;
+  const snap = () => { const c = [...el.children].filter(x => x.offsetWidth), mid = x => x.offsetLeft + x.offsetWidth / 2 - el.scrollLeft - el.clientWidth / 2, n = c.reduce((b, x) => Math.abs(mid(x)) < Math.abs(mid(b)) ? x : b, c[0]); n && el.scrollTo({ left: n.offsetLeft + n.offsetWidth / 2 - el.clientWidth / 2, behavior: 'smooth' }); };
+  el.addEventListener('pointerdown', e => { if (e.pointerType !== 'touch' && e.button === 0) d = { x: e.clientX, s: el.scrollLeft, id: e.pointerId, on: false }; });
+  el.addEventListener('pointermove', e => {
+    if (!d) return;
+    const dx = e.clientX - d.x;
+    if (!d.on && Math.abs(dx) > 5) { d.on = true; el.style.scrollSnapType = 'none'; el.setPointerCapture(d.id); }
+    if (d.on) el.scrollLeft = d.s - dx;
+  });
+  const end = () => { if (!d) return; const on = d.on; d = null; if (on) { el._drag = true; setTimeout(() => el._drag = false); el.style.scrollSnapType = ''; snap(); } };
+  el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end);
+  el.addEventListener('click', e => { if (el._drag) { e.stopPropagation(); e.preventDefault(); } }, true);   // Ziehen ist kein Tippen auf eine Karte
+  el.addEventListener('wheel', e => { if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) { e.preventDefault(); el.scrollBy({ left: e.deltaY * 2, behavior: 'smooth' }); } }, { passive: false });
+}
+
 export const CATS = [   // k, Name, Domains (ohne = keine Entity nötig), Farbe, Symbol
   ['light', 'Licht', ['light'], '#ff9f0a', 'bulb'], ['climate', 'Thermostat', ['climate'], '#ff6b35', 'thermo'], ['cover', 'Rollos & Tore', ['cover'], '#5e5ce6', 'cover'],
   ['lock', 'Schlösser', ['lock'], '#34c759', 'lock'], ['scene', 'Szenen & Skripte', ['scene', 'script'], '#ff9500', 'sun'], ['switch', 'Schalter', ['switch', 'input_boolean', 'button', 'input_button'], '#8e8e93', 'switch'],
@@ -48,11 +65,15 @@ export function pickWidget({ used = [], area = '' } = {}) {
       const name = en?.name || c.n;
       const card = ([w, h]) => `<div class="gs"><div class="gcard" style="width:${w * U + (w - 1) * 8}px;height:${h * U + (h - 1) * 8}px;background:linear-gradient(160deg,color-mix(in srgb,${c.c} 62%,#fff),${c.c})"><svg><use href="#i-${c.i}"/></svg><b>${esc(name)}</b><small>${esc(en ? en.area || c.n : c.k === 'wx' ? 'Wetter' : 'Uhr')}</small></div></div>`;
       box.innerHTML = `<div class="pkh"><button data-gb>‹ Widgets</button><b>${esc(c.n)}</b><button data-gx aria-label="Schließen">✕</button></div>
-        <div class="gd"><div class="gt">${esc(name)}</div><div class="gc">${SZ.map(card).join('')}</div><div class="gdots">${SZ.map((_, i) => `<i class="${i ? '' : 'on'}"></i>`).join('')}</div>
+        <div class="gd"><div class="gt">${esc(name)}</div><div class="gcw"><div class="gc">${SZ.map(card).join('')}</div><button class="scb l" data-gn="-1" aria-label="Kleiner"><svg><use href="#i-chev"/></svg></button><button class="scb r" data-gn="1" aria-label="Größer"><svg><use href="#i-chev"/></svg></button></div><div class="gdots">${SZ.map((_, i) => `<i class="${i ? '' : 'on'}"></i>`).join('')}</div>
         ${need ? `<button class="row gent" data-gp><span class="l">Entity</span><span class="v"><span class="val">${esc(en ? en.name : 'Keine passende Entity')}</span><svg class="chev"><use href="#i-chev"/></svg></span></button>` : ''}
         <button class="gadd" data-ga style="background:${c.c}" ${need && !en ? 'disabled' : ''}>＋ Widget hinzufügen</button></div>`;
       const gc = box.querySelector('.gc'), dots = [...box.querySelectorAll('.gdots i')], at = () => Math.round(gc.scrollLeft / gc.clientWidth);
-      gc.onscroll = () => dots.forEach((d, i) => d.classList.toggle('on', i === at()));
+      swipable(gc);
+      const arrows = () => box.querySelectorAll('.scb').forEach(b => b.disabled = at() + +b.dataset.gn < 0 || at() + +b.dataset.gn >= SZ.length);
+      gc.onscroll = () => { dots.forEach((d, i) => d.classList.toggle('on', i === at())); arrows(); };
+      box.querySelectorAll('.scb').forEach(b => b.onclick = () => gc.scrollTo({ left: (at() + +b.dataset.gn) * gc.clientWidth, behavior: 'smooth' }));
+      arrows();
       box.querySelector('[data-ga]').onclick = () => done({ cat: c.k, en, size: SZ[at()] });
       box.querySelector('[data-gp]')?.addEventListener('click', async () => { const e = await pickEntity({ title: c.n, domains: c.d, current: en?.id }); if (e?.id) detail(c, e); });
     }

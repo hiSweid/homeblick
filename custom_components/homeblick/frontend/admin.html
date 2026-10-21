@@ -60,6 +60,9 @@ svg{display:block}
 #carslot{flex:none;padding-top:6px}#carslot[hidden]{display:block;height:0;padding:0;overflow:hidden;visibility:hidden}   /* vorgeladen: die Frames behalten ihre Größe, auch wenn sie nicht gezeigt werden */
 .scs{display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;padding:8px calc(50% - var(--cs) / 2) 12px}.scs::-webkit-scrollbar{display:none}
 .scc{flex:none;width:var(--cs);height:var(--cs);scroll-snap-align:center;border-radius:28px;overflow:hidden;background:linear-gradient(160deg,#9aa6ba,#5d687c);box-shadow:0 8px 24px #0003;scale:.86;opacity:.55;cursor:pointer;transition:scale .35s var(--spring),opacity .2s}.scc.on{scale:1;opacity:1}.scc.off{display:none}
+.scb{position:absolute;top:calc(var(--cs) / 2 - 10px);z-index:2;width:34px;height:34px;border-radius:50%;background:var(--glass);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);box-shadow:0 2px 10px #0003;display:grid;place-items:center;transition:scale .25s var(--spring),opacity .2s}.scb:active{scale:.9}.scb:disabled{opacity:0;pointer-events:none}
+.scb svg{width:16px;height:16px;stroke:var(--fg);fill:none;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}.scb.l{left:12px}.scb.l svg{transform:scaleX(-1)}.scb.r{right:12px}
+#carslot{position:relative}.gcw{position:relative;margin:0 -16px}.gcw .scb{top:95px}
 .scc iframe{display:block;width:100%;height:100%;border:0;pointer-events:none}
 .scn{text-align:center;font-weight:600;font-size:17px;min-height:22px}
 .pks2{padding:12px 16px 4px;font-size:13px;text-transform:uppercase;color:var(--sec);letter-spacing:.2px}
@@ -250,7 +253,7 @@ textarea.r{text-align:right}
 <script type="module">
 import { ICON, faceId, moveTo, normFaces, pack, rows } from './faces.js';
 import { DOM, areasOf, entOf, entsIn, entsOf, loadEntities, pickEntity } from './entpicker.js';
-import { pickWidget } from './gallery.js';
+import { pickWidget, swipable } from './gallery.js';
 import { ESP_FORMAT, FORMAT, espExport, remapConfig } from './share.js';
 // Einstellungsseite: Seitenleiste mit allen Displays → Display → Face (Kacheln). Läuft als Admin-Panel in HA
 // (gleicher Login wie das Panel, Tokens im localStorage).
@@ -435,11 +438,11 @@ const carWins = () => [...document.querySelectorAll('#carslot iframe')];
 function carInit() {
   if (car.up) return; car.up = true;
   const n = $('#carslot');
-  n.innerHTML = `<div class="scs">${'<div class="scc off"><iframe src="index.html?preview" tabindex="-1"></iframe></div>'.repeat(3)}</div><div class="scn"></div><div class="gdots"></div>`;
+  n.innerHTML = `<div class="scs">${'<div class="scc off"><iframe src="index.html?preview" tabindex="-1"></iframe></div>'.repeat(3)}</div><div class="scn"></div><div class="gdots"></div><button class="scb l" aria-label="Zurück"><svg><use href="#i-chev"/></svg></button><button class="scb r" aria-label="Weiter"><svg><use href="#i-chev"/></svg></button>`;
   const sc = n.querySelector('.scs'), cards = [...sc.children];
   const mid = x => x.offsetLeft + x.offsetWidth / 2 - sc.scrollLeft - sc.clientWidth / 2;
   const near = () => cards.filter(x => !x.classList.contains('off')).reduce((b, x) => Math.abs(mid(x)) < Math.abs(mid(b)) ? x : b, cards[0]);
-  car.mark = i => { cards.forEach((x, k) => x.classList.toggle('on', k === i)); n.querySelectorAll('.gdots i').forEach((x, k) => x.classList.toggle('on', k === i)); if (car.def) n.querySelector('.scn').textContent = car.def.items[i]?.[1] || ''; };
+  car.mark = i => { car.i = i; n.querySelector('.scb.l').disabled = i <= 0; n.querySelector('.scb.r').disabled = !car.def || i >= car.def.items.length - 1; cards.forEach((x, k) => x.classList.toggle('on', k === i)); n.querySelectorAll('.gdots i').forEach((x, k) => x.classList.toggle('on', k === i)); if (car.def) n.querySelector('.scn').textContent = car.def.items[i]?.[1] || ''; };
   car.go = (i, smooth) => sc.scrollTo({ left: cards[i].offsetLeft + cards[i].offsetWidth / 2 - sc.clientWidth / 2, behavior: smooth ? 'smooth' : 'instant' });
   let tm;
   sc.addEventListener('scroll', () => {
@@ -447,6 +450,9 @@ function carInit() {
     tm = setTimeout(() => { const d = car.def, v = d?.items[i]?.[0]; if (d && v !== undefined && String(v) !== String(d.cur)) { d.cur = v; d.pick(v); } }, 150);
   }, { passive: true });
   cards.forEach((x, i) => x.addEventListener('click', () => car.go(i, true)));
+  swipable(sc);
+  n.querySelector('.scb.l').onclick = () => car.go(Math.max(0, car.i - 1), true);
+  n.querySelector('.scb.r').onclick = () => car.go(Math.min(car.def.items.length - 1, car.i + 1), true);
 }
 function carSend(k) {
   const d = car.def, win = carWins()[k]?.contentWindow;
