@@ -1,6 +1,6 @@
 // Widget-Galerie nach dem Vorbild der iOS-Widgets (ref/vorlagen/EV-zxZWwts0): Kategorien suchen → Seite der Kategorie mit Größen zum Wischen → farbiger Knopf „Widget hinzufügen“.
 // Läuft nur in admin.html (Symbole #i-* und CSS .pk*/.gal* stehen dort).
-import { entsFor, findEnts, pickEntity } from './entpicker.js';
+import { entsFor, entsIn, findEnts, pickEntity } from './entpicker.js';
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const fold = s => String(s ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 
@@ -15,13 +15,16 @@ const SZ = [[1, 1], [2, 1], [2, 2]];   // wie in der Kachel-Seite
 const U = 92;   // Kantenlänge einer Zelle in der Vorschau (px)
 const ico = (c, i) => `<span class="ico" style="background:${c.c}"><svg><use href="#i-${i || c.i}"/></svg></span>`;
 
-// used: Entity-IDs, die auf dem Face schon liegen (die Vorauswahl nimmt die erste andere) → { cat, en, size: [w, h] } oder null
-export function pickWidget({ used = [] } = {}) {
+// used: Entity-IDs, die auf dem Face schon liegen (die Vorauswahl nimmt die erste andere)
+// area: Bereich des Displays → oben „Vorschläge für <Bereich>“ (Geräte des Raums, ein Tipp fügt sie als 1×1 hinzu)
+// → { cat, en, size: [w, h] } oder null
+export function pickWidget({ used = [], area = '' } = {}) {
   return new Promise(res => {
     const o = Object.assign(document.createElement('div'), { id: 'ov', className: 'pkov', innerHTML: '<div class="pk gal" role="dialog" aria-label="Widget hinzufügen"></div>' });
     const box = o.firstElementChild, done = v => { o.classList.remove('in'); setTimeout(() => o.remove(), 300); res(v); };
     const catOf = e => CATS.find(c => c.d?.includes(e.domain));
     const count = c => c.d ? entsFor(c.d).length : -1;
+    const sug = area ? entsIn(area).filter(e => catOf(e) && !used.includes(e.id)).sort((a, b) => CATS.indexOf(catOf(a)) - CATS.indexOf(catOf(b)) || a.name.localeCompare(b.name, 'de')).slice(0, 12) : [];
 
     function list() {
       box.innerHTML = `<div class="pkh"><b>Widget hinzufügen</b><button data-gx>Abbrechen</button></div>
@@ -31,7 +34,8 @@ export function pickWidget({ used = [] } = {}) {
         const w = fold(q.value).trim();
         const cs = CATS.filter(c => count(c) !== 0 && (!w || fold(c.n).includes(w)));
         const es = w ? findEnts(w, CATS.flatMap(c => c.d || [])).slice(0, 40) : [];
-        l.innerHTML = cs.map(c => `<button class="pki" data-gc="${c.k}">${ico(c)}<span class="t"><b>${esc(c.n)}</b><small>${count(c) < 0 ? 'Ohne Entity' : count(c) + (count(c) === 1 ? ' Entity' : ' Entities')}</small></span><svg class="chev"><use href="#i-chev"/></svg></button>`).join('')
+        l.innerHTML = (!w && sug.length ? `<div class="pks2">Vorschläge für ${esc(area)}</div>` + sug.map(e => { const c = catOf(e); return `<button class="pki" data-gs="${esc(e.id)}">${ico(c)}<span class="t"><b>${esc(e.name)}</b><small>${esc(c.n)}</small></span><svg class="chev"><use href="#i-plus"/></svg></button>`; }).join('') + '<div class="pks2">Kategorien</div>' : '')
+          + cs.map(c => `<button class="pki" data-gc="${c.k}">${ico(c)}<span class="t"><b>${esc(c.n)}</b><small>${count(c) < 0 ? 'Ohne Entity' : count(c) + (count(c) === 1 ? ' Entity' : ' Entities')}</small></span><svg class="chev"><use href="#i-chev"/></svg></button>`).join('')
           + es.map(e => { const c = catOf(e); return `<button class="pki" data-ge="${esc(e.id)}">${ico(c)}<span class="t"><b>${esc(e.name)}</b><small>${esc([c.n, e.area].filter(Boolean).join(' · '))}</small></span></button>`; }).join('')
           || '<div class="pkn">Nichts gefunden</div>';
       };
@@ -55,6 +59,8 @@ export function pickWidget({ used = [] } = {}) {
 
     o.onclick = e => {
       if (e.target === o || e.target.closest('[data-gx]')) return done(null);
+      const gs = e.target.closest('[data-gs]');
+      if (gs) { const en = sug.find(x => x.id === gs.dataset.gs); return done({ cat: catOf(en).k, en, size: [1, 1] }); }
       const gc = e.target.closest('[data-gc]'), ge = e.target.closest('[data-ge]');
       if (gc) detail(CATS.find(c => c.k === gc.dataset.gc));
       else if (ge) { const en = findEnts(ge.dataset.ge, CATS.flatMap(c => c.d || [])).find(x => x.id === ge.dataset.ge); if (en) detail(catOf(en), en); }

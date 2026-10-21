@@ -19,43 +19,47 @@ button,input,select{font:inherit;color:inherit;border:0;background:none;padding:
 button{cursor:pointer;text-align:inherit}
 svg{display:block}
 
-/* Layout: schmal = Liste → Detail (Push), breit = Seitenleiste + Detail */
-#app{position:fixed;inset:0;display:grid;grid-template-columns:100%}
-#side{overflow-y:auto;padding:max(env(safe-area-inset-top),20px) 16px 40px}
-#pane{position:fixed;inset:0;background:var(--wall) fixed;transform:translateX(100%);transition:transform var(--sd) var(--spring);overflow:hidden}
-#app[data-open="1"] #pane{transform:none}
-@media(min-width:820px){
-  #app{grid-template-columns:340px 1fr}
-  #side{border-right:.5px solid var(--sep)}
-  #pane{position:relative;transform:none;transition:none}
-}
-.lt{font:700 34px/1.15 -apple-system,Inter,system-ui,sans-serif;letter-spacing:.2px;margin:18px 4px 2px}
-.lsub{color:var(--sec);margin:0 4px 18px}
+/* Startseite: nur die Displays als Bilder; Antippen öffnet den Editor im Vollbild, Einstellungen/Face/Kachel kommen als Sheet */
+#side{position:fixed;inset:0;overflow-y:auto;padding:max(env(safe-area-inset-top),20px) 16px 40px}
+#side>*{max-width:760px;margin-left:auto;margin-right:auto}
+.lt{font:700 34px/1.15 -apple-system,Inter,system-ui,sans-serif;letter-spacing:.2px;margin:18px auto 2px}
+.lsub{color:var(--sec);margin:0 auto 18px}
+.dcs{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:20px 16px;margin-bottom:26px}
+.dc{display:flex;flex-direction:column;gap:2px;min-width:0;transition:scale var(--sd) var(--spring)}.dc:active{scale:.95;transition:scale .12s ease-out}
+.dcimg{position:relative;aspect-ratio:1;border-radius:24px;overflow:hidden;display:grid;place-items:center;margin-bottom:8px;box-shadow:0 8px 22px #0003;background:linear-gradient(160deg,#9aa6ba,#5d687c)}
+.dcimg img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}.dcimg>svg{width:44px;height:44px;stroke:#ffffffcc;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.dcimg .dot{position:absolute;right:10px;top:10px;box-shadow:0 0 0 2px #0004}
+.dc b{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 4px}.dc small{color:var(--sec);font-size:13px;padding:0 4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.dc small.warn{color:var(--red)}
 
-/* Vorschau + Inspektor: nur auf breiten Fenstern, eigene Spalte */
-#pv{display:none;flex-direction:column;gap:10px;align-items:stretch;padding:max(env(safe-area-inset-top),16px) 18px 18px;overflow:hidden;min-height:0}
-#app[data-ed="1"] #pv{display:flex;position:fixed;inset:0;z-index:15;background:var(--wall)}
-@media(min-width:1180px){
-  #app{grid-template-columns:340px 1fr 480px}
-  #pv,#app[data-ed="1"] #pv{display:flex;position:static;border-left:.5px solid var(--sep);background:none}
-  .edbtn{display:none}
-}
-.pvh{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:34px}.pvh b{font-size:17px;font-weight:600;text-align:center;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-/* Pillen wie bei iOS im Bearbeiten-Modus: „+“ oben links, blaues „✓“ oben rechts (ref/vorlagen/EV-zxZWwts0) */
-.pvp{width:46px;height:30px;border-radius:15px;display:none;align-items:center;justify-content:center;background:var(--fill);color:var(--fg);transition:scale .25s var(--spring)}.pvp:active{scale:.9}.pvp svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+/* Editor: das Display im Vollbild, Bearbeiten-Modus wie bei iOS (Pillen „+“ „Einstellungen“ „✓“, Seitenpunkte, Name der Seite) */
+#ed{position:fixed;inset:0;z-index:15;display:none;flex-direction:column;align-items:center;gap:6px;background:var(--wall) fixed;padding:max(env(safe-area-inset-top),14px) 16px max(env(safe-area-inset-bottom),14px)}
+#ed.on{display:flex}
+.edh{flex:none;width:min(100%,640px);display:flex;align-items:center;gap:8px;min-height:34px}
+.edh b{flex:1;min-width:0;text-align:center;font-weight:600;font-size:15px;color:var(--sec);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.edh .pvp.ok{margin-left:0}
+.pvp{width:46px;height:30px;border-radius:15px;display:flex;flex:none;align-items:center;justify-content:center;background:var(--fill);color:var(--fg);transition:scale .25s var(--spring)}.pvp:active{scale:.9}.pvp svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
 .pvp.ok{background:var(--blue);color:#fff}
-#app[data-pe="1"] .pvp{display:flex}
-#pvf{flex:none;width:min(100%,max(300px,calc(100dvh - 470px)));aspect-ratio:1;align-self:center;border:0;border-radius:28px;background:#000;box-shadow:0 8px 30px #0003}
-#pvfaces{flex:none;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:2px 0}
-#pvfaces button.plus2{color:var(--blue)}
-#pvfaces button{flex:none;padding:6px 12px;border-radius:16px;background:var(--fill);font-size:14px;white-space:nowrap}#pvfaces .on{background:var(--blue);color:#fff}
-#insw{position:relative;flex:1;min-height:0;border-radius:22px;overflow:hidden;border:.5px solid var(--sep)}
-.rot-l{transform:rotate(-90deg)}.rot-r{transform:rotate(-90deg)}
-.insh{padding:26px 20px;color:var(--sec);font-size:15px;text-align:center}
+#edm{flex:1;min-height:0;width:100%;display:flex;align-items:center;justify-content:center;touch-action:pan-y}
+#pvf{flex:none;width:min(100%,calc(100dvh - 170px));aspect-ratio:1;border:0;border-radius:30px;background:#000;box-shadow:0 10px 34px #0004}
+#eddots{flex:none;display:flex;gap:10px;align-items:center;justify-content:center;min-height:20px}
+#eddots button{position:relative;width:8px;height:8px;border-radius:50%;background:var(--sec);opacity:.35;transition:opacity .2s,scale .25s var(--spring)}
+#eddots button::after{content:"";position:absolute;inset:-9px}
+#eddots button.on{opacity:1;scale:1.25;background:var(--fg)}
+#eddots button.dp{background:none;opacity:.6;width:12px;height:12px}.dp svg{width:12px;height:12px;stroke:var(--fg);fill:none;stroke-width:3;stroke-linecap:round}
+#edname{flex:none;font-weight:600;font-size:17px;padding:2px 16px 6px}
+
+/* Sheet mit Einstellungen / Face / Kachel */
+#shp{position:fixed;inset:0;z-index:18;background:#0006;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .25s}
+#shp.in{opacity:1;pointer-events:auto}
+.shc{position:relative;width:min(620px,100%);height:min(780px,92dvh);border-radius:28px 28px 0 0;overflow:hidden;background:var(--bg);transform:translateY(105%);transition:transform var(--sd) var(--spring)}
+#shp.in .shc{transform:none}
+@media(min-width:820px){#shp{align-items:center}.shc{border-radius:28px}}
+.shc .page{background:var(--wall)}
+.nav .done{justify-self:end;color:var(--blue);font-weight:600;padding:10px 12px}
+.pks2{padding:12px 16px 4px;font-size:13px;text-transform:uppercase;color:var(--sec);letter-spacing:.2px}
 
 /* Seiten im Detail-Bereich */
 .page{position:absolute;inset:0;display:flex;flex-direction:column;background:var(--wall) fixed;transition:transform var(--sd) var(--spring),opacity .3s}
-.page.under{transform:translateX(-28%);opacity:.55;pointer-events:none}
 .nav{flex:none;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;min-height:52px;padding:env(safe-area-inset-top) 8px 0;background:var(--glass);backdrop-filter:blur(24px) saturate(1.8);-webkit-backdrop-filter:blur(24px) saturate(1.8);border-bottom:.5px solid var(--sep);z-index:2}
 .nav .ttl{font-weight:600;max-width:46vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .back{display:flex;align-items:center;gap:2px;color:var(--blue);padding:10px 8px}
@@ -224,20 +228,24 @@ textarea.r{text-align:right}
   <symbol id="i-script" viewBox="0 0 24 24"><path d="M7 4h10a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H7zM10 9h6M10 13h6"/></symbol>
   <symbol id="i-switch" viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="8" rx="4"/><circle cx="8" cy="12" r="2"/></symbol>
   <symbol id="i-pulse" viewBox="0 0 24 24"><path d="M3 13h4l3-8 4 14 3-6h4"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h8M18 7h2M4 17h2M12 17h8"/><circle cx="15" cy="7" r="2.4"/><circle cx="9" cy="17" r="2.4"/></symbol>
   <symbol id="i-dot" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M8 12h8"/></symbol>
 </defs></svg>
 
-<div id="app" data-open="0">
-  <aside id="side"></aside>
-  <main id="pane"></main>
-  <aside id="pv"><div class="pvh"><button class="pvp" data-a="gal" aria-label="Widget hinzufügen"><svg><use href="#i-plus"/></svg></button><b id="pvt"></b><button class="pvp ok" data-a="edone" aria-label="Fertig"><svg><use href="#i-check"/></svg></button></div><iframe id="pvf" title="Vorschau"></iframe><div id="pvfaces"></div><div id="insw"><section class="page" id="ins"></section></div></aside>
-</div>
+<div id="side"></div>
+<section id="ed" aria-label="Display bearbeiten">
+  <div class="edh"><button class="pvp" data-a="gal" aria-label="Widget hinzufügen"><svg><use href="#i-plus"/></svg></button><button class="pvp" data-a="gear" aria-label="Einstellungen"><svg><use href="#i-sliders"/></svg></button><b id="edt"></b><button class="pvp ok" data-a="edone" aria-label="Fertig"><svg><use href="#i-check"/></svg></button></div>
+  <div id="edm"><iframe id="pvf" title="Display"></iframe></div>
+  <div id="eddots"></div><button id="edname" data-a="fname"></button>
+</section>
+<div id="shp"><div class="shc"><section class="page" id="ins"></section></div></div>
 <div id="toast"></div>
 
 <script type="module">
 import { ICON, faceId, normFaces, pack, rows } from './faces.js';
 import { DOM, areasOf, entOf, entsIn, entsOf, loadEntities, pickEntity } from './entpicker.js';
 import { pickWidget } from './gallery.js';
+import { ESP_FORMAT, FORMAT, espExport, remapConfig } from './share.js';
 // Einstellungsseite: Seitenleiste mit allen Displays → Display → Face (Kacheln). Läuft als Admin-Panel in HA
 // (gleicher Login wie das Panel, Tokens im localStorage).
 const $ = s => document.querySelector(s);
@@ -278,10 +286,10 @@ const field = (label, key, v, extra = '', attr = 'data-s') => `<label class="row
 const shots = {};   // letztes Bildschirmfoto je Display
 let conn, displays = [], sel = null, cfg = null, pipelines = [], ttss = [];
 let camState = { cameras: { list: [], bell: null }, auto: true }, camEnts = [];   // Kameras und Klingel gelten für alle Displays
-let stack = [];   // Seiten im Detail-Bereich: { t: 'display' } | { t: 'face', i }
+let ins = null, fi = 0, edOpen = false;   // Sheet: { t: 'display', sec } | { t: 'face', i } | { t: 'tile', i, j } | null; fi = Face im Editor
 const call = (type, p = {}) => conn.sendMessagePromise({ type: 'homeblick/' + type, ...p });
 const cur = () => displays.find(d => d.id === sel);
-const wide = () => matchMedia('(min-width:820px)').matches;
+const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 // ---- Rückmeldung ----
 let tt;
@@ -340,10 +348,8 @@ const issues = d => {
 
 function listHTML() {
   const fresh = displays.filter(d => d.new), ready = displays.filter(d => !d.new);
-  const warn = ready.map(d => [d, issues(d)]).filter(x => x[1].length)
-    .map(([d, l]) => `<button class="row" data-d="${esc(d.id)}">${ico('disp')}<span class="l two"><b>${esc(d.name)}</b><small>${esc(l.join(' · '))}</small></span>${svg('chev')}</button>`).join('');
   const news = fresh.map(d => `<button class="row" data-a="setup" data-id="${esc(d.id)}">${ico('disp', '#34c759')}<span class="l two"><b>${esc(d.name)}</b><small>${d.connected ? 'Wartet auf die Einrichtung' : 'Nicht verbunden'}</small></span><span class="v" style="color:var(--blue)">Einrichten</span>${svg('chev')}</button>`).join('');
-  const rows = ready.map(d => `<button class="row ${d.id === sel ? 'sel-row' : ''}" data-d="${esc(d.id)}">${ico('disp')}<span class="l two"><b>${esc(d.name)}</b><small>${esc(stat(d))}</small></span><span class="dot ${d.connected ? 'on' : ''}"></span>${svg('chev')}</button>`).join('');
+  const cards = ready.map(d => { const w = issues(d)[0], img = shots[d.id]; return `<button class="dc" data-d="${esc(d.id)}"><span class="dcimg">${img ? `<img src="${img}" alt="">` : svg('disp', '')}<i class="dot ${d.connected ? 'on' : ''}"></i></span><b>${esc(d.name)}</b><small class="${w ? 'warn' : ''}">${esc(w || [d.area, d.connected ? 'Online' : 'Offline'].filter(Boolean).join(' · '))}</small></button>`; }).join('');
   const areas = [...new Set(displays.map(x => x.area).filter(Boolean))].sort();
   if (!areas.includes(area)) area = '';
   const on = inArea().filter(x => x.connected).length, dis = on ? '' : 'disabled';
@@ -351,9 +357,9 @@ function listHTML() {
     + field('Zurück nach (s, leer = bleibt)', 'dur', '', 'type="number" inputmode="numeric" min="1" max="3600"', 'data-dur')
     + pick('Face anzeigen', 'allface', [['', 'Wählen …'], ...TYPES], '', 'data-allface')
     + `<button class="row btn" data-alls="1"><span class="l">Nachtmodus auf allen an</span></button><button class="row btn" data-alls="0"><span class="l">Nachtmodus auf allen aus</span></button>`, `Befehle gehen an alle Displays${area ? ` im Bereich „${esc(area)}“` : ''}, die gerade geöffnet sind.${areas.length ? '' : ' Bekommen die Display-Geräte in Home Assistant einen Bereich, lassen sich die Befehle auf einen Bereich beschränken.'}`) : '';
-  return `<div class="lt">Homeblick</div><div class="lsub">Displays im Haus</div>` +
+  return `<div class="lt">Homeblick</div><div class="lsub">Tippe auf ein Display, um es einzurichten</div>` +
     (fresh.length ? grp('Neue Displays', news, 'Tippe auf „Einrichten“: Name, Bereich und Vorlage wählen, fertig.') : '') +
-    (ready.length ? (warn ? grp('Hinweise', warn) : '') + grp('Displays', rows, 'Ein Display meldet sich selbst, sobald Homeblick einmal auf dem Gerät geöffnet wurde.') + allGrp
+    (ready.length ? `<div class="dcs">${cards}</div>` + allGrp
       : fresh.length ? '' : grp('', `<div class="row"><span class="l">Noch kein Display angemeldet</span></div>`, 'Öffne Homeblick auf dem Gerät (in der Home-Assistant-App: Seitenleiste → Homeblick). Es erscheint hier als neues Display. Für mehrere Geräte im selben Browser hilft <code>?display=kueche&amp;name=Küche</code> hinter der Adresse.'));
 }
 
@@ -416,37 +422,43 @@ async function camAction(a, i) {
 // ---- Seiten ----
 let moreKey = '';   // Kachel, deren „Weitere Optionen“ offen sind (i.j)
 const pages = {
-  display() {
-    const d = cur(), s = d.settings, faces = cfg?.faces;
-    const body = `
-      <div class="hero">${ico('disp')}<h2 data-live="name">${esc(d.name)}</h2><p data-live="stat">${esc(stat(d))}</p></div>
-      ${grp('', field('Name', 'name', d.name))}
-      ${faces ? `<div class="sec edbtn"><div class="grp"><button class="row btn c" data-a="edit">Anzeige bearbeiten</button></div><div class="sf">Faces, Kacheln, Hintergründe und Entities stellst du live in der Vorschau ein.</div></div>` : grp('', `<div class="row"><span class="l" style="color:var(--sec)">Noch keine Konfiguration. Öffne Homeblick einmal auf dem Gerät.</span></div>`)}
-      <div class="sec"><div class="grp"><div class="quick">${[['reload', 'Neu laden', 'refresh'], ['assist', 'Assist', 'mic'], ['stop', 'Abbrechen', 'x'], ['screensaver', 'Ruhemodus', 'moon'], ['wake', 'Aufwecken', 'sun']].map(([c, n, i]) => `<button class="q" data-c="${c}" ${d.connected ? '' : 'disabled'}><span class="qi">${svg(i, '')}</span>${n}</button>`).join('')}</div>
+  display(e) {
+    const d = cur(), s = d.settings, faces = cfg?.faces, off = d.connected ? '' : 'disabled style="opacity:.4"';
+    const quick = [['reload', 'Neu laden', 'refresh'], ['assist', 'Assist', 'mic'], ['stop', 'Abbrechen', 'x'], ['screensaver', 'Ruhemodus', 'moon'], ['wake', 'Aufwecken', 'sun']];
+    const SEC = {   // Abschnitte der Einstellungen: [Titel, Symbol, Farbe, Inhalt]
+      steuern: ['Steuerung & Ansage', 'refresh', '#007aff', () => `<div class="sec"><div class="grp"><div class="quick">${quick.map(([c, n, i]) => `<button class="q" data-c="${c}" ${d.connected ? '' : 'disabled'}><span class="qi">${svg(i, '')}</span>${n}</button>`).join('')}</div>
         ${field('Zurück nach (s, leer = bleibt)', 'dur', '', 'type="number" inputmode="numeric" min="1" max="3600"', 'data-dur')}
-        ${pick('Face anzeigen', 'show', [['', 'Wählen …'], ...TYPES], '', 'data-show')}</div><div class="sf">Die Steuerung geht, solange das Display geöffnet ist.</div></div>
-      ${grp('Ansage', field('Text', 'say', '', 'placeholder="Das Essen ist fertig" maxlength="300"', 'data-say') + `<button class="row btn c" data-a="say" ${d.connected ? '' : 'disabled style="opacity:.4"'}>Auf dem Display ansagen</button><button class="row btn c" data-a="testnb" ${d.connected ? '' : 'disabled style="opacity:.4"'}>Testbenachrichtigung zeigen</button>`, 'Erscheint als Text und wird gesprochen (außer bei „Antworten stumm“). In Automationen: Aktion „Benachrichtigung senden“ (notify.send_message) an die Durchsage-Entity des Displays. Die weiße Karte mit Titel, Bild und Button kommt von der Aktion „Benachrichtigung zeigen“ (homeblick.notify).')}
-      ${grp('Vorschau', `<button class="row btn c" data-a="shot" ${d.connected ? '' : 'disabled style="opacity:.4"'}>Bildschirmfoto aufnehmen</button>${shots[d.id] ? `<img class="shot" src="${shots[d.id]}" alt="">` : ''}`, 'Bilder von fremden Servern, Kamera-Video und WebGL fehlen im Foto.')}
-      ${grp('Bildschirmschoner', field('Nach Inaktivität (s)', 'idle', s.idle, 'type="number" inputmode="numeric" min="0" max="3600" step="10"') + pick('Face', 'saver', faces ? TYPES.filter(([t]) => t === s.saver || faces.some(f => f.type === t)) : TYPES, s.saver) + toggle('Musik statt Bildschirmschoner', 'music', s.music) + toggle('Ganz schwarz statt Face', 'black', s.black) + toggle('Zeitplan', 'sched', s.sched) + `<div class="dep ${s.sched ? '' : 'off'}" id="schdep"><div>
+        ${pick('Face anzeigen', 'show', [['', 'Wählen …'], ...TYPES], '', 'data-show')}</div><div class="sf">Die Steuerung geht, solange das Display geöffnet ist.</div></div>`
+        + grp('Ansage', field('Text', 'say', '', 'placeholder="Das Essen ist fertig" maxlength="300"', 'data-say') + `<button class="row btn c" data-a="say" ${off}>Auf dem Display ansagen</button><button class="row btn c" data-a="testnb" ${off}>Testbenachrichtigung zeigen</button>`, 'Erscheint als Text und wird gesprochen (außer bei „Antworten stumm“). In Automationen: Aktion „Benachrichtigung senden“ (notify.send_message) an die Durchsage-Entity des Displays. Die weiße Karte mit Titel, Bild und Button kommt von der Aktion „Benachrichtigung zeigen“ (homeblick.notify).')],
+      schoner: ['Bildschirmschoner', 'disp', '#5856d6', () => grp('', field('Nach Inaktivität (s)', 'idle', s.idle, 'type="number" inputmode="numeric" min="0" max="3600" step="10"') + pick('Face', 'saver', faces ? TYPES.filter(([t]) => t === s.saver || faces.some(f => f.type === t)) : TYPES, s.saver) + toggle('Musik statt Bildschirmschoner', 'music', s.music) + toggle('Ganz schwarz statt Face', 'black', s.black) + toggle('Zeitplan', 'sched', s.sched) + `<div class="dep ${s.sched ? '' : 'off'}" id="schdep"><div>
         <label class="row"><span class="l">Von</span><input type="time" data-s="sched_from" value="${esc(s.sched_from.slice(0, 5))}"></label>
-        <label class="row"><span class="l">Bis</span><input type="time" data-s="sched_to" value="${esc(s.sched_to.slice(0, 5))}"></label></div></div>`, 'Im Zeitplan startet der Bildschirmschoner nach 30 Sekunden Ruhe, auch wenn die Inaktivitätszeit 0 ist. 0 schaltet den Bildschirmschoner aus. Läuft Musik, erscheint stattdessen das Musik-Face.')}
-      ${grp('Mikrofon stumm', toggle('Mikrofon stumm', 'micmute', s.micmute), 'Schaltet das Wake Word aus; Assist per Tippen funktioniert weiter.')}
-      ${grp('Nicht stören', toggle('Nicht stören', 'dnd', s.dnd), 'Wake Word, gesprochene Antworten und Klingelgong aus; Texte und Tippen bleiben.')}
-      ${grp('Schoner halten', toggle('Schoner halten', 'hold', s.hold), 'Solange aktiv, startet der Bildschirmschoner nicht (z. B. beim Kochen oder Präsentieren).')}
-      ${grp('Leistung', toggle('Leistungsmodus', 'perf', s.perf), 'Schaltet Animationen und Übergänge auf diesem Display ab – für schwache Tablets.')}
-      ${grp('Helligkeit', slider('Helligkeit', 'bright', 10, 100, 5, s.bright), 'Software-Abdunklung, keine Hardware-Helligkeit.')}
-      ${grp('Kontrollzentrum', toggle('Kontrollzentrum', 'kz', s.kz), 'Wisch von oben rechts über mindestens 40 % der Höhe: Helligkeit, Lautstärke, Schalter und Kacheln (Türen, Szenen, Lichter aus den Home-Faces). Schließen: Wisch hoch unten rechts, Tippen daneben oder Escape.')}
-      ${grp('Nachtmodus', toggle('Nachts abdunkeln', 'dim', s.dim) + `<div class="dep ${s.dim ? '' : 'off'}" id="dimdep"><div>
+        <label class="row"><span class="l">Bis</span><input type="time" data-s="sched_to" value="${esc(s.sched_to.slice(0, 5))}"></label></div></div>`, 'Im Zeitplan startet der Bildschirmschoner nach 30 Sekunden Ruhe, auch wenn die Inaktivitätszeit 0 ist. 0 schaltet den Bildschirmschoner aus. Läuft Musik, erscheint stattdessen das Musik-Face.')
+        + grp('Schoner halten', toggle('Schoner halten', 'hold', s.hold), 'Solange aktiv, startet der Bildschirmschoner nicht (z. B. beim Kochen oder Präsentieren).')],
+      nacht: ['Nachtmodus & Helligkeit', 'moon', '#636366', () => grp('Nachtmodus', toggle('Nachts abdunkeln', 'dim', s.dim) + `<div class="dep ${s.dim ? '' : 'off'}" id="dimdep"><div>
         <label class="row"><span class="l">Von</span><input type="time" data-s="dim_from" value="${esc(s.dim_from.slice(0, 5))}"></label>
         <label class="row"><span class="l">Bis</span><input type="time" data-s="dim_to" value="${esc(s.dim_to.slice(0, 5))}"></label>
-        ${slider('Stärke', 'dim_level', 10, 95, 5, s.dim_level)}</div></div>`, 'Ein Tipp hellt das Display für 30 Sekunden auf.')}
-      ${grp('Sprache', pick('Wake Word', 'wake', WAKE, s.wake) + slider('Empfindlichkeit', 'wake_sens', 10, 95, 5, s.wake_sens) + toggle('Antworten stumm', 'mute', s.mute) + toggle('Wake Word unterbricht Antwort', 'barge', s.barge) + slider('Lautstärke der Antworten', 'volume', 0, 100, 5, s.volume) + field('Aufnahme-Zeitlimit (s)', 'listen', s.listen, 'type="number" inputmode="numeric" min="3" max="60"') + pick('Stimme für Ansagen', 'tts', [['', 'Browser-Stimme'], ...ttss], s.tts) + pick('Assist-Pipeline', 'pipeline', [['', 'Standard von Home Assistant'], ...pipelines], s.pipeline), 'Ein Wake Word hält das Mikrofon dauerhaft offen und braucht https. „Stumm“ zeigt Antworten nur als Text. Damit „Licht an“ den richtigen Raum trifft, dem Gerät des Displays in Home Assistant einen Bereich geben.')}
-      ${grp('Klingel', toggle('Gong beim Klingeln', 'chime', s.chime), 'Klingeln weckt das Display und öffnet die Türkamera. Lautstärke wie bei den Antworten; Ton erst, nachdem das Display einmal berührt wurde (Browser-Regel).')}
-      ${grp('Automatische Helligkeit', epick('Lichtsensor (Lux)', 'lux', s.lux, { domains: ['sensor'], dcs: ['illuminance'], none: 'Keiner' }), 'Dunkler Raum dimmt das Display (bis 30 %), ab ca. 300 lx volle Helligkeit; wirkt zusätzlich zum Helligkeits-Regler.')}
-      ${grp('Aufwecken', epick('Bewegungs-/Präsenzmelder', 'presence', s.presence, { domains: ['binary_sensor'], dcs: ['motion', 'occupancy', 'presence'], none: 'Keiner' }), 'Solange der Melder „an“ ist, bleibt das Display wach bzw. wacht aus dem Ruhemodus auf. Beim Wetter-Face „Bedingungen“ zeigt er zusätzlich die Nah-Ansicht (Karte), sonst nur den Text.')}
-      <div id="liveGrp">${liveHTML(d)}</div>
-      ${grp('Verwalten', pick('Konfiguration übernehmen von', 'copy', [['', 'Display wählen …'], ...displays.filter(x => x.id !== sel).map(x => [x.id, x.name])], '', 'data-copy') + `<button class="row red c" data-a="rm">Display entfernen</button>`)}`;
-    return { back: wide() ? null : 'Displays', title: d.name, body };
+        ${slider('Stärke', 'dim_level', 10, 95, 5, s.dim_level)}</div></div>`, 'Ein Tipp hellt das Display für 30 Sekunden auf.')
+        + grp('Helligkeit', slider('Helligkeit', 'bright', 10, 100, 5, s.bright), 'Software-Abdunklung, keine Hardware-Helligkeit.')
+        + grp('Automatische Helligkeit', epick('Lichtsensor (Lux)', 'lux', s.lux, { domains: ['sensor'], dcs: ['illuminance'], none: 'Keiner' }), 'Dunkler Raum dimmt das Display (bis 30 %), ab ca. 300 lx volle Helligkeit; wirkt zusätzlich zum Helligkeits-Regler.')],
+      sprache: ['Sprache & Mikrofon', 'mic', '#ff2d55', () => grp('Sprache', pick('Wake Word', 'wake', WAKE, s.wake) + slider('Empfindlichkeit', 'wake_sens', 10, 95, 5, s.wake_sens) + toggle('Antworten stumm', 'mute', s.mute) + toggle('Wake Word unterbricht Antwort', 'barge', s.barge) + slider('Lautstärke der Antworten', 'volume', 0, 100, 5, s.volume) + field('Aufnahme-Zeitlimit (s)', 'listen', s.listen, 'type="number" inputmode="numeric" min="3" max="60"') + pick('Stimme für Ansagen', 'tts', [['', 'Browser-Stimme'], ...ttss], s.tts) + pick('Assist-Pipeline', 'pipeline', [['', 'Standard von Home Assistant'], ...pipelines], s.pipeline), 'Ein Wake Word hält das Mikrofon dauerhaft offen und braucht https. „Stumm“ zeigt Antworten nur als Text. Damit „Licht an“ den richtigen Raum trifft, dem Gerät des Displays in Home Assistant einen Bereich geben.')
+        + grp('Mikrofon stumm', toggle('Mikrofon stumm', 'micmute', s.micmute), 'Schaltet das Wake Word aus; Assist per Tippen funktioniert weiter.')
+        + grp('Nicht stören', toggle('Nicht stören', 'dnd', s.dnd), 'Wake Word, gesprochene Antworten und Klingelgong aus; Texte und Tippen bleiben.')
+        + grp('Klingel', toggle('Gong beim Klingeln', 'chime', s.chime), 'Klingeln weckt das Display und öffnet die Türkamera. Lautstärke wie bei den Antworten; Ton erst, nachdem das Display einmal berührt wurde (Browser-Regel).')],
+      mehr: ['Aufwecken & Leistung', 'bolt', '#ff9500', () => grp('Aufwecken', epick('Bewegungs-/Präsenzmelder', 'presence', s.presence, { domains: ['binary_sensor'], dcs: ['motion', 'occupancy', 'presence'], none: 'Keiner' }), 'Solange der Melder „an“ ist, bleibt das Display wach bzw. wacht aus dem Ruhemodus auf. Beim Wetter-Face „Bedingungen“ zeigt er zusätzlich die Nah-Ansicht (Karte), sonst nur den Text.')
+        + grp('Kontrollzentrum', toggle('Kontrollzentrum', 'kz', s.kz), 'Wisch von oben rechts über mindestens 40 % der Höhe: Helligkeit, Lautstärke, Schalter und Kacheln (Türen, Szenen, Lichter aus den Home-Faces). Schließen: Wisch hoch unten rechts, Tippen daneben oder Escape.')
+        + grp('Leistung', toggle('Leistungsmodus', 'perf', s.perf), 'Schaltet Animationen und Übergänge auf diesem Display ab – für schwache Tablets.')],
+      status: ['Status & Bildschirmfoto', 'info', '#34c759', () => `<div id="liveGrp">${liveHTML(d)}</div>`
+        + grp('Bildschirmfoto', `<button class="row btn c" data-a="shot" ${off}>Bildschirmfoto aufnehmen</button>${shots[d.id] ? `<img class="shot" src="${shots[d.id]}" alt="">` : ''}`, 'Bilder von fremden Servern, Kamera-Video und WebGL fehlen im Foto.')],
+      verwalten: ['Vorlagen & Sicherung', 'grid', '#8e8e93', () => grp('Verwalten', pick('Konfiguration übernehmen von', 'copy', [['', 'Display wählen …'], ...displays.filter(x => x.id !== sel && !x.new).map(x => [x.id, x.name])], '', 'data-copy') + `<button class="row btn c" data-a="apply">Auf andere Displays anwenden …</button>`, 'Vorlage: Faces, Kacheln und Einstellungen dieses Displays für andere übernehmen, auf Wunsch mit den Entities des jeweiligen Bereichs.')
+        + grp('Sichern', `<button class="row btn c" data-a="xjson">Konfiguration exportieren (JSON)</button><button class="row btn c" data-a="ximport">Konfiguration importieren …</button><button class="row btn c" data-a="xesp">Für ESP-Display exportieren</button>`, 'Die ESP-Datei enthält nur, was ein LVGL-Panel (480×480) darstellen kann: Smart-Home-Kacheln mit einfacher Bedienung, Musik, Uhr digital und Wetter, mit fertiger Rasterposition. Was fehlt, steht unter „skipped“.')],
+    };
+    if (e.sec) return { back: 'Einstellungen', title: SEC[e.sec][0], body: SEC[e.sec][3]() };
+    const row = k => `<button class="row" data-a="sec" data-v="${k}">${ico(SEC[k][1], SEC[k][2])}<span class="l">${SEC[k][0]}</span><span class="v">${svg('chev')}</span></button>`;
+    const body = `${grp('', field('Name', 'name', d.name))}
+      ${grp('', ['steuern', 'schoner', 'nacht', 'sprache', 'mehr'].map(row).join(''))}
+      ${grp('', ['status', 'verwalten'].map(row).join(''))}
+      ${grp('', `<button class="row red c" data-a="rm">Display entfernen</button>`)}`;
+    return { back: null, title: 'Einstellungen', body };
   },
 
   face(e) {
@@ -457,7 +469,6 @@ const pages = {
       return `<div class="row" data-ti="${j}"><button class="go" data-a="tile"><span class="ico" style="background:${c}">${xi(tileIcon(t))}</span><span class="l two"><b>${esc(tileTitle(t))}</b><small>${esc([t.sub, t.kind ? '' : en?.name || t.e, sz !== '1×1' && sz].filter(Boolean).join(' · '))}</small></span></button></div>`;
     };
     const body = `
-      <div class="prev" style="background:${bgCss(f.bg)}">${ico(meta[2], meta[1])}</div>
       ${photo ? '' : grp('Hintergrund', `<div class="sw-grid">${BG.filter(([v]) => !['calendar', 'date'].includes(f.type) || ['auto', 'black', 'white'].includes(v)).map(([v, n]) => `<button data-a="bg" data-v="${v}" class="${String(v) === String(f.bg) ? 'on' : ''}"><i style="background:${bgCss(v)}"></i>${n}</button>`).join('')}</div>`)}
       ${sty ? `<div class="sec"><div class="sh">Stil</div><div class="grp"><div class="seg">${sty.concat((LEGACY[f.type] || []).filter(([v]) => v === f.style)).map(([v, n]) => `<button data-a="style" data-v="${v}" class="${(f.style || sty[0][0]) === v ? 'on' : ''}">${n}</button>`).join('')}</div></div></div>` : ''}
       ${f.type === 'grid' ? (n => `<div class="sec"><div class="sh"><span>Kacheln</span></div><div class="grp">${(f.tiles || []).map(tileRow).join('')}<button class="row btn" data-a="tadd">${svg('plus', 'plus')}<span class="l">Widget hinzufügen</span></button></div>
@@ -468,7 +479,7 @@ const pages = {
       ${f.type === 'calendar' || f.type === 'info' ? grp('Kalender', entsOf('calendar').map(e => `<div class="row"><span class="l">${esc(e.name)}</span><label class="sw"><input type="checkbox" data-fcal="${esc(e.id)}" ${!f.cals || f.cals.includes(e.id) ? 'checked' : ''}><i></i></label></div>`).join('') || '<div class="row"><span class="l" style="color:var(--sec)">Keine Kalender in Home Assistant</span></div>', 'Diese Auswahl gilt für das Kalender- und das Info-Face. Ohne Haken bei einem Kalender fehlen dessen Termine.') : ''}
       ${grp('Face', `<div class="row"><span class="l">Position</span><span class="arrows"><button data-a="fleft" aria-label="Nach links" ${e.i === 0 ? 'disabled style="opacity:.3"' : ''}>${svg('up', 'rot-l')}</button><button data-a="fright" aria-label="Nach rechts" ${e.i === cfg.faces.length - 1 ? 'disabled style="opacity:.3"' : ''}>${svg('down', 'rot-r')}</button></span></div><button class="row btn" data-a="fdup">Face duplizieren</button><button class="row red" data-a="fhide">Face ausblenden</button>`, 'Ausgeblendete Faces bleiben mit ihrer Konfiguration erhalten und lassen sich über „+ Face“ wieder einblenden.')}
       ${grp('', `<button class="row btn c" data-c="face" ${d.connected ? '' : 'disabled style="opacity:.4"'}>Auf dem Display anzeigen</button>`)}`;
-    return { back: d.name, title: meta[0], body };
+    return { back: null, title: faceName(f), body };
   },
 
   tile(e) {
@@ -494,77 +505,105 @@ const pages = {
         + `<button class="row" data-a="ticon"><span class="l">Symbol</span><span class="v"><span class="ico" style="background:${DOM[en?.domain]?.[1] || '#8e8e93'}">${xi(tileIcon(t))}</span>${svg('chev')}</span></button>`, t.kind !== 'thermo' ? 'Zustand oder Attribut der Entity steht live hinter dem Untertitel.' : '') : ''}
       ${ent && open && t.kind !== 'thermo' ? grp('Aktionen', act('tap', 'Tippen') + act('hold', 'Halten'), 'Standard: Licht schaltet, Halten öffnet den Dimmer; Schloss, Tor, Szene … wie bisher.') : ''}
       ${grp('', `<button class="row red c" data-a="tdel">Widget entfernen</button>`)}`;
-    return { back: meta[0], title: tileTitle(t), body };
+    return { back: null, title: tileTitle(t), body };
   },
 };
 
-// ---- Seitenstapel (Push/Pop mit Feder) ----
-const pane = () => $('#pane');
-function fill(el, e) {
-  const p = pages[e.t](e), sc = el.querySelector('.body')?.scrollTop || 0;
-  if (el.id === 'ins' && e.t === 'face') p.back = null;
-  el.innerHTML = `<header class="nav"><div>${p.back ? `<button class="back" data-a="back">${svg('chev', '')}<span>${esc(p.back)}</span></button>` : ''}</div><b class="ttl">${esc(p.title)}</b><div></div></header><div class="body">${p.body}</div>`;
+// ---- Sheet für Einstellungen, Face und Kachel (jeweils nur eins; der Editor bleibt dahinter) ----
+const pane = () => $('#ins');
+function fill(el, e, keep) {
+  const p = pages[e.t](e), sc = keep ? el.querySelector('.body')?.scrollTop || 0 : 0;
+  el.innerHTML = `<header class="nav"><div>${p.back ? `<button class="back" data-a="back">${svg('chev', '')}<span>${esc(p.back)}</span></button>` : ''}</div><b class="ttl">${esc(p.title)}</b><button class="done" data-a="sclose">Fertig</button></header><div class="body">${p.body}</div>`;
   el.querySelector('.body').scrollTop = sc;
   queueMicrotask(pvSend);
 }
-const refresh = () => { stack.forEach((e, i) => fill(pane().children[i], e)); if (ins) fill($('#ins'), ins); };
-function push(e, animate = true) {
-  const el = Object.assign(document.createElement('section'), { className: 'page' });
-  fill(el, e); if (stack.length) pane().children[stack.length - 1].classList.add('under');
-  stack.push(e); pane().append(el);
-  if (animate) el.animate([{ transform: 'translateX(100%)' }, { transform: 'none' }], { duration: SD, easing: SPRING });
-}
-function renderSide() { const sc = $('#side').scrollTop; $('#side').innerHTML = listHTML(); $('#side').scrollTop = sc; }
-
-async function open(id) {
-  sel = id;
-  cfg = (await call('get_config', { display: id })).config;
-  if (cfg?.faces) normFaces(cfg);
-  pane().replaceChildren(); stack = [];
-  push({ t: 'display' }, false); setIns(null);
-  if (!wide()) $('#app').dataset.open = '1'; else pane().firstElementChild.animate([{ opacity: 0 }, { opacity: 1 }], 200);
-  renderSide();
-}
-async function reload() {
-  displays = await call('displays');
-  if (wide() && !displays.some(d => d.id === sel && !d.new)) sel = displays.find(d => !d.new)?.id ?? null;
-  renderSide();
-  if (sel && displays.some(d => d.id === sel)) await open(sel); else { sel = null; pane().replaceChildren(); stack = []; $('#app').dataset.open = '0'; }
-}
-
-// ---- Eingaben ----
-// ---- Vorschau: index.html?preview im iframe (Konfiguration und Zustände per postMessage, Ziehen/Antippen kommt zurück) ----
-const pvf = $('#pvf');
-let pvReady = false, pvConf = '', pvFace = '', pvSel = -2, pvStates = {};
-// Bearbeiten-Modus wie bei iOS (Kacheln wackeln, „−“, Resize-Griff, Pillen „+“/„✓“): auf breiten Fenstern von Anfang an an, sonst über „Anzeige bearbeiten“ bzw. langes Drücken → „Anpassen“
-let editing = matchMedia('(min-width:1180px)').matches, pvEd = null;
-const setEdit = v => { editing = v; $('#app').dataset.pe = v ? '1' : '0'; if (!v && ins) setIns(null); else pvSend(); };
-$('#app').dataset.pe = editing ? '1' : '0';
-// Auf breiten Fenstern liegen Face- und Kachelseiten nicht im Seitenstapel, sondern im Inspektor unter der Vorschau (ins = { t: 'face', i } | { t: 'tile', i, j } | null)
-let ins = null;
-const ctx = () => ins;
-const redraw = () => ins && fill($('#ins'), ins);
+const refresh = () => ins && fill($('#ins'), ins, true);
+const redraw = refresh, ctx = () => ins;
 function setIns(e) {
   ins = e;
   if (e) fill($('#ins'), e);
-  else { $('#ins').innerHTML = '<div class="body"><div class="insh">Kachel antippen: bearbeiten · ziehen: verschieben · Punkt unten rechts: Größe · „−“: entfernen. Mit „+“ oben links kommt ein Widget dazu, „✓“ beendet das Bearbeiten. Langes Drücken öffnet das Menü. Mit den Knöpfen unter der Vorschau wechselst du das Face.</div></div>'; pvSend(); }
+  $('#shp').classList.toggle('in', !!e);
+  pvSend();
 }
+$('#shp').addEventListener('click', e => e.target === e.currentTarget && setIns(null));
+let lastList = '';
+function renderSide() { const h = listHTML(); if (h === lastList) return; lastList = h; const sc = $('#side').scrollTop; $('#side').innerHTML = h; $('#side').scrollTop = sc; }
+
+// Bildschirmfoto als Bild der Karte (das Display antwortet asynchron); null = keine Antwort
+async function snap(id) {
+  if (!displays.find(x => x.id === id)?.connected) return null;
+  try {
+    await call('command', { display: id, action: 'screenshot' });
+    for (let i = 0; i < 10; i++) {
+      await sleep(500);
+      const { image } = await call('get_shot', { display: id });
+      if (image && image !== shots[id]) { shots[id] = image; renderSide(); return image; }
+    }
+  } catch {}
+  return null;
+}
+
+// ---- Editor: das Display im Vollbild, Bearbeiten-Modus immer an ----
+// Vorschau: index.html?preview im iframe (Konfiguration und Zustände per postMessage, Ziehen/Antippen/Wischen kommt zurück)
+const pvf = $('#pvf'), ed = $('#ed');
+let pvReady = false, pvConf = '', pvFace = '', pvSel = -2, pvEd = null, pvAnim = false, pvStates = {};
 const faceName = x => (FACE[x.type]?.[0] || x.type) + (x.id !== x.type ? ' ' + x.id.replace(x.type, '') : '');
-const goFace = i => setIns({ t: 'face', i });
-const goTile = (i, j) => setIns({ t: 'tile', i, j });
+async function openEd(id, from) {
+  const c = await call('get_config', { display: id }).catch(() => null);
+  if (!c?.config?.faces) return toast('Noch keine Konfiguration: öffne Homeblick einmal auf dem Gerät', true);
+  sel = id; cfg = c.config; normFaces(cfg); fi = 0; ins = null; edOpen = true;
+  pvConf = ''; pvFace = ''; pvSel = -2; pvEd = null;
+  $('#edt').textContent = cur().name;
+  pvLoad(); ed.classList.add('on');
+  if (from) { const r = from.getBoundingClientRect(); ed.style.transformOrigin = `${r.left + r.width / 2}px ${r.top + r.height / 2}px`; }
+  ed.animate([{ opacity: 0, transform: 'scale(.35)' }, { opacity: 1, transform: 'none' }], { duration: SD, easing: SPRING });
+  pvSend();
+}
+function closeEd() {
+  if (!edOpen) return;
+  const id = sel;
+  edOpen = false; setIns(null);
+  ed.animate([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'scale(.6)' }], { duration: 220, easing: 'ease-in' }).finished.then(() => { if (!edOpen) ed.classList.remove('on'); });
+  renderSide(); setTimeout(() => snap(id), 2500);   // Karte zeigt danach den neuen Stand
+}
+async function loadCfg() {   // nach Import/Übernehmen: Konfiguration des offenen Displays neu holen
+  cfg = (await call('get_config', { display: sel })).config; if (cfg?.faces) normFaces(cfg);
+  pvConf = ''; fi = 0; pvSend(); refresh();
+}
+async function reload() {
+  displays = await call('displays');
+  if (edOpen && !displays.some(d => d.id === sel && !d.new)) closeEd();
+  renderSide();
+  displays.filter(d => d.connected && !d.new && !shots[d.id]).forEach(d => snap(d.id));
+}
+const goFace = i => { if (!cfg || i < 0 || i >= cfg.faces.length || i === fi) return; fi = i; pvAnim = true; pvSend(); };
+const openFace = i => setIns({ t: 'face', i });
+const openTile = (i, j) => setIns({ t: 'tile', i, j });
+let sw = null;   // Wischen neben dem Display wechselt das Face (im Display selbst meldet es die Vorschau)
+ed.addEventListener('pointerdown', e => { sw = { x: e.clientX, y: e.clientY }; });
+ed.addEventListener('pointerup', e => { if (!sw) return; const dx = e.clientX - sw.x, dy = e.clientY - sw.y; sw = null; if (Math.abs(dx) > 50 && Math.abs(dx) > 2 * Math.abs(dy)) goFace(fi + (dx < 0 ? 1 : -1)); });
+addEventListener('keydown', e => { if (edOpen && !ins && !$('#ov') && /^Arrow(Left|Right)$/.test(e.key)) goFace(fi + (e.key === 'ArrowLeft' ? -1 : 1)); });
 const pvPost = m => pvf.contentWindow?.postMessage({ hb: 'preview', ...m }, location.origin);
 function pvSend() {
-  if (!pvReady || !cfg) return;
-  const c = ctx(), f = c?.i != null ? cfg.faces[c.i] : cfg.faces.find(x => x.id === pvFace) || cfg.faces[0], sel = c?.j ?? -1;
+  if (!cfg) return;
+  fi = Math.max(0, Math.min(fi, cfg.faces.length - 1));
+  const f = cfg.faces[fi];
+  if (edOpen) {   // Seitenpunkte (letzter = neues Face) und Name der Seite
+    const dots = $('#eddots');
+    if (dots.dataset.n !== String(cfg.faces.length)) { dots.dataset.n = cfg.faces.length; dots.innerHTML = cfg.faces.map((x, i) => `<button data-dot="${i}" aria-label="${esc(faceName(x))}"></button>`).join('') + '<button class="dp" data-a="faddsheet" aria-label="Neues Face"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>'; }
+    dots.querySelectorAll('[data-dot]').forEach((b, i) => b.classList.toggle('on', i === fi));
+    $('#edname').textContent = f ? faceName(f) : '';
+  }
+  if (!pvReady) return;
+  const t = ins?.t === 'tile' && ins.i === fi ? ins.j : -1;
   const m = {}, j = JSON.stringify(cfg.faces);
   if (j !== pvConf) { pvConf = j; m.conf = cfg; }
-  if (editing !== pvEd) { pvEd = editing; m.edit = editing; }
-  if (f && f.id !== pvFace) { pvFace = f.id; m.face = f.id; }
+  if (edOpen !== pvEd) { pvEd = edOpen; m.edit = edOpen; }
+  if (f && f.id !== pvFace) { pvFace = f.id; m.face = f.id; if (pvAnim) m.anim = true; }
+  pvAnim = false;
   if (m.conf) m.face = pvFace;
-  if (sel !== pvSel || m.conf) { pvSel = sel; m.sel = sel; }
+  if (t !== pvSel || m.conf) { pvSel = t; m.sel = t; }
   if (Object.keys(m).length) pvPost(m);
-  $('#pvt').textContent = `${cur()?.name || ''}${f ? ' · ' + (FACE[f.type]?.[0] || f.type) : ''}`;
-  $('#pvfaces').innerHTML = cfg.faces.map(x => `<button data-pf="${esc(x.id)}" class="${x.id === f?.id ? 'on' : ''}">${esc(faceName(x))}</button>`).join('') + '<button class="plus2" data-a="faddsheet">+ Face</button>';
 }
 // Kachel j so einsortieren, dass sie auf Rasterzelle (r, c) landet; sonst die nächstliegende mögliche Stelle
 function moveTo(tiles, j, [r, c], n) {
@@ -582,51 +621,40 @@ addEventListener('message', async e => {
   const m = e.data;
   if (e.source !== pvf.contentWindow || e.origin !== location.origin) return;
   if (m?.hb === 'preview-ready') {
-    pvReady = true; pvConf = ''; pvFace = ''; pvEd = null;
+    pvReady = true; pvConf = ''; pvFace = ''; pvEd = null; pvSel = -2;
     pvPost({ states: pvStates }); pvSend();
-  } else if (['move', 'tile', 'empty', 'resize', 'remove', 'menu'].includes(m?.hb)) {
-    if (m.hb === 'menu') {   // langes Drücken in der Vorschau
-      setEdit(true);
-      return m.item === 'add' ? addFlow(faceIdx()) : m.item === 'bg' ? goFace(faceIdx()) : undefined;
-    }
+  } else if (m?.hb === 'swipe') goFace(fi + m.dir);
+  else if (['move', 'tile', 'empty', 'resize', 'remove'].includes(m?.hb)) {
     const i = cfg?.faces.findIndex(x => x.id === m.face);
     if (i < 0 || i == null) return;
     const f = cfg.faces[i];
-    if (m.hb === 'move') { const tm = f.tiles[m.j]; f.tiles = moveTo(f.tiles, m.j, m.cell, rows(f)); ins = { t: 'tile', i, j: f.tiles.indexOf(tm) }; pvConf = ''; saveCfg(); return refresh(); }
-    if (m.hb === 'tile') return setIns({ t: 'tile', i, j: m.j });
+    if (m.hb === 'move') { f.tiles = moveTo(f.tiles, m.j, m.cell, rows(f)); pvConf = ''; return saveCfg(); }
+    if (m.hb === 'tile') return openTile(i, m.j);
     if (m.hb === 'resize') {   // Griff unten rechts; wenn dadurch andere Kacheln aus dem Raster fallen würden, bleibt es bei der alten Größe
       const t = f.tiles[m.j], was = [t.w, t.h], lost = () => pack(f.tiles, rows(f)).filter(x => !x).length, n = lost();
       m.w > 1 ? t.w = m.w : delete t.w; m.h > 1 ? t.h = m.h : delete t.h;
       if (lost() > n) { was[0] ? t.w = was[0] : delete t.w; was[1] ? t.h = was[1] : delete t.h; pvConf = ''; pvSend(); return toast('Kein Platz für diese Größe', true); }
-      saveCfg(); return refresh();
+      return saveCfg();
     }
-    if (m.hb === 'remove') {
-      if (!await ask('Kachel entfernen?', tileTitle(f.tiles[m.j]), 'Entfernen')) return;
-      f.tiles.splice(m.j, 1); saveCfg();
-      return ins?.t === 'tile' ? setIns({ t: 'face', i }) : refresh();
-    }
+    if (m.hb === 'remove') { f.tiles.splice(m.j, 1); return saveCfg(); }   // wie bei iOS ohne Rückfrage; über „+“ ist die Kachel schnell wieder da
     // leere Stelle: nur wenn keine Kachel dort liegt
     const n = rows(f);
     if (pack(f.tiles, n).some((p, k) => p && m.cell[0] >= p[0] && m.cell[0] < p[0] + (f.tiles[k].h || 1) && m.cell[1] >= p[1] && m.cell[1] < p[1] + (f.tiles[k].w || 1))) return;
     addFlow(i, m.cell);
   }
 });
-const faceIdx = () => Math.max(0, cfg.faces.findIndex(x => x.id === pvFace));
-async function addFlow(i, cell) {   // „+“ in der Vorschau, Menü „Widget hinzufügen“, leere Stelle
+async function addFlow(i, cell) {   // „+“ oben links, leere Stelle im Display
   const f = cfg.faces[i];
-  if (f.type !== 'grid') return toast('Widgets gibt es auf Smart-Home-Faces: dort mit „+ Face“ eins anlegen oder wechseln', true);
-  const t = await galleryAdd(f, cell);
-  if (t) { saveCfg(); setIns({ t: 'tile', i, j: f.tiles.indexOf(t) }); }
+  if (f.type !== 'grid') return toast('Widgets gibt es auf Smart-Home-Faces: wische zu einem oder lege unter den Punkten mit „+“ ein neues an', true);
+  if (await galleryAdd(f, cell)) saveCfg();
 }
 // Zustände für die Vorschau (Namen, Werte, Symbole echter Entities); alle 15 s nachziehen
 const pvStatesLoad = () => conn.sendMessagePromise({ type: 'get_states' }).then(a => { pvStates = Object.fromEntries(a.map(x => [x.entity_id, x])); pvPost({ states: pvStates }); }).catch(() => {});
-// Breite Fenster: Vorschau als Spalte, sofort laden; schmale: als Vollbild über „Anzeige bearbeiten“, erst dann laden
 const pvLoad = () => { if (!pvf.getAttribute('src')) pvf.src = 'index.html?preview'; };
-if (matchMedia('(min-width:1180px)').matches) pvLoad();
 
 // Widget hinzufügen (Galerie wie bei iOS): fertige Kachel am Ende bzw. auf Zelle cell; null = abgebrochen oder kein Platz
 async function galleryAdd(f, cell) {
-  const r = await pickWidget({ used: f.tiles.map(t => t.e) });
+  const r = await pickWidget({ used: f.tiles.map(t => t.e), area: cur()?.area });
   if (!r) return null;
   const t = r.cat === 'wx' ? { kind: 'wx' } : r.cat === 'analog' || r.cat === 'digital' ? { kind: 'clock', ...(r.cat === 'digital' && { cs: 'digital' }) } : tileOf(r.en);
   if (r.size[0] > 1) t.w = r.size[0];
@@ -683,8 +711,7 @@ async function setupWizard(d) {
   const nm = o.querySelector('[data-wn]').value.trim() || d.name;   // der Dialog verschwindet erst nach der Animation
   const config = setupConfig(tpl, area), wx = entsOf('weather'), w = wx.find(e => e.id === 'weather.home') || wx[0];
   await guard(call('setup', { display: d.id, name: nm, ...(area && { area }), config, settings: config.faces.some(f => f.type === 'weather') && w ? { weather: w.id } : {} })).catch(() => 0);
-  sel = d.id; await reload();
-  $('#app').dataset.ed = '1'; pvLoad(); goFace(0);
+  await reload(); await openEd(d.id);
 }
 
 // Domains, die eine Kachel bedienen kann (TAP in index.html)
@@ -721,9 +748,7 @@ document.addEventListener('change', async e => {
     if (t.type === 'time') v += ':00';
     if (k === 'name') {
       v = v.trim(); if (!v) return;
-      await guard(call('update', { display: sel, name: v })); d.name = v; renderSide();
-      pane().querySelectorAll('[data-live=name]').forEach(x => x.textContent = v);
-      pane().querySelectorAll('.ttl').forEach((x, i) => stack[i].t === 'display' && (x.textContent = v)); return;
+      await guard(call('update', { display: sel, name: v })); d.name = v; renderSide(); $('#edt').textContent = v; return;
     }
     if (k === 'dim') $('#dimdep').classList.toggle('off', !v);
     if (k === 'sched') $('#schdep').classList.toggle('off', !v);
@@ -751,15 +776,15 @@ document.addEventListener('change', async e => {
     saveCfg(); if (p === 'do' || k === 'val') redraw();
   }
   else if (t.dataset.area !== undefined) { area = t.value; renderSide(); }
-  else if (t.dataset.allface !== undefined) { if (t.value) all({ action: 'face', face: t.value, ...dur() }); t.value = ''; t.closest('.pick').querySelector('.val').textContent = 'Wählen …'; }
-  else if (t.dataset.show !== undefined) { if (t.value) guard(call('command', { display: sel, action: 'face', face: t.value, ...dur() })).catch(() => {}); t.value = ''; t.closest('.pick').querySelector('.val').textContent = 'Wählen …'; }
+  else if (t.dataset.allface !== undefined) { if (t.value) all({ action: 'face', face: t.value, ...dur(t) }); t.value = ''; t.closest('.pick').querySelector('.val').textContent = 'Wählen …'; }
+  else if (t.dataset.show !== undefined) { if (t.value) guard(call('command', { display: sel, action: 'face', face: t.value, ...dur(t) })).catch(() => {}); t.value = ''; t.closest('.pick').querySelector('.val').textContent = 'Wählen …'; }
   else if (t.dataset.copy !== undefined && t.value) copyFrom(t.value, t);
 });
 document.addEventListener('click', async e => {
   const b = e.target.closest('button');
   if (!b) return;
-  if (b.dataset.d) return open(b.dataset.d);
-  if (b.dataset.pf) return goFace(cfg.faces.findIndex(x => x.id === b.dataset.pf));
+  if (b.dataset.d) return openEd(b.dataset.d, b.querySelector('.dcimg'));
+  if (b.dataset.dot !== undefined) return goFace(+b.dataset.dot);
   if (b.dataset.all) return all({ action: b.dataset.all });
   if (b.dataset.alls !== undefined) { const v = !!+b.dataset.alls; return guard(Promise.all(inArea().map(x => (x.settings.dim = v, call('update', { display: x.id, settings: { dim: v } })))).then(() => { const d = cur(); if (d) refresh(); })).catch(() => {}); }
   if (b.dataset.c) return guard(call('command', { display: sel, action: b.dataset.c, ...(b.dataset.c === 'face' && { face: cfg.faces[ctx().i].type }) })).catch(() => {});
@@ -770,11 +795,18 @@ document.addEventListener('click', async e => {
   }
   const a = b.dataset.a;
   if (!a) return;
-  if (a === 'back') { if (b.closest('#ins')) return setIns({ t: 'face', i: ins.i }); $('#app').dataset.open = '0'; return; }
+  if (a === 'back') return setIns(ins?.t === 'display' && ins.sec ? { t: 'display' } : null);
+  if (a === 'sclose') return setIns(null);
+  if (a === 'sec') return setIns({ t: 'display', sec: b.dataset.v });
+  if (a === 'gear') return setIns({ t: 'display' });
+  if (a === 'fname') return openFace(fi);
   if (a === 'setup') return setupWizard(displays.find(d => d.id === b.dataset.id));
-  if (a === 'edit') { $('#app').dataset.ed = '1'; pvLoad(); setEdit(true); if (!ins) goFace(0); return; }
-  if (a === 'edone') { $('#app').dataset.ed = '0'; return setEdit(false); }
-  if (a === 'gal') return addFlow(faceIdx());
+  if (a === 'edone') return closeEd();
+  if (a === 'gal') return addFlow(fi);
+  if (a === 'apply') return applyTemplate();
+  if (a === 'ximport') return importConfig();
+  if (a === 'xjson') return dl(`homeblick-${sel}.json`, { format: FORMAT, name: cur().name, area: cur().area, config: cfg });
+  if (a === 'xesp') return dl(`homeblick-esp-${sel}.json`, espExport(cur(), cfg, { en: entOf, icon: tileIcon }));
   if (a === 'tmore') { const k = ins.i + '.' + ins.j; moreKey = moreKey === k ? '' : k; return redraw(); }
   if (a === 'faddsheet') {   // ausgeblendetes Face wieder einblenden oder neues anlegen
     const r = await overlay('sheet', `<div class="shs">${cfg.off?.length ? `<div class="grp">${cfg.off.map(f => `<button class="row btn c" data-r="show:${esc(f.id)}">${esc(faceName(f))} einblenden</button>`).join('')}</div>` : ''}<div class="grp" style="max-height:46vh;overflow-y:auto">${TYPES.map(([t, n]) => `<button class="row btn c" data-r="new:${t}">Neu: ${esc(n)}</button>`).join('')}</div><div class="grp"><button class="row btn c" data-r="" style="font-weight:600">Abbrechen</button></div></div>`);
@@ -782,17 +814,17 @@ document.addEventListener('click', async e => {
     const [k, v] = r.split(':');
     if (k === 'show') cfg.faces.push(...cfg.off.splice(cfg.off.findIndex(f => f.id === v), 1));
     else cfg.faces.push({ type: v, id: faceId(cfg, v), bg: v === 'grid' ? 'auto' : 'black', ...(v === 'grid' && { tiles: [] }) });
-    saveCfg(); return setIns({ t: 'face', i: cfg.faces.length - 1 });
+    fi = cfg.faces.length - 1; return saveCfg();
   }
   if (/^f(left|right|dup|hide)$/.test(a)) {
     const i = ins.i, f = cfg.faces[i];
-    if (a === 'fleft' || a === 'fright') { const j = i + (a === 'fleft' ? -1 : 1); if (j < 0 || j >= cfg.faces.length) return; swap(cfg.faces, i, j); ins = { t: 'face', i: j }; }
-    else if (a === 'fdup') { cfg.faces.splice(i + 1, 0, { ...structuredClone(f), id: faceId(cfg, f.type) }); ins = { t: 'face', i: i + 1 }; }
+    if (a === 'fleft' || a === 'fright') { const j = i + (a === 'fleft' ? -1 : 1); if (j < 0 || j >= cfg.faces.length) return; swap(cfg.faces, i, j); fi = j; ins = { t: 'face', i: j }; }
+    else if (a === 'fdup') { cfg.faces.splice(i + 1, 0, { ...structuredClone(f), id: faceId(cfg, f.type) }); fi = i + 1; ins = { t: 'face', i: i + 1 }; }
     else { if (cfg.faces.length < 2) return toast('Mindestens ein Face', true); cfg.off.push(...cfg.faces.splice(i, 1)); saveCfg(); return setIns(null); }
     saveCfg(); return redraw();
   }
   if (a === 'rm') {
-    if (await ask(`„${cur().name}“ entfernen?`, 'Faces und Einstellungen gehen verloren. Das Gerät in Home Assistant bitte danach unter Geräte löschen.', 'Entfernen')) { await guard(call('remove', { display: sel })); sel = null; await reload(); }
+    if (await ask(`„${cur().name}“ entfernen?`, 'Faces und Einstellungen gehen verloren. Das Gerät in Home Assistant bitte danach unter Geräte löschen.', 'Entfernen')) { await guard(call('remove', { display: sel })); closeEd(); sel = null; await reload(); }
     return;
   }
   if (a === 'testnb') { const i = pane().querySelector('[data-say]'); guard(call('command', { display: sel, action: 'notify', title: 'Testbenachrichtigung', message: i.value.trim() || 'Die Benachrichtigungskarte funktioniert.' })).catch(() => {}); return; }   // Karte wie homeblick.notify, ohne Bild/Button
@@ -804,7 +836,7 @@ document.addEventListener('click', async e => {
       for (let i = 0; i < 10; i++) {   // das Display antwortet asynchron
         await new Promise(r => setTimeout(r, 500));
         const { image } = await call('get_shot', { display: sel });
-        if (image && image !== shots[sel]) { shots[sel] = image; refresh(); return; }
+        if (image && image !== shots[sel]) { shots[sel] = image; renderSide(); refresh(); return; }
       }
       toast('Keine Antwort vom Display', true);
     } catch (e) { toast(e?.message || 'Fehler', true); }
@@ -825,7 +857,7 @@ document.addEventListener('click', async e => {
     const t = tiles[j], r = await overlay('sheet', `<div class="shs"><div class="grp"><div class="ig">${ICONS.map(n => `<button data-r="${n}" class="${t.icon === n ? 'on' : ''}" aria-label="${n}">${xi(n)}</button>`).join('')}</div></div><div class="grp"><button class="row btn c" data-r="-">Standard-Symbol</button></div><div class="grp"><button class="row btn c" data-r="" style="font-weight:600">Abbrechen</button></div></div>`);
     if (!r) return; r === '-' ? delete t.icon : t.icon = r;
   }
-  else if (a === 'tadd') { const t = await galleryAdd(f); if (!t) return; ins = { t: 'tile', i, j: f.tiles.indexOf(t) }; }
+  else if (a === 'tadd') { if (!await galleryAdd(f)) return; }
   else if (a === 'tent') {
     const t = tiles[j], en = await pickEntity({ title: 'Entity der Kachel', domains: t.kind === 'thermo' ? ['climate'] : TILE_DOM, current: t.e });
     if (!en) return;
@@ -837,13 +869,60 @@ document.addEventListener('click', async e => {
     for (const x of ['tap', 'hold']) if (t[x]?.do === 'toggle' && !TOGGLE_DOM.includes(en.domain)) delete t[x];
     if (en.domain === 'sensor' || en.domain === 'binary_sensor') t.val ||= 'state';
   }
-  else if (a === 'tdel') { tiles.splice(j, 1); saveCfg(); return setIns({ t: 'face', i }); }
+  else if (a === 'tdel') { tiles.splice(j, 1); saveCfg(); return setIns(null); }
   saveCfg(); redraw();
 });
 
 // Gruppenaktion: Befehl an alle Displays, die gerade ein Panel offen haben
-const dur = () => { const n = parseInt(document.querySelector('[data-dur]')?.value, 10); return n >= 1 ? { duration: Math.min(n, 3600) } : {}; };
+const dur = el => { const n = parseInt(el.closest('.grp').querySelector('[data-dur]')?.value, 10); return n >= 1 ? { duration: Math.min(n, 3600) } : {}; };
 const all = p => guard(Promise.all(inArea().filter(x => x.connected).map(x => call('command', { display: x.id, ...p })))).catch(() => {});
+
+// ---- Vorlage auf mehrere Displays, Export/Import ----
+const dl = (name, obj) => { const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' })), download: name }); a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1e4); };
+const remap = (config, area) => remapConfig(config, area, { en: entOf, inArea: entsIn, title: (e, a = e.area) => stripArea(e, a) || autoTitle(e) });
+async function applyTemplate() {
+  const src = cur(), others = displays.filter(x => x.id !== src.id && !x.new);
+  if (!others.length) return toast('Kein anderes Display vorhanden', true);
+  const areas = [...new Set(others.map(x => x.area).filter(Boolean))].sort(), picked = new Set();
+  const p = overlay('sheet', `<div class="shs" id="wz"><div class="grp"><h3>Auf andere Displays anwenden</h3>${areas.length ? `<div class="pkc">${areas.map(a => `<button data-aa="${esc(a)}">Alle in ${esc(a)}</button>`).join('')}</div>` : ''}${others.map(x => `<div class="row"><span class="l two"><b>${esc(x.name)}</b><small>${esc(x.area || 'ohne Bereich')}</small></span><label class="sw"><input type="checkbox" data-ak="${esc(x.id)}"><i></i></label></div>`).join('')}</div>
+    <div class="grp"><div class="row"><span class="l">Entities an den Bereich anpassen</span><label class="sw"><input type="checkbox" data-ar checked><i></i></label></div></div>
+    <div class="sf" style="padding:0 16px 10px">Ersetzt Faces, Kacheln und Einstellungen der gewählten Displays; Wetter-Ort, Assist-Pipeline, Lichtsensor und Präsenzmelder bleiben. „Anpassen“ tauscht jede Kachel gegen die Entity gleicher Art im Bereich des Ziels; ohne Gegenstück fällt die Kachel weg.</div>
+    <div class="grp"><button class="row btn c" data-r="go" style="font-weight:600">Anwenden</button></div><div class="grp"><button class="row btn c" data-r="">Abbrechen</button></div></div>`);
+  const o = $('#ov');
+  o.addEventListener('click', e => {
+    const a = e.target.closest('[data-aa]');
+    if (!a) return;
+    const on = a.classList.toggle('on');   // Knopf schaltet alle Displays dieses Bereichs
+    o.querySelectorAll('[data-ak]').forEach(c => { if (others.find(x => x.id === c.dataset.ak).area === a.dataset.aa) c.checked = on; });
+  });
+  if (await p !== 'go') return;
+  const ids = [...o.querySelectorAll('[data-ak]:checked')].map(c => c.dataset.ak), fit = o.querySelector('[data-ar]').checked;
+  if (!ids.length) return;
+  const { config } = await call('get_config', { display: src.id });
+  if (!config) return toast('Dieses Display hat noch keine Konfiguration', true);
+  const { place, weather, pipeline, presence, lux, ...s } = src.settings;
+  let dropped = 0;
+  await guard(Promise.all(ids.map(id => {
+    const t = displays.find(x => x.id === id);
+    let c = config;
+    if (fit && t.area && entsIn(t.area).length) { const r = remap(config, t.area); c = r.config; dropped += r.dropped; }
+    return call('admin_config', { display: id, config: c }).then(() => call('update', { display: id, settings: s }));
+  }))).catch(() => {});
+  if (dropped) toast(`${dropped} Kachel${dropped > 1 ? 'n' : ''} ohne Gegenstück im Bereich weggelassen`, true);
+}
+async function importConfig() {
+  const inp = Object.assign(document.createElement('input'), { type: 'file', accept: '.json,application/json' });
+  inp.onchange = async () => {
+    let j;
+    try { j = JSON.parse(await inp.files[0].text()); } catch { return toast('Keine gültige JSON-Datei', true); }
+    if (j?.format !== FORMAT || !Array.isArray(j.config?.faces) || !j.config.faces.length) return toast('Das ist keine Homeblick-Sicherung', true);
+    if (!await ask('Konfiguration importieren?', `Faces und Kacheln aus „${j.name || 'Sicherung'}“ ersetzen die von „${cur().name}“.`, 'Importieren')) return;
+    normFaces(j.config);
+    await guard(call('admin_config', { display: sel, config: j.config })).catch(() => {});
+    await loadCfg();
+  };
+  inp.click();
+}
 
 async function copyFrom(id, selEl) {
   const src = displays.find(x => x.id === id);
@@ -854,7 +933,7 @@ async function copyFrom(id, selEl) {
   if (!config) return toast('Quelle hat noch keine Konfiguration', true);
   const { place, weather, pipeline, presence, lux, ...s } = src.settings;
   await guard(call('admin_config', { display: sel, config }).then(() => call('update', { display: sel, settings: s }))).catch(() => {});
-  await reload();
+  Object.assign(cur().settings, s); await loadCfg();
 }
 
 // ---- Verbindung & Start ----
@@ -873,8 +952,7 @@ async function poll() {   // Status nachführen, ohne Formulare neu zu zeichnen
   if (n.length !== displays.length) return reload();
   n.forEach(x => Object.assign(displays.find(d => d.id === x.id) || {}, { new: x.new, connected: x.connected, face: x.face, saver: x.saver, info: x.info, seen: x.seen, logs: x.logs }));
   renderSide();
-  const d = cur(); if (!d) return;
-  pane().querySelectorAll('[data-live=stat]').forEach(x => x.textContent = stat(d));
+  const d = cur(); if (!d || !ins) return;
   const lg = $('#liveGrp'); if (lg) lg.innerHTML = liveHTML(d);
   pane().querySelectorAll('.q,[data-c=face]').forEach(x => x.disabled = !d.connected);
 }
@@ -890,8 +968,6 @@ try {
   pipelines = pl?.pipelines?.map(p => [p.id, p.name]) || [];
   await reload();
   setInterval(() => { if (!document.hidden && !document.querySelector('input:focus,#ov')) poll(); }, 5000);
-  matchMedia('(min-width:820px)').addEventListener('change', () => reload());
-  matchMedia('(min-width:1180px)').addEventListener('change', e => { if (e.matches) pvLoad(); });
 } catch (e) { $('#side').innerHTML = `<div class="lt">Homeblick</div>` + grp('', `<div class="row"><span class="l">Keine Verbindung zu Home Assistant (${esc(e?.message || e)}). Die Seite braucht ein Administrator-Konto.</span></div>`); }
 </script>
 </body>

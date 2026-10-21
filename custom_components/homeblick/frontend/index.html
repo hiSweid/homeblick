@@ -893,6 +893,11 @@ if (PREVIEW) {
     }
   };
   let dq; new MutationObserver(() => { cancelAnimationFrame(dq); dq = requestAnimationFrame(deco); }).observe(faces, { childList: true, subtree: true });
+  const swipe = e => {   // waagerechtes Wischen: die Einstellungsseite wechselt das Face (Seitenpunkte)
+    const dx = e.clientX - g.x, dy = e.clientY - g.y;
+    if (Math.abs(dx) < 50 || Math.abs(dx) < 2 * Math.abs(dy)) return false;
+    parent.postMessage({ hb: 'swipe', dir: dx < 0 ? 1 : -1 }, location.origin); return true;
+  };
   const gesture = e => {
     e.stopImmediatePropagation(); e.preventDefault?.();
     const f = CONF.faces[idx()], face = faces.children[idx()], post = m => parent.postMessage(m, location.origin);
@@ -901,7 +906,7 @@ if (PREVIEW) {
       if (pm) { g = { pm: pm.dataset.pm }; return; }
       closeMenu();
       const t = e.target.closest?.('[data-ti]'), inT = t && face.contains(t) ? t : null;
-      if (!(f?.type === 'grid' && face.contains(e.target))) { g = null; return; }
+      if (!(f?.type === 'grid' && face.contains(e.target))) { g = { sw: true, x: e.clientX, y: e.clientY }; return; }   // andere Faces: nur Wischen
       g = { t: inT, x: e.clientX, y: e.clientY, on: false, f, face, hm: edit && e.target.closest('.hbm'), hr: edit && e.target.closest('.hbr') };
       if (g.hr) {   // Resize-Griff: Rasterschritt aus den Spuren des Rasters
         const cs = getComputedStyle(face), r = inT.getBoundingClientRect();
@@ -925,13 +930,14 @@ if (PREVIEW) {
     else if (g && (e.type === 'pointerup' || e.type === 'pointercancel')) {
       const up = e.type === 'pointerup';
       clearTimeout(g.lp);
+      if (g.sw) { if (up) swipe(e); g = null; return; }
       if (g.pm) { if (up && e.target.closest?.('[data-pm]')?.dataset.pm === g.pm) { post({ hb: 'menu', item: g.pm }); closeMenu(); } g = null; return; }
       if (g.long) { g = null; return; }
       const moved = Math.hypot(e.clientX - g.x, e.clientY - g.y) >= 6;
       if (g.hr) { g.face._hl?.remove(); g.face._hl = null; if (up && g.size && (g.size[0] !== g.w0 || g.size[1] !== g.h0)) post({ hb: 'resize', face: g.f.id, j: g.f.tiles.indexOf(g.t._t), w: g.size[0], h: g.size[1] }); }
       else if (g.hm) { if (up && !moved) post({ hb: 'remove', face: g.f.id, j: g.f.tiles.indexOf(g.t._t) }); }
       else if (!edit) { /* außerhalb des Bearbeiten-Modus tut ein Tippen nichts; langes Drücken öffnet das Menü */ }
-      else if (!g.t) { if (up && !moved) post({ hb: 'empty', face: g.f.id, cell: cellAt(g.f, g.face, e.clientX, e.clientY) }); }   // leere Stelle: Widget hinzufügen (die Einstellungsseite prüft, ob sie frei ist)
+      else if (!g.t) { if (up && swipe(e)) { /* Face wechseln */ } else if (up && !moved) post({ hb: 'empty', face: g.f.id, cell: cellAt(g.f, g.face, e.clientX, e.clientY) }); }   // leere Stelle: Widget hinzufügen (die Einstellungsseite prüft, ob sie frei ist)
       else {
         const j = g.f.tiles.indexOf(g.t._t), c = g.on && up ? to(g.t, g.f) : null;
         if (g.on) { g.t.style.transform = g.t.style.zIndex = g.t.style.transition = g.t.style.animation = ''; g.face._hl?.remove(); g.face._hl = null; }
@@ -953,7 +959,7 @@ if (PREVIEW) {
       if (old.length === CONF.faces.length && old.every((f, i) => f.id === CONF.faces[i].id)) CONF.faces.forEach((f, i) => JSON.stringify(f) !== JSON.stringify(old[i]) && rerender(i));
       else renderAll(0);
     }
-    if (m.face) { const i = CONF.faces.findIndex(f => f.id === m.face); if (i >= 0 && i !== idx()) faces.go(i, true); }
+    if (m.face) { const i = CONF.faces.findIndex(f => f.id === m.face); if (i >= 0 && i !== idx()) faces.go(i, !m.anim); }
     if (m.sel !== undefined) {   // gewählte Kachel umranden
       $$('.pvsel').forEach(x => x.classList.remove('pvsel'));
       const t = CONF.faces[idx()]?.tiles?.[m.sel];
