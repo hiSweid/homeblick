@@ -83,34 +83,28 @@ svg.i{width:1em;height:1em;flex:none;fill:none;stroke:currentColor;stroke-width:
 .tile[data-size="2x2"] .ico{font-size:20cqw}
 .tile[data-size="2x2"] :is(.ttl,.sub){font-size:4.4cqw}
 .tile[data-size="2x1"]:not(.thermo){flex-direction:row;justify-content:flex-start;gap:4cqw;padding:0 5cqw;text-align:left}
-/* Stil-Varianten (Ideen-Galerie, Mockups 180 px ≙ 31 cqw): value = Messwert groß (Sensor), circle = Symbol im Kreis (Szene, Schalter, Ventilator …), ring = Thermostat mit Messring */
-.tile[data-sv=value],.tile[data-sv=circle]{align-items:flex-start;justify-content:space-between;text-align:left;padding:2.8cqw}
-.tile[data-sv][data-size="2x1"]{flex-direction:column;justify-content:space-between;gap:0;padding:2.8cqw 4cqw}
-.tile[data-sv=value] .ico{font-size:5.2cqw}.tile[data-sv=value] .big{font-size:7.2cqw;font-weight:600;letter-spacing:-.03em;line-height:1;margin-bottom:1.2cqw}
-.tile[data-sv=value] .big small{font-size:3.8cqw;font-weight:500;vertical-align:top;margin-left:.2cqw}
-.tile[data-sv=value] .ttl{font-size:2.6cqw;line-height:1.15}.tile[data-sv=value] .sub{font-size:2.2cqw;line-height:1.15}
-.tile[data-sv=value][data-size="2x1"] .big{font-size:9cqw}.tile[data-sv=value][data-size="2x2"]{padding:5cqw}.tile[data-sv=value][data-size="2x2"] .ico{font-size:9cqw}
-.tile[data-sv=value][data-size="2x2"] .big{font-size:16cqw;margin-bottom:2cqw}.tile[data-sv=value][data-size="2x2"] .big small{font-size:8cqw}.tile[data-sv=value][data-size="2x2"] :is(.ttl,.sub){font-size:4.4cqw}
-.tile[data-sv=circle] .ico{box-sizing:content-box;font-size:5.2cqw;padding:2.2cqw;border-radius:50%;background:#8e8e9338;transition:background .3s,color .3s}
-.tile[data-sv=circle].on .ico{background:var(--accent,#ff9f0a);color:#fff}
-.tile[data-sv=circle] .ttl{font-size:2.9cqw;line-height:1.2}.tile[data-sv=circle] .sub{font-size:2.3cqw;line-height:1.2}
-.tile[data-sv=circle][data-size="2x2"]{padding:5cqw}.tile[data-sv=circle][data-size="2x2"] .ico{font-size:9cqw;padding:4cqw}.tile[data-sv=circle][data-size="2x2"] :is(.ttl,.sub){font-size:4.4cqw}
-/* Licht „Füllstand“ (Ideen-Galerie): die Kachel ist der Dimmer, warme Füllung steigt von unten bis zur Helligkeit; senkrecht ziehen dimmt, Tippen schaltet */
-.tile[data-sv=fill]{align-items:flex-start;justify-content:space-between;text-align:left;padding:2.8cqw;overflow:hidden;touch-action:none}
-.tile[data-sv=fill]::before{display:none}.tile[data-sv=fill] .ico{font-size:5.2cqw}
-.tile[data-sv=fill] .ttl{font-size:2.9cqw;line-height:1.2}.tile[data-sv=fill] .sub{font-size:2.3cqw;line-height:1.2}
-.tile[data-sv=fill] .fill{position:absolute;inset:auto 0 0;height:calc(var(--p,0)*1%);background:linear-gradient(#ffe9b0,#ffd580);z-index:-1;transition:height .5s var(--spring)}
-.tile[data-sv=fill] .fill::before{content:"";position:absolute;inset:0 0 auto;height:.35cqw;background:#ffffffb3}
+/* Stil-Varianten (Ideen-Galerie), im Layout der Apple-Vorlage (Website highlights/dashboard): zentriert wie die Thermostat-Zahl 68 mit Titel/Untertitel darunter, Glas, weiße An-Fläche, Ring/Kreis nur als dünne weiße Linie.
+   value = Messwert groß statt Symbol (Sensor), circle = Symbol im Kreis (Szene, Schalter, Ventilator …), ring = Thermostat mit dünnem Messring, fill = Licht als Dimmer (weiße Fläche steigt) */
+.tile[data-sv=value] .ico{display:none}.tile[data-sv=value] .big{flex:1;display:flex;align-items:center;justify-content:center;font-size:8.5cqw;font-weight:500;letter-spacing:-.02em;line-height:1;white-space:nowrap}
+.tile[data-sv=value] .big small{font-size:.42em;font-weight:500;margin-left:.12em;align-self:flex-start;margin-top:.15em}
+.tile[data-sv=value][data-size="2x1"] .big{font-size:12cqw}.tile[data-sv=value][data-size="2x2"] .big{font-size:20cqw}
+.tile[data-sv=circle] .ico{box-sizing:content-box;font-size:6.2cqw;padding:2.4cqw;border-radius:50%;background:#ffffff26;transition:background .3s,color .3s}
+.tile[data-sv=circle].on .ico{background:var(--accent,var(--ink));color:#fff}
+.tile[data-sv=circle][data-size="2x2"] .ico{font-size:12cqw;padding:5cqw}.tile[data-sv=circle][data-size="2x1"]:not(.thermo) .ico{font-size:6.2cqw}
+.tile[data-sv=fill]{overflow:hidden;touch-action:none}
+.tile[data-sv=fill]::before{display:none}
+.tile[data-sv=fill] .fill{position:absolute;inset:auto 0 0;height:calc(var(--p,0)*1%);background:linear-gradient(#ffffffe6,#ffffffb8);z-index:-1;transition:height .5s var(--spring)}
+.tile[data-sv=fill] .fill::before{content:"";position:absolute;inset:0 0 auto;height:.25cqw;background:#fff}
 .tile[data-sv=fill].drag .fill{transition:none}
-.tile[data-sv=fill] .pct{position:absolute;right:2.8cqw;top:2.8cqw;font-size:2.6cqw;font-weight:600;transition:color .3s}
-.tile[data-sv=fill].hi :is(.ttl,.sub,.pct),.tile[data-sv=fill].full .ico{color:#5a3a00!important}
-.tile[data-sv=fill][data-size="2x2"]{padding:5cqw}.tile[data-sv=fill][data-size="2x2"] .ico{font-size:9cqw}.tile[data-sv=fill][data-size="2x2"] :is(.ttl,.sub){font-size:4.4cqw}.tile[data-sv=fill][data-size="2x2"] .pct{font-size:4.4cqw;right:5cqw;top:5cqw}
+.tile[data-sv=fill] .pct{position:absolute;right:2.6cqw;top:2.6cqw;font-size:2.6cqw;font-weight:600;transition:color .3s}
+.tile[data-sv=fill].hi .ttl,.tile[data-sv=fill].hi .pct{color:var(--ink)!important}.tile[data-sv=fill].hi .sub{color:var(--ink2)!important}.tile[data-sv=fill].full .ico{color:var(--ink)!important}
+.tile[data-sv=fill][data-size="2x2"] .pct{font-size:4.4cqw;right:5cqw;top:5cqw}
 .thermo .ring{display:none}
 .thermo[data-sv=ring] .ring{display:block;position:absolute;left:50%;translate:-50% 0;width:38cqw;top:9cqw;pointer-events:none;overflow:visible}
 .thermo[data-sv=ring][data-size="2x1"] .ring{width:24cqw;top:1.3cqw}.thermo[data-sv=ring][data-size="1x1"] .ring{width:18cqw;top:3.6cqw}
 .thermo[data-sv=ring] .num{font-size:15cqw}.thermo[data-sv=ring][data-size="2x1"] .num{font-size:9cqw}.thermo[data-sv=ring][data-size="1x1"] .num{font-size:7cqw}
-.ring .tr{stroke:#8e8e9355}.ring .v{stroke:#ff9f0a;transition:stroke-dasharray .6s var(--spring),stroke .3s}.ring .mk{stroke:currentColor}
-.thermo[data-hm=cool] .ring .v{stroke:#0a84ff}.thermo[data-hm=off] .ring .v{stroke:#8e8e93}
+.ring .tr,.ring .v,.ring .mk{stroke:currentColor}.ring .tr{opacity:.25}.ring .v{transition:stroke-dasharray .6s var(--spring),opacity .3s}.ring .mk{stroke-width:7}
+.thermo[data-hm=off] .ring .v{opacity:.4}
 
 .num{display:grid;justify-items:center;font-weight:500;line-height:1;letter-spacing:-.02em}
 .num>span{grid-area:1/1}
@@ -1235,11 +1229,10 @@ function tileEl(c) {
     if (t.cs === 'digital') el.innerHTML = '<span data-bind="time"></span>';
   }
   else if (kind === 'wx') { el.className = 'tile wxtile'; el.dataset.act = 'go'; el.dataset.v = 'weather'; el.innerHTML = `<div class="loc">${esc(CFG.place)}</div><div class="tmp" data-bind="wxt"></div><i class="wi" data-wxi></i>`; }
-  else if (kind === 'thermo') { el.className = 'tile thermo'; el.innerHTML = `<svg class="ring" viewBox="0 0 100 100"><g transform="rotate(135 50 50)" fill="none" stroke-width="8" stroke-linecap="round"><circle class="tr" cx="50" cy="50" r="42" stroke-dasharray="197.9 264"/><circle class="v" cx="50" cy="50" r="42" stroke-dasharray="0 264"/><circle class="mk" cx="50" cy="50" r="42" stroke-dasharray="0.01 264" stroke-dashoffset="0"/></g></svg><div class="num" data-temp="${esc(t.e)}"></div><div class="foot">${chev('down')}${label}${chev('up')}</div>`; }
+  else if (kind === 'thermo') { el.className = 'tile thermo'; el.innerHTML = `<svg class="ring" viewBox="0 0 100 100"><g transform="rotate(135 50 50)" fill="none" stroke-width="3" stroke-linecap="round"><circle class="tr" cx="50" cy="50" r="42" stroke-dasharray="197.9 264"/><circle class="v" cx="50" cy="50" r="42" stroke-dasharray="0 264"/><circle class="mk" cx="50" cy="50" r="42" stroke-dasharray="0.01 264" stroke-dashoffset="0"/></g></svg><div class="num" data-temp="${esc(t.e)}"></div><div class="foot">${chev('down')}${label}${chev('up')}</div>`; }
   else {
     el.className = 'tile';
-    const lab = t.sv === 'value' ? label.replace('<div><div class="ttl">', '<div><div class="big"></div><div class="ttl">') : label;
-    el.innerHTML = (t.e?.startsWith('camera.') ? '<div class="feed"></div>' : '') + (t.sv === 'fill' ? '<div class="fill"></div><div class="pct"></div>' : '') + svg(iconOf(t), 'ico') + lab;
+    el.innerHTML = (t.e?.startsWith('camera.') ? '<div class="feed"></div>' : '') + (t.sv === 'fill' ? '<div class="fill"></div><div class="pct"></div>' : '') + svg(iconOf(t), 'ico') + (t.sv === 'value' ? '<div class="big"></div>' : '') + label;
   }   // Livebild: camTile in render()
   return el;
 }
@@ -2189,7 +2182,8 @@ function sendTemp(id) {
   clearTimeout(tempT);
   tempT = setTimeout(() => call('climate', 'set_temperature', { entity_id: id, temperature: T[id] }), 600);
 }
-const fillSet = (t, p) => { t.style.setProperty('--p', p); t.classList.toggle('hi', p >= 25); t.classList.toggle('full', p >= 85); const x = $('.pct', t); if (x) x.textContent = p ? p + ' %' : ''; };
+// Symbol dunkel (full), sobald die weiße Fläche es erreicht
+const fillSet = (t, p) => { t.style.setProperty('--p', p); t.classList.toggle('hi', p >= 25); t.classList.toggle('full', p >= (t.dataset.size === '2x2' ? 85 : 55)); const x = $('.pct', t); if (x) x.textContent = p ? p + ' %' : ''; };
 // Licht „Füllstand“: senkrecht ziehen dimmt (relativ wie der Dimmer), die Füllung folgt dem Finger, HA bekommt höchstens alle 200 ms einen Wert; ein Tipp schaltet weiter
 {
   let d = null, tm = 0;
