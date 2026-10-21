@@ -582,6 +582,7 @@ const pages = {
       ${grp('', (ent ? `<button class="row" data-a="tent"><span class="l">Entity</span><span class="v"><span class="two" style="align-items:flex-end;min-width:0"><span class="val" style="${t.e && !en ? 'color:var(--red)' : ''}">${esc(en?.name || t.e || 'Wählen …')}</span>${en ? `<small class="val">${esc(t.e)}</small>` : t.e ? '<small>nicht gefunden</small>' : ''}</span>${svg('chev')}</span></button>` : '')
         + (clock ? `<div class="sh" style="margin-top:10px">Stil</div>` + carHTML(`clock:${e.i}.${e.j}`, { items: [['', 'Striche'], ['numbers', 'Zahlen'], ['digital', 'Digital']], cur: t.cs || '', conf: v => ({ conf: { ...cfg, faces: [{ type: 'grid', id: 'grid', bg: f.bg, tiles: [{ kind: 'clock', ...(v && { cs: v }), w: 2, h: 2 }] }] }, face: 'grid' }), pick: v => { const x = cfg.faces[e.i].tiles[e.j]; v ? x.cs = v : delete x.cs; saveCfg(); } }) : '')
         + (ent ? field('Titel', 'title', t.title, '', 'data-t') : ''))}
+      ${ent ? grp('Look', `<div class="sw-grid">${LOOKS.map(([v, n, bg]) => `<button data-a="tlook" data-v="${v}" class="${(t.look || '') === v ? 'on' : ''}"><i style="background:${bg}"></i>${n}</button>`).join('')}</div>`, 'Hell: flache Kachel, an = Lavendel, aus = Hellgrau (wie das helle Apple-Dashboard).') : ''}
       ${(ent || !placed) ? grp('', (ent ? `<div class="sw-grid">${COLORS.map(([v, n]) => `<button data-a="tcolor" data-v="${v}" class="${(t.color || '') === v ? 'on' : ''}"><i style="background:${v || 'linear-gradient(135deg,#d8d8dc,#8e8e93)'}"></i>${n}</button>`).join('')}</div>` : ''),
         placed ? (ent ? 'Größe in Rasterfeldern; die Farbe färbt das Symbol, wenn die Kachel an ist.' : 'Größe in Rasterfeldern.') : 'Kein Platz mehr im Raster: die Kachel wird nicht angezeigt.') : ''}
       ${ent ? grp('', `<button class="row" data-a="tmore"><span class="l">Weitere Optionen</span><span class="v">${svg(open ? 'down' : 'chev')}</span></button>`) : ''}
@@ -819,6 +820,7 @@ const ENERGY = [['pv', 'Solar-Leistung'], ['grid', 'Netz-Leistung (+ Bezug)'], [
   ['sesE', 'Detail Auto: Sitzung Energie'], ['sesSol', 'Detail Auto: Sitzung Solaranteil'], ['sesPrice', 'Detail Auto: Sitzung Preis']];
 const TILE_DOM = ['light', 'switch', 'input_boolean', 'lock', 'cover', 'climate', 'scene', 'script', 'media_player', 'fan', 'timer', 'camera', 'button', 'input_button', 'sensor', 'binary_sensor'];
 const TOGGLE_DOM = ['light', 'switch', 'input_boolean', 'fan', 'cover', 'media_player', 'script'];   // Domains mit Dienst .toggle
+const LOOKS = [['', 'Glas', 'linear-gradient(135deg,#e29b56,#a8541a)'], ['hell', 'Hell', 'linear-gradient(135deg,#e8e8e8 50%,#c6c2e3 50%)']];
 const SIZES = [['1x1', '1 × 1'], ['2x1', '2 × 1'], ['2x2', '2 × 2']];
 const COLORS = [['', 'Standard'], ['#ff9500', 'Orange'], ['#ff3b30', 'Rot'], ['#ff2d55', 'Rosa'], ['#af52de', 'Violett'], ['#007aff', 'Blau'], ['#30b0c7', 'Türkis'], ['#34c759', 'Grün']];
 const ICONS = ['bulb', 'pendant', 'lock', 'unlock', 'garage', 'blind', 'video', 'fan', 'timer', 'sun', 'moon', 'house', 'power', 'play', 'thermo', 'drop', 'wind', 'cloud', 'intercom', 'note'];
@@ -967,6 +969,7 @@ document.addEventListener('click', async e => {
   else if (a === 'style') f.style = b.dataset.v;
   else if (a === 'tile') return goTile(i, j);
   else if (a === 'tsize') { const t = tiles[j], [w, h] = b.dataset.v.split('x').map(Number); w > 1 ? t.w = w : delete t.w; h > 1 ? t.h = h : delete t.h; }
+  else if (a === 'tlook') b.dataset.v ? tiles[j].look = b.dataset.v : delete tiles[j].look;
   else if (a === 'tcolor') b.dataset.v ? tiles[j].color = b.dataset.v : delete tiles[j].color;
   else if (a === 'ticon') {
     const t = tiles[j], r = await overlay('sheet', `<div class="shs"><div class="grp"><div class="ig">${ICONS.map(n => `<button data-r="${n}" class="${t.icon === n ? 'on' : ''}" aria-label="${n}">${xi(n)}</button>`).join('')}</div></div><div class="grp"><button class="row btn c" data-r="-">Standard-Symbol</button></div><div class="grp"><button class="row btn c" data-r="" style="font-weight:600">Abbrechen</button></div></div>`);

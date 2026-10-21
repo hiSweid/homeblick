@@ -66,8 +66,8 @@ svg.i{width:1em;height:1em;flex:none;fill:none;stroke:currentColor;stroke-width:
 .pvsel{outline:.8cqw solid #0a84ff;outline-offset:.5cqw}   /* Vorschau: in der Einstellungsseite gewählte Kachel */
 .tile[data-arm] .sub{font-size:0}.tile[data-arm] .sub::after{content:"Nochmal tippen";font-size:3cqw}
 /* Helle Variante (Website highlights/homeview, Pixelproben): flach ohne Schatten; Aus = hellgrau 232, An = Lavendel (198,194,227), Icon/Titel lila */
-.light .tile{background:#e8e8e8;box-shadow:none;color:#454546}.light .tile::before{display:none}.light .tile .sub{color:#828284}
-.light .tile.on{background:#c6c2e3;color:#6a6393}.light .tile.on .sub{color:#9590b7}.light .tile.on .ico,.light .tile .ico{color:inherit}
+.light .tile,.tile[data-look=hell]{background:#e8e8e8;box-shadow:none;color:#454546}.light .tile::before,.tile[data-look=hell]::before{display:none}.light .tile .sub,.tile[data-look=hell] .sub{color:#828284}
+.light .tile.on,.tile[data-look=hell].on{background:#c6c2e3;color:#6a6393}.light .tile.on .sub,.tile[data-look=hell].on .sub{color:#9590b7}.light .tile.on .ico,.tile[data-look=hell].on .ico,.light .tile .ico,.tile[data-look=hell] .ico{color:inherit}
 .f-grid.light .dial svg g{stroke:#6a6393}.f-grid.light .dial .n{color:#6a6393;font-size:3.1cqw;font-weight:500}
 .ico{font-size:9.5cqw;transition:color .3s}
 /* Beschriftung (Frontalbild Website highlights/dashboard, auf 784 px normiert, Inter statt SF): Schrift 3,0 % W, Zeilenabstand 34 px (1×1) bzw. 32 px (Thermostat) */
@@ -1192,6 +1192,7 @@ function tileEl(c) {
   if (t.color) el.style.setProperty('--accent', t.color); el.dataset.size = `${t.w || 1}x${t.h || 1}`;
   if (t.e) el.dataset.e = t.e;
   if (t.noop) el.dataset.noop = '';
+  if (t.look) el.dataset.look = t.look;   // Look „hell“: Apple-Dashboard (Website highlights/homeview), wirkt wie ein helles Face nur für diese Kachel
   if (kind === 'clock') {
     el.className = t.cs === 'digital' ? 'dclock glass' : `dial glass${t.cs === 'numbers' ? ' nums' : ''}`;
     if (t.cs === 'digital') el.innerHTML = '<span data-bind="time"></span>';
