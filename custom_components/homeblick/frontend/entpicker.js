@@ -49,7 +49,8 @@ function rank(e, words) {
 }
 
 // → gewählte Entity ({ id, name, area, domain, … }) oder null
-export function pickEntity({ title = 'Entity wählen', domains, current = '' } = {}) {
+// dcs: nur diese device_class; none: Text einer ersten Zeile „keine Auswahl“ (liefert { id: '' })
+export function pickEntity({ title = 'Entity wählen', domains, dcs, none, current = '' } = {}) {
   return new Promise(res => {
     let dom = '', all = !domains, hi = 0, items = [];
     const o = Object.assign(document.createElement('div'), { id: 'ov', className: 'pkov', innerHTML: `<div class="pk" role="dialog" aria-label="${esc(title)}">
@@ -57,7 +58,7 @@ export function pickEntity({ title = 'Entity wählen', domains, current = '' } =
       <label class="pks"><svg class="chev"><use href="#i-search"/></svg><input type="search" placeholder="Name, Bereich oder ID suchen" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"></label>
       <div class="pkc"></div><div class="pkl"></div>${domains ? '<button class="pkf" data-any></button>' : ''}</div>` });
     const q = o.querySelector('input'), chips = o.querySelector('.pkc'), list = o.querySelector('.pkl'), foot = o.querySelector('.pkf');
-    const pool = () => EN.filter(e => all ? true : domains.includes(e.domain) && (!e.hide || e.id === current));
+    const pool = () => EN.filter(e => all ? true : domains.includes(e.domain) && (!dcs || dcs.includes(e.dc)) && (!e.hide || e.id === current));
     const done = v => { o.classList.remove('in'); setTimeout(() => o.remove(), 300); res(v); };
     const mark = () => list.querySelectorAll('.pki').forEach((b, i) => b.classList.toggle('hi', i === hi));
     function draw() {
@@ -68,8 +69,11 @@ export function pickEntity({ title = 'Entity wählen', domains, current = '' } =
       chips.innerHTML = doms.length > 1 ? [['', 'Alle', base.length], ...doms.map(d => [d, DOM[d]?.[0] || d, n[d]])].map(([d, t, c]) => `<button data-dm="${d}" class="${d === dom ? 'on' : ''}">${esc(t)} <small>${c}</small></button>`).join('') : '';
       const words = fold(q.value).split(/\s+/).filter(Boolean);
       const hits = base.filter(e => !dom || e.domain === dom).map(e => [rank(e, words), e]).filter(x => x[0] >= 0).sort((a, b) => b[0] - a[0] || a[1].name.localeCompare(b[1].name, 'de'));
-      items = hits.slice(0, 150).map(x => x[1]); hi = Math.min(hi, Math.max(items.length - 1, 0));
+      items = hits.slice(0, 150).map(x => x[1]);
+      if (none && !words.length && !dom) items.unshift({ id: '', name: none });
+      hi = Math.min(hi, Math.max(items.length - 1, 0));
       list.innerHTML = items.map((e, i) => {
+        if (!e.id) return `<button class="pki" data-i="${i}"><span class="ico" style="background:#8e8e93"><svg><use href="#i-x"/></svg></span><span class="t"><b>${esc(e.name)}</b></span>${current ? '' : '<svg class="ok"><use href="#i-check"/></svg>'}</button>`;
         const [, c, ic] = DOM[e.domain] || ['', '#8e8e93', 'dot'], ctx = [DOM[e.domain]?.[0] || e.domain, e.area, e.device !== e.name && e.device].filter(Boolean).join(' · '), s = stateText(e);
         return `<button class="pki" data-i="${i}"><span class="ico" style="background:${c}"><svg><use href="#i-${ic}"/></svg></span><span class="t"><b>${esc(e.name)}</b><small>${esc(ctx)}</small></span>`
           + `<span class="r"><small>${esc(s)}</small><small class="id">${esc(e.id)}</small></span>${e.id === current ? '<svg class="ok"><use href="#i-check"/></svg>' : ''}</button>`;

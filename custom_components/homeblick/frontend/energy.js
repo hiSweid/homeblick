@@ -220,7 +220,7 @@ const layer = u => `<svg class="eh" viewBox="0 0 100 100" preserveAspectRatio="n
 export function energyDetail(k) {
   const view = document.getElementById('edet'), d = DET[k];
   dk = k;
-  view.className = `view ${k} ${k === 'pv' ? 'cv' : 'lv'} ni`;
+  view.className = `view ${k} ${k === 'pv' ? 'ecv' : 'elv'} ni`;
   view.style.setProperty('--bg', d.bg); view.style.setProperty('--fc', d.fc); view.style.setProperty('--f', 0);
   view.querySelector('.ed').innerHTML = `<div class="eb">${layer(d.u)}</div><div class="ew"><div class="ef"><div class="in">${layer(d.u)}</div></div></div>`;
   bd('edn', d.name);
@@ -255,9 +255,9 @@ function detail() {
   bd('ed_x', dk === 'bat' ? (cap ? `${de(cap * v / 100)} von ${de(cap)} kWh` : '') : ok.car && range ? `${Math.round(range)} km Reichweite` : '');
   if (!view.classList.contains('ni')) view.style.setProperty('--f', v / 100);
   const s = H[dk === 'bat' ? 'soc' : 'carSoc'], d0 = day0(), span = Math.max(1, Date.now() - d0);
-  const pts = s.filter(p => p[0] >= d0).map(([t, y]) => [100 * (t - d0) / span, 100 - y]);
+  const pts = bins(s, d0, Date.now(), 9e5).map(([t, y]) => [100 * (t - d0) / span, 100 - y]);   // 15-min-Mittel, weich
   if (pts.length) pts.push([100, 100 - v]);
-  const dPath = pts.length > 1 ? pts.map(([x, y], i) => `${i ? 'L' : 'M'}${x.toFixed(2)},${y.toFixed(2)}`).join('') : '';
+  const dPath = pts.length > 1 ? smooth(pts) : '';
   for (const p of $$('.eh path', view)) if (p.getAttribute('d') !== dPath) p.setAttribute('d', dPath);
 }
 
@@ -291,6 +291,8 @@ export function energyDemo(now = Date.now()) {
 }
 
 document.head.insertAdjacentHTML('beforeend', `<style>
+/* eigener Stapelkontext: Fluss-Ebene (z 3) bleibt unter Vollbild-Ansichten (z 2) */
+.f-energy{isolation:isolate}
 /* Kacheln: Grundstil .tile (Glas, Radius 4,3, Press .96) aus index.html; hier nur Inhalt */
 .et{overflow:hidden}
 .et:not([data-act]):active{transform:none}
@@ -306,7 +308,7 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 .et.w .nv .num{font-size:13cqw}                             /* Thermostat 2×1 */
 .et.w .nv small{font-size:4.2cqw}
 .et.w .bl{position:absolute;left:5cqw;bottom:4.4cqw}
-.et.w .tr{position:absolute;right:5cqw;top:4cqw;text-align:right}
+.et.w .tr{position:absolute;right:5cqw;top:4cqw;text-align:right;color:#ffffffb3}.light .et.w .tr{color:#0000008c}   /* wie „H:72° L:58°“ im Wetter-Widget: Weiß statt Ton, auf hellem Glasrand sonst unlesbar */
 .et.w .cic{position:absolute;right:5cqw;top:50%;translate:0 -50%;font-size:9.5cqw}
 /* Solarkurve 6–21 Uhr rechts neben der Zahl (wie ein Aktien-Widget), unten/rechts randlos; Fenster ragt 8 cqw rechts hinaus (weiche Wischkante liegt in Ruhe draußen) */
 .et .cw{position:absolute;left:52%;right:-8cqw;top:34%;bottom:0;overflow:hidden;color:${C.pv};pointer-events:none;
@@ -353,10 +355,10 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 #edet :is(.ed,.eb,.ef,.in){position:absolute;inset:0}
 #edet .ew{position:absolute;left:0;top:0;bottom:0;right:-12cqw;overflow:hidden}
 #edet .ef{right:12cqw;overflow:hidden;background:var(--fc);color:var(--bg)}
-#edet.cv .ew{-webkit-mask:linear-gradient(90deg,#000 calc(100% - 12cqw),#0000);mask:linear-gradient(90deg,#000 calc(100% - 12cqw),#0000)}
-#edet.cv .ef{-webkit-mask:var(--m) 0 0/100% 100% no-repeat;mask:var(--m) 0 0/100% 100% no-repeat}
-#edet.lv .ef{transform:translateY(calc((1 - var(--f,0)) * 100%));transition:transform calc(var(--sd) * 2.6) var(--spring)}
-#edet.lv .in{transform:translateY(calc((1 - var(--f,0)) * -100%));transition:transform calc(var(--sd) * 2.6) var(--spring)}
+#edet.ecv .ew{-webkit-mask:linear-gradient(90deg,#000 calc(100% - 12cqw),#0000);mask:linear-gradient(90deg,#000 calc(100% - 12cqw),#0000)}
+#edet.ecv .ef{-webkit-mask:var(--m) 0 0/100% 100% no-repeat;mask:var(--m) 0 0/100% 100% no-repeat}
+#edet.elv .ef{transform:translateY(calc((1 - var(--f,0)) * 100%));transition:transform calc(var(--sd) * 2.6) var(--spring)}
+#edet.elv .in{transform:translateY(calc((1 - var(--f,0)) * -100%));transition:transform calc(var(--sd) * 2.6) var(--spring)}
 #edet.ni :is(.ef,.in){transition:none}
 #edet .mode{position:absolute;left:0;right:0;top:33.9cqw;translate:0 var(--ty);text-align:center;font-size:4.8cqw;line-height:1}
 #edet .pct{position:absolute;left:50%;top:60.2cqw;translate:-50% var(--ty);font-size:29cqw;font-weight:500;line-height:1;letter-spacing:-.02em;white-space:nowrap}
