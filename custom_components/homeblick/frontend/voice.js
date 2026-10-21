@@ -26,6 +26,8 @@ const ERR = {
   'pipeline-not-found': 'Die Assist-Pipeline wurde nicht gefunden.', 'intent-failed': 'Das habe ich nicht verstanden.', 'tts-failed': 'Die Sprachausgabe hat nicht geklappt.',
   timeout: 'Keine Antwort von Home Assistant.', empty: 'Ich habe keine Antwort bekommen.', NotAllowedError: 'Mikrofon-Zugriff verweigert.', NotFoundError: 'Kein Mikrofon gefunden.',
 };
+// Stoppwörter: sagt man nur eins davon, wird der Lauf abgebrochen (kein Befehl, keine Antwort)
+export const isStop = t => /^(?:(?:ok(?:ay)?|na|ja|nein|bitte|jetzt|schon)\s+)*(?:stopp?|halt(?:\s+stopp?)?|abbrechen?|abbruch|schluss|ruhe|still|leise|vergiss\s+(?:es|das)|lass\s+(?:es|gut)|nicht\s+mehr|(?:ok(?:ay)?\s+)?(?:danke|dankeschön)|cancel|never\s?mind)(?:\s+(?:bitte|danke|jetzt|mal))*$/i.test((t || '').trim().replace(/[.!?,;:]+/g, ' ').replace(/\s+/g, ' ').trim());
 const errText = (code, msg) => ERR[code] || 'Das hat nicht geklappt' + (msg ? ': ' + msg : '.');
 
 // h: { wake? (Wake-Word-Modell, für HAs Doppelwecken-Sperre), onThink(text?), onAnswer(text, response_type), onEnd(next?), onError(msg), base, pipeline?, device?, conversation? } → { stop() }
@@ -47,7 +49,9 @@ export async function voiceRun(conn, h) {
       const d = ev.data;
       if (ev.type === 'run-start') { id = d.runner_data.stt_binary_handler_id; arm((h.listen || 15) * 1000 + 8000); }
       else if (ev.type === 'stt-vad-end') { endAudio(); h.onThink(); }
-      else if (ev.type === 'stt-end') { endAudio(); h.onThink(d.stt_output?.text); }
+      else if (ev.type === 'stt-end') {
+        if (isStop(d.stt_output?.text)) { endAudio(); cleanup(); return h.onEnd(); }   // Stoppwort: still beenden
+        endAudio(); h.onThink(d.stt_output?.text); }
       else if (ev.type === 'intent-end') {
         const o = d.intent_output;
         if (o?.continue_conversation) next = { conversation: o.conversation_id };
