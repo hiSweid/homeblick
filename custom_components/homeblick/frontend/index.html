@@ -624,6 +624,58 @@ input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:tr
 /* Auslöser: Kamera oben Mitte antippen oder herunterziehen */
 #pull{position:absolute;left:30cqw;right:30cqw;top:0;height:3cqw;z-index:19;touch-action:none}
 .lk{overflow:visible}.lk .sh{fill:none;stroke:currentColor;stroke-linecap:round;transform-origin:7.8px 11.5px;transition:transform .55s cubic-bezier(.34,1.7,.5,1)}.lk.open .sh{transform:translateY(-2.4px) rotate(-32deg)}
+/* ---------- Kontrollzentrum: Overlay über allen Faces/Ansichten (z 17: über .view 2, unter Zeit-Pille 18, Timer 19, Assist 20) ----------
+   Vorlage _Tbq 00500 (blaue Glasansicht, Handkamera von links, Perspektive entzerrt; Maße in cqw = % Displaybreite, Mitte der Handkamera-Vermessung ±1 cqw),
+   Geste jOyxtZdFC6s 334,3 s (öffnen) / 335,8 s (schließen). Das Glas ist der verwischte Untergrund (backdrop-filter, nur seine Deckkraft wird überblendet) */
+#kz{position:absolute;inset:0;z-index:17;touch-action:none;color:#fff;--ink:#1c1c1e;--ink2:#1c1c1e99;--tint:#ffffffb3}   /* Untertitel hell wie in der Vorlage (nicht der Face-Ton) */
+#kzz{position:absolute;left:70cqw;right:0;top:0;height:6cqw;z-index:19;touch-action:none}   /* Auslösezone oben rechts: 30 % W × 6 % W (Annahme, belegt nur „von oben rechts“); #pull belegt 30–70 cqw */
+#kzx{position:absolute;left:70cqw;right:0;bottom:0;height:6cqw;z-index:3;touch-action:none}   /* Schließzone unten rechts, gespiegelt */
+#kz .kzb{position:absolute;inset:0;background:#ffffff0a;-webkit-backdrop-filter:blur(4.5cqw) saturate(1.3);backdrop-filter:blur(4.5cqw) saturate(1.3)}
+#kz.lt .kzb{-webkit-backdrop-filter:blur(4.5cqw) saturate(1.3) brightness(.62);backdrop-filter:blur(4.5cqw) saturate(1.3) brightness(.62)}   /* helle Faces: sonst weiße Schrift auf Weiß (Vorlage nur blau, Annahme) */
+#kz .kzw{position:absolute;inset:0}
+#kz :is(.kznp,.kzsl,.kzr,.kzg){background:#ffffff24;box-shadow:inset 0 .25cqw .1cqw #ffffff59,inset 0 -.25cqw .1cqw #ffffff33,inset 0 0 0 .25cqw #ffffff2e,0 0 0 .13cqw #0000001f,0 .6cqw 2cqw #0002}
+#kz .kzg{background:#ffffff1a}
+#kz .kzh{position:absolute;left:11.6cqw;top:9.4cqw;pointer-events:none}   /* Datum Versalien (Mitte y 11,1), Uhrzeit fett darunter (Mitte y 15,4) */
+#kz .kzh div{font-size:3.1cqw;line-height:3.6cqw;font-weight:500;letter-spacing:.02em;color:#ffffffb3;text-transform:uppercase}
+#kz .kzh b{display:block;margin-top:.5cqw;font-size:3.5cqw;line-height:3.6cqw;font-weight:700;font-variant-numeric:tabular-nums}
+/* Now Playing: 50,1 × 30, Radius 5,7; Cover links oben, Titel mittig (y 7,5), Ausgabe-Knopf rechts, Fortschritt y 15,6, Steuerung y 23,5 (±15,5 um die Mitte) */
+#kz .kznp{position:absolute;left:9cqw;top:20.6cqw;width:50.1cqw;height:30cqw;border-radius:5.7cqw;transition:scale var(--sd) var(--spring)}
+#kz .kznp:active{scale:.98;transition:scale .12s ease-out}
+#kz .kzcv{position:absolute;left:2.4cqw;top:3.2cqw;width:10cqw;height:10cqw;border-radius:2.2cqw;background:var(--art,none) center/cover,#ffffff14}
+#kz .kzt{position:absolute;left:13.8cqw;right:10.6cqw;top:5.5cqw;text-align:center;font-size:3.2cqw;line-height:4cqw;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#kz .kza{position:absolute;left:13.8cqw;right:10.6cqw;top:9.3cqw;text-align:center;font-size:2.6cqw;line-height:3.4cqw;color:#ffffffb3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#kz.none .kza{display:none}
+#kz .kzap{position:absolute;right:3.7cqw;top:4.25cqw;width:5.5cqw;height:5.5cqw;border-radius:50%;background:#ffffff33;display:grid;place-items:center;font-size:3.4cqw;transition:scale var(--sd) var(--spring)}
+#kz .kzp{position:absolute;left:3.1cqw;right:2.9cqw;top:15.4cqw;height:.55cqw;border-radius:1cqw;background:#ffffff4d;overflow:hidden}
+#kz .kzp i{display:block;height:100%;background:#fff;transform-origin:0 0;transform:scaleX(0)}
+#kz .kzn{position:absolute;top:19cqw;width:9cqw;height:9cqw;display:grid;place-items:center;font-size:8.6cqw;transition:scale var(--sd) var(--spring),opacity .3s}
+#kz .kzn.pv{left:5.5cqw}#kz .kzn.pp{left:21cqw;font-size:9.4cqw}#kz .kzn.nx{left:36.5cqw}
+#kz.none :is(.pv,.nx){opacity:.35}
+#kz :is(.kzn,.kzap,.kzr):active{scale:.9;transition:scale .12s ease-out}
+/* Zwei vertikale Slider (13,4 × 30, Radius voll): Helligkeit gelb, Lautstärke blau; Füllung weiß per transform (wie #dimmer), Symbol an der Füllkante geteilt (weiß auf Glas, farbig auf Weiß) */
+#kz .kzsl{position:absolute;top:20.6cqw;width:13.4cqw;height:30cqw;border-radius:6.7cqw;overflow:hidden;touch-action:none;transition:scale var(--sd) var(--spring);outline:0}
+#kz .kzsl.b{left:62.1cqw}#kz .kzsl.v{left:78.4cqw}
+#kz .kzsl.drag{scale:.97}
+#kz :is(.kzsl,.kzr,.kzap,.kzn):focus-visible{outline:.4cqw solid #ffffffcc;outline-offset:-.4cqw}   /* Tastatur */
+#kz .kzsl .fill{position:absolute;inset:0;background:#f5f9fe;transform:translateY(calc((1 - var(--f,0)) * 100%))}
+#kz .kzsl .in{position:absolute;inset:0;transform:translateY(calc((1 - var(--f,0)) * -100%))}
+#kz .kzsl .ic{position:absolute;inset:auto 0 2cqw;height:8.4cqw;display:grid;place-items:center;font-size:8.4cqw;color:#fff}
+#kz .kzsl .dot{width:2.6cqw;height:2.6cqw;border-radius:50%;background:#fff}
+#kz .kzsl .in .dot{background:#f0d92c}#kz .kzsl.v .in .ic{color:#1ca4e6}
+/* Toggle-Kreise: Ø 14,5, Teilung 16,9, Reihe y 52,2; aktiv = weiße Fläche mit Face-Ton-Symbol (Vorlage: erster Kreis) */
+#kz .kzr{position:absolute;top:52.2cqw;left:calc(9cqw + var(--i) * 16.9cqw);width:14.5cqw;height:14.5cqw;border-radius:50%;display:grid;place-items:center;font-size:8.2cqw;color:#fff;transition:scale var(--sd) var(--spring),background-color .2s,color .2s}
+#kz .kzr.on{background:#fffffff2;color:var(--ink)}
+#kz .kzr .a{display:none}#kz .kzr.on.sw .a{display:block}#kz .kzr.on.sw .b{display:none}
+/* Kacheln (Türen/Szenen/Lichter): Container 82 breit ab y 68, zwei Spalten, Kachel 16,3 hoch; scrollt, die zweite Reihe ist angeschnitten */
+#kz .kzs{position:absolute;left:9cqw;right:9cqw;top:68cqw;bottom:0;overflow-y:auto;scrollbar-width:none;touch-action:pan-y;overscroll-behavior:contain}
+#kz .kzs::-webkit-scrollbar{display:none}
+#kz .kzg{display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:16.3cqw;gap:2.4cqw;padding:2.6cqw;border-radius:5.7cqw;margin-bottom:8cqw}
+#kz .tile[data-size]{border-radius:4.4cqw;padding:0 2.4cqw 0 4.4cqw;gap:3cqw;background:#ffffff29;box-shadow:inset 0 .2cqw .1cqw #ffffff4d,inset 0 0 0 .2cqw #ffffff26}
+#kz .tile.on{box-shadow:none}
+#kz .tile>div{min-width:0;flex:1}
+#kz .tile :is(.ttl,.sub){white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#kz .tile .ico{font-size:5.8cqw}
+#kz .tile[data-arm] .sub::after{font-size:2.6cqw}
 </style>
 </head>
 <body>
@@ -680,6 +732,8 @@ input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:tr
   <symbol id="shuffle" viewBox="0 0 24 24"><path d="M3 7h3.5c4 0 6.5 10 11 10H21M3 17h3.5c1.8 0 3-1.8 4.2-4M14 9c1-1.3 2.2-2 3.5-2H21M18 4l3 3-3 3M18 14l3 3-3 3"/></symbol>
   <symbol id="repeat" viewBox="0 0 24 24"><path d="M4 11V9a3 3 0 0 1 3-3h12M16 3l3 3-3 3M20 13v2a3 3 0 0 1-3 3H5M8 21l-3-3 3-3"/></symbol>
   <symbol id="stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="micx" viewBox="0 0 24 24"><rect x="8.7" y="2.5" width="6.6" height="12.2" rx="3.3" fill="currentColor" stroke="none"/><path d="M5.6 11.4a6.4 6.4 0 0 0 12.8 0M12 17.9v3.6M8.6 21.5h6.8M3.5 3.5l17 17" stroke-width="1.9"/></symbol>
+  <symbol id="scr" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="4.5"/></symbol>
   <symbol id="queue" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1.3" fill="currentColor" stroke="none"/><circle cx="4.5" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="4.5" cy="18" r="1.3" fill="currentColor" stroke="none"/></symbol>
 </svg>
 
@@ -730,6 +784,8 @@ input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:tr
   </section>
 
 
+  <div id="kz" hidden role="dialog" aria-label="Kontrollzentrum"></div>   <!-- Inhalt + Logik: Block „Kontrollzentrum“ im Skript -->
+  <div id="kzz"></div>
   <button id="pull" data-act="assist" aria-label="Assist"></button>
   <div id="assist">
     <div class="abg"></div>
@@ -1160,6 +1216,7 @@ function tick() {
   bind('mo', d.toLocaleDateString('de-DE', { month: 'short' }));
   bind('day', d.getDate());
   bind('wdl', d.toLocaleDateString('de-DE', { weekday: 'long' }).toUpperCase());
+  bind('kzd', d.toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'short' }).toUpperCase());   // „DIENSTAG, 13. OKT.“ (Vorlage „TUESDAY, OCT 13“)
   bind('wdd', `${d.toLocaleDateString('de-DE', { weekday: 'short' }).replace('.', '').toUpperCase()} ${d.getDate()}`);   // „DI 20“ (Vorlage „WED 1“, „TUE 13“)
   const h = d.getHours();
   bind('greet', h < 11 ? 'Guten Morgen,' : h < 18 ? 'Guten Tag,' : 'Guten Abend,');
@@ -1429,10 +1486,10 @@ function render() {
   const art = pic ? `url("${abs(pic)}")` : 'none';
   if (screen.style.getPropertyValue('--art') !== art) { screen.style.setProperty('--art', art); tintOf(pic && abs(pic)); }
   $('#lib').classList.toggle('hasnp', !!title);
-  volSync();
+  volSync(); kz.classList.toggle('none', !title || netDown); kzSync();
   const key = [netDown, NP, np?.state, a.media_position, a.media_position_updated_at, a.media_duration, a.shuffle, a.repeat, a.media_title].join();
   if (key !== npKey) {
-    npKey = key; $$('.prog i').forEach(progress); syncLyrics(); times();
+    npKey = key; $$('.prog i, .kzp i').forEach(progress); syncLyrics(); times();
     $$('.f-music.qm').forEach(fillQueue); $$('.menu.open').forEach(fillMenu);
   }
   if (members(NP).join() !== grpKey) $$('.outs.open').forEach(fillOuts);   // Gruppe geändert (auch von außen) → offene Ausgabewahl neu zeichnen; nicht bei jedem Tick, sonst reißt es laufende Regler ab
@@ -1443,7 +1500,7 @@ function times() {
   if (!sk) { bind('npe', mmss(p)); bind('npr', dur ? '−' + mmss(dur - p) : s.attributes.media_title ? 'LIVE' : ''); }
   // Demo: am Songende weiter (bzw. Titel wiederholen)
   if (!LIVE && dur && p >= dur && s.state === 'playing') demoCall('media_player', s.attributes.repeat === 'one' ? 'media_seek' : 'media_next_track', { entity_id: NP, seek_position: 0 });
-  if (f?.classList.contains('f-music') && s.attributes.media_title && !cur && !AS.className && Date.now() - touched > IDLE && !f.classList.contains('amb')) {
+  if (f?.classList.contains('f-music') && s.attributes.media_title && !cur && !kzOn && !AS.className && Date.now() - touched > IDLE && !f.classList.contains('amb')) {
     f.classList.add('amb'); volOpen(false); $$('.pop.open', f).forEach(x => x.classList.remove('open'));
   }
 }
@@ -1555,6 +1612,7 @@ const asSim = () => ({ socket: { send() {} }, subscribeMessage: async cb => {
 // k = 'cal' → Kalender-Antwort (Taste K), sonst Wetter (Taste S / Zug von oben)
 function assistStart(k = '') {
   if (AS.className) return;
+  kzClose(true);
   touched = Date.now(); $$('.amb').forEach(x => x.classList.remove('amb'));
   AS.className = 'drop'; AS.dataset.k = k;
   asEv = k === 'cal' ? events() : null;
@@ -1674,7 +1732,8 @@ document.addEventListener('keydown', e => {
   if (e.key === 'k' || e.key === 'K') assistStart('cal');
   if ((e.key === 't' || e.key === 'T') && !LIVE) call('timer', 'start', { entity_id: 'timer.kuche' });
   if ((e.key === 'e' || e.key === 'E') && !LIVE) call('timer', 'start', { entity_id: 'timer.eier' });   // Demo: zweiter Timer
-  if (e.key === 'Escape') assistEnd();
+  if (e.key === 'Escape') { assistEnd(); kzClose(); }
+  if ((e.key === 'c' || e.key === 'C') && !e.ctrlKey && !e.metaKey && !e.altKey) kzOn ? kzClose() : kzOpen();   // Tastatur: Kontrollzentrum
 });
 
 // ---------- Musikauswahl, Ausgabe, Menü, Warteschlange ----------
@@ -1939,6 +1998,7 @@ function fly(tile, view, opening, done) {
 }
 let cur = null, y0 = null, p0, camStale = false;   // camStale: Kamera-Konfiguration kam bei offener Ansicht, Faces noch alt
 function open(tile, id) {
+  kzClose(true);   // Kamera (Klingel), Musikauswahl … liegen unter dem Kontrollzentrum
   const view = $('#' + id), e = tile.dataset.e;
   cur = { tile, view, e };
   bind('vname', (tile._t ? tile._t.sub : $('.sub', tile)?.textContent) || st(e).attributes.friendly_name || '');   // Konfig-Wert: render() hängt beim Thermostat „• Ist°“ an
@@ -1988,7 +2048,7 @@ let night;
 function phase() {
   const n = isNight();
   if (night === undefined) return night = n;   // erster Aufbau lief schon mit n
-  if (n === night || cur) return;
+  if (n === night || cur || kzOn) return;
   night = n;
   const dyn = CONF.faces.map((f, i) => f.bg === 'auto' || f.tiles?.some(t => t.night) ? i : -1).filter(i => i >= 0);
   const go = () => dyn.forEach(rerender);
@@ -2136,6 +2196,8 @@ document.addEventListener('click', e => {
   if (suppress) { suppress = false; return; }
   const b = e.target.closest('[data-act]'), act = b?.dataset.act, pop = $('.pop.open');
   if (!e.target.closest('.mpill')) volOpen(false);
+  if (kzOn && !e.target.closest('.kznp,.kzsl,.kzr,.kzs')) return kzClose();   // Tipp daneben schließt
+  if (act === 'kz') return kzAct(b.dataset.v);
   if (act === 'assist') return assistStart();
   if (e.target.closest('#assist')) { assistEnd(); if (act !== 'go') return; }   // Tipp schließt; Pille führt zusätzlich hin
   if (pop && !e.target.closest('.pop')) return pop.classList.remove('open');   // Tipp daneben schließt nur
@@ -2200,6 +2262,121 @@ document.addEventListener('click', e => {
     TAP[id.split('.')[0]]?.(t, id);
   }
 });
+
+// ---------- Kontrollzentrum ----------
+// Vorlage _Tbq 00500 (Inhalt, blau) + jOyxtZdFC6s 334,3 s / 335,8 s (Geste): Wisch von oben rechts, Auslösung bei ≥ 40 % H Fingerweg ohne sichtbares Mitziehen, Home blurt und das Kontrollzentrum blendet ≈ 375 ms ein;
+// Schließen: Wisch hoch ab unterem rechten Rand ≈ 290 ms (Strecke 20 % H = Annahme), Tipp daneben, Escape (beides nicht belegt). Das dunkle Overlay _Tbq 01041/01044 ist ein anderes Element (Kamera-Schnellansicht) und nicht umgesetzt.
+// Helligkeit = Software-Folie des Displays (kiosk.js, Einstellung „bright“), Lautstärke = gewählter Player (Gruppe wie die Pille), ohne Player die Lautstärke der Antworten dieses Displays.
+// Slider/Schalter schreiben die Display-Einstellung über homeblick/setting (HA); Demo: nur lokal, es gibt keine echten Service-Calls
+const kz = $('#kz'), kzz = $('#kzz');
+let kzOn = false, kzHold = 0, kzDrag = null, kzAn = [], kzQ = {}, kzTm = 0;
+kz.innerHTML = `<div class="kzb"></div><div class="kzw">
+  <div class="kzh"><div data-bind="kzd"></div><b data-bind="time"></b></div>
+  <div class="kznp" data-act="kz" data-v="music"><div class="kzcv"></div><b class="kzt" data-bind="npt"></b><span class="kza" data-bind="npa"></span>
+    <button class="kzap" data-act="kz" data-v="music" aria-label="Ausgabe">${svg('cast')}</button><div class="kzp"><i></i></div>
+    <button class="kzn pv" data-act="prev" aria-label="Zurück">${svg('prev')}</button><button class="kzn pp" data-act="play" aria-label="Abspielen/Pause">${svg('play')}</button><button class="kzn nx" data-act="next" aria-label="Weiter">${svg('next')}</button></div>
+  <div class="kzsl b" data-k="bright" role="slider" tabindex="0" aria-label="Helligkeit" aria-valuemin="10" aria-valuemax="100"><div class="ic"><i class="dot"></i></div><div class="fill"><div class="in"><div class="ic"><i class="dot"></i></div></div></div></div>
+  <div class="kzsl v" data-k="vol" role="slider" tabindex="0" aria-label="Lautstärke" aria-valuemin="0" aria-valuemax="100"><div class="ic">${svg('vol')}</div><div class="fill"><div class="in"><div class="ic">${svg('vol')}</div></div></div></div>
+  <button class="kzr" style="--i:0" data-act="kz" data-v="dnd" aria-label="Nicht stören" aria-pressed="false">${svg('moon')}</button>
+  <button class="kzr sw" style="--i:1" data-act="kz" data-v="mute" aria-label="Antworten stumm" aria-pressed="false">${svg('vol', 'b')}${svg('volx', 'a')}</button>
+  <button class="kzr sw" style="--i:2" data-act="kz" data-v="micmute" aria-label="Mikrofon stumm" aria-pressed="false">${svg('mic', 'b')}${svg('micx', 'a')}</button>
+  <button class="kzr" style="--i:3" data-act="kz" data-v="hold" aria-label="Schoner halten" aria-pressed="false">${svg('sun')}</button>
+  <button class="kzr" style="--i:4" data-act="kz" data-v="sleep" aria-label="Ruhemodus">${svg('scr')}</button>
+  <div class="kzs"><div class="kzg"></div></div><div id="kzx"></div></div>`;
+const kzCfg = () => ({ ...KIOSK_DEF, ...CONF.kiosk });
+const kzAllowed = () => kzCfg().kz !== false && !cur && !AS.className && !timerOn() && !kzOn;
+// Kacheln: CONF.kz (Entity-Liste, später per Einstellungsseite) sonst die ersten Türen/Szenen/Lichter aus den Home-Faces (Schloss, Tor, Szene, Licht), höchstens 6
+const KZ_ORD = { lock: 0, cover: 1, scene: 2, script: 2, light: 3, fan: 3 };
+function kzTiles() {
+  const all = CONF.faces.filter(f => f.type === 'grid').flatMap(f => f.tiles || []).filter(t => t.e && t.kind !== 'thermo'), seen = new Set();
+  const door = t => !t.e.startsWith('cover.') || /^(garage|gate|door)$/.test(st(t.e).attributes.device_class);
+  const pick = CONF.kz?.length ? CONF.kz.map(e => all.find(t => t.e === e) || { e, title: st(e).attributes.friendly_name || e, sub: '' })
+    : all.filter(t => t.e.split('.')[0] in KZ_ORD && door(t)).sort((a, b) => KZ_ORD[a.e.split('.')[0]] - KZ_ORD[b.e.split('.')[0]]);
+  return pick.filter(t => !seen.has(t.e) && seen.add(t.e)).slice(0, 6).map(t => ({ ...t, w: 2, h: 1, night: undefined }));
+}
+const kzFill = (k, v) => { const el = $(`.kzsl[data-k=${k}]`, kz); el._v = v; el.style.setProperty('--f', v / 100); el.setAttribute('aria-valuenow', v); };
+const kzPlayer = () => !!NP && st(NP).attributes.volume_level != null;
+const kzVol = () => kzPlayer() ? Math.round([NP, ...members(NP)].reduce((x, m) => x + (st(m).attributes.volume_level ?? 0), 0) / (members(NP).length + 1) * 100) : CFG.volume;
+function kzSync() {   // Anzeige aus dem Zustand; während des Ziehens und kurz danach gewinnt der lokale Wert gegen das HA-Echo
+  if (!kzOn) return;
+  const k = kzCfg();
+  if (!kzDrag && kzHold < Date.now()) { kzFill('bright', Math.round((k.bright ?? 1) * 100)); kzFill('vol', kzVol()); }
+  for (const b of $$('.kzr[aria-pressed]', kz)) { const on = b.dataset.v === 'mute' ? !!(k.mute || k.dnd) : !!k[b.dataset.v]; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); }
+}
+function kzSet(key, val) {   // Einstellung des Displays: bright (%) | volume (%) | mute | dnd | micmute | hold
+  CONF.kiosk = { ...CONF.kiosk, [key]: key === 'bright' ? val / 100 : val };
+  applyK(CONF.kiosk); if (CONF.kiosk.dnd) { CFG.mute = true; CFG.chime = false; }   // Nicht stören = stumm + kein Gong (wie hub.py), HA schickt dasselbe nach
+  kiosk.paint(key === 'bright' ? 150 : undefined);
+  if (!LIVE) return;
+  kzQ[key] = val; kzTm ||= setTimeout(() => { kzTm = 0; for (const [k, v] of Object.entries(kzQ)) conn.sendMessagePromise({ type: 'homeblick/setting', display: DISPLAY, key: k, value: v }).catch(e => console.warn('HA', k, e)); kzQ = {}; }, 200);
+}
+function kzSend(k, v) {
+  if (k === 'bright') return kzSet('bright', v);
+  if (!kzPlayer()) return kzSet('volume', v);
+  volHold = Date.now() + 1500;
+  const all = [NP, ...members(NP)], d = v / 100 - all.reduce((x, m) => x + (st(m).attributes.volume_level ?? 0), 0) / all.length;
+  for (const m of all) sendVol(m, Math.min(1, Math.max(0, (st(m).attributes.volume_level ?? 0) + d)));
+}
+function kzAct(v) {
+  if (v === 'music') { const i = CONF.faces.findIndex(f => f.type === 'music'); kzClose(); if (i >= 0) faces.go(i); return; }
+  if (v === 'sleep') { kzClose(); return kiosk.sleep(); }
+  const k = kzCfg(); if (v === 'mute' && k.dnd) kzSet('dnd', false); else kzSet(v, !k[v]); kzSync();   // Stumm leuchtet bei Nicht-stören mit: Tippen beendet dann Nicht-stören
+}
+const KZ_E = 'cubic-bezier(.25,.6,.3,1)';
+const kzBf = (b, s, br) => { const f = `blur(${b}cqw) saturate(${s})` + (kz.classList.contains('lt') ? ` brightness(${br})` : ''); return { backdropFilter: f, webkitBackdropFilter: f }; };
+function kzOpen() {
+  if (!kzAllowed()) return;
+  kzOn = true; suppress = true;   // ein Tipp, der noch folgt (Finger loslassen), schließt es nicht gleich wieder
+  const f = curEl(), cs = getComputedStyle(f);
+  for (const v of ['--ink', '--ink2']) kz.style.setProperty(v, cs.getPropertyValue(v));   // Face-Ton für den An-Zustand der Kacheln
+  kz.classList.toggle('lt', f.classList.contains('light'));
+  $('.kzg', kz).replaceChildren(...kzTiles().map(tileEl)); $('.kzs', kz).hidden = !$('.kzg', kz).children.length;
+  kzAn.forEach(a => a.cancel());
+  kz.hidden = false; kzz.hidden = true;
+  render();
+  kzAn = [$('.kzb', kz).animate([kzBf(0, 1, 1), kzBf(4.5, 1.3, .62)], { duration: 210, easing: 'ease-in-out' }),   // Phase 1: Home verliert Kontrast und wird unscharf
+    $('.kzw', kz).animate([{ opacity: 0, filter: 'blur(1.4cqw)' }, { opacity: 1, filter: 'blur(0)' }], { duration: 225, delay: 150, easing: KZ_E, fill: 'both' })];   // Phase 2: Inhalt blendet ein
+}
+function kzClose(now) {
+  if (!kzOn) return;
+  kzOn = false; kzDrag = null; $$('.kzsl.drag', kz).forEach(x => x.classList.remove('drag'));
+  kzAn.forEach(a => a.cancel());
+  if (now) return void (kz.hidden = true);
+  kzAn = [$('.kzb', kz).animate([kzBf(4.5, 1.3, .62), kzBf(0, 1, 1)], { duration: 290, easing: 'ease-in', fill: 'forwards' }),   // Home wird aus der Unschärfe wieder scharf
+    $('.kzw', kz).animate([{ opacity: 1, filter: 'blur(0)' }, { opacity: 0, filter: 'blur(1.4cqw)' }], { duration: 120, easing: 'ease-in', fill: 'forwards' })];
+  kzAn[0].onfinish = () => { if (kzOn) return; kz.hidden = true; kzAn.forEach(a => a.cancel()); };
+}
+// Wischgesten: Pointer auf der Zone gefangen (touch-action:none), ein Tipp ohne Wisch wird an das Element darunter weitergereicht
+function kzSwipe(zone, dir, dist, go) {
+  let g = null;
+  zone.addEventListener('pointerdown', e => { if (e.button) return; g = { x: e.clientX, y: e.clientY }; zone.setPointerCapture(e.pointerId); });
+  zone.addEventListener('pointermove', e => { if (g && dir * (e.clientY - g.y) >= dist * screen.getBoundingClientRect().height) { g = null; suppress = true; go(); } });
+  zone.addEventListener('pointerup', e => {
+    if (!g) return;
+    const tap = Math.hypot(e.clientX - g.x, e.clientY - g.y) < 8; g = null;
+    if (!tap) return;
+    zone.style.pointerEvents = 'none'; const t = document.elementFromPoint(e.clientX, e.clientY); zone.style.pointerEvents = '';
+    t?.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: e.clientX, clientY: e.clientY }));
+  });
+  zone.addEventListener('pointercancel', () => g = null);
+}
+kzSwipe(kzz, 1, .4, kzOpen);   // ≥ 40 % H nach unten (belegt 35–45 %)
+kzSwipe($('#kzx'), -1, .2, () => kzClose());
+setInterval(() => kzz.hidden = !kzAllowed(), 250); kzz.hidden = !kzAllowed();
+for (const el of $$('.kzsl', kz)) {
+  const k = el.dataset.k, min = k === 'bright' ? 10 : 0, set = v => { kzFill(k, v); kzSend(k, v); };
+  el.addEventListener('pointerdown', e => { if (e.button) return; kzDrag = { el, y: e.clientY, v: el._v ?? 0, h: el.clientHeight }; el.setPointerCapture(e.pointerId); el.classList.add('drag'); });   // relativ ziehen wie der Dimmer: Tippen springt nicht
+  el.addEventListener('pointermove', e => {
+    if (kzDrag?.el !== el) return;
+    const v = Math.round(Math.min(100, Math.max(min, kzDrag.v + (kzDrag.y - e.clientY) / kzDrag.h * 100)));
+    if (v !== el._v) set(v);
+  });
+  for (const n of ['pointerup', 'pointercancel']) el.addEventListener(n, () => { if (kzDrag?.el !== el) return; kzDrag = null; kzHold = Date.now() + 1500; el.classList.remove('drag'); });
+  el.addEventListener('keydown', e => {
+    const d = { ArrowUp: 5, ArrowRight: 5, ArrowDown: -5, ArrowLeft: -5 }[e.key];
+    if (d) { e.preventDefault(); kzHold = Date.now() + 1500; set(Math.min(100, Math.max(min, (el._v ?? 0) + d))); }
+  });
+}
 
 // Dimmer: ganzer Screen ist der Slider, relativ ziehen wie im Kontrollzentrum
 const dim = $('#dimmer');
@@ -2273,7 +2450,7 @@ if (!LIVE) {
 }
 if (!LIVE && new URLSearchParams(location.search).has('ring')) setTimeout(() => { ents = { ...ents, 'event.turklingel_doorbell': { ...ents['event.turklingel_doorbell'], state: new Date().toISOString() } }; schedule(); }, 1500);   // Demo-Klingeln wie HA
 timerInit(screen, call, (timer, action) => LIVE && conn.sendMessagePromise({ type: 'homeblick/timer', display: DISPLAY, timer, action }).catch(e => console.warn('Timer', action, e)), () => CFG.chime ? CFG.volume / 100 : 0, () => kiosk.wake());
-const kiosk = kioskInit({ faces, conf: () => CONF, lux: () => { const e = CONF.kiosk?.lux, v = e ? parseFloat(st(e).state) : NaN; return isNaN(v) ? null : luxLevel(v); }, busy: () => cur || AS.className || timerOn(), touched: () => touched,
+const kiosk = kioskInit({ faces, conf: () => CONF, lux: () => { const e = CONF.kiosk?.lux, v = e ? parseFloat(st(e).state) : NaN; return isNaN(v) ? null : luxLevel(v); }, busy: () => cur || AS.className || timerOn() || kzOn, touched: () => touched,
   music: () => NP && st(NP).state === 'playing' && !/video|movie|tvshow|channel/.test(st(NP).attributes.media_content_type),   // Filme/TV ohne device_class tv nicht als Musik
   onState: st => conn?.sendMessagePromise({ type: 'homeblick/report', display: DISPLAY, ...st, info: info() }).catch(() => {}) });
 if (!LIVE) camConfig({ list: [{ entity: 'camera.turklingel', name: 'Haustür', light: 'light.eingang' }, { entity: 'camera.cx410w_color_x_standardauflosung', name: 'Garten' }, { entity: 'camera.demo_veranda', name: 'Veranda' }, { entity: 'camera.demo_wohnzimmer', name: 'Wohnzimmer' }], bell: { event: 'event.turklingel_doorbell', camera: 'camera.turklingel' } });

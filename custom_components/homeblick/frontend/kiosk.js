@@ -1,6 +1,6 @@
 // Wanddisplay-Verhalten im Browser: Idle-Screensaver, Nacht-Dimmen, Display wach halten, Face per #<typ>.
 // Einstellungen: CONF.kiosk = { idle: Sekunden (0 = aus), saver: Face-Typ, dim: { from: 'HH:MM', to: 'HH:MM', level: 0–1 } | null, black: Schoner = 100 % schwarz statt Face, hold: true = Schoner startet nicht, sched: { from, to } | null (im Fenster startet der Schoner nach 30 s, auch bei idle 0), wake: Modellname | null }
-export const KIOSK_DEF = { idle: 300, saver: 'bigclock', black: false, sched: null, dim: null, wake: null, bright: 1, hold: false };   // wake: 'hey_jarvis_v0.1' | 'alexa_v0.1' | null (Mikrofon dauerhaft offen → nur auf Wunsch)
+export const KIOSK_DEF = { idle: 300, saver: 'bigclock', black: false, sched: null, dim: null, wake: null, bright: 1, hold: false, kz: true };   // wake: 'hey_jarvis_v0.1' | 'alexa_v0.1' | null (Mikrofon dauerhaft offen → nur auf Wunsch)
 
 const mins = s => { const [h, m] = s.split(':'); return h * 60 + +m; };
 export const inWindow = (now, from, to) => from <= to ? now >= from && now < to : now >= from || now < to;   // über Mitternacht erlaubt
@@ -53,7 +53,7 @@ export function kioskInit({ faces, conf, busy, touched, onState, music, lux }) {
   };
 
   setInterval(() => {
-    const { idle: idle0, dim, bright, black, sched, hold } = cfg(), now = new Date(), min = now.getHours() * 60 + now.getMinutes();
+    const { idle: idle0, black, sched, hold } = cfg(), now = new Date(), min = now.getHours() * 60 + now.getMinutes();
     const idle = sched && inWindow(min, mins(sched.from), mins(sched.to)) ? 30 : idle0;
     if (idle && !hold && back < 0 && !busy() && Date.now() - Math.max(last, touched()) > idle * 1000) {
       sleep();
@@ -62,16 +62,22 @@ export function kioskInit({ faces, conf, busy, touched, onState, music, lux }) {
     }
     const face = faces.children[idx()]?.className.match(/f-(\w+)/)?.[1] ?? null;
     if (onState && (face !== st.face || (back >= 0) !== st.saver)) onState(st = { face, saver: back >= 0 });
-    const d = dim && inWindow(min, mins(dim.from), mins(dim.to)) && Date.now() - last > 30000;
-    veil.style.opacity = back >= 0 && black ? 1 : 1 - (1 - (d ? dim.level ?? .8 : 0)) * (bright ?? 1) * (lux?.() ?? 1);   // Helligkeit = Software-Folie (Browser kann die Hardware nicht steuern)
+    paint();
   }, 1000);
+  // Helligkeit = Software-Folie (Browser kann die Hardware nicht steuern); ms = Überblendzeit (Kontrollzentrum-Regler: kurz, damit der Finger Wirkung sieht)
+  function paint(ms = 1500) {
+    const { dim, bright, black } = cfg(), now = new Date(), min = now.getHours() * 60 + now.getMinutes();
+    const d = dim && inWindow(min, mins(dim.from), mins(dim.to)) && Date.now() - last > 30000;
+    veil.style.transitionDuration = ms + 'ms';
+    veil.style.opacity = back >= 0 && black ? 1 : 1 - (1 - (d ? dim.level ?? .8 : 0)) * (bright ?? 1) * (lux?.() ?? 1);
+  }
 
   // Face per URL-Fragment (z. B. HA-Automation / Dashboard-Link): #music, #bigclock …
   // Gewähltes Face beendet den Screensaver (sonst holt ihn der Schoner-Tick zurück)
   const show = t => { const i = find(t); if (i < 0) return; back = -1; last = Date.now(); goto(i); };
   const byHash = () => show(location.hash.slice(1));
   addEventListener('hashchange', byHash); if (location.hash) byHash();
-  return { wake, sleep, show, report: () => onState?.(st), wakeLock: () => !!wl && !wl.released };   // wake: Screensaver beenden (Wake Word, HA-Befehl), sleep: sofort starten, show: Face zeigen (HA-Befehl), report: Zustand erneut melden
+  return { wake, sleep, show, paint, report: () => onState?.(st), wakeLock: () => !!wl && !wl.released };   // wake: Screensaver beenden (Wake Word, HA-Befehl), sleep: sofort starten, show: Face zeigen (HA-Befehl), report: Zustand erneut melden
 }
 
 // Selbsttest: node kiosk.js

@@ -371,6 +371,7 @@ const pages = {
       ${grp('Schoner halten', toggle('Schoner halten', 'hold', s.hold), 'Solange aktiv, startet der Bildschirmschoner nicht (z. B. beim Kochen oder Präsentieren).')}
       ${grp('Leistung', toggle('Leistungsmodus', 'perf', s.perf), 'Schaltet Animationen und Übergänge auf diesem Display ab – für schwache Tablets.')}
       ${grp('Helligkeit', slider('Helligkeit', 'bright', 10, 100, 5, s.bright), 'Software-Abdunklung, keine Hardware-Helligkeit.')}
+      ${grp('Kontrollzentrum', toggle('Kontrollzentrum', 'kz', s.kz), 'Wisch von oben rechts über mindestens 40 % der Höhe: Helligkeit, Lautstärke, Schalter und Kacheln (Türen, Szenen, Lichter aus den Home-Faces). Schließen: Wisch hoch unten rechts, Tippen daneben oder Escape.')}
       ${grp('Nachtmodus', toggle('Nachts abdunkeln', 'dim', s.dim) + `<div class="dep ${s.dim ? '' : 'off'}" id="dimdep"><div>
         <label class="row"><span class="l">Von</span><input type="time" data-s="dim_from" value="${esc(s.dim_from.slice(0, 5))}"></label>
         <label class="row"><span class="l">Bis</span><input type="time" data-s="dim_to" value="${esc(s.dim_to.slice(0, 5))}"></label>

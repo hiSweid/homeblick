@@ -111,6 +111,7 @@ SETTINGS = vol.Schema({
     vol.Optional("black"): bool,
     vol.Optional("perf"): bool,
     vol.Optional("hold"): bool,
+    vol.Optional("kz"): bool,
     vol.Optional("micmute"): bool,
     vol.Optional("dnd"): bool,
     vol.Optional("sched"): bool,
@@ -197,6 +198,22 @@ def get_config(hass, connection, msg):
         connection.send_result(msg["id"], {"config": hass.data[DOMAIN].config(msg["display"])})
 
 
+# Kontrollzentrum auf dem Display (Regler/Schalter): nur diese Einstellungen, ohne Administratorrechte, Prüfung wie die Einstellungsseite
+KZ_KEYS = ("bright", "volume", "mute", "dnd", "micmute", "hold")
+
+
+@websocket_api.websocket_command({vol.Required("type"): "homeblick/setting", **DISPLAY, vol.Required("key"): vol.In(KZ_KEYS), vol.Required("value"): vol.Any(bool, int)})
+@websocket_api.async_response
+async def setting(hass, connection, msg):
+    if d := _display(hass, connection, msg):
+        try:
+            value = SETTINGS({msg["key"]: msg["value"]})
+        except vol.Invalid as err:
+            return connection.send_error(msg["id"], "invalid_format", str(err))
+        await hass.data[DOMAIN].update(d, None, value)
+        connection.send_result(msg["id"])
+
+
 @websocket_api.require_admin
 @websocket_api.websocket_command({vol.Required("type"): "homeblick/update", **DISPLAY, vol.Optional("name"): vol.All(str, vol.Length(min=1, max=60)), vol.Optional("settings", default={}): SETTINGS})
 @websocket_api.async_response
@@ -263,7 +280,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     o.alarm()
                 if d.links:
                     hub._disarm(d)
-    for cmd in (register, set_config, subscribe, report, timer, shot, log, displays, cameras, set_cameras, get_shot, get_config, update, admin_config, command, remove):
+    for cmd in (register, set_config, subscribe, report, timer, shot, log, displays, cameras, set_cameras, get_shot, get_config, update, setting, admin_config, command, remove):
         websocket_api.async_register_command(hass, cmd)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
