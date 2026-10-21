@@ -4,7 +4,7 @@ from collections import deque
 from homeassistant.components.intent import async_register_timer_handler
 from homeassistant.components.intent.const import TIMER_DATA
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers import device_registry as dr, entity_registry as er, issue_registry as ir
+from homeassistant.helpers import area_registry as ar, device_registry as dr, entity_registry as er, issue_registry as ir
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.event import async_call_later
 from homeassistant.helpers.storage import Store
@@ -22,6 +22,7 @@ class Display:
     def __init__(self, id: str, name: str, settings: dict | None = None):
         self.id, self.name = id, name
         self.settings = {**DEFAULTS, **(settings or {})}
+        self.new = False   # hat sich selbst angemeldet und wartet auf die Einrichtung (Einstellungsseite)
         self.face: str | None = None   # vom Panel gemeldet
         self.saver = False
         self.info: dict = {}   # vom Panel gemeldet: Mikro, Wake Word, Wake Lock, Auflösung …
@@ -66,12 +67,13 @@ class Hub:
         self.default, self.configs, self.cams = d.get("default"), d.get("configs", {}), d.get("cameras")
         for id, m in d.get("displays", {}).items():
             self.displays[id] = Display(id, m["name"], m.get("settings"))
+            self.displays[id].new = m.get("new", False)
             self._arm(self.displays[id])   # nach HA-Neustart: Panels melden sich gleich wieder, sonst Meldung
 
     async def _save(self) -> None:
         await self.store.async_save({
             "default": self.default, "configs": self.configs, "cameras": self.cams,
-            "displays": {i: {"name": d.name, "settings": d.settings} for i, d in self.displays.items()},
+            "displays": {i: {"name": d.name, "settings": d.settings, "new": d.new} for i, d in self.displays.items()},
         })
 
     def attach(self, platform: str, add, factory) -> None:
@@ -81,6 +83,7 @@ class Hub:
     async def ensure(self, id: str, name: str | None) -> Display:
         if id not in self.displays:
             d = self.displays[id] = Display(id, name or f"Display {len(self.displays) + 1}")
+            d.new = True
             for add, factory in self.adders.values():
                 add(factory(self, d))
             self.watch_timers(d)
@@ -190,6 +193,14 @@ class Hub:
         await self._save()
         self.push(d, {"kiosk": d.kiosk()})
         self.notify(d)
+
+    async def setup(self, d: Display, name: str, area: str | None, config: dict, settings: dict) -> None:
+        """Einrichtung abschließen: Konfiguration, Name, Bereich (Gerät in HA) und Einstellungen; das wartende Panel baut sich neu auf."""
+        d.new = False
+        if area and (a := ar.async_get(self.hass).async_get_area_by_name(area)):
+            dr.async_get(self.hass).async_update_device(self.device_id(d), area_id=a.id)
+        await self.set_config(d.id, config, push=True)
+        await self.update(d, name, settings)
 
     async def set_setting(self, d: Display, key: str, value) -> None:
         await self.update(d, None, {key: value})

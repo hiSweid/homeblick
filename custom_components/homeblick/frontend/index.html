@@ -51,6 +51,8 @@ svg.i{width:1em;height:1em;flex:none;fill:none;stroke:currentColor;stroke-width:
 [data-e^="cover."]{--accent:#ff9500}[data-e^="media_player."]{--accent:#ff2d55}   /* Schloss/Ventilator an: Icon dunkel wie Titel (Vorlage y-MO 02750), kein Akzent */
 .tile.on[data-e^="fan."]{--fanplay:running}
 .tile.na{opacity:.45}
+#setup{position:absolute;inset:0;z-index:99;background:#000;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2cqw;text-align:center;padding:0 10cqw}
+#setup b{font-size:9cqw;font-weight:600}#setup span{font-size:3.6cqw;color:#ffffff99;line-height:1.4}
 .pvsel{outline:.8cqw solid #0a84ff;outline-offset:.5cqw}   /* Vorschau: in der Einstellungsseite gewählte Kachel */
 .tile[data-arm] .sub{font-size:0}.tile[data-arm] .sub::after{content:"Nochmal tippen";font-size:3cqw}
 /* Helle Variante (Website highlights/homeview, Pixelproben): flach ohne Schatten; Aus = hellgrau 232, An = Lavendel (198,194,227), Icon/Titel lila */
@@ -2709,6 +2711,7 @@ if (LIVE) {
       CONF.kiosk = c.kiosk; applyK(c.kiosk); CFG.device = c.device_id || '';
       const cam = setCams(c.cameras);
       voiceTimers(c.timers);   // beim Anmelden laufende Timer, ohne zu wecken
+      if (c.new) return $('#screen').insertAdjacentHTML('beforeend', `<div id="setup"><b>${esc(c.name)}</b><span>Dieses Display wartet auf die Einrichtung.<br>Öffne die Homeblick-Einstellungen auf dem Handy oder Computer und tippe unter „Neue Displays“ auf „Einrichten“.</span></div>`);   // wartet auf die Einrichtung: weder Vorlage hochladen noch anzeigen
       if (c.config?.faces?.length) { CONF = { ...c.config, kiosk: c.kiosk }; normFaces(CONF, DEF.faces); try { localStorage.setItem(KEY, JSON.stringify(CONF)); } catch {} renderAll(0); }
       else { save(); if (cam) renderAll(curIdx()); }
     }).catch(console.warn);
@@ -2737,7 +2740,7 @@ if (LIVE) {
     // Befehle und geänderte Einstellungen aus HA (Entities des Displays)
     hello.then(() => conn.subscribeMessage(c => {
       if (c.kiosk) { const w = [CFG.weather, CFG.place]; CONF.kiosk = c.kiosk; applyK(c.kiosk); if ([CFG.weather, CFG.place] + '' !== w + '') return location.reload(); wk(); }
-      else if (c.config?.faces?.length) { const i = curIdx(); CONF = { ...c.config, kiosk: CONF.kiosk }; normFaces(CONF, DEF.faces); try { localStorage.setItem(KEY, JSON.stringify(CONF)); } catch {} renderAll(Math.min(i, CONF.faces.length - 1)); }
+      else if (c.config?.faces?.length) { $('#setup')?.remove(); const i = curIdx(); CONF = { ...c.config, kiosk: CONF.kiosk }; normFaces(CONF, DEF.faces); try { localStorage.setItem(KEY, JSON.stringify(CONF)); } catch {} renderAll(Math.min(i, CONF.faces.length - 1)); }
       else if (c.timers) { if (voiceTimers(c.timers, c.finished)) kiosk.wake(); }   // Sprach-Timer: Display weckt bei Start und Ablauf
       else if (c.cameras !== undefined) { if (setCams(c.cameras)) cur ? camStale = true : renderAll(curIdx()); }   // offene Ansicht behält ihre Daten, die Faces ziehen nach dem Schließen nach
       else if (c.action === 'face' && c.face) {

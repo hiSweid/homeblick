@@ -34,14 +34,15 @@ async def register(hass, connection, msg):
     """Display meldet sich an (legt sich beim ersten Mal an) und bekommt seine Konfiguration."""
     hub = hass.data[DOMAIN]
     d = await hub.ensure(msg["display"], msg.get("name"))
-    connection.send_result(msg["id"], {"config": hub.config(d.id), "kiosk": d.kiosk(), "device_id": hub.device_id(d), "version": hub.version, "cameras": hub.cameras(), "timers": hub.timers(d)})
+    connection.send_result(msg["id"], {"config": hub.config(d.id), "kiosk": d.kiosk(), "device_id": hub.device_id(d), "version": hub.version, "cameras": hub.cameras(), "timers": hub.timers(d), "new": d.new, "name": d.name})
 
 
 @websocket_api.websocket_command({vol.Required("type"): "homeblick/set_config", **DISPLAY, vol.Required("config"): dict})
 @websocket_api.async_response
 async def set_config(hass, connection, msg):
-    if _display(hass, connection, msg):
-        await hass.data[DOMAIN].set_config(msg["display"], {k: v for k, v in msg["config"].items() if k != "kiosk"})
+    if d := _display(hass, connection, msg):
+        if not d.new:   # wartende Displays laden ihre Vorlage nicht hoch
+            await hass.data[DOMAIN].set_config(msg["display"], {k: v for k, v in msg["config"].items() if k != "kiosk"})
         connection.send_result(msg["id"])
 
 
@@ -146,7 +147,7 @@ def displays(hass, connection, msg):
     hub, devs, areas = hass.data[DOMAIN], dr.async_get(hass), ar.async_get(hass)
     area = lambda d: (a := (dev := devs.async_get_device(identifiers={(DOMAIN, d.id)})) and dev.area_id and areas.async_get_area(dev.area_id)) and a.name   # noqa: E731
     connection.send_result(msg["id"], [
-        {"id": d.id, "area": area(d) or None, "name": d.name, "connected": d.connected, "windows": len(d.links), "face": d.face, "saver": d.saver, "settings": d.settings, "info": d.info, "seen": d.seen, "logs": list(d.logs)[-10:],
+        {"id": d.id, "area": area(d) or None, "name": d.name, "new": d.new, "connected": d.connected, "windows": len(d.links), "face": d.face, "saver": d.saver, "settings": d.settings, "info": d.info, "seen": d.seen, "logs": list(d.logs)[-10:],
          "outdated": bool(d.info.get("v")) and d.info.get("v") != hub.version,   # Panel läuft noch mit JS einer anderen Integrationsversion
          "faces": [{"type": f.get("type"), "bg": f.get("bg")} for f in (hub.config(d.id) or {}).get("faces", [])]}
         for d in hub.displays.values()])
@@ -233,6 +234,16 @@ async def admin_config(hass, connection, msg):
 
 
 @websocket_api.require_admin
+@websocket_api.websocket_command({vol.Required("type"): "homeblick/setup", **DISPLAY, vol.Required("name"): vol.All(str, vol.Length(min=1, max=60)), vol.Optional("area"): str, vol.Required("config"): dict, vol.Optional("settings", default={}): SETTINGS})
+@websocket_api.async_response
+async def setup_display(hass, connection, msg):
+    """Neues Display einrichten: Name, Bereich, Konfiguration (aus einer Vorlage) und Einstellungen in einem Schritt."""
+    if d := _display(hass, connection, msg):
+        await hass.data[DOMAIN].setup(d, msg["name"], msg.get("area"), {k: v for k, v in msg["config"].items() if k != "kiosk"}, msg["settings"])
+        connection.send_result(msg["id"])
+
+
+@websocket_api.require_admin
 @websocket_api.websocket_command({vol.Required("type"): "homeblick/command", **DISPLAY, vol.Required("action"): vol.In(["face", "reload", "screensaver", "wake", "assist", "screenshot", "announce", "notify", "stop", "navigate"]), vol.Optional("face"): vol.In(FACES), vol.Optional("duration"): vol.All(int, vol.Range(min=1, max=3600)), vol.Optional("path"): vol.All(str, vol.Match(r"^/(?![/\\])[^\x00-\x20\\]*\Z"), vol.Length(max=300)), vol.Optional("message"): vol.All(str, vol.Length(min=1, max=300)), vol.Optional("title"): vol.All(str, vol.Length(max=80))})
 @callback
 def command(hass, connection, msg):
@@ -291,7 +302,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     o.alarm()
                 if d.links:
                     hub._disarm(d)
-    for cmd in (register, set_config, subscribe, report, timer, shot, log, displays, cameras, set_cameras, get_shot, get_config, update, setting, admin_config, command, remove):
+    for cmd in (register, set_config, subscribe, report, timer, shot, log, displays, cameras, set_cameras, get_shot, get_config, update, setting, admin_config, setup_display, command, remove):
         websocket_api.async_register_command(hass, cmd)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 

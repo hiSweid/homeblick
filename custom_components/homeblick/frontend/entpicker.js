@@ -21,6 +21,8 @@ const NOSTATE = ['scene', 'button', 'event', 'script'];   // Zustand ist ein Zei
 const SKIP = new Set(['friendly_name', 'icon', 'entity_picture', 'supported_features', 'device_class', 'unit_of_measurement', 'state_class', 'attribution', 'editable', 'id', 'restored', 'entity_id']);
 let EN = [], BY = new Map();
 export const entOf = id => BY.get(id);
+export const areasOf = () => [...new Set(EN.map(e => e.area).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'de'));
+export const entsIn = area => EN.filter(e => e.area === area && !e.hide);
 export const entsOf = domain => EN.filter(e => e.domain === domain).sort((a, b) => a.name.localeCompare(b.name, 'de'));
 
 // states aus get_states; Bereiche/Geräte aus den Registries (fehlen sie, bleiben Bereich und Gerät leer)

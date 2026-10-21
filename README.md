@@ -21,6 +21,8 @@ The energy face reads the entities of the [ha-evcc](https://github.com/marq24/ha
 
 Each browser/tablet is its own **display** (a device in Home Assistant, created the first time it opens Homeblick; rename it there, or give it a fixed id once per device by opening `https://<your-ha>/homeblick/index.html?live&display=kitchen&name=Kitchen` in that device's browser). Every display has its own faces and layout (new displays start from the existing one) and its own entities:
 
+**Setting up a new display:** open Homeblick on the device (in the Home Assistant app: sidebar → Homeblick). The display shows a waiting screen and appears on the settings page under *Neue Displays*. Tap *Einrichten*, give it a name, pick an area and a template (*Raum-Panel* fills the grid with the lights, covers, locks, scenes and thermostat of that area; *Uhr & Wetter*; *Alle Faces*) and tap *Einrichten* again: the device gets its area in Home Assistant, the faces and the weather entity, and the live editor opens to fine-tune.
+
 - Control: **Face** (select), **Screensaver** (switch), **Reload** and **Assist** (buttons), **Announcement** (notify entity: `notify.send_message` with message and optional title is shown and spoken on the display) – use them in automations, dashboards or voice like any other entity.
 - Configuration: screensaver delay and face, music face instead of the screensaver while music plays, night dimming (on, from, until, level), wake word (opt-in, keeps the microphone open: `hey_jarvis` or `alexa`) and doorbell chime.
 - Diagnostics: online, last seen, face shown, resolution; browser errors of the display go to the Home Assistant log and the settings page, and *Download diagnostics* on the device collects them.

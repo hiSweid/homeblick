@@ -161,6 +161,8 @@ textarea.r{text-align:right}
 .pkc{display:flex;gap:6px;overflow-x:auto;padding:4px 14px 8px;scrollbar-width:none}.pkc:empty{display:none}
 .pkc button{flex:none;padding:6px 12px;border-radius:16px;background:var(--fill);font-size:14px;white-space:nowrap}.pkc small{opacity:.6}
 .pkc .on{background:var(--blue);color:#fff}
+#wz{max-height:calc(100dvh - 20px);overflow-y:auto}#wz h3{margin:0;padding:16px 16px 4px;font-size:22px}#wz .sh{padding-top:12px}#wz .pkc{flex-wrap:wrap;padding:10px 14px}
+#wz .ck{width:20px;height:20px;color:var(--blue);opacity:0;transition:opacity .2s}#wz .on>.ck{opacity:1}
 .pkl{flex:1;overflow-y:auto;overscroll-behavior:contain;border-top:.5px solid var(--sep)}
 .pki{display:flex;align-items:center;gap:12px;width:100%;padding:9px 16px;position:relative}.pki.hi{background:var(--fill)}
 .pki+.pki::before{content:"";position:absolute;left:58px;right:0;top:0;border-top:.5px solid var(--sep)}
@@ -219,7 +221,7 @@ textarea.r{text-align:right}
 
 <script type="module">
 import { ICON, faceId, normFaces, pack, rows } from './faces.js';
-import { DOM, entOf, entsOf, loadEntities, pickEntity } from './entpicker.js';
+import { DOM, areasOf, entOf, entsIn, entsOf, loadEntities, pickEntity } from './entpicker.js';
 // Einstellungsseite: Seitenleiste mit allen Displays → Display → Face (Kacheln). Läuft als Admin-Panel in HA
 // (gleicher Login wie das Panel, Tokens im localStorage).
 const $ = s => document.querySelector(s);
@@ -321,19 +323,22 @@ const issues = d => {
 };
 
 function listHTML() {
-  const warn = displays.map(d => [d, issues(d)]).filter(x => x[1].length)
+  const fresh = displays.filter(d => d.new), ready = displays.filter(d => !d.new);
+  const warn = ready.map(d => [d, issues(d)]).filter(x => x[1].length)
     .map(([d, l]) => `<button class="row" data-d="${esc(d.id)}">${ico('disp')}<span class="l two"><b>${esc(d.name)}</b><small>${esc(l.join(' · '))}</small></span>${svg('chev')}</button>`).join('');
-  const rows = displays.map(d => `<button class="row ${d.id === sel ? 'sel-row' : ''}" data-d="${esc(d.id)}">${ico('disp')}<span class="l two"><b>${esc(d.name)}</b><small>${esc(stat(d))}</small></span><span class="dot ${d.connected ? 'on' : ''}"></span>${svg('chev')}</button>`).join('');
+  const news = fresh.map(d => `<button class="row" data-a="setup" data-id="${esc(d.id)}">${ico('disp', '#34c759')}<span class="l two"><b>${esc(d.name)}</b><small>${d.connected ? 'Wartet auf die Einrichtung' : 'Nicht verbunden'}</small></span><span class="v" style="color:var(--blue)">Einrichten</span>${svg('chev')}</button>`).join('');
+  const rows = ready.map(d => `<button class="row ${d.id === sel ? 'sel-row' : ''}" data-d="${esc(d.id)}">${ico('disp')}<span class="l two"><b>${esc(d.name)}</b><small>${esc(stat(d))}</small></span><span class="dot ${d.connected ? 'on' : ''}"></span>${svg('chev')}</button>`).join('');
   const areas = [...new Set(displays.map(x => x.area).filter(Boolean))].sort();
   if (!areas.includes(area)) area = '';
   const on = inArea().filter(x => x.connected).length, dis = on ? '' : 'disabled';
-  const allGrp = displays.length > 1 ? grp(`${area ? esc(area) : 'Alle Displays'} · ${on} online`, (areas.length ? pick('Bereich', 'area', [['', 'Alle'], ...areas.map(a => [a, a])], area, 'data-area') : '') + `<div class="quick">${[['reload', 'Neu laden', 'refresh'], ['assist', 'Assist', 'mic'], ['stop', 'Abbrechen', 'x'], ['screensaver', 'Ruhemodus', 'moon'], ['wake', 'Aufwecken', 'sun']].map(([c, n, i]) => `<button class="q" data-all="${c}" ${dis}><span class="qi">${svg(i, '')}</span>${n}</button>`).join('')}</div>`
+  const allGrp = ready.length > 1 ? grp(`${area ? esc(area) : 'Alle Displays'} · ${on} online`, (areas.length ? pick('Bereich', 'area', [['', 'Alle'], ...areas.map(a => [a, a])], area, 'data-area') : '') + `<div class="quick">${[['reload', 'Neu laden', 'refresh'], ['assist', 'Assist', 'mic'], ['stop', 'Abbrechen', 'x'], ['screensaver', 'Ruhemodus', 'moon'], ['wake', 'Aufwecken', 'sun']].map(([c, n, i]) => `<button class="q" data-all="${c}" ${dis}><span class="qi">${svg(i, '')}</span>${n}</button>`).join('')}</div>`
     + field('Zurück nach (s, leer = bleibt)', 'dur', '', 'type="number" inputmode="numeric" min="1" max="3600"', 'data-dur')
     + pick('Face anzeigen', 'allface', [['', 'Wählen …'], ...TYPES], '', 'data-allface')
     + `<button class="row btn" data-alls="1"><span class="l">Nachtmodus auf allen an</span></button><button class="row btn" data-alls="0"><span class="l">Nachtmodus auf allen aus</span></button>`, `Befehle gehen an alle Displays${area ? ` im Bereich „${esc(area)}“` : ''}, die gerade geöffnet sind.${areas.length ? '' : ' Bekommen die Display-Geräte in Home Assistant einen Bereich, lassen sich die Befehle auf einen Bereich beschränken.'}`) : '';
   return `<div class="lt">Homeblick</div><div class="lsub">Displays im Haus</div>` +
-    (displays.length ? (warn ? grp('Hinweise', warn) : '') + grp('Displays', rows, 'Ein Display legt sich an, sobald Homeblick einmal auf dem Gerät geöffnet wurde.') + allGrp
-      : grp('', `<div class="row"><span class="l">Noch kein Display angemeldet</span></div>`, 'Öffne Homeblick auf dem Gerät, am besten mit <code>?display=kueche&amp;name=Küche</code> hinter der Adresse.'));
+    (fresh.length ? grp('Neue Displays', news, 'Tippe auf „Einrichten“: Name, Bereich und Vorlage wählen, fertig.') : '') +
+    (ready.length ? (warn ? grp('Hinweise', warn) : '') + grp('Displays', rows, 'Ein Display meldet sich selbst, sobald Homeblick einmal auf dem Gerät geöffnet wurde.') + allGrp
+      : fresh.length ? '' : grp('', `<div class="row"><span class="l">Noch kein Display angemeldet</span></div>`, 'Öffne Homeblick auf dem Gerät (in der Home-Assistant-App: Seitenleiste → Homeblick). Es erscheint hier als neues Display. Für mehrere Geräte im selben Browser hilft <code>?display=kueche&amp;name=Küche</code> hinter der Adresse.'));
 }
 
 // ---- Kameras + Klingel (global) ----
@@ -504,7 +509,7 @@ async function open(id) {
 }
 async function reload() {
   displays = await call('displays');
-  if (wide() && !displays.some(d => d.id === sel)) sel = displays[0]?.id ?? null;
+  if (wide() && !displays.some(d => d.id === sel && !d.new)) sel = displays.find(d => !d.new)?.id ?? null;
   renderSide();
   if (sel && displays.some(d => d.id === sel)) await open(sel); else { sel = null; pane().replaceChildren(); stack = []; $('#app').dataset.open = '0'; }
 }
@@ -591,6 +596,54 @@ async function addTile(f, cell) {
   return t;
 }
 
+// ---- Neues Display einrichten: Name, Bereich, Vorlage → fertige Konfiguration; danach gleich im Live-Editor ----
+const FACE_BG = { grid: 'auto', music: 'black', bigclock: 150, weather: 212, energy: 'auto', calendar: 'white', date: 'auto', analog: 150, info: 'auto', cams: 'black' };
+const SETUP = [   // [Schlüssel, Name, Beschreibung, Faces]
+  ['room', 'Raum-Panel', 'Kacheln aus dem Bereich, Musik, Wetter, Kalender und Uhr', ['grid', 'music', 'weather', 'calendar', 'bigclock']],
+  ['clock', 'Uhr & Wetter', 'Uhr, Wetter, Kalender und Datum – ganz ohne Entities', ['bigclock', 'weather', 'calendar', 'date']],
+  ['all', 'Alle Faces', 'Jedes Face einmal; was nicht passt, blendest du später aus', Object.keys(FACE)],
+];
+const ROOM_DOM = ['climate', 'light', 'cover', 'lock', 'scene', 'switch', 'fan', 'media_player', 'script'];   // Reihenfolge = Wichtigkeit
+// Kacheln aus den Entities eines Bereichs: Thermostat groß, je Art höchstens 3, insgesamt 9 Zellen
+function roomTiles(area) {
+  const strip = en => en.name.replace(new RegExp('^' + area.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '[\\s:_-]*', 'i'), '').trim();
+  const pool = entsIn(area).filter(e => ROOM_DOM.includes(e.domain)).sort((a, b) => ROOM_DOM.indexOf(a.domain) - ROOM_DOM.indexOf(b.domain) || a.name.localeCompare(b.name, 'de'));
+  const tiles = [], n = {};
+  let cells = 9;
+  for (const en of pool) {
+    const big = en.domain === 'climate' && !tiles.some(t => t.w === 2), need = big ? 4 : 1;
+    if (cells < need || (n[en.domain] = (n[en.domain] || 0) + 1) > 3) continue;
+    cells -= need;
+    tiles.push({ e: en.id, title: strip(en) || autoTitle(en), sub: area, ...(big && { w: 2, h: 2 }) });
+  }
+  return tiles;
+}
+function setupConfig(key, area) {
+  const c = { cams: 1, energy: 1, dyn: 2, off: [], faces: SETUP.find(x => x[0] === key)[3].map(type => ({ type, bg: FACE_BG[type], ...(type === 'grid' && { tiles: area ? roomTiles(area) : [] }) })) };
+  normFaces(c);
+  return c;
+}
+async function setupWizard(d) {
+  let area = '', tpl = 'room';
+  const chip = (a, t) => `<button data-wa="${esc(a)}" class="${a === area ? 'on' : ''}">${esc(t)}</button>`;
+  const p = overlay('sheet', `<div class="shs" id="wz"><div class="grp"><h3>Neues Display</h3>${field('Name', 'name', d.name, 'maxlength="60" autocomplete="off"', 'data-wn')}</div>
+    <div class="grp"><div class="sh" style="padding-left:16px">Bereich</div><div class="pkc">${chip('', 'Keiner')}${areasOf().map(a => chip(a, a)).join('')}</div></div>
+    <div class="grp">${SETUP.map(([k, n, t]) => `<button class="row ${k === tpl ? 'on' : ''}" data-wt="${k}"><span class="l two"><b>${n}</b><small>${t}</small></span>${svg('check', 'ck')}</button>`).join('')}</div>
+    <div class="grp"><button class="row btn c" data-r="go" style="font-weight:600">Einrichten</button></div><div class="grp"><button class="row btn c" data-r="">Später</button></div></div>`);
+  const o = $('#ov');
+  o.addEventListener('click', e => {
+    const a = e.target.closest('[data-wa]'), t = e.target.closest('[data-wt]');
+    if (a) { area = a.dataset.wa; o.querySelectorAll('[data-wa]').forEach(x => x.classList.toggle('on', x === a)); }
+    if (t) { tpl = t.dataset.wt; o.querySelectorAll('[data-wt]').forEach(x => x.classList.toggle('on', x === t)); }
+  });
+  if (await p !== 'go') return;
+  const nm = o.querySelector('[data-wn]').value.trim() || d.name;   // der Dialog verschwindet erst nach der Animation
+  const config = setupConfig(tpl, area), wx = entsOf('weather'), w = wx.find(e => e.id === 'weather.home') || wx[0];
+  await guard(call('setup', { display: d.id, name: nm, ...(area && { area }), config, settings: config.faces.some(f => f.type === 'weather') && w ? { weather: w.id } : {} })).catch(() => 0);
+  sel = d.id; await reload();
+  $('#app').dataset.ed = '1'; pvLoad(); goFace(0);
+}
+
 // Domains, die eine Kachel bedienen kann (TAP in index.html)
 const ENERGY = [['pv', 'Solar-Leistung'], ['grid', 'Netz-Leistung (+ Bezug)'], ['home', 'Hausverbrauch'], ['bat', 'Batterie-Leistung (− Laden)'], ['soc', 'Batterie-Ladestand'], ['cap', 'Batterie-Kapazität'], ['car', 'Auto: Ladeleistung'], ['carSoc', 'Auto: Ladestand'], ['range', 'Auto: Reichweite']];
 const TILE_DOM = ['light', 'switch', 'input_boolean', 'lock', 'cover', 'climate', 'scene', 'script', 'media_player', 'fan', 'timer', 'camera', 'button', 'input_button', 'sensor', 'binary_sensor'];
@@ -675,6 +728,7 @@ document.addEventListener('click', async e => {
   const a = b.dataset.a;
   if (!a) return;
   if (a === 'back') { if (b.closest('#ins')) return setIns({ t: 'face', i: ins.i }); $('#app').dataset.open = '0'; return; }
+  if (a === 'setup') return setupWizard(displays.find(d => d.id === b.dataset.id));
   if (a === 'edit') { $('#app').dataset.ed = '1'; pvLoad(); if (!ins) goFace(0); return; }
   if (a === 'edone') { $('#app').dataset.ed = '0'; return; }
   if (a === 'faddsheet') {   // ausgeblendetes Face wieder einblenden oder neues anlegen
@@ -773,7 +827,7 @@ async function poll() {   // Status nachführen, ohne Formulare neu zu zeichnen
   const n = await call('displays').catch(() => null);
   if (!n) return;
   if (n.length !== displays.length) return reload();
-  n.forEach(x => Object.assign(displays.find(d => d.id === x.id) || {}, { connected: x.connected, face: x.face, saver: x.saver, info: x.info, seen: x.seen, logs: x.logs }));
+  n.forEach(x => Object.assign(displays.find(d => d.id === x.id) || {}, { new: x.new, connected: x.connected, face: x.face, saver: x.saver, info: x.info, seen: x.seen, logs: x.logs }));
   renderSide();
   const d = cur(); if (!d) return;
   pane().querySelectorAll('[data-live=stat]').forEach(x => x.textContent = stat(d));
