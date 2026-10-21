@@ -20,6 +20,9 @@ export const E = {
   carSoc: ['sensor.evcc_garage_vehicle_soc'],
   range: ['sensor.evcc_garage_vehicle_range'],
 };
+const E0 = structuredClone(E);
+// Eigene Entities des Faces (Einstellungsseite): m = { pv: 'sensor.x', … }; fehlende Schlüssel = Standard (evcc)
+export const energyEnts = (m = {}) => { for (const k in E) E[k] = m[k] ? [m[k]] : E0[k]; };
 const C = { pv: '#ffd60a', bat: '#30d158', grid: '#64d2ff', car: '#bf5af2' };   // Systemfarben (dunkel) für Lichtpunkte und Autarkie
 const CAR = '<path d="M3.5 15.5v-3l2-5.2A2 2 0 0 1 7.4 6h9.2a2 2 0 0 1 1.9 1.3l2 5.2v3M3.5 15.5h17M3.5 15.5V18h2.6v-2.5M20.5 15.5V18h-2.6v-2.5M3.8 12.5h16.4"/><circle cx="7.3" cy="13.9" r=".4"/><circle cx="16.7" cy="13.9" r=".4"/>';
 const SUN = '<circle cx="12" cy="12" r="4.9" fill="currentColor" stroke="none"/><path d="M12 3.2v1.8M12 19v1.8M3.2 12H5M19 12h1.8M5.8 5.8l1.3 1.3M16.9 16.9l1.3 1.3M5.8 18.2l1.3-1.3M16.9 7.1l1.3-1.3" stroke-width="1.7"/>';
@@ -40,12 +43,14 @@ const ticks = cls => `<svg class="${cls}" viewBox="-50 -50 100 100">${Array.from
 let gN = 0;
 
 // Kurve beim Erscheinen des Faces einmal einzeichnen; Fluss nur animieren, solange das Face sichtbar ist
+// Einzeichnen erst, wenn das Face (fast) steht (≥ 95 % sichtbar), nicht schon beim Hereingleiten; ganz weg → beim nächsten Erscheinen wieder
 const io = new IntersectionObserver(es => { for (const e of es) {
   const f = e.target, vis = e.isIntersecting;
-  if (vis && !f._vis) drawIn(f);
+  if (e.intersectionRatio >= .95 && !f._drawn) { f._drawn = true; drawIn(f); }
+  else if (!vis) f._drawn = false;
   f._vis = vis;
   for (const a of f._fl || []) vis && !still() ? a.play() : a.pause();
-} });
+} }, { threshold: [0, .95] });
 
 export function energyFace(el) {
   const g = 'eg' + ++gN;
@@ -115,12 +120,12 @@ const smooth = p => p.map(([x, y], i) => {
   const a = p[i - 2] || p[i - 1], b = p[i - 1], c = p[i + 1] || [x, y];
   return `C${(b[0] + (x - a[0]) / 6).toFixed(2)},${cl(b[1] + (y - a[1]) / 6).toFixed(2)} ${(x - (c[0] - b[0]) / 6).toFixed(2)},${cl(y - (c[1] - b[1]) / 6).toFixed(2)} ${x.toFixed(2)},${y.toFixed(2)}`;
 }).join('');
-// Solarkurve: Tag 6–21 Uhr, y-Skala = Spitze (mind. 1 kW); top = Rand oben in % der Fläche
-function pvPath(top = 10) {
+// Solarkurve: Tag 6–21 Uhr, y-Skala = Spitze (mind. 1 kW); top/bot = Rand oben/unten in % der Fläche (bot: Nulllinie samt Punkt über der Kachelkante)
+function pvPath(top = 10, bot = 0) {
   const d = day0(), t0 = d + 6 * 36e5, t1 = d + 21 * 36e5, b = bins(H.pv, t0, t1);
   if (b.length < 2) return null;
   const peak = Math.max(1000, ...H.pv.map(p => p[1]).filter((_, i) => H.pv[i][0] >= d)) * 1.08;
-  const pts = b.map(([t, v]) => [100 * (t - t0) / (t1 - t0), 100 - (100 - top) * Math.max(0, v) / peak]);
+  const pts = b.map(([t, v]) => [100 * (t - t0) / (t1 - t0), 100 - bot - (100 - top - bot) * Math.max(0, v) / peak]);
   const ln = smooth(pts), [x0] = pts[0], [x1, y1] = pts.at(-1);
   return { ln, ar: `${ln}L${x1.toFixed(2)},100L${x0.toFixed(2)},100Z`, x: x1, y: y1 };
 }
@@ -137,7 +142,7 @@ const rb = (k, t) => { for (const el of $$(`[data-bind="${k}"]`)) {
   R(el, t, !o || still() ? 0 : b < a ? -1 : 1);
 } };
 function paint(f) {
-  const p = pvPath(14);
+  const p = pvPath(14, 8);   // 8 % ≈ Punkt + Hof (1,5 cqw von 20 cqw Höhe)
   if (p) {
     const [ar, ln] = $$('.cw path', f);
     if (ln.getAttribute('d') !== p.ln) { ln.setAttribute('d', p.ln); ar.setAttribute('d', p.ar); }
@@ -210,7 +215,7 @@ export function energy(ents, roll) {
 // ---------- Vollbild (Tipp auf Solar, Akku, e-Golf) ----------
 // Aufbau wie Licht-/Klima-Vollbild (index.html #dimmer/#climate): Zeile „Lädt mit …“ (Grundlinie 33,9), Zahl 29 cqw (Grundlinie 60,2), Meta (65,8).
 // Farben: Solar = Licht-Vorlage (Creme #fefaec, Gelb #f9c100); Akku/e-Golf dieselbe Rolle mit ihrer Akzentfarbe. Füllung = Wert (Akku/e-Golf von unten, Solar = Tageskurve),
-// Text an der Füllkante geteilt (Innen-Layer wie #dimmer). Verlaufslinie Akku/e-Golf: Ladestand 0–24 Uhr bis jetzt, endet an der Füllkante.
+// Text an der Füllkante geteilt (Innen-Layer wie #dimmer). Verlaufslinie Akku/e-Golf: Ladestand 0–24 Uhr bis jetzt, in eigener Zone unter der Meta-Zeile.
 const DET = {
   pv: { name: 'Solar', u: 'kW', bg: '#fefaec', fc: '#f9c100' },
   bat: { name: 'Akku', u: '%', bg: '#effaf1', fc: '#30d158' },
@@ -256,8 +261,9 @@ function detail() {
   bd('ed_x', dk === 'bat' ? (cap ? `${de(cap * v / 100)} von ${de(cap)} kWh` : '') : ok.car && range ? `${Math.round(range)} km Reichweite` : '');
   if (!view.classList.contains('ni')) view.style.setProperty('--f', v / 100);
   const s = H[dk === 'bat' ? 'soc' : 'carSoc'], d0 = day0(), span = Math.max(1, Date.now() - d0);
-  const pts = bins(s, d0, Date.now(), 9e5).map(([t, y]) => [100 * (t - d0) / span, 100 - y]);   // 15-min-Mittel, weich
-  if (pts.length) pts.push([100, 100 - v]);
+  const y = p => 74 + 24 * (1 - p / 100);   // eigene Zone unter der Meta-Zeile (wie Solar pvPath(74) und die Stundenkarte y-MO 08900), nicht durch die Zahl
+  const pts = bins(s, d0, Date.now(), 9e5).map(([t, p]) => [100 * (t - d0) / span, y(p)]);   // 15-min-Mittel, weich
+  if (pts.length) pts.push([100, y(v)]);
   const dPath = pts.length > 1 ? smooth(pts) : '';
   for (const p of $$('.eh path', view)) if (p.getAttribute('d') !== dPath) p.setAttribute('d', dPath);
 }
@@ -273,8 +279,8 @@ function model(now, s, live = true) {
   const pv = sun ? Math.max(0, 4300 * sun * cloud + 35 * n(7e3)) : 0;
   const home = 360 + 170 * n(5e4) + (Math.sin(now / 7e4) > .93 ? 1900 : 0) + (h > 18 && h < 19.4 ? 1300 : 0);
   if (s.socC >= 85 || pv - home < 900) s.car = false; else if (pv - home > 1700) s.car = true;   // Hysterese wie evcc „PV“
-  const car = s.car ? Math.min(3700, Math.max(1400, pv - home - 150)) : 0;
-  let bat = Math.max(-2500, Math.min(2500, home + car - pv));   // ponytail: eine Lade-/Entladegrenze von 2,5 kW, damit Bezug/Einspeisung in der Demo sichtbar werden
+  const car = s.car ? Math.min(3700, Math.max(1400, pv - home - 1500)) : 0;   // lässt ~1,5 kW übrig (Akku lädt höchstens 1,2 kW → Rest wird eingespeist)
+  let bat = Math.max(-1200, Math.min(2500, home + car - pv));   // ponytail: Laden 1,2 kW / Entladen 2,5 kW, damit Bezug und Einspeisung (samt Richtungswechsel) in der Demo vorkommen
   if (bat > 0 && s.soc <= 10.5 || bat < 0 && s.soc >= 99.5) bat = 0;
   const dt = s.last ? (now - s.last) / 3.6e6 : 0;
   s.soc = Math.min(100, Math.max(10, s.soc - bat * dt / 102.4)); s.socC = Math.min(100, s.socC + car * dt / 358); s.last = now;
@@ -320,7 +326,7 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 .et .nd{position:absolute;width:1.9cqw;height:1.9cqw;margin:-.95cqw;border-radius:50%;background:currentColor;box-shadow:0 0 0 .55cqw color-mix(in srgb,currentColor 30%,transparent)}
 .light .et .cw{color:#e0a800}
 /* Füllstand (Slider-Füllung, Kontrollzentrum/Licht): Fläche wie Kachel „an“, Text darin dunkel; Feder auf neue Werte (gestreckt = weicher) */
-.et .ef{position:absolute;inset:0;z-index:1;overflow:hidden;border-radius:inherit;background:linear-gradient(#fffc,#ffffff99);color:var(--ink);pointer-events:none;
+.et .ef{position:absolute;inset:0;z-index:1;overflow:hidden;background:linear-gradient(#fffc,#ffffff99);color:var(--ink);pointer-events:none;
   transform:translateY(calc((1 - var(--f,0)) * 100%));transition:transform calc(var(--sd) * 2.2) var(--spring)}
 .et .ef .in{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:5.3cqw 1cqw 4.9cqw;
   transform:translateY(calc((1 - var(--f,0)) * -100%));transition:transform calc(var(--sd) * 2.2) var(--spring)}

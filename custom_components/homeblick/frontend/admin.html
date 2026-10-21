@@ -33,16 +33,20 @@ svg{display:block}
 .lsub{color:var(--sec);margin:0 4px 18px}
 
 /* Vorschau + Inspektor: nur auf breiten Fenstern, eigene Spalte */
-#pv{display:none}
+#pv{display:none;flex-direction:column;gap:10px;align-items:stretch;padding:max(env(safe-area-inset-top),16px) 18px 18px;overflow:hidden;min-height:0}
+#app[data-ed="1"] #pv{display:flex;position:fixed;inset:0;z-index:15;background:var(--wall)}
 @media(min-width:1180px){
   #app{grid-template-columns:340px 1fr 480px}
-  #pv{display:flex;flex-direction:column;gap:10px;align-items:stretch;padding:max(env(safe-area-inset-top),16px) 18px 18px;border-left:.5px solid var(--sep);overflow:hidden;min-height:0}
+  #pv,#app[data-ed="1"] #pv{display:flex;position:static;border-left:.5px solid var(--sep);background:none}
+  .edbtn,.pvx{display:none}
 }
-.pvh{display:flex;flex-direction:column;gap:2px}.pvh b{font-size:17px;font-weight:600}
+.pvh{display:flex;align-items:center;justify-content:space-between;gap:10px}.pvh b{font-size:17px;font-weight:600}.pvx{color:var(--blue);font-weight:600}
 #pvf{flex:none;width:min(100%,max(300px,calc(100dvh - 470px)));aspect-ratio:1;align-self:center;border:0;border-radius:28px;background:#000;box-shadow:0 8px 30px #0003}
 #pvfaces{flex:none;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:2px 0}
+#pvfaces button.plus2{color:var(--blue)}
 #pvfaces button{flex:none;padding:6px 12px;border-radius:16px;background:var(--fill);font-size:14px;white-space:nowrap}#pvfaces .on{background:var(--blue);color:#fff}
 #insw{position:relative;flex:1;min-height:0;border-radius:22px;overflow:hidden;border:.5px solid var(--sep)}
+.rot-l{transform:rotate(-90deg)}.rot-r{transform:rotate(-90deg)}
 .insh{padding:26px 20px;color:var(--sec);font-size:15px;text-align:center}
 
 /* Seiten im Detail-Bereich */
@@ -209,13 +213,13 @@ textarea.r{text-align:right}
 <div id="app" data-open="0">
   <aside id="side"></aside>
   <main id="pane"></main>
-  <aside id="pv"><div class="pvh"><b id="pvt"></b></div><iframe id="pvf" title="Vorschau"></iframe><div id="pvfaces"></div><div id="insw"><section class="page" id="ins"></section></div></aside>
+  <aside id="pv"><div class="pvh"><b id="pvt"></b><button class="pvx" data-a="edone">Fertig</button></div><iframe id="pvf" title="Vorschau"></iframe><div id="pvfaces"></div><div id="insw"><section class="page" id="ins"></section></div></aside>
 </div>
 <div id="toast"></div>
 
 <script type="module">
-import { ICON, ORDER, normFaces, pack, rows } from './faces.js';
-import { DOM, entOf, loadEntities, pickEntity } from './entpicker.js';
+import { ICON, faceId, normFaces, pack, rows } from './faces.js';
+import { DOM, entOf, entsOf, loadEntities, pickEntity } from './entpicker.js';
 // Einstellungsseite: Seitenleiste mit allen Displays → Display → Face (Kacheln). Läuft als Admin-Panel in HA
 // (gleicher Login wie das Panel, Tokens im localStorage).
 const $ = s => document.querySelector(s);
@@ -392,28 +396,15 @@ async function camAction(a, i) {
 const pages = {
   display() {
     const d = cur(), s = d.settings, faces = cfg?.faces;
-    // feste Reihenfolge, nur ein-/ausschalten (faces.js); i = Index in cfg.faces (nur eingeschaltete haben eine Seite)
-    if (faces) normFaces(cfg);
-    const rk = f => (i => i < 0 ? ORDER.length : i)(ORDER.indexOf(f.id));
-    const all = faces ? [...faces.map((f, i) => [f, i]), ...(cfg.off || []).map(f => [f, -1])].sort((x, y) => rk(x[0]) - rk(y[0])) : [];
-    const face = ([f, i]) => {
-      const meta = FACE[f.type] || [f.type, '#8e8e93', 'grid'], on = i >= 0, sub = `${esc(bgName(f.bg))}${f.type === 'grid' ? ` · ${f.tiles?.length || 0} Kacheln` : ''}`;
-      return `<div class="row" data-fi="${i}">
-        ${on ? `<button class="go" data-a="face">${ico(meta[2], meta[1])}<span class="l two"><b>${esc(meta[0])}</b><small>${sub}</small></span></button>`
-             : `<span class="go" style="opacity:.45">${ico(meta[2], meta[1])}<span class="l two"><b>${esc(meta[0])}</b><small>${sub}</small></span></span>`}
-        <label class="sw"><input type="checkbox" data-fon="${esc(f.id)}" ${on ? 'checked' : ''}><i></i></label></div>`;
-    };
     const body = `
       <div class="hero">${ico('disp')}<h2 data-live="name">${esc(d.name)}</h2><p data-live="stat">${esc(stat(d))}</p></div>
       ${grp('', field('Name', 'name', d.name))}
+      ${faces ? `<div class="sec edbtn"><div class="grp"><button class="row btn c" data-a="edit">Anzeige bearbeiten</button></div><div class="sf">Faces, Kacheln, Hintergründe und Entities stellst du live in der Vorschau ein.</div></div>` : grp('', `<div class="row"><span class="l" style="color:var(--sec)">Noch keine Konfiguration. Öffne Homeblick einmal auf dem Gerät.</span></div>`)}
       <div class="sec"><div class="grp"><div class="quick">${[['reload', 'Neu laden', 'refresh'], ['assist', 'Assist', 'mic'], ['stop', 'Abbrechen', 'x'], ['screensaver', 'Ruhemodus', 'moon'], ['wake', 'Aufwecken', 'sun']].map(([c, n, i]) => `<button class="q" data-c="${c}" ${d.connected ? '' : 'disabled'}><span class="qi">${svg(i, '')}</span>${n}</button>`).join('')}</div>
         ${field('Zurück nach (s, leer = bleibt)', 'dur', '', 'type="number" inputmode="numeric" min="1" max="3600"', 'data-dur')}
         ${pick('Face anzeigen', 'show', [['', 'Wählen …'], ...TYPES], '', 'data-show')}</div><div class="sf">Die Steuerung geht, solange das Display geöffnet ist.</div></div>
       ${grp('Ansage', field('Text', 'say', '', 'placeholder="Das Essen ist fertig" maxlength="300"', 'data-say') + `<button class="row btn c" data-a="say" ${d.connected ? '' : 'disabled style="opacity:.4"'}>Auf dem Display ansagen</button><button class="row btn c" data-a="testnb" ${d.connected ? '' : 'disabled style="opacity:.4"'}>Testbenachrichtigung zeigen</button>`, 'Erscheint als Text und wird gesprochen (außer bei „Antworten stumm“). In Automationen: Aktion „Benachrichtigung senden“ (notify.send_message) an die Durchsage-Entity des Displays. Die weiße Karte mit Titel, Bild und Button kommt von der Aktion „Benachrichtigung zeigen“ (homeblick.notify).')}
       ${grp('Vorschau', `<button class="row btn c" data-a="shot" ${d.connected ? '' : 'disabled style="opacity:.4"'}>Bildschirmfoto aufnehmen</button>${shots[d.id] ? `<img class="shot" src="${shots[d.id]}" alt="">` : ''}`, 'Bilder von fremden Servern, Kamera-Video und WebGL fehlen im Foto.')}
-      ${grp('Anzeige',
-        faces ? all.map(face).join('') : `<div class="row"><span class="l" style="color:var(--sec)">Noch keine Konfiguration. Öffne Homeblick einmal auf dem Gerät.</span></div>`,
-        'Die Reihenfolge ist fest. Schalte Faces ein oder aus; Tippe ein eingeschaltetes Face, um Hintergrund, Stil und Kacheln einzustellen.')}
       ${grp('Bildschirmschoner', field('Nach Inaktivität (s)', 'idle', s.idle, 'type="number" inputmode="numeric" min="0" max="3600" step="10"') + pick('Face', 'saver', faces ? TYPES.filter(([t]) => t === s.saver || faces.some(f => f.type === t)) : TYPES, s.saver) + toggle('Musik statt Bildschirmschoner', 'music', s.music) + toggle('Ganz schwarz statt Face', 'black', s.black) + toggle('Zeitplan', 'sched', s.sched) + `<div class="dep ${s.sched ? '' : 'off'}" id="schdep"><div>
         <label class="row"><span class="l">Von</span><input type="time" data-s="sched_from" value="${esc(s.sched_from.slice(0, 5))}"></label>
         <label class="row"><span class="l">Bis</span><input type="time" data-s="sched_to" value="${esc(s.sched_to.slice(0, 5))}"></label></div></div>`, 'Im Zeitplan startet der Bildschirmschoner nach 30 Sekunden Ruhe, auch wenn die Inaktivitätszeit 0 ist. 0 schaltet den Bildschirmschoner aus. Läuft Musik, erscheint stattdessen das Musik-Face.')}
@@ -431,7 +422,6 @@ const pages = {
       ${grp('Klingel', toggle('Gong beim Klingeln', 'chime', s.chime), 'Klingeln weckt das Display und öffnet die Türkamera. Lautstärke wie bei den Antworten; Ton erst, nachdem das Display einmal berührt wurde (Browser-Regel).')}
       ${grp('Automatische Helligkeit', epick('Lichtsensor (Lux)', 'lux', s.lux, { domains: ['sensor'], dcs: ['illuminance'], none: 'Keiner' }), 'Dunkler Raum dimmt das Display (bis 30 %), ab ca. 300 lx volle Helligkeit; wirkt zusätzlich zum Helligkeits-Regler.')}
       ${grp('Aufwecken', epick('Bewegungs-/Präsenzmelder', 'presence', s.presence, { domains: ['binary_sensor'], dcs: ['motion', 'occupancy', 'presence'], none: 'Keiner' }), 'Solange der Melder „an“ ist, bleibt das Display wach bzw. wacht aus dem Ruhemodus auf. Beim Wetter-Face „Bedingungen“ zeigt er zusätzlich die Nah-Ansicht (Karte), sonst nur den Text.')}
-      ${grp('Wetter', epick('Wetter-Entity', 'weather', s.weather, { domains: ['weather'] }) + field('Ortsname', 'place', s.place))}
       <div id="liveGrp">${liveHTML(d)}</div>
       ${grp('Verwalten', pick('Konfiguration übernehmen von', 'copy', [['', 'Display wählen …'], ...displays.filter(x => x.id !== sel).map(x => [x.id, x.name])], '', 'data-copy') + `<button class="row red c" data-a="rm">Display entfernen</button>`)}`;
     return { back: wide() ? null : 'Displays', title: d.name, body };
@@ -452,6 +442,10 @@ const pages = {
       ${f.type === 'grid' ? (n => `<div class="sec"><div class="sh"><span>Kacheln</span></div><div class="grp">${(f.tiles || []).map(tileRow).join('')}<button class="row btn" data-a="tadd">${svg('plus', 'plus')}<span class="l">Kachel hinzufügen</span></button></div>
         <div class="sf">${n ? `${n} Kachel${n > 1 ? 'n passen' : ' passt'} nicht mehr ins Raster und ${n > 1 ? 'werden' : 'wird'} nicht angezeigt. ` : ''}Kacheln folgen der Reihenfolge von oben links. Nachtvarianten bleiben erhalten.</div></div>`)(pack(f.tiles || [], rows(f)).filter(x => !x).length) : ''}
       ${f.type === 'cams' ? camsHTML() : ''}
+      ${f.type === 'weather' ? grp('Wetter', epick('Wetter-Entity', 'weather', d.settings.weather, { domains: ['weather'] }) + field('Ortsname', 'place', d.settings.place), 'Gilt für alle Wetter-Anzeigen dieses Displays.') : ''}
+      ${f.type === 'energy' ? grp('Entities', ENERGY.map(([k, n]) => epick(n, 'ents.' + k, f.ents?.[k] || '', { domains: ['sensor'], none: 'Standard (evcc)' }, 'data-f')).join(''), 'Ohne Auswahl liest das Face die evcc-Entities (ha-evcc).') : ''}
+      ${f.type === 'calendar' || f.type === 'info' ? grp('Kalender', entsOf('calendar').map(e => `<div class="row"><span class="l">${esc(e.name)}</span><label class="sw"><input type="checkbox" data-fcal="${esc(e.id)}" ${!f.cals || f.cals.includes(e.id) ? 'checked' : ''}><i></i></label></div>`).join('') || '<div class="row"><span class="l" style="color:var(--sec)">Keine Kalender in Home Assistant</span></div>', 'Diese Auswahl gilt für das Kalender- und das Info-Face. Ohne Haken bei einem Kalender fehlen dessen Termine.') : ''}
+      ${grp('Face', `<div class="row"><span class="l">Position</span><span class="arrows"><button data-a="fleft" aria-label="Nach links" ${e.i === 0 ? 'disabled style="opacity:.3"' : ''}>${svg('up', 'rot-l')}</button><button data-a="fright" aria-label="Nach rechts" ${e.i === cfg.faces.length - 1 ? 'disabled style="opacity:.3"' : ''}>${svg('down', 'rot-r')}</button></span></div><button class="row btn" data-a="fdup">Face duplizieren</button><button class="row red" data-a="fhide">Face ausblenden</button>`, 'Ausgeblendete Faces bleiben mit ihrer Konfiguration erhalten und lassen sich über „+ Face“ wieder einblenden.')}
       ${grp('', `<button class="row btn c" data-c="face" ${d.connected ? '' : 'disabled style="opacity:.4"'}>Auf dem Display anzeigen</button>`)}`;
     return { back: d.name, title: meta[0], body };
   },
@@ -490,26 +484,19 @@ function fill(el, e) {
   el.querySelector('.body').scrollTop = sc;
   queueMicrotask(pvSend);
 }
-const top = () => pane().lastElementChild;
-const refresh = () => { stack.forEach((e, i) => fill(pane().children[i], e)); if (wideIns() && ins) fill($('#ins'), ins); };
+const refresh = () => { stack.forEach((e, i) => fill(pane().children[i], e)); if (ins) fill($('#ins'), ins); };
 function push(e, animate = true) {
   const el = Object.assign(document.createElement('section'), { className: 'page' });
   fill(el, e); if (stack.length) pane().children[stack.length - 1].classList.add('under');
   stack.push(e); pane().append(el);
   if (animate) el.animate([{ transform: 'translateX(100%)' }, { transform: 'none' }], { duration: SD, easing: SPRING });
 }
-async function pop() {
-  const el = top(), n = stack.length;
-  if (n < 2) return;
-  stack.pop(); pane().children[n - 2].classList.remove('under'); fill(pane().children[n - 2], stack.at(-1));
-  await el.animate([{ transform: 'none' }, { transform: 'translateX(100%)' }], { duration: 320, easing: 'cubic-bezier(.3,.7,.3,1)' }).finished.catch(() => {});
-  el.remove();
-}
 function renderSide() { const sc = $('#side').scrollTop; $('#side').innerHTML = listHTML(); $('#side').scrollTop = sc; }
 
 async function open(id) {
   sel = id;
   cfg = (await call('get_config', { display: id })).config;
+  if (cfg?.faces) normFaces(cfg);
   pane().replaceChildren(); stack = [];
   push({ t: 'display' }, false); setIns(null);
   if (!wide()) $('#app').dataset.open = '1'; else pane().firstElementChild.animate([{ opacity: 0 }, { opacity: 1 }], 200);
@@ -528,19 +515,19 @@ const pvf = $('#pvf');
 let pvReady = false, pvConf = '', pvFace = '', pvSel = -2, pvStates = {};
 // Auf breiten Fenstern liegen Face- und Kachelseiten nicht im Seitenstapel, sondern im Inspektor unter der Vorschau (ins = { t: 'face', i } | { t: 'tile', i, j } | null)
 let ins = null;
-const wideIns = () => matchMedia('(min-width:1180px)').matches;
-const ctx = () => wideIns() ? ins : stack.at(-1);
-const redraw = () => wideIns() ? ins && fill($('#ins'), ins) : fill(top(), stack.at(-1));
+const ctx = () => ins;
+const redraw = () => ins && fill($('#ins'), ins);
 function setIns(e) {
   ins = e;
   if (e) fill($('#ins'), e);
   else { $('#ins').innerHTML = '<div class="body"><div class="insh">Tippe in der Vorschau eine Kachel an, um sie zu bearbeiten, oder eine leere Stelle, um eine hinzuzufügen. Mit den Knöpfen darüber wechselst du das Face und stellst Hintergrund und Stil ein.</div></div>'; pvSend(); }
 }
-const goFace = i => wideIns() ? setIns({ t: 'face', i }) : push({ t: 'face', i });
-const goTile = (i, j) => wideIns() ? setIns({ t: 'tile', i, j }) : push({ t: 'tile', i, j });
+const faceName = x => (FACE[x.type]?.[0] || x.type) + (x.id !== x.type ? ' ' + x.id.replace(x.type, '') : '');
+const goFace = i => setIns({ t: 'face', i });
+const goTile = (i, j) => setIns({ t: 'tile', i, j });
 const pvPost = m => pvf.contentWindow?.postMessage({ hb: 'preview', ...m }, location.origin);
 function pvSend() {
-  if (!pvReady || !cfg || !wideIns()) return;
+  if (!pvReady || !cfg) return;
   const c = ctx(), f = c?.i != null ? cfg.faces[c.i] : cfg.faces.find(x => x.id === pvFace) || cfg.faces[0], sel = c?.j ?? -1;
   const m = {}, j = JSON.stringify(cfg.faces);
   if (j !== pvConf) { pvConf = j; m.conf = cfg; }
@@ -549,7 +536,7 @@ function pvSend() {
   if (sel !== pvSel || m.conf) { pvSel = sel; m.sel = sel; }
   if (Object.keys(m).length) pvPost(m);
   $('#pvt').textContent = `${cur()?.name || ''}${f ? ' · ' + (FACE[f.type]?.[0] || f.type) : ''}`;
-  $('#pvfaces').innerHTML = cfg.faces.map(x => `<button data-pf="${esc(x.id)}" class="${x.id === f?.id ? 'on' : ''}">${esc((FACE[x.type]?.[0] || x.type) + (x.id !== x.type ? ' ' + x.id.replace(x.type, '') : ''))}</button>`).join('');
+  $('#pvfaces').innerHTML = cfg.faces.map(x => `<button data-pf="${esc(x.id)}" class="${x.id === f?.id ? 'on' : ''}">${esc(faceName(x))}</button>`).join('') + '<button class="plus2" data-a="faddsheet">+ Face</button>';
 }
 // Kachel j so einsortieren, dass sie auf Rasterzelle (r, c) landet; sonst die nächstliegende mögliche Stelle
 function moveTo(tiles, j, [r, c], n) {
@@ -584,8 +571,9 @@ addEventListener('message', async e => {
 });
 // Zustände für die Vorschau (Namen, Werte, Symbole echter Entities); alle 15 s nachziehen
 const pvStatesLoad = () => conn.sendMessagePromise({ type: 'get_states' }).then(a => { pvStates = Object.fromEntries(a.map(x => [x.entity_id, x])); pvPost({ states: pvStates }); }).catch(() => {});
-if (matchMedia('(min-width:1180px)').matches) pvf.src = 'index.html?preview';
-addEventListener('resize', () => { if (!pvf.getAttribute('src') && matchMedia('(min-width:1180px)').matches) pvf.src = 'index.html?preview'; });
+// Breite Fenster: Vorschau als Spalte, sofort laden; schmale: als Vollbild über „Anzeige bearbeiten“, erst dann laden
+const pvLoad = () => { if (!pvf.getAttribute('src')) pvf.src = 'index.html?preview'; };
+if (matchMedia('(min-width:1180px)').matches) pvLoad();
 
 // Neue Kachel: erst die Art (Uhr und Wetter brauchen keine Entity), sonst Entity per Picker; mit cell auf diese Rasterzelle
 async function addTile(f, cell) {
@@ -604,6 +592,7 @@ async function addTile(f, cell) {
 }
 
 // Domains, die eine Kachel bedienen kann (TAP in index.html)
+const ENERGY = [['pv', 'Solar-Leistung'], ['grid', 'Netz-Leistung (+ Bezug)'], ['home', 'Hausverbrauch'], ['bat', 'Batterie-Leistung (− Laden)'], ['soc', 'Batterie-Ladestand'], ['cap', 'Batterie-Kapazität'], ['car', 'Auto: Ladeleistung'], ['carSoc', 'Auto: Ladestand'], ['range', 'Auto: Reichweite']];
 const TILE_DOM = ['light', 'switch', 'input_boolean', 'lock', 'cover', 'climate', 'scene', 'script', 'media_player', 'fan', 'timer', 'camera', 'button', 'input_button', 'sensor', 'binary_sensor'];
 const TOGGLE_DOM = ['light', 'switch', 'input_boolean', 'fan', 'cover', 'media_player', 'script'];   // Domains mit Dienst .toggle
 const SIZES = [['1x1', '1 × 1'], ['2x1', '2 × 1'], ['2x2', '2 × 2']];
@@ -643,10 +632,17 @@ document.addEventListener('change', async e => {
     if (k === 'dim') $('#dimdep').classList.toggle('off', !v);
     if (k === 'sched') $('#schdep').classList.toggle('off', !v);
     d.settings[k] = v; guard(call('update', { display: sel, settings: { [k]: v } })).catch(() => {});
-  } else if (t.dataset.fon) {   // Face ein-/ausschalten: Konfiguration wandert zwischen faces und off, mindestens ein Face bleibt an
-    const id = t.dataset.fon, from = t.checked ? 'off' : 'faces', to = t.checked ? 'faces' : 'off', i = cfg[from].findIndex(f => f.id === id);
-    if (i < 0 || (!t.checked && cfg.faces.length < 2)) { if (!t.checked) toast('Mindestens ein Face', true); return refresh(); }
-    cfg[to].push(...cfg[from].splice(i, 1)); normFaces(cfg); saveCfg(); refresh();
+  } else if (t.dataset.f) {   // Face-Feld (Pfad wie „ents.pv“)
+    const f = cfg.faces[ctx().i];
+    setPath(f, t.dataset.f, t.value.trim() || undefined);
+    if (f.ents && !Object.keys(f.ents).length) delete f.ents;
+    saveCfg();
+  } else if (t.dataset.fcal) {   // Kalender-Auswahl: alle = nicht gesetzt
+    const f = cfg.faces[ctx().i], all = entsOf('calendar').map(e => e.id);
+    let c = f.cals || all; c = t.checked ? [...new Set([...c, t.dataset.fcal])] : c.filter(x => x !== t.dataset.fcal);
+    if (!c.length) { t.checked = true; return toast('Mindestens ein Kalender', true); }
+    f.cals = c.length === all.length ? undefined : c; if (!f.cals) delete f.cals;
+    saveCfg();
   } else if (t.dataset.cam || t.dataset.bell) camEdit(t);
   else if (t.dataset.t) {   // Kachel-Seite: Pfad wie „tap.service“
     const at = ctx(), tl = cfg.faces[at.i].tiles[at.j], k = t.dataset.t, [o, p] = k.split('.');
@@ -678,7 +674,24 @@ document.addEventListener('click', async e => {
   }
   const a = b.dataset.a;
   if (!a) return;
-  if (a === 'back') { if (b.closest('#ins')) return setIns({ t: 'face', i: ins.i }); if (stack.length > 1) return pop(); $('#app').dataset.open = '0'; return; }
+  if (a === 'back') { if (b.closest('#ins')) return setIns({ t: 'face', i: ins.i }); $('#app').dataset.open = '0'; return; }
+  if (a === 'edit') { $('#app').dataset.ed = '1'; pvLoad(); if (!ins) goFace(0); return; }
+  if (a === 'edone') { $('#app').dataset.ed = '0'; return; }
+  if (a === 'faddsheet') {   // ausgeblendetes Face wieder einblenden oder neues anlegen
+    const r = await overlay('sheet', `<div class="shs">${cfg.off?.length ? `<div class="grp">${cfg.off.map(f => `<button class="row btn c" data-r="show:${esc(f.id)}">${esc(faceName(f))} einblenden</button>`).join('')}</div>` : ''}<div class="grp" style="max-height:46vh;overflow-y:auto">${TYPES.map(([t, n]) => `<button class="row btn c" data-r="new:${t}">Neu: ${esc(n)}</button>`).join('')}</div><div class="grp"><button class="row btn c" data-r="" style="font-weight:600">Abbrechen</button></div></div>`);
+    if (!r) return;
+    const [k, v] = r.split(':');
+    if (k === 'show') cfg.faces.push(...cfg.off.splice(cfg.off.findIndex(f => f.id === v), 1));
+    else cfg.faces.push({ type: v, id: faceId(cfg, v), bg: v === 'grid' ? 'auto' : 'black', ...(v === 'grid' && { tiles: [] }) });
+    saveCfg(); return setIns({ t: 'face', i: cfg.faces.length - 1 });
+  }
+  if (/^f(left|right|dup|hide)$/.test(a)) {
+    const i = ins.i, f = cfg.faces[i];
+    if (a === 'fleft' || a === 'fright') { const j = i + (a === 'fleft' ? -1 : 1); if (j < 0 || j >= cfg.faces.length) return; swap(cfg.faces, i, j); ins = { t: 'face', i: j }; }
+    else if (a === 'fdup') { cfg.faces.splice(i + 1, 0, { ...structuredClone(f), id: faceId(cfg, f.type) }); ins = { t: 'face', i: i + 1 }; }
+    else { if (cfg.faces.length < 2) return toast('Mindestens ein Face', true); cfg.off.push(...cfg.faces.splice(i, 1)); saveCfg(); return setIns(null); }
+    saveCfg(); return redraw();
+  }
   if (a === 'rm') {
     if (await ask(`„${cur().name}“ entfernen?`, 'Faces und Einstellungen gehen verloren. Das Gerät in Home Assistant bitte danach unter Geräte löschen.', 'Entfernen')) { await guard(call('remove', { display: sel })); sel = null; await reload(); }
     return;
@@ -713,7 +726,7 @@ document.addEventListener('click', async e => {
     const t = tiles[j], r = await overlay('sheet', `<div class="shs"><div class="grp"><div class="ig">${ICONS.map(n => `<button data-r="${n}" class="${t.icon === n ? 'on' : ''}" aria-label="${n}">${xi(n)}</button>`).join('')}</div></div><div class="grp"><button class="row btn c" data-r="-">Standard-Symbol</button></div><div class="grp"><button class="row btn c" data-r="" style="font-weight:600">Abbrechen</button></div></div>`);
     if (!r) return; r === '-' ? delete t.icon : t.icon = r;
   }
-  else if (a === 'tadd') { const t = await addTile(f); if (!t) return; if (wideIns()) ins = { t: 'tile', i, j: f.tiles.indexOf(t) }; }
+  else if (a === 'tadd') { const t = await addTile(f); if (!t) return; ins = { t: 'tile', i, j: f.tiles.indexOf(t) }; }
   else if (a === 'tent') {
     const t = tiles[j], en = await pickEntity({ title: 'Entity der Kachel', domains: t.kind === 'thermo' ? ['climate'] : TILE_DOM, current: t.e });
     if (!en) return;
@@ -726,8 +739,8 @@ document.addEventListener('click', async e => {
     if (en.domain === 'sensor' || en.domain === 'binary_sensor') t.val ||= 'state';
   }
   else if (a === 'tup' || a === 'tdown') swap(tiles, j, j + (a === 'tup' ? -1 : 1));
-  else if (a === 'tdel') { tiles.splice(j, 1); saveCfg(); return wideIns() ? setIns({ t: 'face', i }) : pop(); }
-  saveCfg(); wideIns() ? (pvSend(), redraw()) : fill(top(), at);
+  else if (a === 'tdel') { tiles.splice(j, 1); saveCfg(); return setIns({ t: 'face', i }); }
+  saveCfg(); redraw();
 });
 
 // Gruppenaktion: Befehl an alle Displays, die gerade ein Panel offen haben
@@ -780,7 +793,7 @@ try {
   await reload();
   setInterval(() => { if (!document.hidden && !document.querySelector('input:focus,#ov')) poll(); }, 5000);
   matchMedia('(min-width:820px)').addEventListener('change', () => reload());
-  matchMedia('(min-width:1180px)').addEventListener('change', () => { if (wideIns() && !pvf.getAttribute('src')) pvf.src = 'index.html?preview'; reload(); });
+  matchMedia('(min-width:1180px)').addEventListener('change', e => { if (e.matches) pvLoad(); });
 } catch (e) { $('#side').innerHTML = `<div class="lt">Homeblick</div>` + grp('', `<div class="row"><span class="l">Keine Verbindung zu Home Assistant (${esc(e?.message || e)}). Die Seite braucht ein Administrator-Konto.</span></div>`); }
 </script>
 </body>

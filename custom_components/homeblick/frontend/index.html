@@ -831,7 +831,7 @@ input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:tr
 
 <script type="module">
 import { weatherFace, weather, weatherHours, weatherNear, COND } from './weather.js';
-import { energyFace, energy, energyDemo, energyInit, energyDetail } from './energy.js';
+import { energyFace, energy, energyDemo, energyInit, energyDetail, energyEnts } from './energy.js';
 import { kioskInit, KIOSK_DEF, luxLevel } from './kiosk.js';
 import { shot } from './shot.js';
 import { ICON, normFaces, pack, rows } from './faces.js';
@@ -892,6 +892,7 @@ if (PREVIEW) {
     if (m.conf) {
       const old = CONF.faces, k = { idle: 0, kz: false };
       CONF = { ...m.conf, kiosk: k };
+      evList = null;   // Kalender-Auswahl kann sich geändert haben
       if (old.length === CONF.faces.length && old.every((f, i) => f.id === CONF.faces[i].id)) CONF.faces.forEach((f, i) => JSON.stringify(f) !== JSON.stringify(old[i]) && rerender(i));
       else renderAll(0);
     }
@@ -1187,7 +1188,7 @@ const FACE = {
   calendar: el => { el.innerHTML = calHTML(); el.dataset.act = 'events'; },
   date: el => el.innerHTML = '<div class="wk" data-bind="wdl"></div><div class="dn" data-bind="day"></div>',
   weather: (el, f) => weatherFace(el, f, CFG.place),
-  energy: el => energyFace(el),
+  energy: (el, f) => { energyEnts(f.ents); energyFace(el); },
   cams: el => camFace(el),
   info: (el, f) => {
     // Farbtöne laut Vorlage: Türkis y-MO 08500 = 190; Himmel (hellblau, TGo 00179) ≈ 203; Blau (dunkelblau, TGo 00387) ≈ 213; Metall = Graublau #92abb1 (helle Variante)
@@ -2100,7 +2101,8 @@ function close() {
   fly(tile, view, false, () => { camHide(); if (camStale && !cur) { camStale = false; renderAll(curIdx()); } });
 }
 // Termine aller calendar.*-Entities (Demo: erfundene, relativ zu heute); null = kein Kalender erreichbar
-const events = () => loadEvents(Object.keys(ents).filter(id => id.startsWith('calendar.')).sort(), LIVE && ask).catch(e => (console.warn('Kalender', e), null));
+const calIds = () => { const f = CONF.faces.find(x => x.cals?.length); return Object.keys(ents).filter(id => id.startsWith('calendar.') && (!f || f.cals.includes(id))).sort(); };   // Auswahl am Kalender-/Info-Face (leer = alle)
+const events = () => loadEvents(calIds(), LIVE && ask).catch(e => (console.warn('Kalender', e), null));
 // Info-Face: Termine heute links unten (Standard), alle 10 min neu geladen, jede Minute neu gefiltert; ohne calendar.*-Entities bleibt der Musikblock
 let evList, evAt = 0, evBusy = false;
 async function infoEv() {
