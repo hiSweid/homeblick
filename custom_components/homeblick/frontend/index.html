@@ -95,6 +95,16 @@ svg.i{width:1em;height:1em;flex:none;fill:none;stroke:currentColor;stroke-width:
 .tile[data-sv=circle].on .ico{background:var(--accent,#ff9f0a);color:#fff}
 .tile[data-sv=circle] .ttl{font-size:2.9cqw;line-height:1.2}.tile[data-sv=circle] .sub{font-size:2.3cqw;line-height:1.2}
 .tile[data-sv=circle][data-size="2x2"]{padding:5cqw}.tile[data-sv=circle][data-size="2x2"] .ico{font-size:9cqw;padding:4cqw}.tile[data-sv=circle][data-size="2x2"] :is(.ttl,.sub){font-size:4.4cqw}
+/* Licht „Füllstand“ (Ideen-Galerie): die Kachel ist der Dimmer, warme Füllung steigt von unten bis zur Helligkeit; senkrecht ziehen dimmt, Tippen schaltet */
+.tile[data-sv=fill]{align-items:flex-start;justify-content:space-between;text-align:left;padding:2.8cqw;overflow:hidden;touch-action:none}
+.tile[data-sv=fill]::before{display:none}.tile[data-sv=fill] .ico{font-size:5.2cqw}
+.tile[data-sv=fill] .ttl{font-size:2.9cqw;line-height:1.2}.tile[data-sv=fill] .sub{font-size:2.3cqw;line-height:1.2}
+.tile[data-sv=fill] .fill{position:absolute;inset:auto 0 0;height:calc(var(--p,0)*1%);background:linear-gradient(#ffe9b0,#ffd580);z-index:-1;transition:height .5s var(--spring)}
+.tile[data-sv=fill] .fill::before{content:"";position:absolute;inset:0 0 auto;height:.35cqw;background:#ffffffb3}
+.tile[data-sv=fill].drag .fill{transition:none}
+.tile[data-sv=fill] .pct{position:absolute;right:2.8cqw;top:2.8cqw;font-size:2.6cqw;font-weight:600;transition:color .3s}
+.tile[data-sv=fill].hi :is(.ttl,.sub,.pct),.tile[data-sv=fill].full .ico{color:#5a3a00!important}
+.tile[data-sv=fill][data-size="2x2"]{padding:5cqw}.tile[data-sv=fill][data-size="2x2"] .ico{font-size:9cqw}.tile[data-sv=fill][data-size="2x2"] :is(.ttl,.sub){font-size:4.4cqw}.tile[data-sv=fill][data-size="2x2"] .pct{font-size:4.4cqw;right:5cqw;top:5cqw}
 .thermo .ring{display:none}
 .thermo[data-sv=ring] .ring{display:block;position:absolute;left:50%;translate:-50% 0;width:38cqw;top:9cqw;pointer-events:none;overflow:visible}
 .thermo[data-sv=ring][data-size="2x1"] .ring{width:24cqw;top:1.3cqw}.thermo[data-sv=ring][data-size="1x1"] .ring{width:18cqw;top:3.6cqw}
@@ -1229,7 +1239,7 @@ function tileEl(c) {
   else {
     el.className = 'tile';
     const lab = t.sv === 'value' ? label.replace('<div><div class="ttl">', '<div><div class="big"></div><div class="ttl">') : label;
-    el.innerHTML = (t.e?.startsWith('camera.') ? '<div class="feed"></div>' : '') + svg(iconOf(t), 'ico') + lab;
+    el.innerHTML = (t.e?.startsWith('camera.') ? '<div class="feed"></div>' : '') + (t.sv === 'fill' ? '<div class="fill"></div><div class="pct"></div>' : '') + svg(iconOf(t), 'ico') + lab;
   }   // Livebild: camTile in render()
   return el;
 }
@@ -1659,7 +1669,12 @@ function render() {
   for (const t of $$('[data-e]')) {
     const id = t.dataset.e, s = st(id), d = id.split('.')[0];
     t.classList.toggle('na', s.state === 'unavailable');
-    if (!held(id)) t.classList.toggle('on', !!ON[d]?.(s));
+    if (!held(id)) t.classList.toggle(t.dataset.sv === 'fill' ? 'lit' : 'on', !!ON[d]?.(s));
+    if (t.dataset.sv === 'fill' && !t._drag && !held(id)) {   // Füllhöhe = Helligkeit; in der Vorschau (nicht Bearbeiten) bei „aus“ 70 % zur Ansicht
+      const demo = PREVIEW && !root.classList.contains('pvedit') && s.state !== 'on', p = demo ? 70 : pct(s);
+      if (p) t._p = p;
+      t.classList.toggle('lit', demo || s.state === 'on'); fillSet(t, p);
+    }
     const u = d === 'lock' && $('.ico use', t);
     if (u && /lock/.test(u.getAttribute('href'))) {
       // Bügel als eigener Pfad: hebt/dreht sich beim Entriegeln, rastet mit Feder ein
@@ -2174,6 +2189,32 @@ function sendTemp(id) {
   clearTimeout(tempT);
   tempT = setTimeout(() => call('climate', 'set_temperature', { entity_id: id, temperature: T[id] }), 600);
 }
+const fillSet = (t, p) => { t.style.setProperty('--p', p); t.classList.toggle('hi', p >= 25); t.classList.toggle('full', p >= 85); const x = $('.pct', t); if (x) x.textContent = p ? p + ' %' : ''; };
+// Licht „Füllstand“: senkrecht ziehen dimmt (relativ wie der Dimmer), die Füllung folgt dem Finger, HA bekommt höchstens alle 200 ms einen Wert; ein Tipp schaltet weiter
+{
+  let d = null, tm = 0;
+  const send = () => { tm = 0; if (d) call('light', 'turn_on', { entity_id: d.id, brightness_pct: d.v }); };
+  document.addEventListener('pointerdown', e => {
+    const t = e.target.closest('.tile[data-sv=fill]');
+    if (!t || e.button || cur || root.classList.contains('pvedit') || !t.dataset.e) return;
+    d = { t, id: t.dataset.e, pid: e.pointerId, x: e.clientX, y: e.clientY, p: pct(st(t.dataset.e)), h: t.clientHeight, on: false };
+  });
+  document.addEventListener('pointermove', e => {
+    if (!d || e.pointerId !== d.pid) return;
+    if (!d.on) {
+      if (Math.abs(e.clientY - d.y) < 8 || Math.abs(e.clientY - d.y) < Math.abs(e.clientX - d.x)) return;
+      d.on = true; suppress = true; d.t._drag = true; d.t.classList.add('drag', 'lit'); d.t.setPointerCapture(e.pointerId);
+    }
+    d.v = Math.round(Math.min(100, Math.max(1, d.p + (d.y - e.clientY) / d.h * 100)));
+    d.t._p = d.v; fillSet(d.t, d.v); hold[d.id] = Date.now() + 1500;
+    if (!tm) tm = setTimeout(send, 200);
+  });
+  for (const n of ['pointerup', 'pointercancel']) document.addEventListener(n, () => {
+    if (!d) return;
+    if (d.on) { clearTimeout(tm); send(); d.t.classList.remove('drag'); setTimeout(() => d && (d.t._drag = false), 0); }
+    d = null;
+  });
+}
 function sendLight() {   // max. alle 200 ms während des Ziehens
   hold[cur.e] = Date.now() + 1500;
   if (lightT) return;
@@ -2191,7 +2232,7 @@ function armed(t) {
 const TAP = {
   climate: t => open(t, 'climate'),
   camera: t => open(t, 'cam'),
-  light: (t, id) => { hold[id] = Date.now() + 1500; t.classList.toggle('on'); call(id.split('.')[0], 'toggle', { entity_id: id }); },
+  light: (t, id) => { hold[id] = Date.now() + 1500; if (t.dataset.sv === 'fill') { const on = t.classList.toggle('lit'); fillSet(t, on ? t._p || 100 : 0); } else t.classList.toggle('on'); call(id.split('.')[0], 'toggle', { entity_id: id }); },
   fan: (t, id) => TAP.light(t, id),
   switch: (t, id) => TAP.light(t, id),
   input_boolean: (t, id) => TAP.light(t, id),
