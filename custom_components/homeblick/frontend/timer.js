@@ -178,7 +178,8 @@ function rollTxt(el, t) {
   });
 }
 
-const left = s => s.state === 'active' ? (Date.parse(s.attributes.finishes_at) - Date.now()) / 1000 : sec(s.attributes.remaining ?? s.attributes.duration);
+let skew = 0;   // HA-Uhr minus Display-Uhr (ms): Tablets ohne NTP gehen oft Sekunden falsch → Restzeit aus finishes_at stimmt sonst nicht; gemessen beim Start eines Timers (Zustandswechsel kommt sofort)
+const left = s => s.state === 'active' ? (Date.parse(s.attributes.finishes_at) - Date.now() - skew) / 1000 : sec(s.attributes.remaining ?? s.attributes.duration);
 // Strich i (ab 12 Uhr im Uhrzeigersinn) leuchtet, solange er im Rest-Anteil liegt
 const ticks = f => T.querySelectorAll('line').forEach((l, i) => l.classList.toggle('on', i < Math.ceil(f * N - .001)));
 const name = s => s.attributes.friendly_name || 'Timer';
@@ -214,7 +215,9 @@ export function timers(ents) {
   let fin = false;
   for (const s of list) {
     const p = prev[s.entity_id];
-    if (p?.state === 'active' && s.state === 'idle' && Date.parse(p.attributes.finishes_at) <= now + 2000 && now - (canc[s.entity_id] || 0) > 5000) { finished(s); fin = true; }
+    const lt = s.attributes.last_transition;   // HA: 'finished' | 'cancelled' (Uhr des Displays kann gegenüber HA abweichen → nicht allein auf finishes_at verlassen)
+    if (p?.state === 'active' && s.state === 'idle' && (lt ? lt === 'finished' : Date.parse(p.attributes.finishes_at) <= now + 2000) && now - (canc[s.entity_id] || 0) > 5000) { finished(s); fin = true; }
+    if (p && p.state !== s.state && s.last_changed && !s.entity_id.startsWith('voice.')) { const d = Date.parse(s.last_changed) - now; skew = Math.abs(d) > 1500 ? d : 0; }
     if (p && p.state === 'idle' && s.state === 'active') { hidden = false; sel = s.entity_id; fin = true; }   // neu gestartet → zeigen
     prev[s.entity_id] = s;
   }
