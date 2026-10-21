@@ -33,5 +33,18 @@ export function pack(tiles, n) {
   });
 }
 
+// Kachel j so einsortieren, dass sie auf Rasterzelle (r, c) landet; sonst die nächstliegende mögliche Stelle
+export function moveTo(tiles, j, [r, c], n) {
+  const t = tiles[j], rest = tiles.filter((_, k) => k !== j);
+  let best = j, bd = Infinity;
+  for (let k = 0; k <= rest.length; k++) {
+    const p = pack([...rest.slice(0, k), t, ...rest.slice(k)], n)[k];
+    if (!p) continue;
+    const d = (p[0] - r) ** 2 + (p[1] - c) ** 2;
+    if (d < bd || (d === bd && Math.abs(k - j) < Math.abs(best - j))) { bd = d; best = k; }
+  }
+  return [...rest.slice(0, best), t, ...rest.slice(best)];
+}
+
 // Standard-Symbol je Domain (Kachel)
 export const ICON = { light: 'bulb', lock: 'lock', cover: 'garage', camera: 'video', climate: 'thermo', scene: 'sun', script: 'sun', media_player: 'play', fan: 'fan', timer: 'timer', switch: 'power', input_boolean: 'power', button: 'power', input_button: 'power' };

@@ -61,6 +61,8 @@ svg.i{width:1em;height:1em;flex:none;fill:none;stroke:currentColor;stroke-width:
 #pvmenu{position:absolute;z-index:98;width:46cqw;padding:1.2cqw;border-radius:4.5cqw;background:#5c6e9a59;backdrop-filter:blur(5cqw) saturate(1.6);box-shadow:inset 0 0 0 .25cqw #ffffff33,0 2cqw 6cqw #0005;color:#fff;font-size:3.7cqw;animation:pvm .22s var(--spring)}
 @keyframes pvm{from{opacity:0;scale:.85}}
 #pvmenu button{display:flex;align-items:center;justify-content:space-between;width:100%;padding:2.6cqw 3cqw;color:inherit;border-radius:3.2cqw;text-align:left}#pvmenu button:active{background:#ffffff26}#pvmenu button+button{border-top:.2cqw solid #ffffff1f;border-radius:0}
+.pvlift{z-index:9!important;animation:none!important;transition:none!important;filter:drop-shadow(0 2cqw 3cqw #0007)}
+.pvedit #faces,.pvedit .face{touch-action:none}
 .pvsel{outline:.8cqw solid #0a84ff;outline-offset:.5cqw}   /* Vorschau: in der Einstellungsseite gewählte Kachel */
 .tile[data-arm] .sub{font-size:0}.tile[data-arm] .sub::after{content:"Nochmal tippen";font-size:3cqw}
 /* Helle Variante (Website highlights/homeview, Pixelproben): flach ohne Schatten; Aus = hellgrau 232, An = Lavendel (198,194,227), Icon/Titel lila */
@@ -844,7 +846,7 @@ import { weatherFace, weather, weatherHours, weatherNear, COND } from './weather
 import { energyFace, energy, energyDemo, energyInit, energyDetail, energyEnts } from './energy.js';
 import { kioskInit, KIOSK_DEF, luxLevel } from './kiosk.js';
 import { shot } from './shot.js';
-import { ICON, normFaces, pack, rows } from './faces.js';
+import { ICON, moveTo, normFaces, pack, rows } from './faces.js';
 import { wakeInit } from './wake.js';
 import { parseLRC, findLyrics } from './lyrics.js';
 import { voiceOK, voiceRun } from './voice.js';
@@ -872,8 +874,20 @@ if (PREVIEW) {
     const at = (a, v) => Math.min(a.length - 1, a.filter(([, e]) => v > e).length);
     return [Math.max(0, at(rs, y) - off), at(cl, x)];
   };
-  const to = (t, f) => { const r = t.getBoundingClientRect(); return cellAt(f, t.closest('.face'), r.left + 10, r.top + 10); };   // Zelle der linken oberen Ecke der gezogenen Kachel
-  const mark = (face, f, t, c) => { let h = face._hl; if (!h) { h = face._hl = document.createElement('div'); h.style.cssText = 'pointer-events:none;border:.6cqw solid #ffffffb3;border-radius:4.3cqw'; face.append(h); } h.style.gridArea = `${c[0] + 1 + (f.greet ? 1 : 0)} / ${c[1] + 1} / span ${t.h || 1} / span ${t.w || 1}`; };
+  // Zelle unter der Mitte der ersten Zelle der gezogenen Kachel (ihre sichtbare Lage mit Verschiebung)
+  const to = (t, f) => { const face = t.closest('.face'), r = t.getBoundingClientRect(), u = parseFloat(getComputedStyle(face).gridTemplateColumns) / 2; return cellAt(f, face, r.left + u, r.top + u); };
+  // Kacheln nach f neu setzen; alle außer skip gleiten mit Feder von der alten an die neue Stelle (FLIP)
+  const flip = (face, f, skip) => {
+    const ts = $$('[data-ti]', face), r0 = ts.map(t => t.getBoundingClientRect());
+    place(face, f);
+    ts.forEach((t, i) => {
+      if (t === skip || t.hidden || !r0[i].width) return;
+      const r = t.getBoundingClientRect(), dx = r0[i].left - r.left, dy = r0[i].top - r.top, sx = r0[i].width / r.width, sy = r0[i].height / r.height;
+      if (Math.abs(dx) + Math.abs(dy) > .5 || Math.abs(sx - 1) + Math.abs(sy - 1) > .01) t.animate([{ translate: `${dx}px ${dy}px`, scale: `${sx} ${sy}`, transformOrigin: '0 0' }, { translate: '0 0', scale: '1 1', transformOrigin: '0 0' }], { duration: SD, easing: SPRING });
+    });
+  };
+  // gezogene Kachel unter dem Zeiger halten (offsetLeft/Top = Lage im Raster ohne Verschiebung)
+  const follow = (e) => { g.t.style.transform = `translate(${e.clientX - g.x + g.ox - g.t.offsetLeft}px,${e.clientY - g.y + g.oy - g.t.offsetTop}px) scale(1.06)`; };
   let edit = false, menu = null;
   const closeMenu = () => { menu?.remove(); menu = null; };
   const showMenu = (x, y) => {
@@ -905,44 +919,64 @@ if (PREVIEW) {
       const pm = e.target.closest?.('[data-pm]');
       if (pm) { g = { pm: pm.dataset.pm }; return; }
       closeMenu();
+      try { e.target.setPointerCapture?.(e.pointerId); } catch {}   // Ziehen bleibt dran, auch wenn der Zeiger das Display verlässt
       const t = e.target.closest?.('[data-ti]'), inT = t && face.contains(t) ? t : null;
-      if (!(f?.type === 'grid' && face.contains(e.target))) { g = { sw: true, x: e.clientX, y: e.clientY }; return; }   // andere Faces: nur Wischen
+      if (!(f?.type === 'grid' && face.contains(e.target))) { g = { sw: true, x: e.clientX, y: e.clientY, f }; return; }   // andere Faces: Wischen oder Antippen (→ Face-Einstellungen)
       g = { t: inT, x: e.clientX, y: e.clientY, on: false, f, face, hm: edit && e.target.closest('.hbm'), hr: edit && e.target.closest('.hbr') };
+      if (inT) Object.assign(g, { j: f.tiles.indexOf(inT._t), ox: inT.offsetLeft, oy: inT.offsetTop, key: '' });
       if (g.hr) {   // Resize-Griff: Rasterschritt aus den Spuren des Rasters
-        const cs = getComputedStyle(face), r = inT.getBoundingClientRect();
-        Object.assign(g, { w0: inT._t.w || 1, h0: inT._t.h || 1, px: parseFloat(cs.gridTemplateColumns) + parseFloat(cs.columnGap), py: parseFloat(cs.gridTemplateRows) + parseFloat(cs.rowGap), cell: cellAt(f, face, r.left + 10, r.top + 10), size: null });
+        const cs = getComputedStyle(face);
+        Object.assign(g, { w0: inT._t.w || 1, h0: inT._t.h || 1, px: parseFloat(cs.gridTemplateColumns) + parseFloat(cs.columnGap), py: parseFloat(cs.gridTemplateRows) + parseFloat(cs.rowGap), n0: pack(f.tiles, rows(f)).filter(Boolean).length });
+        g.size = [g.w0, g.h0];
       }
       if (!edit) { const x = e.clientX, y = e.clientY; g.lp = setTimeout(() => { if (g && !g.on) { g.long = true; showMenu(x, y); } }, 450); }
     }
     else if (g && e.type === 'pointermove') {
-      if (g.pm) return;
+      if (g.pm || g.sw) return;
       const dx = e.clientX - g.x, dy = e.clientY - g.y;
-      if (g.hr) {
-        const tw = g.w0 + dx / g.px, th = g.h0 + dy / g.py;
-        g.size = SZ.reduce((b, c) => (c[0] - tw) ** 2 + (c[1] - th) ** 2 < (b[0] - tw) ** 2 + (b[1] - th) ** 2 ? c : b);
-        mark(g.face, g.f, { w: g.size[0], h: g.size[1] }, g.cell); return;
+      if (g.hr) {   // Größe live: nächste erlaubte Größe; passt dann eine andere Kachel nicht mehr ins Raster, bleibt die alte
+        const tw = g.w0 + dx / g.px, th = g.h0 + dy / g.py, d = g.t._t;
+        const c = SZ.reduce((b, s) => (s[0] - tw) ** 2 + (s[1] - th) ** 2 < (b[0] - tw) ** 2 + (b[1] - th) ** 2 ? s : b);
+        if (c[0] === g.size[0] && c[1] === g.size[1]) return;
+        const was = [d.w, d.h];
+        c[0] > 1 ? d.w = c[0] : delete d.w; c[1] > 1 ? d.h = c[1] : delete d.h;
+        const sp = pack(g.f.tiles, rows(g.f));
+        if (!sp[g.j] || sp.filter(Boolean).length < g.n0) { was[0] ? d.w = was[0] : delete d.w; was[1] ? d.h = was[1] : delete d.h; if (!g.shook) { g.shook = true; shake(g.t); } return; }
+        g.size = c; g.shook = false; flip(g.face, g.f); return;
       }
       if (Math.hypot(dx, dy) > 6) clearTimeout(g.lp);
-      if (!edit || g.hm) return;
-      if (g.t && !g.on && Math.hypot(dx, dy) > 6) { g.on = true; g.t.style.cssText += ';z-index:9;transition:none;animation:none'; }
-      if (g.on) { g.t.style.transform = `translate(${dx}px,${dy}px) scale(1.04)`; mark(g.face, g.f, g.t._t, to(g.t, g.f)); }
+      if (!edit || g.hm || !g.t) return;
+      if (!g.on && Math.hypot(dx, dy) > 6) { g.on = true; g.t.classList.add('pvlift'); }
+      if (!g.on) return;
+      follow(e);
+      const c = to(g.t, g.f), order = moveTo(g.f.tiles, g.j, c, rows(g.f)), key = order.map(t => g.f.tiles.indexOf(t)).join();
+      if (key !== g.key) { g.key = key; g.cell = c; flip(g.face, { ...g.f, tiles: order }, g.t); follow(e); }   // die anderen Kacheln weichen sofort aus
+      else g.cell = c;
     }
     else if (g && (e.type === 'pointerup' || e.type === 'pointercancel')) {
       const up = e.type === 'pointerup';
       clearTimeout(g.lp);
-      if (g.sw) { if (up) swipe(e); g = null; return; }
+      const moved = Math.hypot(e.clientX - g.x, e.clientY - g.y) >= 6;
+      if (g.sw) { if (up && !swipe(e) && !moved && g.f) post({ hb: 'facetap', face: g.f.id }); g = null; return; }
       if (g.pm) { if (up && e.target.closest?.('[data-pm]')?.dataset.pm === g.pm) { post({ hb: 'menu', item: g.pm }); closeMenu(); } g = null; return; }
       if (g.long) { g = null; return; }
-      const moved = Math.hypot(e.clientX - g.x, e.clientY - g.y) >= 6;
-      if (g.hr) { g.face._hl?.remove(); g.face._hl = null; if (up && g.size && (g.size[0] !== g.w0 || g.size[1] !== g.h0)) post({ hb: 'resize', face: g.f.id, j: g.f.tiles.indexOf(g.t._t), w: g.size[0], h: g.size[1] }); }
-      else if (g.hm) { if (up && !moved) post({ hb: 'remove', face: g.f.id, j: g.f.tiles.indexOf(g.t._t) }); }
-      else if (!edit) { /* außerhalb des Bearbeiten-Modus tut ein Tippen nichts; langes Drücken öffnet das Menü */ }
-      else if (!g.t) { if (up && swipe(e)) { /* Face wechseln */ } else if (up && !moved) post({ hb: 'empty', face: g.f.id, cell: cellAt(g.f, g.face, e.clientX, e.clientY) }); }   // leere Stelle: Widget hinzufügen (die Einstellungsseite prüft, ob sie frei ist)
-      else {
-        const j = g.f.tiles.indexOf(g.t._t), c = g.on && up ? to(g.t, g.f) : null;
-        if (g.on) { g.t.style.transform = g.t.style.zIndex = g.t.style.transition = g.t.style.animation = ''; g.face._hl?.remove(); g.face._hl = null; }
-        if (up) post(c ? { hb: 'move', face: g.f.id, j, cell: c } : { hb: 'tile', face: g.f.id, j });
+      if (g.hr) {
+        const d = g.t._t, s = g.size;
+        g.w0 > 1 ? d.w = g.w0 : delete d.w; g.h0 > 1 ? d.h = g.h0 : delete d.h;   // CONF bleibt beim alten Stand, bis die Einstellungsseite die neue Größe schickt
+        if (up && (s[0] !== g.w0 || s[1] !== g.h0)) post({ hb: 'resize', face: g.f.id, j: g.j, w: s[0], h: s[1] });
+        else flip(g.face, g.f);
       }
+      else if (g.hm) { if (up && !moved) post({ hb: 'remove', face: g.f.id, j: g.j }); }
+      else if (!edit) { /* außerhalb des Bearbeiten-Modus tut ein Tippen nichts; langes Drücken öffnet das Menü */ }
+      else if (!g.t) { if (up && swipe(e)) { /* Face wechseln */ } else if (up && !moved) post({ hb: 'empty', face: g.f.id, cell: cellAt(g.f, g.face, e.clientX, e.clientY) }); }   // leere Stelle: Widget hinzufügen
+      else if (g.on) {   // loslassen: Kachel gleitet an ihren Platz
+        const tr = g.t.style.transform;
+        g.t.style.transform = ''; g.t.classList.remove('pvlift');
+        g.t.animate([{ transform: tr }, { transform: 'none' }], { duration: SD, easing: SPRING });
+        if (up && g.cell && g.key) post({ hb: 'move', face: g.f.id, j: g.j, cell: g.cell });
+        else flip(g.face, g.f, g.t);
+      }
+      else if (up) post({ hb: 'tile', face: g.f.id, j: g.j });
       g = null;
     }
   };

@@ -242,7 +242,7 @@ textarea.r{text-align:right}
 <div id="toast"></div>
 
 <script type="module">
-import { ICON, faceId, normFaces, pack, rows } from './faces.js';
+import { ICON, faceId, moveTo, normFaces, pack, rows } from './faces.js';
 import { DOM, areasOf, entOf, entsIn, entsOf, loadEntities, pickEntity } from './entpicker.js';
 import { pickWidget } from './gallery.js';
 import { ESP_FORMAT, FORMAT, espExport, remapConfig } from './share.js';
@@ -605,18 +605,6 @@ function pvSend() {
   if (t !== pvSel || m.conf) { pvSel = t; m.sel = t; }
   if (Object.keys(m).length) pvPost(m);
 }
-// Kachel j so einsortieren, dass sie auf Rasterzelle (r, c) landet; sonst die nächstliegende mögliche Stelle
-function moveTo(tiles, j, [r, c], n) {
-  const t = tiles[j], rest = tiles.filter((_, k) => k !== j);
-  let best = j, bd = Infinity;
-  for (let k = 0; k <= rest.length; k++) {
-    const p = pack([...rest.slice(0, k), t, ...rest.slice(k)], n)[k];
-    if (!p) continue;
-    const d = (p[0] - r) ** 2 + (p[1] - c) ** 2;
-    if (d < bd || (d === bd && Math.abs(k - j) < Math.abs(best - j))) { bd = d; best = k; }
-  }
-  return [...rest.slice(0, best), t, ...rest.slice(best)];
-}
 addEventListener('message', async e => {
   const m = e.data;
   if (e.source !== pvf.contentWindow || e.origin !== location.origin) return;
@@ -624,12 +612,13 @@ addEventListener('message', async e => {
     pvReady = true; pvConf = ''; pvFace = ''; pvEd = null; pvSel = -2;
     pvPost({ states: pvStates }); pvSend();
   } else if (m?.hb === 'swipe') goFace(fi + m.dir);
-  else if (['move', 'tile', 'empty', 'resize', 'remove'].includes(m?.hb)) {
+  else if (['move', 'tile', 'facetap', 'empty', 'resize', 'remove'].includes(m?.hb)) {
     const i = cfg?.faces.findIndex(x => x.id === m.face);
     if (i < 0 || i == null) return;
     const f = cfg.faces[i];
     if (m.hb === 'move') { f.tiles = moveTo(f.tiles, m.j, m.cell, rows(f)); pvConf = ''; return saveCfg(); }
     if (m.hb === 'tile') return openTile(i, m.j);
+    if (m.hb === 'facetap') return openFace(i);
     if (m.hb === 'resize') {   // Griff unten rechts; wenn dadurch andere Kacheln aus dem Raster fallen würden, bleibt es bei der alten Größe
       const t = f.tiles[m.j], was = [t.w, t.h], lost = () => pack(f.tiles, rows(f)).filter(x => !x).length, n = lost();
       m.w > 1 ? t.w = m.w : delete t.w; m.h > 1 ? t.h = m.h : delete t.h;
