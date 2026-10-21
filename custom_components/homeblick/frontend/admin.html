@@ -62,7 +62,9 @@ svg{display:block}
 .scc{flex:none;width:var(--cs);height:var(--cs);scroll-snap-align:center;border-radius:28px;overflow:hidden;background:linear-gradient(160deg,#9aa6ba,#5d687c);box-shadow:0 8px 24px #0003;scale:.86;opacity:.55;cursor:pointer;transition:scale .35s var(--spring),opacity .2s}.scc.on{scale:1;opacity:1}.scc.off{display:none}
 .scb{position:absolute;top:calc(var(--cs) / 2 - 10px);z-index:2;width:34px;height:34px;border-radius:50%;background:var(--glass);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);box-shadow:0 2px 10px #0003;display:grid;place-items:center;transition:scale .25s var(--spring),opacity .2s}.scb:active{scale:.9}.scb:disabled{opacity:0;pointer-events:none}
 .scb svg{width:16px;height:16px;stroke:var(--fg);fill:none;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}.scb.l{left:12px}.scb.l svg{transform:scaleX(-1)}.scb.r{right:12px}
-#carslot{position:relative}.gcw{position:relative;margin:0 -16px}.gcw .scb{top:95px}
+#carslot{position:relative}.gcw{flex:none;position:relative}.gcw .scb{top:95px}.gcw.off,.gt.off{height:0;padding:0;overflow:hidden;visibility:hidden}
+.gpv{display:block;width:224px;height:224px;border:0;border-radius:28px;background:#000;box-shadow:0 10px 26px #0003;pointer-events:none;opacity:0;transition:opacity .3s}.gpv.rd{opacity:1}
+.gtop{flex:none}.gbody{flex:1;min-height:0;display:flex;flex-direction:column}
 .scc iframe{display:block;width:100%;height:100%;border:0;pointer-events:none}
 .scn{text-align:center;font-weight:600;font-size:17px;min-height:22px}
 .pks2{padding:12px 16px 4px;font-size:13px;text-transform:uppercase;color:var(--sec);letter-spacing:.2px}
@@ -181,7 +183,7 @@ textarea.r{text-align:right}
 /* Widget-Galerie */
 .gal .pkh button[data-gb]{font-weight:500}.gd{flex:1;display:flex;flex-direction:column;min-height:0;overflow-y:auto;padding:6px 16px 18px}
 .gt{text-align:center;font-size:22px;font-weight:700;padding:8px 0 4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.gc{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;margin:0 -16px}.gc::-webkit-scrollbar{display:none}
+.gc{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}.gc::-webkit-scrollbar{display:none}
 .gs{flex:none;width:100%;scroll-snap-align:center;display:flex;align-items:center;justify-content:center;height:224px}
 .gcard{border-radius:24px;color:#fff;padding:12px 13px;display:flex;flex-direction:column;justify-content:flex-end;box-shadow:0 10px 26px #0003;position:relative;overflow:hidden}
 .gcard svg{position:absolute;right:11px;top:11px;width:24px;height:24px;stroke:#fff;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.gcard b{font-size:14px;line-height:1.2;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.gcard small{font-size:12px;opacity:.8}
@@ -709,13 +711,18 @@ async function addFlow(i, cell) {   // „+“ oben links, leere Stelle im Displ
 const pvStatesLoad = () => conn.sendMessagePromise({ type: 'get_states' }).then(a => { pvStates = Object.fromEntries(a.map(x => [x.entity_id, x])); pvPost({ states: pvStates }); }).catch(() => {});
 const pvLoad = () => { if (!pvf.getAttribute('src')) pvf.src = 'index.html?preview'; };
 
-// Widget hinzufügen (Galerie wie bei iOS): fertige Kachel am Ende bzw. auf Zelle cell; null = abgebrochen oder kein Platz
-async function galleryAdd(f, cell) {
-  const r = await pickWidget({ used: f.tiles.map(t => t.e), area: cur()?.area });
-  if (!r) return null;
+// Kachel aus der Wahl der Galerie ({ cat, en, size })
+function widgetTile(r) {
   const t = r.cat === 'wx' ? { kind: 'wx' } : r.cat === 'analog' || r.cat === 'digital' ? { kind: 'clock', ...(r.cat === 'digital' && { cs: 'digital' }) } : tileOf(r.en);
   if (r.size[0] > 1) t.w = r.size[0];
   if (r.size[1] > 1) t.h = r.size[1];
+  return t;
+}
+// Widget hinzufügen (Galerie wie bei iOS): fertige Kachel am Ende bzw. auf Zelle cell; null = abgebrochen oder kein Platz
+async function galleryAdd(f, cell) {
+  const r = await pickWidget({ used: f.tiles.map(t => t.e), area: cur()?.area, states: () => pvStates, preview: r => ({ conf: { ...cfg, faces: [{ type: 'grid', id: 'grid', bg: f.bg, tiles: [widgetTile(r)] }] }, face: 'grid' }) });
+  if (!r) return null;
+  const t = widgetTile(r);
   f.tiles.push(t);
   if (cell) f.tiles = moveTo(f.tiles, f.tiles.length - 1, cell, rows(f));
   if (!pack(f.tiles, rows(f))[f.tiles.indexOf(t)]) { f.tiles.splice(f.tiles.indexOf(t), 1); toast('Kein Platz mehr auf diesem Face: erst eine Kachel verkleinern oder entfernen', true); return null; }

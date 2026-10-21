@@ -35,17 +35,42 @@ const ico = (c, i) => `<span class="ico" style="background:${c.c}"><svg><use hre
 // used: Entity-IDs, die auf dem Face schon liegen (die Vorauswahl nimmt die erste andere)
 // area: Bereich des Displays → oben „Vorschläge für <Bereich>“ (Geräte des Raums, ein Tipp fügt sie als 1×1 hinzu)
 // → { cat, en, size: [w, h] } oder null
-export function pickWidget({ used = [], area = '' } = {}) {
+// preview({ cat, en, size }) → { conf, face }: Konfiguration für die echte Vorschau (?preview-Frame); states() → Zustände der Entities
+export function pickWidget({ used = [], area = '', preview, states = () => ({}) } = {}) {
   return new Promise(res => {
     const o = Object.assign(document.createElement('div'), { id: 'ov', className: 'pkov', innerHTML: '<div class="pk gal" role="dialog" aria-label="Widget hinzufügen"></div>' });
-    const box = o.firstElementChild, done = v => { o.classList.remove('in'); setTimeout(() => o.remove(), 300); res(v); };
+    const box = o.firstElementChild, done = v => { removeEventListener('message', onMsg); o.classList.remove('in'); setTimeout(() => o.remove(), 300); res(v); };
     const catOf = e => CATS.find(c => c.d?.includes(e.domain));
     const count = c => c.d ? entsFor(c.d).length : -1;
     const sug = area ? entsIn(area).filter(e => catOf(e) && !used.includes(e.id)).sort((a, b) => CATS.indexOf(catOf(a)) - CATS.indexOf(catOf(b)) || a.name.localeCompare(b.name, 'de')).slice(0, 12) : [];
 
+    // Gerüst: Kopf, Titel, Karussell, Inhalt. Das Karussell (drei echte ?preview-Frames) wird gleich beim Öffnen geladen und bleibt stehen; Liste und Detail wechseln nur Kopf und Inhalt
+    box.innerHTML = `<div class="gtop"></div><div class="gt off"></div><div class="gcw off"><div class="gc">${SZ.map(() => '<div class="gs"><iframe class="gpv" src="index.html?preview" tabindex="-1"></iframe></div>').join('')}</div><button class="scb l" data-gn="-1" aria-label="Kleiner"><svg><use href="#i-chev"/></svg></button><button class="scb r" data-gn="1" aria-label="Größer"><svg><use href="#i-chev"/></svg></button></div><div class="gbody"></div>`;
+    const top = box.querySelector('.gtop'), title = box.querySelector('.gt'), gcw = box.querySelector('.gcw'), gc = box.querySelector('.gc'), body = box.querySelector('.gbody');
+    const wins = () => [...box.querySelectorAll('.gpv')], ready = [], sent = [];
+    let cur = null;
+    const send = k => {
+      if (!cur || !ready[k] || !preview) return;
+      const { conf, face } = preview({ cat: cur.c.k, en: cur.en, size: SZ[k] }), j = JSON.stringify(conf);
+      if (sent[k] !== j) { sent[k] = j; wins()[k].contentWindow.postMessage({ hb: 'preview', conf, face, edit: false, sel: -1, states: states() }, location.origin); }
+      setTimeout(() => wins()[k]?.classList.add('rd'), 250);
+    };
+    const onMsg = e => {
+      if (e.origin !== location.origin || e.data?.hb !== 'preview-ready') return;
+      const k = wins().findIndex(f => f.contentWindow === e.source);
+      if (k >= 0) { ready[k] = true; sent[k] = ''; send(k); }
+    };
+    addEventListener('message', onMsg);
+    swipable(gc);
+    const at = () => Math.round(gc.scrollLeft / gc.clientWidth), dots = () => [...box.querySelectorAll('.gdots i')];
+    const arrows = () => box.querySelectorAll('.scb').forEach(b => b.disabled = at() + +b.dataset.gn < 0 || at() + +b.dataset.gn >= SZ.length);
+    gc.onscroll = () => { dots().forEach((d, i) => d.classList.toggle('on', i === at())); arrows(); };
+    box.querySelectorAll('.scb').forEach(b => b.onclick = () => gc.scrollTo({ left: (at() + +b.dataset.gn) * gc.clientWidth, behavior: 'smooth' }));
+
     function list() {
-      box.innerHTML = `<div class="pkh"><b>Widget hinzufügen</b><button data-gx>Abbrechen</button></div>
-        <label class="pks"><svg class="chev"><use href="#i-search"/></svg><input type="search" placeholder="Widgets suchen" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"></label><div class="pkl"></div>`;
+      cur = null; title.classList.add('off'); gcw.classList.add('off'); body.className = 'gbody';
+      top.innerHTML = '<div class="pkh"><b>Widget hinzufügen</b><button data-gx>Abbrechen</button></div>';
+      body.innerHTML = `<label class="pks"><svg class="chev"><use href="#i-search"/></svg><input type="search" placeholder="Widgets suchen" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"></label><div class="pkl"></div>`;
       const q = box.querySelector('input'), l = box.querySelector('.pkl');
       const draw = () => {
         const w = fold(q.value).trim();
@@ -62,18 +87,17 @@ export function pickWidget({ used = [], area = '' } = {}) {
     function detail(c, en) {
       const need = !!c.d;
       en ||= need ? entsFor(c.d).find(e => !used.includes(e.id)) || entsFor(c.d)[0] : null;
-      const name = en?.name || c.n;
-      const card = ([w, h]) => `<div class="gs"><div class="gcard" style="width:${w * U + (w - 1) * 8}px;height:${h * U + (h - 1) * 8}px;background:linear-gradient(160deg,color-mix(in srgb,${c.c} 62%,#fff),${c.c})"><svg><use href="#i-${c.i}"/></svg><b>${esc(name)}</b><small>${esc(en ? en.area || c.n : c.k === 'wx' ? 'Wetter' : 'Uhr')}</small></div></div>`;
-      box.innerHTML = `<div class="pkh"><button data-gb>‹ Widgets</button><b>${esc(c.n)}</b><button data-gx aria-label="Schließen">✕</button></div>
-        <div class="gd"><div class="gt">${esc(name)}</div><div class="gcw"><div class="gc">${SZ.map(card).join('')}</div><button class="scb l" data-gn="-1" aria-label="Kleiner"><svg><use href="#i-chev"/></svg></button><button class="scb r" data-gn="1" aria-label="Größer"><svg><use href="#i-chev"/></svg></button></div><div class="gdots">${SZ.map((_, i) => `<i class="${i ? '' : 'on'}"></i>`).join('')}</div>
+      const fresh = !cur;
+      cur = { c, en };
+      top.innerHTML = `<div class="pkh"><button data-gb>‹ Widgets</button><b>${esc(c.n)}</b><button data-gx aria-label="Schließen">✕</button></div>`;
+      title.textContent = en?.name || c.n; title.classList.remove('off'); gcw.classList.remove('off');
+      body.className = 'gbody gd';
+      body.innerHTML = `<div class="gdots">${SZ.map((_, i) => `<i class="${i ? '' : 'on'}"></i>`).join('')}</div>
         ${need ? `<button class="row gent" data-gp><span class="l">Entity</span><span class="v"><span class="val">${esc(en ? en.name : 'Keine passende Entity')}</span><svg class="chev"><use href="#i-chev"/></svg></span></button>` : ''}
-        <button class="gadd" data-ga style="background:${c.c}" ${need && !en ? 'disabled' : ''}>＋ Widget hinzufügen</button></div>`;
-      const gc = box.querySelector('.gc'), dots = [...box.querySelectorAll('.gdots i')], at = () => Math.round(gc.scrollLeft / gc.clientWidth);
-      swipable(gc);
-      const arrows = () => box.querySelectorAll('.scb').forEach(b => b.disabled = at() + +b.dataset.gn < 0 || at() + +b.dataset.gn >= SZ.length);
-      gc.onscroll = () => { dots.forEach((d, i) => d.classList.toggle('on', i === at())); arrows(); };
-      box.querySelectorAll('.scb').forEach(b => b.onclick = () => gc.scrollTo({ left: (at() + +b.dataset.gn) * gc.clientWidth, behavior: 'smooth' }));
-      arrows();
+        <button class="gadd" data-ga style="background:${c.c}" ${need && !en ? 'disabled' : ''}>＋ Widget hinzufügen</button>`;
+      if (fresh) gc.scrollTo({ left: 0, behavior: 'instant' });
+      dots().forEach((d, i) => d.classList.toggle('on', i === at())); arrows();
+      SZ.forEach((_, k) => send(k));
       box.querySelector('[data-ga]').onclick = () => done({ cat: c.k, en, size: SZ[at()] });
       box.querySelector('[data-gp]')?.addEventListener('click', async () => { const e = await pickEntity({ title: c.n, domains: c.d, current: en?.id }); if (e?.id) detail(c, e); });
     }
