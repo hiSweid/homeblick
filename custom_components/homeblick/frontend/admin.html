@@ -544,7 +544,8 @@ const pages = {
       ${f.type === 'energy' ? grp('Entities', ENERGY.map(([k, n]) => epick(n, 'ents.' + k, f.ents?.[k] || '', { domains: ['sensor'], none: 'Standard' }, 'data-f')).join(''), 'Ohne Auswahl liest das Face die Standard-Entities (evcc, Kostal, Solcast).') : ''}
       ${f.type === 'calendar' || f.type === 'info' ? grp('Kalender', entsOf('calendar').map(e => `<div class="row"><span class="l">${esc(e.name)}</span><label class="sw"><input type="checkbox" data-fcal="${esc(e.id)}" ${!f.cals || f.cals.includes(e.id) ? 'checked' : ''}><i></i></label></div>`).join('') || '<div class="row"><span class="l" style="color:var(--sec)">Keine Kalender in Home Assistant</span></div>', 'Diese Auswahl gilt für das Kalender- und das Info-Face. Ohne Haken bei einem Kalender fehlen dessen Termine.') : ''}
       ${grp('Face', `<div class="row"><span class="l">Position</span><span class="arrows"><button data-a="fleft" aria-label="Nach links" ${e.i === 0 ? 'disabled style="opacity:.3"' : ''}>${svg('up', 'rot-l')}</button><button data-a="fright" aria-label="Nach rechts" ${e.i === cfg.faces.length - 1 ? 'disabled style="opacity:.3"' : ''}>${svg('down', 'rot-r')}</button></span></div><button class="row btn" data-a="fdup">Face duplizieren</button><button class="row red" data-a="fhide">Face ausblenden</button>`, 'Ausgeblendete Faces bleiben mit ihrer Konfiguration erhalten und lassen sich über „+ Face“ wieder einblenden.')}
-      ${grp('', `<button class="row btn c" data-c="face" ${d.connected ? '' : 'disabled style="opacity:.4"'}>Auf dem Display anzeigen</button>`)}`;
+      ${grp('', `<button class="row btn c" data-c="face" ${d.connected ? '' : 'disabled style="opacity:.4"'}>Auf dem Display anzeigen</button>`)}
+      ${grp('', `<button class="row red c" data-a="fdel">Face löschen</button>`, 'Löscht das Face mit allen Kacheln und Einstellungen. „Face ausblenden“ behält sie.')}`;
     return { back: null, title: faceName(f), body };
   },
 
@@ -893,6 +894,12 @@ document.addEventListener('click', async e => {
     if (k === 'show') cfg.faces.push(...cfg.off.splice(cfg.off.findIndex(f => f.id === v), 1));
     else cfg.faces.push({ type: v, id: faceId(cfg, v), bg: v === 'grid' ? 'auto' : 'black', ...(v === 'grid' && { tiles: [] }) });
     fi = cfg.faces.length - 1; return saveCfg();
+  }
+  if (a === 'fdel') {
+    if (cfg.faces.length < 2) return toast('Mindestens ein Face', true);
+    const i = ins.i, f = cfg.faces[i];
+    if (!await ask(`„${faceName(f)}“ löschen?`, 'Das Face mit allen Kacheln und Einstellungen wird gelöscht.', 'Löschen')) return;
+    cfg.faces.splice(i, 1); fi = Math.min(fi, cfg.faces.length - 1); saveCfg(); return setIns(null);
   }
   if (/^f(left|right|dup|hide)$/.test(a)) {
     const i = ins.i, f = cfg.faces[i];
