@@ -233,11 +233,11 @@ async def admin_config(hass, connection, msg):
 
 
 @websocket_api.require_admin
-@websocket_api.websocket_command({vol.Required("type"): "homeblick/command", **DISPLAY, vol.Required("action"): vol.In(["face", "reload", "screensaver", "wake", "assist", "screenshot", "announce", "stop", "navigate"]), vol.Optional("face"): vol.In(FACES), vol.Optional("duration"): vol.All(int, vol.Range(min=1, max=3600)), vol.Optional("path"): vol.All(str, vol.Match(r"^/(?![/\\])[^\x00-\x20\\]*\Z"), vol.Length(max=300)), vol.Optional("message"): vol.All(str, vol.Length(min=1, max=300))})
+@websocket_api.websocket_command({vol.Required("type"): "homeblick/command", **DISPLAY, vol.Required("action"): vol.In(["face", "reload", "screensaver", "wake", "assist", "screenshot", "announce", "notify", "stop", "navigate"]), vol.Optional("face"): vol.In(FACES), vol.Optional("duration"): vol.All(int, vol.Range(min=1, max=3600)), vol.Optional("path"): vol.All(str, vol.Match(r"^/(?![/\\])[^\x00-\x20\\]*\Z"), vol.Length(max=300)), vol.Optional("message"): vol.All(str, vol.Length(min=1, max=300)), vol.Optional("title"): vol.All(str, vol.Length(max=80))})
 @callback
 def command(hass, connection, msg):
     if d := _display(hass, connection, msg):
-        hass.data[DOMAIN].push(d, {k: msg[k] for k in ("action", "face", "message", "path", "duration") if k in msg})
+        hass.data[DOMAIN].push(d, {k: msg[k] for k in ("action", "face", "message", "title", "path", "duration") if k in msg})
         connection.send_result(msg["id"])
 
 
@@ -254,6 +254,17 @@ async def remove(hass, connection, msg):
 # ---- Dienste für Automationen ----
 CAMERA = vol.Schema({vol.Required("display"): vol.All(cv.ensure_list, [str]), vol.Required("camera"): cv.entity_domain("camera"),
                      vol.Optional("duration", default=60): vol.All(vol.Coerce(int), vol.Range(min=0, max=3600))})
+# Benachrichtigungskarte (Vorlage TGo1gI0QtfU 45,75 s); Aktionen des Buttons nur harmlose Domains (keine Schlösser/Garagentore), Bild: URL der eigenen HA-Instanz/Web oder Kamera-/Bild-Entity
+NOTIFY = vol.All(vol.Schema({
+    vol.Required("display"): vol.All(cv.ensure_list, [str]),
+    vol.Required("message"): vol.All(cv.string, vol.Length(min=1, max=300)),
+    vol.Optional("title"): vol.All(cv.string, vol.Length(max=80)),
+    vol.Optional("image"): vol.Any(cv.entity_domain(["camera", "image"]), vol.All(str, vol.Match(r"^(https?://\S+|/(?![/\\])\S*)\Z"), vol.Length(max=500))),
+    vol.Optional("button"): vol.All(cv.string, vol.Length(min=1, max=30)),
+    vol.Optional("face"): vol.In(FACES),
+    vol.Optional("entity"): cv.entity_domain(["scene", "script", "button", "automation", "light", "switch", "input_boolean", "fan"]),
+    vol.Optional("duration", default=10): vol.All(vol.Coerce(int), vol.Range(min=0, max=3600)),
+}), cv.has_at_most_one_key("face", "entity"))
 HIDE = vol.Schema({vol.Required("display"): vol.All(cv.ensure_list, [str])})
 
 
@@ -295,7 +306,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         for d in ds:
             hub.push(d, {"action": "camera_close"})
 
+    async def notify(call: ServiceCall) -> None:
+        """Weiße Benachrichtigungskarte (Titel, Text, Bild, Button) auf den Displays; mehrere laufen nacheinander. Die Durchsage (notify.send_message) bleibt davon getrennt."""
+        hub, ds = _targets(hass, call)
+        data = {k: v for k, v in call.data.items() if k != "display"}
+        for d in ds:
+            hub.push(d, {"action": "notify", **data})
+
     hass.services.async_register(DOMAIN, "show_camera", show_camera, CAMERA)
+    hass.services.async_register(DOMAIN, "notify", notify, NOTIFY)
     hass.services.async_register(DOMAIN, "hide_camera", hide_camera, HIDE)
 
     if not hass.data.get(f"{DOMAIN}_static"):   # Pfad lässt sich nach Reload nicht erneut registrieren
@@ -340,7 +359,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data[DOMAIN].unwatch_timers()
     frontend.async_remove_panel(hass, DOMAIN)
     frontend.async_remove_panel(hass, f"{DOMAIN}-settings")
-    for service in ("show_camera", "hide_camera"):
+    for service in ("show_camera", "hide_camera", "notify"):
         hass.services.async_remove(DOMAIN, service)
     return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 

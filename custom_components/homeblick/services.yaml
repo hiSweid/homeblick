@@ -27,3 +27,44 @@ hide_camera:
         device:
           integration: homeblick
           multiple: true
+notify:
+  fields:
+    display:
+      required: true
+      selector:
+        device:
+          integration: homeblick
+          multiple: true
+    message:
+      required: true
+      example: "Time to leave for practice."
+      selector:
+        text:
+          multiline: true
+    title:
+      selector:
+        text:
+    image:
+      example: camera.front_door
+      selector:
+        text:
+    button:
+      selector:
+        text:
+    face:
+      selector:
+        select:
+          options: [bigclock, analog, weather, music, grid, calendar, date, energy, info, cams]
+    entity:
+      selector:
+        entity:
+          filter:
+            - domain: [scene, script, button, automation, light, switch, input_boolean, fan]
+    duration:
+      default: 10
+      selector:
+        number:
+          min: 0
+          max: 3600
+          unit_of_measurement: s
+          mode: box

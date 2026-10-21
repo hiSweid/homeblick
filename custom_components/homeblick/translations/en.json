@@ -186,6 +186,44 @@
           "description": "Homeblick displays."
         }
       }
+    },
+    "notify": {
+      "name": "Show notification",
+      "description": "Shows a white notification card on the display: title, text, optional picture and a blue button. Several cards are shown one after another. The announcement (notify.send_message) is separate.",
+      "fields": {
+        "display": {
+          "name": "Display",
+          "description": "Homeblick displays (only open ones react)."
+        },
+        "message": {
+          "name": "Message",
+          "description": "Text of the card."
+        },
+        "title": {
+          "name": "Title",
+          "description": "Bold first line."
+        },
+        "image": {
+          "name": "Image",
+          "description": "Camera or image entity, or a picture URL (https://… or /local/…)."
+        },
+        "button": {
+          "name": "Button",
+          "description": "Label of the blue button at the bottom; it is only shown when this is set."
+        },
+        "face": {
+          "name": "Open face",
+          "description": "Button opens this face."
+        },
+        "entity": {
+          "name": "Switch on entity",
+          "description": "Button turns on a light, switch, input boolean or fan, activates a scene, runs a script or automation, or presses a button (not together with a face)."
+        },
+        "duration": {
+          "name": "Duration",
+          "description": "Closes after this many seconds; 0 keeps it until someone swipes or taps it away."
+        }
+      }
     }
   },
   "exceptions": {

@@ -186,6 +186,44 @@
           "description": "Homeblick-Displays."
         }
       }
+    },
+    "notify": {
+      "name": "Benachrichtigung zeigen",
+      "description": "Zeigt eine weiße Benachrichtigungskarte auf dem Display: Titel, Text, optional ein Bild und ein blauer Button. Mehrere Karten erscheinen nacheinander. Die Durchsage (notify.send_message) bleibt getrennt.",
+      "fields": {
+        "display": {
+          "name": "Display",
+          "description": "Homeblick-Displays (nur geöffnete reagieren)."
+        },
+        "message": {
+          "name": "Text",
+          "description": "Text der Karte."
+        },
+        "title": {
+          "name": "Titel",
+          "description": "Fette erste Zeile."
+        },
+        "image": {
+          "name": "Bild",
+          "description": "Kamera- oder Bild-Entity oder Bild-URL (https://… oder /local/…)."
+        },
+        "button": {
+          "name": "Button",
+          "description": "Beschriftung des blauen Buttons unten; er erscheint nur, wenn das gesetzt ist."
+        },
+        "face": {
+          "name": "Face öffnen",
+          "description": "Der Button öffnet dieses Face."
+        },
+        "entity": {
+          "name": "Entity einschalten",
+          "description": "Der Button schaltet ein Licht, einen Schalter, Helfer oder Ventilator ein, aktiviert eine Szene, startet ein Skript oder eine Automation oder drückt einen Button (nicht zusammen mit Face)."
+        },
+        "duration": {
+          "name": "Dauer",
+          "description": "Schließt nach so vielen Sekunden; 0 lässt sie offen, bis jemand sie wegwischt oder antippt."
+        }
+      }
     }
   },
   "exceptions": {

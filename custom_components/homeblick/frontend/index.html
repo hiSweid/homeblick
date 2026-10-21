@@ -623,6 +623,20 @@ input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:tr
 #assist:not([data-k=cal]) .acal,#assist[data-k=cal] :is(.acard,.apill){display:none}
 /* Auslöser: Kamera oben Mitte antippen oder herunterziehen */
 #pull{position:absolute;left:30cqw;right:30cqw;top:0;height:3cqw;z-index:19;touch-action:none}
+/* ---------- Benachrichtigungskarte: Vollbild-Karte über den Faces (z 16: über .view 2, unter Kontrollzentrum 17, Zeit-Pille 18, Timer 19, Assist 20)
+   Vorlage TGo1gI0QtfU 45,75 s (vorlagen/TGo…/00458_wand-benachrichtigung) + Wegwischen 46,07–46,3 s: Handkamera von rechts, Perspektive auf das Quadrat entzerrt (Rand der leuchtenden Fläche → 4 Ecken), Maße in cqw.
+   Karte füllt das ganze Display (Radius wie das Panel 8), weiß; Text oben links 5,6 cqw (Aufstrich→Grundlinie 4,2; Inter ist breiter als SF → Zurichtung −0,035 em, damit „You should leave for Pickleball“ ≈ 75 cqw breit bleibt), Zeilenabstand 7,0, erste Grundlinie y 17,5, Rand links/rechts ≈ 9,7;
+   Bildkarte (Vorlage: Kartenausschnitt, hier nur das Bild des Nutzers) x 8…92, y 44…88, Radius ≈ 4,5; blauer Button x 8…92, y 89,5…98,4 (Höhe 8,9, Pille), Beschriftung ≈ 3,9 cqw semibold, weiß, mittig (Vorlage: Auto-Symbol + „18 min“).
+   Weg: wischen nach links, Karte läuft wie eine Pager-Seite aus dem Bild, das Face kommt mit Spalt 2,5 von rechts (≈ 0,2 s). Einblenden ist im Video geschnitten → Standard (Fade + Feder). Titel und Tippen-schließt: keine Vorlage (Annahme). */
+#nb{position:absolute;inset:0;z-index:16;pointer-events:none}
+.nbc{position:absolute;inset:0;border-radius:8cqw;background:#fff;color:#1c1c1e;pointer-events:auto;touch-action:none;overflow:hidden;will-change:transform}
+.nbt{position:absolute;left:9.7cqw;right:9.7cqw;top:11.9cqw;font-size:5.6cqw;line-height:7cqw;font-weight:500;letter-spacing:-.035em;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:10;overflow:hidden}
+.nbc.pic .nbt{-webkit-line-clamp:4}
+.nbt b{font-weight:600}
+.nbi{position:absolute;left:8cqw;right:8cqw;top:44cqw;height:44cqw;border-radius:4.5cqw;overflow:hidden;background:#f2f2f7}
+.nbi img{display:block;width:100%;height:100%;object-fit:cover;-webkit-user-drag:none}
+.nbb{position:absolute;left:8cqw;right:8cqw;bottom:1.6cqw;height:8.9cqw;border-radius:4.5cqw;background:#007aff;color:#fff;font-size:3.9cqw;font-weight:600;transition:scale var(--sd) var(--spring)}
+.nbb:active{scale:.96;transition:scale .12s ease-out}
 .lk{overflow:visible}.lk .sh{fill:none;stroke:currentColor;stroke-linecap:round;transform-origin:7.8px 11.5px;transition:transform .55s cubic-bezier(.34,1.7,.5,1)}.lk.open .sh{transform:translateY(-2.4px) rotate(-32deg)}
 /* ---------- Kontrollzentrum: Overlay über allen Faces/Ansichten (z 17: über .view 2, unter Zeit-Pille 18, Timer 19, Assist 20) ----------
    Vorlage _Tbq 00500 (blaue Glasansicht, Handkamera von links, Perspektive entzerrt; Maße in cqw = % Displaybreite, Mitte der Handkamera-Vermessung ±1 cqw),
@@ -784,6 +798,7 @@ input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:tr
   </section>
 
 
+  <div id="nb" aria-live="polite"></div>   <!-- Benachrichtigungskarten: Logik im Block „Benachrichtigung“ im Skript -->
   <div id="kz" hidden role="dialog" aria-label="Kontrollzentrum"></div>   <!-- Inhalt + Logik: Block „Kontrollzentrum“ im Skript -->
   <div id="kzz"></div>
   <button id="pull" data-act="assist" aria-label="Assist"></button>
@@ -2449,8 +2464,116 @@ if (!LIVE) {
   weatherHours(Array.from({ length: 24 }, (_, i) => ({ datetime: new Date(Date.now() + i * 3600e3).toISOString(), condition: ['partlycloudy', 'partlycloudy', 'sunny', 'sunny', 'cloudy', 'rainy'][i % 6], temperature: 12 + Math.round(3 * Math.sin(i / 4)), precipitation_probability: i % 6 === 5 ? 60 : 10, wind_speed: 8 + i % 5 })));   // Demo-Stundenleiste
 }
 if (!LIVE && new URLSearchParams(location.search).has('ring')) setTimeout(() => { ents = { ...ents, 'event.turklingel_doorbell': { ...ents['event.turklingel_doorbell'], state: new Date().toISOString() } }; schedule(); }, 1500);   // Demo-Klingeln wie HA
+// ---------- Benachrichtigung (HA-Dienst homeblick.notify): Karten nach Vorlage TGo1gI0QtfU 45,75–46,3 s, Stil siehe CSS „Benachrichtigungskarte“ ----------
+// Reihenfolge: eine Karte zur Zeit, weitere warten (Pager: die nächste läuft beim Wegwischen von rechts nach). Vorrang haben Assist, Timer-Vollbild, Klingel und Bearbeiten: die Karte wartet dann (Dauer pausiert)
+const [NBS, NBD] = spring(.21, 1);   // Wegwischen: kritisch gedämpft, 98 % nach ≈ 0,2 s (Video 46,07–46,3 s ≈ 0,22 s)
+const nb = { q: [], el: null, peek: null, t: 0, left: 0, at: 0, parked: false, out: false };
+const nbOn = () => !!nb.el;
+const nbBlocked = () => !!AS.className || timerOn() || camRinging() || screen.matches('.gallery,.custom');
+const NB_SVC = { scene: 'turn_on', script: 'turn_on', button: 'press', automation: 'trigger', light: 'turn_on', switch: 'turn_on', input_boolean: 'turn_on', fan: 'turn_on' };   // nur harmlose Domains (keine Schlösser/Garagentore)
+function nbPush(c) {
+  const n = { title: String(c.title || '').slice(0, 80), message: String(c.message || '').slice(0, 300), image: String(c.image || ''), button: String(c.button || '').slice(0, 30), face: c.face, entity: c.entity, duration: c.duration ?? 10 };
+  if (!n.message) return;
+  kiosk.wake(); nb.q.push(n); nbTick();
+}
+function nbImg(v) {
+  if (/^[a-z_]+\.[\w]+$/.test(v)) return st(v).attributes.entity_picture || '';   // camera.* / image.*: Bild samt Zugriffstoken aus dem Zustand
+  return /^(https?:\/\/|\/(?!\/))/.test(v) || (!LIVE && /^data:image\//.test(v)) ? v : '';
+}
+function nbBuild(n) {
+  const img = n.image && nbImg(n.image), e = document.createElement('div');
+  e.className = 'nbc' + (img ? ' pic' : ''); e._n = n;
+  e.innerHTML = `<p class="nbt">${n.title ? `<b>${esc(n.title)}</b><br>` : ''}${esc(n.message)}</p>${img ? `<div class="nbi"><img alt="" src="${esc(img)}"></div>` : ''}${n.button ? `<button class="nbb">${esc(n.button)}</button>` : ''}`;
+  e.querySelector('img')?.addEventListener('error', ev => ev.target.parentElement.remove());
+  nbDrag(e);
+  return e;
+}
+function nbShow(n) {
+  const e = nb.el = nbBuild(n); nb.out = nb.parked = false; nb.left = n.duration * 1000;
+  $('#nb').append(e); nbIn(e); ping(CFG.chime ? CFG.volume / 100 : 0);   // Gong aus bei Nicht stören (CFG.chime, wie Klingel)
+  nbArm();
+}
+const nbIn = e => { e.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 200, easing: 'ease-out' }); e.animate([{ scale: '.94' }, { scale: '1' }], { duration: SD, easing: SPRING }); };   // Standard-Feder (Einblenden im Video geschnitten)
+const nbPause = () => { clearTimeout(nb.t); if (nb.left > 0) nb.left = Math.max(1, nb.left - (Date.now() - nb.at)); };   // Restdauer merken (0 = bleibt offen)
+function nbArm() { clearTimeout(nb.t); if (nb.left > 0 && !nb.parked) { nb.at = Date.now(); nb.t = setTimeout(() => nbOut(), nb.left); } }
+function nbTick() {
+  const b = nbBlocked();
+  if (nb.el && !nb.out) {
+    if (b !== nb.parked) {
+      nb.parked = b; nb.el.hidden = b;
+      if (b) { clearTimeout(nb.t); nbPause(); } else { nbIn(nb.el); nbArm(); }
+    }
+  } else if (!nb.el && nb.q.length && !b) nbShow(nb.q.shift());
+}
+setInterval(nbTick, 250);
+// Weg: Karte nach links, darunter kommt mit Spalt die nächste Karte (Warteschlange) bzw. das Face von rechts. dx = bisheriger Fingerweg (px)
+function nbOut(dx = 0) {
+  const e = nb.el; if (!e || nb.out) return;
+  nb.out = true; nb.el = null; clearTimeout(nb.t);
+  const S = screen.clientWidth * 1.025, nxt = nb.peek || (nb.q.length && !nbBlocked() ? nbBuild(nb.q.shift()) : null);
+  if (nb.peek) nb.q.shift(); nb.peek = null;
+  const opt = { duration: NBD, easing: NBS, fill: 'both' }, move = (el, a, b) => el.animate([{ transform: `translateX(${a}px)` }, { transform: `translateX(${b}px)` }], opt);
+  if (nxt && !nxt.isConnected) $('#nb').append(nxt);
+  const under = nxt || faces, fin = move(under, S + dx, 0);
+  faces.style.transition = ''; 
+  move(e, dx, -S).onfinish = () => e.remove();
+  fin.onfinish = () => {
+    fin.cancel(); nb.out = false;
+    if (nxt) { nb.el = nxt; nb.parked = false; nb.left = nxt._n.duration * 1000; nbArm(); }
+    else nbTick();
+  };
+}
+// Ziehen: Karte folgt dem Finger nach links 1:1, darunter schiebt das Face bzw. die nächste Karte mit; Loslassen ≥ 20 % Breite oder ≥ 0,5 Breiten/s (wie der Face-Pager, Annahme) = weg, sonst zurück
+function nbDrag(e) {
+  let m = null, dragged = 0;
+  e.addEventListener('pointerdown', ev => { if (ev.button || nb.out) return; m = { x: ev.clientX, y: ev.clientY, dx: 0, on: false, h: [] }; });
+  e.addEventListener('pointermove', ev => {
+    if (!m) return;
+    const dx = ev.clientX - m.x, dy = ev.clientY - m.y;
+    if (!m.on) {
+      if (Math.abs(dy) > 8 && Math.abs(dy) > Math.abs(dx)) return void (m = null);
+      if (Math.abs(dx) <= 8) return;
+      m.on = true; e.setPointerCapture(ev.pointerId); nbPause();
+      if (!nb.peek && nb.q.length) { nb.peek = nbBuild(nb.q[0]); $('#nb').append(nb.peek); }
+      faces.style.transition = 'none';
+    }
+    m.h.push([ev.timeStamp, ev.clientX]); while (m.h[0][0] < ev.timeStamp - 100) m.h.shift();
+    m.dx = Math.min(0, dx); const S = screen.clientWidth * 1.025;
+    e.style.transform = `translateX(${m.dx}px)`;
+    (nb.peek || faces).style.transform = `translateX(${S + m.dx}px)`;
+  });
+  const end = () => {
+    if (!m) return; const { on, dx, h } = m; m = null;
+    if (!on) return;
+    dragged = Date.now();   // der folgende click gehört zum Wischen
+    const W = screen.clientWidth, v = h.length > 1 ? (h.at(-1)[1] - h[0][1]) / Math.max(16, h.at(-1)[0] - h[0][0]) * 1000 : 0;
+    const clean = el => { el.style.transform = ''; };
+    if (-dx >= .2 * W || -v >= .5 * W) { clean(e); (nb.peek || faces).style.transform = ''; nbOut(dx); }   // Animation startet am Fingerweg
+    else {   // zurück
+      const S = W * 1.025, opt = { duration: NBD, easing: NBS };
+      clean(e); e.animate([{ transform: `translateX(${dx}px)` }, { transform: 'none' }], opt);
+      const u = nb.peek || faces; u.style.transform = ''; u.animate([{ transform: `translateX(${S + dx}px)` }, { transform: `translateX(${S}px)` }], opt).onfinish = () => { faces.style.transition = ''; nb.peek?.remove(); nb.peek = null; };
+      nbArm();
+    }
+  };
+  e.addEventListener('pointerup', end); e.addEventListener('pointercancel', end);
+  e.addEventListener('click', ev => {
+    if (Date.now() - dragged < 150) return;
+    const b = ev.target.closest('.nbb');
+    if (b) { const n = e._n; if (n.face) kiosk.show(n.face); else if (n.entity) { const d = n.entity.split('.')[0], sv = NB_SVC[d]; if (sv) call(d, sv, { entity_id: n.entity }); } }
+    nbOut();   // Tippen schließt (Annahme, keine Vorlage)
+  });
+}
+if (!LIVE) {   // Demo/Test: ?nb → Karte mit Bild und Button, ?nb=2 zwei hintereinander, ?nb=text nur Text (Platzhalterbild, kein Apple-Material)
+  const q = new URLSearchParams(location.search).get('nb'), pic = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 9"><defs><linearGradient id="a" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9fb4c8"/><stop offset="1" stop-color="#5d6b5a"/></linearGradient></defs><rect width="16" height="9" fill="url(#a)"/><rect x="9" y="3" width="4" height="4" fill="#e8ecef"/></svg>');
+  window.nbPush = nbPush; window.__nb = { nb, ents: () => ents };
+  if (q !== null) setTimeout(() => {
+    if (q === 'text') nbPush({ title: 'Wäsche', message: 'Die Waschmaschine ist fertig.', duration: 0 });
+    else { nbPush({ title: 'Paket', message: 'Du solltest bis 10:42 Uhr zum Training losfahren, um pünktlich anzukommen.', image: pic, button: 'Kameras öffnen', face: 'cams', duration: 0 }); if (q === '2') nbPush({ message: 'Zweite Meldung ohne Titel.', button: 'Licht an', entity: 'light.flur', duration: 0 }); }
+  }, 800);
+}
 timerInit(screen, call, (timer, action) => LIVE && conn.sendMessagePromise({ type: 'homeblick/timer', display: DISPLAY, timer, action }).catch(e => console.warn('Timer', action, e)), () => CFG.chime ? CFG.volume / 100 : 0, () => kiosk.wake());
-const kiosk = kioskInit({ faces, conf: () => CONF, lux: () => { const e = CONF.kiosk?.lux, v = e ? parseFloat(st(e).state) : NaN; return isNaN(v) ? null : luxLevel(v); }, busy: () => cur || AS.className || timerOn() || kzOn, touched: () => touched,
+const kiosk = kioskInit({ faces, conf: () => CONF, lux: () => { const e = CONF.kiosk?.lux, v = e ? parseFloat(st(e).state) : NaN; return isNaN(v) ? null : luxLevel(v); }, busy: () => cur || AS.className || timerOn() || kzOn || nbOn(), touched: () => touched,
   music: () => NP && st(NP).state === 'playing' && !/video|movie|tvshow|channel/.test(st(NP).attributes.media_content_type),   // Filme/TV ohne device_class tv nicht als Musik
   onState: st => conn?.sendMessagePromise({ type: 'homeblick/report', display: DISPLAY, ...st, info: info() }).catch(() => {}) });
 if (!LIVE) camConfig({ list: [{ entity: 'camera.turklingel', name: 'Haustür', light: 'light.eingang' }, { entity: 'camera.cx410w_color_x_standardauflosung', name: 'Garten' }, { entity: 'camera.demo_veranda', name: 'Veranda' }, { entity: 'camera.demo_wohnzimmer', name: 'Wohnzimmer' }], bell: { event: 'event.turklingel_doorbell', camera: 'camera.turklingel' } });
@@ -2546,6 +2669,7 @@ if (LIVE) {
       else if (c.action === 'stop') { try { speechSynthesis.cancel(); } catch {} assistEnd(); }
       else if (c.action === 'navigate' && c.path) { const u = new URL(c.path, location.href); if (u.origin === location.origin) location.assign(u); }   // nur Pfade derselben Herkunft (Browser streicht Tab/Umbruch: "/\t/x" wäre sonst //x)
       else if (c.action === 'announce' && c.message) { kiosk.wake(); announce(c.message, c.title); }
+      else if (c.action === 'notify' && c.message) nbPush(c);
       else if (c.action === 'camera' && c.camera) { kiosk.wake(); camOpen(c.camera, c.duration); }
       else if (c.action === 'camera_close' && cur?.view.id === 'cam' && !camRinging()) close();   // Klingel nicht wegschließen
     }, { type: 'homeblick/subscribe', display: DISPLAY })).then(() => { wk(); kiosk.report(); conn.addEventListener('ready', () => kiosk.report()); setInterval(() => kiosk.report(), 30000); }).catch(console.warn);

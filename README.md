@@ -35,6 +35,20 @@ data:
   duration: 60   # seconds, 0 = until closed
 ```
 
+```yaml
+action: homeblick.notify   # white notification card; several are shown one after another
+data:
+  display: <device id of the display>
+  title: Parcel        # optional, bold first line
+  message: A parcel was delivered.
+  image: camera.front_door   # optional: camera/image entity or a URL (https://… or /local/…)
+  button: Open cameras       # optional blue button; with face: cams, or entity: scene.good_night / light.hallway …
+  face: cams
+  duration: 10   # seconds (default), 0 = until swiped or tapped away
+```
+
+The card fills the display; swipe it left (or tap it) to dismiss it, the next one follows. It wakes a sleeping display like the doorbell (no chime in do-not-disturb) and waits while Assist, the timer, the doorbell or editing is on screen. `notify.send_message` stays the spoken announcement. The settings page has a *Testbenachrichtigung* button next to *Ansage*.
+
 A ring of the doorbell event wakes the display, plays a chime and opens the door camera.
 
 **Cameras** (Settings page → a display → face *Kameras*, shared by all displays): the list of cameras, a light in front of each, and the doorbell (its `event` entity and the camera it belongs to). Without a choice Homeblick uses every camera of Home Assistant and the `event` entity with device class *doorbell* (paired by device, else by name). The live picture comes through Home Assistant itself, so no extra server or address is needed: WebRTC (`camera/webrtc`, e.g. via the go2rtc integration), otherwise HLS, otherwise the MJPEG/still-image proxy. Pressing *Automatisch erkennen* returns to the automatic choice.

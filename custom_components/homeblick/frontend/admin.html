@@ -358,7 +358,7 @@ const pages = {
       <div class="sec"><div class="grp"><div class="quick">${[['reload', 'Neu laden', 'refresh'], ['assist', 'Assist', 'mic'], ['stop', 'Abbrechen', 'x'], ['screensaver', 'Ruhemodus', 'moon'], ['wake', 'Aufwecken', 'sun']].map(([c, n, i]) => `<button class="q" data-c="${c}" ${d.connected ? '' : 'disabled'}><span class="qi">${svg(i, '')}</span>${n}</button>`).join('')}</div>
         ${field('Zurück nach (s, leer = bleibt)', 'dur', '', 'type="number" inputmode="numeric" min="1" max="3600"', 'data-dur')}
         ${pick('Face anzeigen', 'show', [['', 'Wählen …'], ...TYPES], '', 'data-show')}</div><div class="sf">Die Steuerung geht, solange das Display geöffnet ist.</div></div>
-      ${grp('Ansage', field('Text', 'say', '', 'placeholder="Das Essen ist fertig" maxlength="300"', 'data-say') + `<button class="row btn c" data-a="say" ${d.connected ? '' : 'disabled style="opacity:.4"'}>Auf dem Display ansagen</button>`, 'Erscheint als Text und wird gesprochen (außer bei „Antworten stumm“). In Automationen: Aktion „Benachrichtigung senden“ (notify.send_message) an die Durchsage-Entity des Displays.')}
+      ${grp('Ansage', field('Text', 'say', '', 'placeholder="Das Essen ist fertig" maxlength="300"', 'data-say') + `<button class="row btn c" data-a="say" ${d.connected ? '' : 'disabled style="opacity:.4"'}>Auf dem Display ansagen</button><button class="row btn c" data-a="testnb" ${d.connected ? '' : 'disabled style="opacity:.4"'}>Testbenachrichtigung zeigen</button>`, 'Erscheint als Text und wird gesprochen (außer bei „Antworten stumm“). In Automationen: Aktion „Benachrichtigung senden“ (notify.send_message) an die Durchsage-Entity des Displays. Die weiße Karte mit Titel, Bild und Button kommt von der Aktion „Benachrichtigung zeigen“ (homeblick.notify).')}
       ${grp('Vorschau', `<button class="row btn c" data-a="shot" ${d.connected ? '' : 'disabled style="opacity:.4"'}>Bildschirmfoto aufnehmen</button>${shots[d.id] ? `<img class="shot" src="${shots[d.id]}" alt="">` : ''}`, 'Bilder von fremden Servern, Kamera-Video und WebGL fehlen im Foto.')}
       ${grp('Anzeige',
         faces ? all.map(face).join('') : `<div class="row"><span class="l" style="color:var(--sec)">Noch keine Konfiguration. Öffne Homeblick einmal auf dem Gerät.</span></div>`,
@@ -491,6 +491,7 @@ document.addEventListener('click', async e => {
     if (await ask(`„${cur().name}“ entfernen?`, 'Faces und Einstellungen gehen verloren. Das Gerät in Home Assistant bitte danach unter Geräte löschen.', 'Entfernen')) { await guard(call('remove', { display: sel })); sel = null; await reload(); }
     return;
   }
+  if (a === 'testnb') { const i = pane().querySelector('[data-say]'); guard(call('command', { display: sel, action: 'notify', title: 'Testbenachrichtigung', message: i.value.trim() || 'Die Benachrichtigungskarte funktioniert.' })).catch(() => {}); return; }   // Karte wie homeblick.notify, ohne Bild/Button
   if (a === 'say') { const i = pane().querySelector('[data-say]'); if (i.value.trim()) guard(call('command', { display: sel, action: 'announce', message: i.value.trim() })).then(() => i.value = '').catch(() => {}); return; }
   if (a === 'shot') {
     b.disabled = true;
