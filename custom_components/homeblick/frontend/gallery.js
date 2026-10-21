@@ -60,7 +60,7 @@ export function pickWidget({ used = [], area = '' } = {}) {
     o.onclick = e => {
       if (e.target === o || e.target.closest('[data-gx]')) return done(null);
       const gs = e.target.closest('[data-gs]');
-      if (gs) { const en = sug.find(x => x.id === gs.dataset.gs); return done({ cat: catOf(en).k, en, size: [1, 1] }); }
+      if (gs) { const en = sug.find(x => x.id === gs.dataset.gs); return detail(catOf(en), en); }
       const gc = e.target.closest('[data-gc]'), ge = e.target.closest('[data-ge]');
       if (gc) detail(CATS.find(c => c.k === gc.dataset.gc));
       else if (ge) { const en = findEnts(ge.dataset.ge, CATS.flatMap(c => c.d || [])).find(x => x.id === ge.dataset.ge); if (en) detail(catOf(en), en); }
