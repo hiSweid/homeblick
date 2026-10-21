@@ -323,7 +323,7 @@ cam-rtc video{object-fit:cover}
 .ctile b{display:block;font-size:4.4cqw;font-weight:600}
 .ctile span{font-size:3.4cqw}
 /* Livebild-Kachel im Home-Face (Website dashboard/smart_home_hw): Bild randlos in der Kachel, kein Glasrand, kein Icon/Text; ohne Bild bleiben beide sichtbar */
-.tile>:not(.feed){transition:opacity .3s}
+.tile:has(>.feed)>:not(.feed){transition:opacity .3s}   /* nur Kamera-Kacheln, sonst überschreibt es fremde Kachel-Transitions (Energie-Füllstand) */
 .tile.live{box-shadow:none;background:#000}
 .tile.live>:not(.feed){opacity:0}
 .tile>.feed{position:absolute;inset:0;border-radius:inherit;overflow:hidden;pointer-events:none}

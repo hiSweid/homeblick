@@ -53,6 +53,14 @@ svg.i{width:1em;height:1em;flex:none;fill:none;stroke:currentColor;stroke-width:
 .tile.na{opacity:.45}
 #setup{position:absolute;inset:0;z-index:99;background:#000;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2cqw;text-align:center;padding:0 10cqw}
 #setup b{font-size:9cqw;font-weight:600}#setup span{font-size:3.6cqw;color:#ffffff99;line-height:1.4}
+.pvedit .f-grid [data-ti]{animation:pvj .27s ease-in-out infinite alternate}.pvedit .f-grid [data-ti]:nth-child(2n){animation-delay:-.13s;animation-direction:alternate-reverse}
+@keyframes pvj{from{rotate:-.8deg}to{rotate:.8deg}}   /* Bearbeiten-Modus wie iOS: Kacheln wackeln, „−“ oben links, Resize-Griff unten rechts (ref/vorlagen/EV-zxZWwts0) */
+.hbm,.hbr{position:absolute;z-index:3;pointer-events:auto}
+.hbm{left:1.1cqw;top:1.1cqw;width:5.8cqw;height:5.8cqw;border-radius:50%;background:#58585ccc;box-shadow:0 .3cqw 1cqw #0003;backdrop-filter:blur(2cqw)}.hbm::before{content:"";position:absolute;left:1.5cqw;top:2.6cqw;width:2.8cqw;height:.6cqw;border-radius:.3cqw;background:#fff}
+.hbr{right:1.1cqw;bottom:1.1cqw;width:3.6cqw;height:3.6cqw;border-radius:50%;background:#fff;box-shadow:0 .3cqw 1cqw #0005}
+#pvmenu{position:absolute;z-index:98;width:46cqw;padding:1.2cqw;border-radius:4.5cqw;background:#5c6e9a59;backdrop-filter:blur(5cqw) saturate(1.6);box-shadow:inset 0 0 0 .25cqw #ffffff33,0 2cqw 6cqw #0005;color:#fff;font-size:3.7cqw;animation:pvm .22s var(--spring)}
+@keyframes pvm{from{opacity:0;scale:.85}}
+#pvmenu button{display:flex;align-items:center;justify-content:space-between;width:100%;padding:2.6cqw 3cqw;color:inherit;border-radius:3.2cqw;text-align:left}#pvmenu button:active{background:#ffffff26}#pvmenu button+button{border-top:.2cqw solid #ffffff1f;border-radius:0}
 .pvsel{outline:.8cqw solid #0a84ff;outline-offset:.5cqw}   /* Vorschau: in der Einstellungsseite gewählte Kachel */
 .tile[data-arm] .sub{font-size:0}.tile[data-arm] .sub::after{content:"Nochmal tippen";font-size:3cqw}
 /* Helle Variante (Website highlights/homeview, Pixelproben): flach ohne Schatten; Aus = hellgrau 232, An = Lavendel (198,194,227), Icon/Titel lila */
@@ -866,22 +874,68 @@ if (PREVIEW) {
   };
   const to = (t, f) => { const r = t.getBoundingClientRect(); return cellAt(f, t.closest('.face'), r.left + 10, r.top + 10); };   // Zelle der linken oberen Ecke der gezogenen Kachel
   const mark = (face, f, t, c) => { let h = face._hl; if (!h) { h = face._hl = document.createElement('div'); h.style.cssText = 'pointer-events:none;border:.6cqw solid #ffffffb3;border-radius:4.3cqw'; face.append(h); } h.style.gridArea = `${c[0] + 1 + (f.greet ? 1 : 0)} / ${c[1] + 1} / span ${t.h || 1} / span ${t.w || 1}`; };
+  let edit = false, menu = null;
+  const closeMenu = () => { menu?.remove(); menu = null; };
+  const showMenu = (x, y) => {
+    closeMenu();
+    const r = screen.getBoundingClientRect();
+    menu = Object.assign(document.createElement('div'), { id: 'pvmenu', innerHTML: [['add', 'Widget hinzufügen'], ['edit', 'Anpassen'], ['bg', 'Hintergrund ändern']].map(([k, t]) => `<button data-pm="${k}">${t}</button>`).join('') });
+    screen.append(menu);
+    menu.style.left = Math.max(2, Math.min(x - r.left, r.width - menu.offsetWidth - 2)) + 'px'; menu.style.top = Math.max(2, Math.min(y - r.top, r.height - menu.offsetHeight - 2)) + 'px';
+  };
+  const SZ = [[1, 1], [2, 1], [2, 2]];   // wie in der Einstellungsseite: 1×1, 2×1, 2×2
+  const deco = () => {   // „−“ und Griff an jede Kachel (nur im Bearbeiten-Modus); läuft nach jedem Neuaufbau der Faces
+    root.classList.toggle('pvedit', edit);
+    for (const t of $$('.f-grid [data-ti]')) {
+      const has = t.querySelector(':scope>.hbm');
+      if (edit && !has) t.insertAdjacentHTML('beforeend', '<i class="hbm"></i><i class="hbr"></i>');
+      else if (!edit && has) t.querySelectorAll(':scope>.hbm,:scope>.hbr').forEach(x => x.remove());
+    }
+  };
+  let dq; new MutationObserver(() => { cancelAnimationFrame(dq); dq = requestAnimationFrame(deco); }).observe(faces, { childList: true, subtree: true });
   const gesture = e => {
     e.stopImmediatePropagation(); e.preventDefault?.();
-    const f = CONF.faces[idx()], face = faces.children[idx()];
-    if (e.type === 'pointerdown') { const t = e.target.closest?.('[data-ti]'); g = f?.type === 'grid' && face.contains(e.target) ? { t: t && face.contains(t) ? t : null, x: e.clientX, y: e.clientY, on: false, f, face } : null; }
+    const f = CONF.faces[idx()], face = faces.children[idx()], post = m => parent.postMessage(m, location.origin);
+    if (e.type === 'pointerdown') {
+      const pm = e.target.closest?.('[data-pm]');
+      if (pm) { g = { pm: pm.dataset.pm }; return; }
+      closeMenu();
+      const t = e.target.closest?.('[data-ti]'), inT = t && face.contains(t) ? t : null;
+      if (!(f?.type === 'grid' && face.contains(e.target))) { g = null; return; }
+      g = { t: inT, x: e.clientX, y: e.clientY, on: false, f, face, hm: edit && e.target.closest('.hbm'), hr: edit && e.target.closest('.hbr') };
+      if (g.hr) {   // Resize-Griff: Rasterschritt aus den Spuren des Rasters
+        const cs = getComputedStyle(face), r = inT.getBoundingClientRect();
+        Object.assign(g, { w0: inT._t.w || 1, h0: inT._t.h || 1, px: parseFloat(cs.gridTemplateColumns) + parseFloat(cs.columnGap), py: parseFloat(cs.gridTemplateRows) + parseFloat(cs.rowGap), cell: cellAt(f, face, r.left + 10, r.top + 10), size: null });
+      }
+      if (!edit) { const x = e.clientX, y = e.clientY; g.lp = setTimeout(() => { if (g && !g.on) { g.long = true; showMenu(x, y); } }, 450); }
+    }
     else if (g && e.type === 'pointermove') {
+      if (g.pm) return;
       const dx = e.clientX - g.x, dy = e.clientY - g.y;
-      if (g.t && !g.on && Math.hypot(dx, dy) > 6) { g.on = true; g.t.style.cssText += ';z-index:9;transition:none'; }
+      if (g.hr) {
+        const tw = g.w0 + dx / g.px, th = g.h0 + dy / g.py;
+        g.size = SZ.reduce((b, c) => (c[0] - tw) ** 2 + (c[1] - th) ** 2 < (b[0] - tw) ** 2 + (b[1] - th) ** 2 ? c : b);
+        mark(g.face, g.f, { w: g.size[0], h: g.size[1] }, g.cell); return;
+      }
+      if (Math.hypot(dx, dy) > 6) clearTimeout(g.lp);
+      if (!edit || g.hm) return;
+      if (g.t && !g.on && Math.hypot(dx, dy) > 6) { g.on = true; g.t.style.cssText += ';z-index:9;transition:none;animation:none'; }
       if (g.on) { g.t.style.transform = `translate(${dx}px,${dy}px) scale(1.04)`; mark(g.face, g.f, g.t._t, to(g.t, g.f)); }
     }
     else if (g && (e.type === 'pointerup' || e.type === 'pointercancel')) {
       const up = e.type === 'pointerup';
-      if (!g.t) { if (up && Math.hypot(e.clientX - g.x, e.clientY - g.y) < 6) parent.postMessage({ hb: 'empty', face: g.f.id, cell: cellAt(g.f, g.face, e.clientX, e.clientY) }, location.origin); }   // leere Stelle: Kachel hinzufügen (die Einstellungsseite prüft, ob sie frei ist)
+      clearTimeout(g.lp);
+      if (g.pm) { if (up && e.target.closest?.('[data-pm]')?.dataset.pm === g.pm) { post({ hb: 'menu', item: g.pm }); closeMenu(); } g = null; return; }
+      if (g.long) { g = null; return; }
+      const moved = Math.hypot(e.clientX - g.x, e.clientY - g.y) >= 6;
+      if (g.hr) { g.face._hl?.remove(); g.face._hl = null; if (up && g.size && (g.size[0] !== g.w0 || g.size[1] !== g.h0)) post({ hb: 'resize', face: g.f.id, j: g.f.tiles.indexOf(g.t._t), w: g.size[0], h: g.size[1] }); }
+      else if (g.hm) { if (up && !moved) post({ hb: 'remove', face: g.f.id, j: g.f.tiles.indexOf(g.t._t) }); }
+      else if (!edit) { /* außerhalb des Bearbeiten-Modus tut ein Tippen nichts; langes Drücken öffnet das Menü */ }
+      else if (!g.t) { if (up && !moved) post({ hb: 'empty', face: g.f.id, cell: cellAt(g.f, g.face, e.clientX, e.clientY) }); }   // leere Stelle: Widget hinzufügen (die Einstellungsseite prüft, ob sie frei ist)
       else {
         const j = g.f.tiles.indexOf(g.t._t), c = g.on && up ? to(g.t, g.f) : null;
-        if (g.on) { g.t.style.transform = g.t.style.zIndex = g.t.style.transition = ''; g.face._hl?.remove(); g.face._hl = null; }
-        if (up) parent.postMessage(c ? { hb: 'move', face: g.f.id, j, cell: c } : { hb: 'tile', face: g.f.id, j }, location.origin);
+        if (g.on) { g.t.style.transform = g.t.style.zIndex = g.t.style.transition = g.t.style.animation = ''; g.face._hl?.remove(); g.face._hl = null; }
+        if (up) post(c ? { hb: 'move', face: g.f.id, j, cell: c } : { hb: 'tile', face: g.f.id, j });
       }
       g = null;
     }
@@ -891,6 +945,7 @@ if (PREVIEW) {
     const m = e.data;
     if (e.source !== parent || e.origin !== location.origin || m?.hb !== 'preview') return;
     if (m.states) { ents = m.states; schedule(); }
+    if (m.edit !== undefined && m.edit !== edit) { edit = m.edit; closeMenu(); deco(); }
     if (m.conf) {
       const old = CONF.faces, k = { idle: 0, kz: false };
       CONF = { ...m.conf, kiosk: k };
@@ -969,7 +1024,8 @@ function applyBg(el, bg) {
   const hue = typeof bg === 'number' || bg === 'metal', h = bg === 'metal' ? 215 : bg;
   el.classList.toggle('light', bg === 'white');
   el.classList.toggle('mono', !hue && bg !== 'white');
-  for (const k of ['--ink', '--ink2']) el.style.removeProperty(k);
+  for (const k of ['--ink', '--ink2', '--tint']) el.style.removeProperty(k);
+  if (bg === 'metal') el.style.setProperty('--tint', 'hsl(207 100% 90%)');   // Untertitel fast weißes Hellblau (TGo 00475 Pixelprobe ≈ rgb(198–214,222–248,255)), gesättigtes Blau wäre auf hellem Glas unlesbar
   if (hue) { const [a, b] = wall(bg); el.style.setProperty('--h', h); el.style.setProperty('--wp', a); el.style.setProperty('--wpb', b); el.style.setProperty('--ink', `hsl(${h} 96% 28%)`); el.style.setProperty('--ink2', `hsl(${h} 65% 38%)`); }
   else if (bg?.photo) { el.style.setProperty('--wp', `url(${bg.photo})`); el.style.setProperty('--wpb', `url(${bg.blur})`); }
   else { el.style.setProperty('--wp', 'none'); el.style.setProperty('--wpb', 'none'); el.style.backgroundColor = bg === 'white' ? 'var(--paper,#fff)' : 'var(--blk,#000)'; }

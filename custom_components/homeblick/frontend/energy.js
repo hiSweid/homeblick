@@ -47,7 +47,7 @@ let gN = 0;
 const io = new IntersectionObserver(es => { for (const e of es) {
   const f = e.target, vis = e.isIntersecting;
   if (e.intersectionRatio >= .95 && !f._drawn) { f._drawn = true; drawIn(f); }
-  else if (!vis) f._drawn = false;
+  else if (!vis && f._drawn) { f._drawn = false; veil(f, !still()); }
   f._vis = vis;
   for (const a of f._fl || []) vis && !still() ? a.play() : a.pause();
 } }, { threshold: [0, .95] });
@@ -70,6 +70,7 @@ export function energyFace(el) {
 <div class="efl">${Object.entries(SEAM).map(([k, [x, y, r]]) => `<div class="sm" data-fl="${k}" data-rot="${r}" style="left:${x}cqw;top:${y}cqw;rotate:${r}deg;--c:${C[k]}"><i></i></div>`).join('')}</div>`);
   // Punkte: Streifen um eine Periode verschieben, endlos; Tempo später nur über playbackRate
   el._fl = $$('.sm>i', el).map(i => { const a = i.animate([{ transform: 'none' }, { transform: 'translateY(5cqw)' }], { duration: 1000, iterations: Infinity }); a.pause(); i.parentNode._a = a; return a; });
+  veil(el, !still());   // Kurve bis zum Einzeichnen verdeckt, auch während das Face hereingleitet
   io.observe(el);
   if (V.pv != null) paint(el);
 }
@@ -150,12 +151,14 @@ function paint(f) {
   }
   f.querySelector('.cw').hidden = !p;
 }
+// Wischblende nur per transform: Fenster nach links geschoben, Inhalt gegenläufig → Kurve verdeckt; weiche Kante liegt in Ruhe außerhalb der Kachel
+const VEIL = ['translateX(-38.5cqw)', 'translateX(38.5cqw)'];
+function veil(f, on) { const cw = f.querySelector('.cw'); [cw, cw.firstElementChild].forEach((n, i) => n.style.transform = on ? VEIL[i] : ''); }
 function drawIn(f) {
-  if (still()) return;
-  const cw = f.querySelector('.cw'), o = { duration: 2000, easing: SPR(), fill: 'backwards' };   // Feder auf 2 s gestreckt: ≈ 90 % nach 0,6 s, läuft weich aus
-  // Wischblende nur per transform: Fenster läuft nach rechts, Inhalt steht (Gegenbewegung); weiche Kante liegt in Ruhe außerhalb der Kachel
-  cw.animate([{ transform: 'translateX(-38.5cqw)' }, { transform: 'none' }], o);
-  cw.firstElementChild.animate([{ transform: 'translateX(38.5cqw)' }, { transform: 'none' }], o);
+  if (still()) return veil(f, false);
+  const cw = f.querySelector('.cw'), o = { duration: 2000, easing: SPR(), fill: 'forwards' };   // Feder auf 2 s gestreckt: ≈ 90 % nach 0,6 s, läuft weich aus
+  const as = [cw, cw.firstElementChild].map((n, i) => n.animate([{ transform: VEIL[i] }, { transform: 'none' }], o));
+  as[0].onfinish = () => { veil(f, false); as.forEach(a => a.cancel()); };   // Endlage = Ruhezustand, dann Animation lösen
 }
 // Fluss: Richtung wechseln = ausblenden, drehen, einblenden; Tempo weich rampen (800 ms, ease-out)
 function rate(a, r) {
@@ -277,10 +280,10 @@ function model(now, s, live = true) {
   const sun = Math.max(0, Math.sin(Math.PI * (h - 7.65) / 10.9)) ** 1.25;
   const cloud = (.74 + .26 * Math.sin(now / 2.3e6 + 1)) * (1 - .18 * Math.max(0, Math.sin(now / 4.1e5)) ** 2) * (live ? 1 - .5 * Math.max(0, Math.sin(now / 2.6e4)) ** 3 : 1);   // langsame Bewölkung; live zusätzlich alle ~3 min eine Wolke (Verlauf geglättet, sonst Alias-Zacken)
   const pv = sun ? Math.max(0, 4300 * sun * cloud + 35 * n(7e3)) : 0;
-  const home = 360 + 170 * n(5e4) + (Math.sin(now / 7e4) > .93 ? 1900 : 0) + (h > 18 && h < 19.4 ? 1300 : 0);
-  if (s.socC >= 85 || pv - home < 900) s.car = false; else if (pv - home > 1700) s.car = true;   // Hysterese wie evcc „PV“
-  const car = s.car ? Math.min(3700, Math.max(1400, pv - home - 1500)) : 0;   // lässt ~1,5 kW übrig (Akku lädt höchstens 1,2 kW → Rest wird eingespeist)
-  let bat = Math.max(-1200, Math.min(2500, home + car - pv));   // ponytail: Laden 1,2 kW / Entladen 2,5 kW, damit Bezug und Einspeisung (samt Richtungswechsel) in der Demo vorkommen
+  const base = 360 + 170 * n(5e4) + (h > 18 && h < 19.4 ? 1300 : 0), home = base + (Math.sin(now / 7e4) > .85 ? 2000 : 0);   // Wasserkocher/Herdplatte ≈ alle 7 min für ~70 s
+  if (s.socC >= 85 || pv - base < 900) s.car = false; else if (pv - base > 1700) s.car = true;   // Hysterese wie evcc „PV“ (kurze Lastspitzen überbrückt evcc)
+  const car = s.car ? Math.min(3700, Math.max(1400, pv - base - 1500)) : 0;   // lässt ~1,5 kW übrig (Akku lädt höchstens 1,2 kW → Rest wird eingespeist)
+  let bat = Math.max(-1200, Math.min(1500, home + car - pv));   // ponytail: Laden 1,2 kW / Entladen 1,5 kW, damit Bezug und Einspeisung (samt Richtungswechsel) in der Demo vorkommen
   if (bat > 0 && s.soc <= 10.5 || bat < 0 && s.soc >= 99.5) bat = 0;
   const dt = s.last ? (now - s.last) / 3.6e6 : 0;
   s.soc = Math.min(100, Math.max(10, s.soc - bat * dt / 102.4)); s.socC = Math.min(100, s.socC + car * dt / 358); s.last = now;
@@ -326,7 +329,7 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 .et .nd{position:absolute;width:1.9cqw;height:1.9cqw;margin:-.95cqw;border-radius:50%;background:currentColor;box-shadow:0 0 0 .55cqw color-mix(in srgb,currentColor 30%,transparent)}
 .light .et .cw{color:#e0a800}
 /* Füllstand (Slider-Füllung, Kontrollzentrum/Licht): Fläche wie Kachel „an“, Text darin dunkel; Feder auf neue Werte (gestreckt = weicher) */
-.et .ef{position:absolute;inset:0;z-index:1;overflow:hidden;background:linear-gradient(#fffc,#ffffff99);color:var(--ink);pointer-events:none;
+.tile.et>.ef{position:absolute;inset:0;z-index:1;overflow:hidden;background:linear-gradient(#fffc,#ffffff99);color:var(--ink);pointer-events:none;
   transform:translateY(calc((1 - var(--f,0)) * 100%));transition:transform calc(var(--sd) * 2.2) var(--spring)}
 .et .ef .in{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:5.3cqw 1cqw 4.9cqw;
   transform:translateY(calc((1 - var(--f,0)) * -100%));transition:transform calc(var(--sd) * 2.2) var(--spring)}
@@ -374,6 +377,8 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 #edet.pv small{font-size:9cqw}
 #edet .ef small{color:color-mix(in srgb,var(--bg) 70%,transparent)}
 #edet .meta{position:absolute;left:0;right:0;top:65.8cqw;text-align:center;font-size:4.55cqw;font-weight:500;line-height:1}
+#edet.pv .meta{top:69cqw}   /* Komma-Unterlänge der kW-Zahl (≈ 3 cqw); Kurvenzone ab 74 % bleibt frei */
+@media (prefers-reduced-motion:reduce){.f-energy *,#edet *{transition:none!important}}
 #edet .eh{position:absolute;inset:0;width:100%;height:100%}
 #edet .eh path{fill:none;stroke:currentColor;stroke-opacity:.3;stroke-width:.5cqw;vector-effect:non-scaling-stroke;stroke-linejoin:round;stroke-linecap:round}
 </style>`);

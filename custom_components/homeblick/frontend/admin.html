@@ -38,9 +38,13 @@ svg{display:block}
 @media(min-width:1180px){
   #app{grid-template-columns:340px 1fr 480px}
   #pv,#app[data-ed="1"] #pv{display:flex;position:static;border-left:.5px solid var(--sep);background:none}
-  .edbtn,.pvx{display:none}
+  .edbtn{display:none}
 }
-.pvh{display:flex;align-items:center;justify-content:space-between;gap:10px}.pvh b{font-size:17px;font-weight:600}.pvx{color:var(--blue);font-weight:600}
+.pvh{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:34px}.pvh b{font-size:17px;font-weight:600;text-align:center;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Pillen wie bei iOS im Bearbeiten-Modus: „+“ oben links, blaues „✓“ oben rechts (ref/vorlagen/EV-zxZWwts0) */
+.pvp{width:46px;height:30px;border-radius:15px;display:none;align-items:center;justify-content:center;background:var(--fill);color:var(--fg);transition:scale .25s var(--spring)}.pvp:active{scale:.9}.pvp svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.pvp.ok{background:var(--blue);color:#fff}
+#app[data-pe="1"] .pvp{display:flex}
 #pvf{flex:none;width:min(100%,max(300px,calc(100dvh - 470px)));aspect-ratio:1;align-self:center;border:0;border-radius:28px;background:#000;box-shadow:0 8px 30px #0003}
 #pvfaces{flex:none;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:2px 0}
 #pvfaces button.plus2{color:var(--blue)}
@@ -161,6 +165,16 @@ textarea.r{text-align:right}
 .pkc{display:flex;gap:6px;overflow-x:auto;padding:4px 14px 8px;scrollbar-width:none}.pkc:empty{display:none}
 .pkc button{flex:none;padding:6px 12px;border-radius:16px;background:var(--fill);font-size:14px;white-space:nowrap}.pkc small{opacity:.6}
 .pkc .on{background:var(--blue);color:#fff}
+/* Widget-Galerie */
+.gal .pkh button[data-gb]{font-weight:500}.gd{flex:1;display:flex;flex-direction:column;min-height:0;overflow-y:auto;padding:6px 16px 18px}
+.gt{text-align:center;font-size:22px;font-weight:700;padding:8px 0 4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gc{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;margin:0 -16px}.gc::-webkit-scrollbar{display:none}
+.gs{flex:none;width:100%;scroll-snap-align:center;display:flex;align-items:center;justify-content:center;height:224px}
+.gcard{border-radius:24px;color:#fff;padding:12px 13px;display:flex;flex-direction:column;justify-content:flex-end;box-shadow:0 10px 26px #0003;position:relative;overflow:hidden}
+.gcard svg{position:absolute;right:11px;top:11px;width:24px;height:24px;stroke:#fff;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.gcard b{font-size:14px;line-height:1.2;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.gcard small{font-size:12px;opacity:.8}
+.gdots{display:flex;justify-content:center;gap:7px;padding:10px 0 12px}.gdots i{width:7px;height:7px;border-radius:50%;background:var(--sec);opacity:.35;transition:opacity .2s,scale .2s}.gdots .on{opacity:1;scale:1.15;background:var(--fg)}
+.gent{width:100%;background:var(--glass);border-radius:14px;margin-bottom:12px}
+.gadd{margin-top:auto;display:flex;align-items:center;justify-content:center;height:52px;border-radius:26px;color:#fff;font-size:17px;font-weight:600;transition:scale .25s var(--spring),opacity .2s}.gadd:active{scale:.97}.gadd[disabled]{opacity:.4}
 #wz{max-height:calc(100dvh - 20px);overflow-y:auto}#wz h3{margin:0;padding:16px 16px 4px;font-size:22px}#wz .sh{padding-top:12px}#wz .pkc{flex-wrap:wrap;padding:10px 14px}
 #wz .ck{width:20px;height:20px;color:var(--blue);opacity:0;transition:opacity .2s}#wz .on>.ck{opacity:1}
 .pkl{flex:1;overflow-y:auto;overscroll-behavior:contain;border-top:.5px solid var(--sep)}
@@ -215,13 +229,14 @@ textarea.r{text-align:right}
 <div id="app" data-open="0">
   <aside id="side"></aside>
   <main id="pane"></main>
-  <aside id="pv"><div class="pvh"><b id="pvt"></b><button class="pvx" data-a="edone">Fertig</button></div><iframe id="pvf" title="Vorschau"></iframe><div id="pvfaces"></div><div id="insw"><section class="page" id="ins"></section></div></aside>
+  <aside id="pv"><div class="pvh"><button class="pvp" data-a="gal" aria-label="Widget hinzufügen"><svg><use href="#i-plus"/></svg></button><b id="pvt"></b><button class="pvp ok" data-a="edone" aria-label="Fertig"><svg><use href="#i-check"/></svg></button></div><iframe id="pvf" title="Vorschau"></iframe><div id="pvfaces"></div><div id="insw"><section class="page" id="ins"></section></div></aside>
 </div>
 <div id="toast"></div>
 
 <script type="module">
 import { ICON, faceId, normFaces, pack, rows } from './faces.js';
 import { DOM, areasOf, entOf, entsIn, entsOf, loadEntities, pickEntity } from './entpicker.js';
+import { pickWidget } from './gallery.js';
 // Einstellungsseite: Seitenleiste mit allen Displays → Display → Face (Kacheln). Läuft als Admin-Panel in HA
 // (gleicher Login wie das Panel, Tokens im localStorage).
 const $ = s => document.querySelector(s);
@@ -437,15 +452,14 @@ const pages = {
     const photo = f.bg && typeof f.bg === 'object', sty = STYLES[f.type];
     const tileRow = (t, j) => {
       const en = entOf(t.e), sz = `${t.w || 1}×${t.h || 1}`, c = t.kind ? '#8e8e93' : DOM[en?.domain]?.[1] || '#8e8e93';
-      return `<div class="row" data-ti="${j}"><button class="go" data-a="tile"><span class="ico" style="background:${c}">${xi(tileIcon(t))}</span><span class="l two"><b>${esc(tileTitle(t))}</b><small>${esc([t.sub, t.kind ? '' : en?.name || t.e, sz !== '1×1' && sz].filter(Boolean).join(' · '))}</small></span></button>
-        <span class="arrows"><button data-a="tup" aria-label="Nach oben">${svg('up', '')}</button><button data-a="tdown" aria-label="Nach unten">${svg('down', '')}</button></span></div>`;
+      return `<div class="row" data-ti="${j}"><button class="go" data-a="tile"><span class="ico" style="background:${c}">${xi(tileIcon(t))}</span><span class="l two"><b>${esc(tileTitle(t))}</b><small>${esc([t.sub, t.kind ? '' : en?.name || t.e, sz !== '1×1' && sz].filter(Boolean).join(' · '))}</small></span></button></div>`;
     };
     const body = `
       <div class="prev" style="background:${bgCss(f.bg)}">${ico(meta[2], meta[1])}</div>
       ${photo ? '' : grp('Hintergrund', `<div class="sw-grid">${BG.filter(([v]) => !['calendar', 'date'].includes(f.type) || ['auto', 'black', 'white'].includes(v)).map(([v, n]) => `<button data-a="bg" data-v="${v}" class="${String(v) === String(f.bg) ? 'on' : ''}"><i style="background:${bgCss(v)}"></i>${n}</button>`).join('')}</div>`)}
       ${sty ? `<div class="sec"><div class="sh">Stil</div><div class="grp"><div class="seg">${sty.concat((LEGACY[f.type] || []).filter(([v]) => v === f.style)).map(([v, n]) => `<button data-a="style" data-v="${v}" class="${(f.style || sty[0][0]) === v ? 'on' : ''}">${n}</button>`).join('')}</div></div></div>` : ''}
-      ${f.type === 'grid' ? (n => `<div class="sec"><div class="sh"><span>Kacheln</span></div><div class="grp">${(f.tiles || []).map(tileRow).join('')}<button class="row btn" data-a="tadd">${svg('plus', 'plus')}<span class="l">Kachel hinzufügen</span></button></div>
-        <div class="sf">${n ? `${n} Kachel${n > 1 ? 'n passen' : ' passt'} nicht mehr ins Raster und ${n > 1 ? 'werden' : 'wird'} nicht angezeigt. ` : ''}Kacheln folgen der Reihenfolge von oben links. Nachtvarianten bleiben erhalten.</div></div>`)(pack(f.tiles || [], rows(f)).filter(x => !x).length) : ''}
+      ${f.type === 'grid' ? (n => `<div class="sec"><div class="sh"><span>Kacheln</span></div><div class="grp">${(f.tiles || []).map(tileRow).join('')}<button class="row btn" data-a="tadd">${svg('plus', 'plus')}<span class="l">Widget hinzufügen</span></button></div>
+        <div class="sf">${n ? `${n} Kachel${n > 1 ? 'n passen' : ' passt'} nicht mehr ins Raster und ${n > 1 ? 'werden' : 'wird'} nicht angezeigt. ` : ''}Ziehen in der Vorschau verschiebt, der Punkt unten rechts an einer Kachel ändert die Größe. Nachtvarianten bleiben erhalten.</div></div>`)(pack(f.tiles || [], rows(f)).filter(x => !x).length) : ''}
       ${f.type === 'cams' ? camsHTML() : ''}
       ${f.type === 'weather' ? grp('Wetter', epick('Wetter-Entity', 'weather', d.settings.weather, { domains: ['weather'] }) + field('Ortsname', 'place', d.settings.place), 'Gilt für alle Wetter-Anzeigen dieses Displays.') : ''}
       ${f.type === 'energy' ? grp('Entities', ENERGY.map(([k, n]) => epick(n, 'ents.' + k, f.ents?.[k] || '', { domains: ['sensor'], none: 'Standard (evcc)' }, 'data-f')).join(''), 'Ohne Auswahl liest das Face die evcc-Entities (ha-evcc).') : ''}
@@ -518,6 +532,10 @@ async function reload() {
 // ---- Vorschau: index.html?preview im iframe (Konfiguration und Zustände per postMessage, Ziehen/Antippen kommt zurück) ----
 const pvf = $('#pvf');
 let pvReady = false, pvConf = '', pvFace = '', pvSel = -2, pvStates = {};
+// Bearbeiten-Modus wie bei iOS (Kacheln wackeln, „−“, Resize-Griff, Pillen „+“/„✓“): auf breiten Fenstern von Anfang an an, sonst über „Anzeige bearbeiten“ bzw. langes Drücken → „Anpassen“
+let editing = matchMedia('(min-width:1180px)').matches, pvEd = null;
+const setEdit = v => { editing = v; $('#app').dataset.pe = v ? '1' : '0'; if (!v && ins) setIns(null); else pvSend(); };
+$('#app').dataset.pe = editing ? '1' : '0';
 // Auf breiten Fenstern liegen Face- und Kachelseiten nicht im Seitenstapel, sondern im Inspektor unter der Vorschau (ins = { t: 'face', i } | { t: 'tile', i, j } | null)
 let ins = null;
 const ctx = () => ins;
@@ -525,7 +543,7 @@ const redraw = () => ins && fill($('#ins'), ins);
 function setIns(e) {
   ins = e;
   if (e) fill($('#ins'), e);
-  else { $('#ins').innerHTML = '<div class="body"><div class="insh">Tippe in der Vorschau eine Kachel an, um sie zu bearbeiten, oder eine leere Stelle, um eine hinzuzufügen. Mit den Knöpfen darüber wechselst du das Face und stellst Hintergrund und Stil ein.</div></div>'; pvSend(); }
+  else { $('#ins').innerHTML = '<div class="body"><div class="insh">Kachel antippen: bearbeiten · ziehen: verschieben · Punkt unten rechts: Größe · „−“: entfernen. Mit „+“ oben links kommt ein Widget dazu, „✓“ beendet das Bearbeiten. Langes Drücken öffnet das Menü. Mit den Knöpfen unter der Vorschau wechselst du das Face.</div></div>'; pvSend(); }
 }
 const faceName = x => (FACE[x.type]?.[0] || x.type) + (x.id !== x.type ? ' ' + x.id.replace(x.type, '') : '');
 const goFace = i => setIns({ t: 'face', i });
@@ -536,6 +554,7 @@ function pvSend() {
   const c = ctx(), f = c?.i != null ? cfg.faces[c.i] : cfg.faces.find(x => x.id === pvFace) || cfg.faces[0], sel = c?.j ?? -1;
   const m = {}, j = JSON.stringify(cfg.faces);
   if (j !== pvConf) { pvConf = j; m.conf = cfg; }
+  if (editing !== pvEd) { pvEd = editing; m.edit = editing; }
   if (f && f.id !== pvFace) { pvFace = f.id; m.face = f.id; }
   if (m.conf) m.face = pvFace;
   if (sel !== pvSel || m.conf) { pvSel = sel; m.sel = sel; }
@@ -559,42 +578,63 @@ addEventListener('message', async e => {
   const m = e.data;
   if (e.source !== pvf.contentWindow || e.origin !== location.origin) return;
   if (m?.hb === 'preview-ready') {
-    pvReady = true; pvConf = ''; pvFace = '';
+    pvReady = true; pvConf = ''; pvFace = ''; pvEd = null;
     pvPost({ states: pvStates }); pvSend();
-  } else if (m?.hb === 'move' || m?.hb === 'tile' || m?.hb === 'empty') {
+  } else if (['move', 'tile', 'empty', 'resize', 'remove', 'menu'].includes(m?.hb)) {
+    if (m.hb === 'menu') {   // langes Drücken in der Vorschau
+      setEdit(true);
+      return m.item === 'add' ? addFlow(faceIdx()) : m.item === 'bg' ? goFace(faceIdx()) : undefined;
+    }
     const i = cfg?.faces.findIndex(x => x.id === m.face);
     if (i < 0 || i == null) return;
     const f = cfg.faces[i];
     if (m.hb === 'move') { const tm = f.tiles[m.j]; f.tiles = moveTo(f.tiles, m.j, m.cell, rows(f)); ins = { t: 'tile', i, j: f.tiles.indexOf(tm) }; pvConf = ''; saveCfg(); return refresh(); }
     if (m.hb === 'tile') return setIns({ t: 'tile', i, j: m.j });
+    if (m.hb === 'resize') {   // Griff unten rechts; wenn dadurch andere Kacheln aus dem Raster fallen würden, bleibt es bei der alten Größe
+      const t = f.tiles[m.j], was = [t.w, t.h], lost = () => pack(f.tiles, rows(f)).filter(x => !x).length, n = lost();
+      m.w > 1 ? t.w = m.w : delete t.w; m.h > 1 ? t.h = m.h : delete t.h;
+      if (lost() > n) { was[0] ? t.w = was[0] : delete t.w; was[1] ? t.h = was[1] : delete t.h; pvConf = ''; pvSend(); return toast('Kein Platz für diese Größe', true); }
+      saveCfg(); return refresh();
+    }
+    if (m.hb === 'remove') {
+      if (!await ask('Kachel entfernen?', tileTitle(f.tiles[m.j]), 'Entfernen')) return;
+      f.tiles.splice(m.j, 1); saveCfg();
+      return ins?.t === 'tile' ? setIns({ t: 'face', i }) : refresh();
+    }
     // leere Stelle: nur wenn keine Kachel dort liegt
     const n = rows(f);
     if (pack(f.tiles, n).some((p, k) => p && m.cell[0] >= p[0] && m.cell[0] < p[0] + (f.tiles[k].h || 1) && m.cell[1] >= p[1] && m.cell[1] < p[1] + (f.tiles[k].w || 1))) return;
-    const t = await addTile(f, m.cell);
-    if (t) { saveCfg(); setIns({ t: 'tile', i, j: f.tiles.indexOf(t) }); }
+    addFlow(i, m.cell);
   }
 });
+const faceIdx = () => Math.max(0, cfg.faces.findIndex(x => x.id === pvFace));
+async function addFlow(i, cell) {   // „+“ in der Vorschau, Menü „Widget hinzufügen“, leere Stelle
+  const f = cfg.faces[i];
+  if (f.type !== 'grid') return toast('Widgets gibt es auf Smart-Home-Faces: dort mit „+ Face“ eins anlegen oder wechseln', true);
+  const t = await galleryAdd(f, cell);
+  if (t) { saveCfg(); setIns({ t: 'tile', i, j: f.tiles.indexOf(t) }); }
+}
 // Zustände für die Vorschau (Namen, Werte, Symbole echter Entities); alle 15 s nachziehen
 const pvStatesLoad = () => conn.sendMessagePromise({ type: 'get_states' }).then(a => { pvStates = Object.fromEntries(a.map(x => [x.entity_id, x])); pvPost({ states: pvStates }); }).catch(() => {});
 // Breite Fenster: Vorschau als Spalte, sofort laden; schmale: als Vollbild über „Anzeige bearbeiten“, erst dann laden
 const pvLoad = () => { if (!pvf.getAttribute('src')) pvf.src = 'index.html?preview'; };
 if (matchMedia('(min-width:1180px)').matches) pvLoad();
 
-// Neue Kachel: erst die Art (Uhr und Wetter brauchen keine Entity), sonst Entity per Picker; mit cell auf diese Rasterzelle
-async function addTile(f, cell) {
-  const k = await overlay('sheet', `<div class="shs"><div class="grp">${[['entity', 'Entity …'], ['clock', 'Analoguhr'], ['digital', 'Digitaluhr'], ['wx', 'Wetter']].map(([v, n]) => `<button class="row btn c" data-r="${v}">${n}</button>`).join('')}</div><div class="grp"><button class="row btn c" data-r="" style="font-weight:600">Abbrechen</button></div></div>`);
-  if (!k) return null;
-  let t;
-  if (k === 'entity') {
-    const en = await pickEntity({ title: 'Entity der Kachel', domains: TILE_DOM });
-    if (!en) return null;
-    t = { e: en.id, title: autoTitle(en), sub: en.area };
-    if (en.domain === 'sensor' || en.domain === 'binary_sensor') t.val = 'state';
-  } else t = k === 'wx' ? { kind: 'wx' } : { kind: 'clock', ...(k === 'digital' && { cs: 'digital' }) };
+// Widget hinzufügen (Galerie wie bei iOS): fertige Kachel am Ende bzw. auf Zelle cell; null = abgebrochen oder kein Platz
+async function galleryAdd(f, cell) {
+  const r = await pickWidget({ used: f.tiles.map(t => t.e) });
+  if (!r) return null;
+  const t = r.cat === 'wx' ? { kind: 'wx' } : r.cat === 'analog' || r.cat === 'digital' ? { kind: 'clock', ...(r.cat === 'digital' && { cs: 'digital' }) } : tileOf(r.en);
+  if (r.size[0] > 1) t.w = r.size[0];
+  if (r.size[1] > 1) t.h = r.size[1];
   f.tiles.push(t);
   if (cell) f.tiles = moveTo(f.tiles, f.tiles.length - 1, cell, rows(f));
+  if (!pack(f.tiles, rows(f))[f.tiles.indexOf(t)]) { f.tiles.splice(f.tiles.indexOf(t), 1); toast('Kein Platz mehr auf diesem Face: erst eine Kachel verkleinern oder entfernen', true); return null; }
   return t;
 }
+// Kachel aus einer Entity: Titel ohne den Bereichsnamen davor („Küche Deckenlicht“ in Küche → „Deckenlicht“)
+const stripArea = (en, area) => area ? en.name.replace(new RegExp('^' + area.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '[\\s:_-]*', 'i'), '').trim() : en.name;
+const tileOf = (en, area = en.area) => ({ e: en.id, title: stripArea(en, area) || autoTitle(en), sub: area, ...(['sensor', 'binary_sensor'].includes(en.domain) && { val: 'state' }) });
 
 // ---- Neues Display einrichten: Name, Bereich, Vorlage → fertige Konfiguration; danach gleich im Live-Editor ----
 const FACE_BG = { grid: 'auto', music: 'black', bigclock: 150, weather: 212, energy: 'auto', calendar: 'white', date: 'auto', analog: 150, info: 'auto', cams: 'black' };
@@ -606,7 +646,6 @@ const SETUP = [   // [Schlüssel, Name, Beschreibung, Faces]
 const ROOM_DOM = ['climate', 'light', 'cover', 'lock', 'scene', 'switch', 'fan', 'media_player', 'script'];   // Reihenfolge = Wichtigkeit
 // Kacheln aus den Entities eines Bereichs: Thermostat groß, je Art höchstens 3, insgesamt 9 Zellen
 function roomTiles(area) {
-  const strip = en => en.name.replace(new RegExp('^' + area.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '[\\s:_-]*', 'i'), '').trim();
   const pool = entsIn(area).filter(e => ROOM_DOM.includes(e.domain)).sort((a, b) => ROOM_DOM.indexOf(a.domain) - ROOM_DOM.indexOf(b.domain) || a.name.localeCompare(b.name, 'de'));
   const tiles = [], n = {};
   let cells = 9;
@@ -614,7 +653,7 @@ function roomTiles(area) {
     const big = en.domain === 'climate' && !tiles.some(t => t.w === 2), need = big ? 4 : 1;
     if (cells < need || (n[en.domain] = (n[en.domain] || 0) + 1) > 3) continue;
     cells -= need;
-    tiles.push({ e: en.id, title: strip(en) || autoTitle(en), sub: area, ...(big && { w: 2, h: 2 }) });
+    tiles.push({ ...tileOf(en, area), ...(big && { w: 2, h: 2 }) });
   }
   return tiles;
 }
@@ -729,8 +768,9 @@ document.addEventListener('click', async e => {
   if (!a) return;
   if (a === 'back') { if (b.closest('#ins')) return setIns({ t: 'face', i: ins.i }); $('#app').dataset.open = '0'; return; }
   if (a === 'setup') return setupWizard(displays.find(d => d.id === b.dataset.id));
-  if (a === 'edit') { $('#app').dataset.ed = '1'; pvLoad(); if (!ins) goFace(0); return; }
-  if (a === 'edone') { $('#app').dataset.ed = '0'; return; }
+  if (a === 'edit') { $('#app').dataset.ed = '1'; pvLoad(); setEdit(true); if (!ins) goFace(0); return; }
+  if (a === 'edone') { $('#app').dataset.ed = '0'; return setEdit(false); }
+  if (a === 'gal') return addFlow(faceIdx());
   if (a === 'faddsheet') {   // ausgeblendetes Face wieder einblenden oder neues anlegen
     const r = await overlay('sheet', `<div class="shs">${cfg.off?.length ? `<div class="grp">${cfg.off.map(f => `<button class="row btn c" data-r="show:${esc(f.id)}">${esc(faceName(f))} einblenden</button>`).join('')}</div>` : ''}<div class="grp" style="max-height:46vh;overflow-y:auto">${TYPES.map(([t, n]) => `<button class="row btn c" data-r="new:${t}">Neu: ${esc(n)}</button>`).join('')}</div><div class="grp"><button class="row btn c" data-r="" style="font-weight:600">Abbrechen</button></div></div>`);
     if (!r) return;
@@ -780,7 +820,7 @@ document.addEventListener('click', async e => {
     const t = tiles[j], r = await overlay('sheet', `<div class="shs"><div class="grp"><div class="ig">${ICONS.map(n => `<button data-r="${n}" class="${t.icon === n ? 'on' : ''}" aria-label="${n}">${xi(n)}</button>`).join('')}</div></div><div class="grp"><button class="row btn c" data-r="-">Standard-Symbol</button></div><div class="grp"><button class="row btn c" data-r="" style="font-weight:600">Abbrechen</button></div></div>`);
     if (!r) return; r === '-' ? delete t.icon : t.icon = r;
   }
-  else if (a === 'tadd') { const t = await addTile(f); if (!t) return; ins = { t: 'tile', i, j: f.tiles.indexOf(t) }; }
+  else if (a === 'tadd') { const t = await galleryAdd(f); if (!t) return; ins = { t: 'tile', i, j: f.tiles.indexOf(t) }; }
   else if (a === 'tent') {
     const t = tiles[j], en = await pickEntity({ title: 'Entity der Kachel', domains: t.kind === 'thermo' ? ['climate'] : TILE_DOM, current: t.e });
     if (!en) return;
@@ -792,7 +832,6 @@ document.addEventListener('click', async e => {
     for (const x of ['tap', 'hold']) if (t[x]?.do === 'toggle' && !TOGGLE_DOM.includes(en.domain)) delete t[x];
     if (en.domain === 'sensor' || en.domain === 'binary_sensor') t.val ||= 'state';
   }
-  else if (a === 'tup' || a === 'tdown') swap(tiles, j, j + (a === 'tup' ? -1 : 1));
   else if (a === 'tdel') { tiles.splice(j, 1); saveCfg(); return setIns({ t: 'face', i }); }
   saveCfg(); redraw();
 });

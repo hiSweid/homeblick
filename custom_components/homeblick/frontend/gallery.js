@@ -1,0 +1,67 @@
+// Widget-Galerie nach dem Vorbild der iOS-Widgets (ref/vorlagen/EV-zxZWwts0): Kategorien suchen → Seite der Kategorie mit Größen zum Wischen → farbiger Knopf „Widget hinzufügen“.
+// Läuft nur in admin.html (Symbole #i-* und CSS .pk*/.gal* stehen dort).
+import { entsFor, findEnts, pickEntity } from './entpicker.js';
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const fold = s => String(s ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+
+export const CATS = [   // k, Name, Domains (ohne = keine Entity nötig), Farbe, Symbol
+  ['light', 'Licht', ['light'], '#ff9f0a', 'bulb'], ['climate', 'Thermostat', ['climate'], '#ff6b35', 'thermo'], ['cover', 'Rollos & Tore', ['cover'], '#5e5ce6', 'cover'],
+  ['lock', 'Schlösser', ['lock'], '#34c759', 'lock'], ['scene', 'Szenen & Skripte', ['scene', 'script'], '#ff9500', 'sun'], ['switch', 'Schalter', ['switch', 'input_boolean', 'button', 'input_button'], '#8e8e93', 'switch'],
+  ['media', 'Medien', ['media_player'], '#ff2d55', 'play'], ['fan', 'Ventilatoren', ['fan'], '#30b0c7', 'fan'], ['camera', 'Kameras', ['camera'], '#5856d6', 'cam'],
+  ['sensor', 'Sensoren', ['sensor', 'binary_sensor'], '#007aff', 'pulse'], ['timer', 'Timer', ['timer'], '#ff9f0a', 'timer'],
+  ['analog', 'Analoguhr', null, '#636366', 'clock'], ['digital', 'Digitaluhr', null, '#636366', 'clock'], ['wx', 'Wetter', null, '#32ade6', 'sun'],
+].map(([k, n, d, c, i]) => ({ k, n, d, c, i }));
+const SZ = [[1, 1], [2, 1], [2, 2]];   // wie in der Kachel-Seite
+const U = 92;   // Kantenlänge einer Zelle in der Vorschau (px)
+const ico = (c, i) => `<span class="ico" style="background:${c.c}"><svg><use href="#i-${i || c.i}"/></svg></span>`;
+
+// used: Entity-IDs, die auf dem Face schon liegen (die Vorauswahl nimmt die erste andere) → { cat, en, size: [w, h] } oder null
+export function pickWidget({ used = [] } = {}) {
+  return new Promise(res => {
+    const o = Object.assign(document.createElement('div'), { id: 'ov', className: 'pkov', innerHTML: '<div class="pk gal" role="dialog" aria-label="Widget hinzufügen"></div>' });
+    const box = o.firstElementChild, done = v => { o.classList.remove('in'); setTimeout(() => o.remove(), 300); res(v); };
+    const catOf = e => CATS.find(c => c.d?.includes(e.domain));
+    const count = c => c.d ? entsFor(c.d).length : -1;
+
+    function list() {
+      box.innerHTML = `<div class="pkh"><b>Widget hinzufügen</b><button data-gx>Abbrechen</button></div>
+        <label class="pks"><svg class="chev"><use href="#i-search"/></svg><input type="search" placeholder="Widgets suchen" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"></label><div class="pkl"></div>`;
+      const q = box.querySelector('input'), l = box.querySelector('.pkl');
+      const draw = () => {
+        const w = fold(q.value).trim();
+        const cs = CATS.filter(c => count(c) !== 0 && (!w || fold(c.n).includes(w)));
+        const es = w ? findEnts(w, CATS.flatMap(c => c.d || [])).slice(0, 40) : [];
+        l.innerHTML = cs.map(c => `<button class="pki" data-gc="${c.k}">${ico(c)}<span class="t"><b>${esc(c.n)}</b><small>${count(c) < 0 ? 'Ohne Entity' : count(c) + (count(c) === 1 ? ' Entity' : ' Entities')}</small></span><svg class="chev"><use href="#i-chev"/></svg></button>`).join('')
+          + es.map(e => { const c = catOf(e); return `<button class="pki" data-ge="${esc(e.id)}">${ico(c)}<span class="t"><b>${esc(e.name)}</b><small>${esc([c.n, e.area].filter(Boolean).join(' · '))}</small></span></button>`; }).join('')
+          || '<div class="pkn">Nichts gefunden</div>';
+      };
+      q.oninput = draw; draw();
+    }
+
+    function detail(c, en) {
+      const need = !!c.d;
+      en ||= need ? entsFor(c.d).find(e => !used.includes(e.id)) || entsFor(c.d)[0] : null;
+      const name = en?.name || c.n;
+      const card = ([w, h]) => `<div class="gs"><div class="gcard" style="width:${w * U + (w - 1) * 8}px;height:${h * U + (h - 1) * 8}px;background:linear-gradient(160deg,color-mix(in srgb,${c.c} 62%,#fff),${c.c})"><svg><use href="#i-${c.i}"/></svg><b>${esc(name)}</b><small>${esc(en ? en.area || c.n : c.k === 'wx' ? 'Wetter' : 'Uhr')}</small></div></div>`;
+      box.innerHTML = `<div class="pkh"><button data-gb>‹ Widgets</button><b>${esc(c.n)}</b><button data-gx aria-label="Schließen">✕</button></div>
+        <div class="gd"><div class="gt">${esc(name)}</div><div class="gc">${SZ.map(card).join('')}</div><div class="gdots">${SZ.map((_, i) => `<i class="${i ? '' : 'on'}"></i>`).join('')}</div>
+        ${need ? `<button class="row gent" data-gp><span class="l">Entity</span><span class="v"><span class="val">${esc(en ? en.name : 'Keine passende Entity')}</span><svg class="chev"><use href="#i-chev"/></svg></span></button>` : ''}
+        <button class="gadd" data-ga style="background:${c.c}" ${need && !en ? 'disabled' : ''}>＋ Widget hinzufügen</button></div>`;
+      const gc = box.querySelector('.gc'), dots = [...box.querySelectorAll('.gdots i')], at = () => Math.round(gc.scrollLeft / gc.clientWidth);
+      gc.onscroll = () => dots.forEach((d, i) => d.classList.toggle('on', i === at()));
+      box.querySelector('[data-ga]').onclick = () => done({ cat: c.k, en, size: SZ[at()] });
+      box.querySelector('[data-gp]')?.addEventListener('click', async () => { const e = await pickEntity({ title: c.n, domains: c.d, current: en?.id }); if (e?.id) detail(c, e); });
+    }
+
+    o.onclick = e => {
+      if (e.target === o || e.target.closest('[data-gx]')) return done(null);
+      const gc = e.target.closest('[data-gc]'), ge = e.target.closest('[data-ge]');
+      if (gc) detail(CATS.find(c => c.k === gc.dataset.gc));
+      else if (ge) { const en = findEnts(ge.dataset.ge, CATS.flatMap(c => c.d || [])).find(x => x.id === ge.dataset.ge); if (en) detail(catOf(en), en); }
+      else if (e.target.closest('[data-gb]')) list();
+    };
+    o.onkeydown = e => e.key === 'Escape' && done(null);
+    list(); document.body.append(o);
+    requestAnimationFrame(() => { o.classList.add('in'); box.querySelector('input')?.focus({ preventScroll: true }); });
+  });
+}

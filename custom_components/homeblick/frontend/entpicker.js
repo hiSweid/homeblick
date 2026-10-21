@@ -23,6 +23,11 @@ let EN = [], BY = new Map();
 export const entOf = id => BY.get(id);
 export const areasOf = () => [...new Set(EN.map(e => e.area).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'de'));
 export const entsIn = area => EN.filter(e => e.area === area && !e.hide);
+export const entsFor = domains => EN.filter(e => domains.includes(e.domain) && !e.hide).sort((a, b) => a.name.localeCompare(b.name, 'de'));
+export function findEnts(q, domains) {   // Suche über Name, Bereich, Gerät, ID (wie der Picker), nur passende Domains
+  const w = fold(q).split(/\s+/).filter(Boolean);
+  return EN.filter(e => domains.includes(e.domain) && !e.hide).map(e => [rank(e, w), e]).filter(x => x[0] >= 0).sort((a, b) => b[0] - a[0] || a[1].name.localeCompare(b[1].name, 'de')).map(x => x[1]);
+}
 export const entsOf = domain => EN.filter(e => e.domain === domain).sort((a, b) => a.name.localeCompare(b.name, 'de'));
 
 // states aus get_states; Bereiche/Geräte aus den Registries (fehlen sie, bleiben Bereich und Gerät leer)
