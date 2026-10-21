@@ -39,7 +39,7 @@ svg.i{width:1em;height:1em;flex:none;fill:none;stroke:currentColor;stroke-width:
 /* Glas = vorgerenderte Blur-Wallpaper an der Kachelposition, kein Live-backdrop-filter */
 .tile{position:relative;isolation:isolate;border-radius:4.3cqw;
   display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:5.3cqw 1cqw 4.9cqw;text-align:center;
-  background:linear-gradient(165deg,#fff3,#fff1 45%,#fff0 75%),
+  background:var(--glass,linear-gradient(165deg,#fff3,#fff1 45%,#fff0 75%)),
     var(--wpb) calc(-1*(var(--pad) + var(--c)*(var(--t) + var(--gap)))) calc(-1*(var(--pad) + var(--r)*(var(--t) + var(--gap))))/100cqw 100cqw;
   /* Glasrand (Pixelprofil Website dashboard): 2 px helle Kante rundum (oben/unten kräftiger), 1 px dunkle Außenlinie */
   box-shadow:inset 0 .25cqw .1cqw #ffffff59,inset 0 -.25cqw .1cqw #ffffff40,inset 0 0 0 .25cqw #ffffff2e,0 0 0 .13cqw #0000002e,0 .6cqw 2cqw #0003;
@@ -66,8 +66,14 @@ svg.i{width:1em;height:1em;flex:none;fill:none;stroke:currentColor;stroke-width:
 .pvsel{outline:.8cqw solid #0a84ff;outline-offset:.5cqw}   /* Vorschau: in der Einstellungsseite gewählte Kachel */
 .tile[data-arm] .sub{font-size:0}.tile[data-arm] .sub::after{content:"Nochmal tippen";font-size:3cqw}
 /* Helle Variante (Website highlights/homeview, Pixelproben): flach ohne Schatten; Aus = hellgrau 232, An = Lavendel (198,194,227), Icon/Titel lila */
-.light .tile,.tile[data-look=hell]{background:#e8e8e8;box-shadow:none;color:#454546}.light .tile::before,.tile[data-look=hell]::before{display:none}.light .tile .sub,.tile[data-look=hell] .sub{color:#828284}
-.light .tile.on,.tile[data-look=hell].on{background:#c6c2e3;color:#6a6393}.light .tile.on .sub,.tile[data-look=hell].on .sub{color:#9590b7}.light .tile.on .ico,.tile[data-look=hell].on .ico,.light .tile .ico,.tile[data-look=hell] .ico{color:inherit}
+/* Themes (Config: theme liquid|flat, mode dark|light; Kachel: look überschreibt das Theme → data-lk). liquid+dark = Grundlook oben.
+   flat+light = Apple-Dashboard (Website highlights/homeview): flach, an = Lavendel #C9C3E6, aus = Hellgrau #E9E9EB; die anderen zwei Kombinationen sind eigene Gegenstücke im selben Stil */
+.light .tile,[data-mode=light] .tile[data-lk=flat]{background:#e8e8e8;box-shadow:none;color:#454546}.light .tile::before,[data-mode=light] .tile[data-lk=flat]::before{display:none}.light .tile .sub,[data-mode=light] .tile[data-lk=flat] .sub{color:#828284}
+.light .tile.on,[data-mode=light] .tile[data-lk=flat].on{background:#c6c2e3;color:#6a6393}.light .tile.on .sub,[data-mode=light] .tile[data-lk=flat].on .sub{color:#9590b7}.light .tile.on .ico,.light .tile .ico,[data-mode=light] .tile[data-lk=flat] .ico{color:inherit}
+[data-mode=dark] .face:not(.light) .tile[data-lk=flat]{background:#2c2c2e;box-shadow:none;color:#e5e5ea}[data-mode=dark] .face:not(.light) .tile[data-lk=flat]::before{display:none}[data-mode=dark] .face:not(.light) .tile[data-lk=flat] .sub{color:#8e8e93}
+[data-mode=dark] .face:not(.light) .tile[data-lk=flat].on{background:#4a4570;color:#dcd7f8}[data-mode=dark] .face:not(.light) .tile[data-lk=flat].on .sub{color:#a9a3d3}[data-mode=dark] .face:not(.light) .tile[data-lk=flat] .ico{color:inherit}
+[data-mode=light] .face:not(.light) .tile[data-lk=liquid]{--glass:linear-gradient(165deg,#ffffffc0,#ffffff8c 45%,#ffffff66 75%);color:#1c1c1e}[data-mode=light] .face:not(.light) .tile[data-lk=liquid] .sub{color:#3c3c4399}
+[data-mode=light] .face:not(.light) .tile[data-lk=liquid]::before{background:linear-gradient(#fff,#ffffffe6)}[data-mode=light] .face:not(.light) .tile[data-lk=liquid].on{color:var(--ink)}[data-mode=light] .face:not(.light) .tile[data-lk=liquid].on .sub{color:var(--ink2)}
 .f-grid.light .dial svg g{stroke:#6a6393}.f-grid.light .dial .n{color:#6a6393;font-size:3.1cqw;font-weight:500}
 .ico{font-size:9.5cqw;transition:color .3s}
 /* Beschriftung (Frontalbild Website highlights/dashboard, auf 784 px normiert, Inter statt SF): Schrift 3,0 % W, Zeilenabstand 34 px (1×1) bzw. 32 px (Thermostat) */
@@ -1008,9 +1014,11 @@ if (PREVIEW) {
     if (m.edit !== undefined && m.edit !== edit) { edit = m.edit; closeMenu(); deco(); }
     if (m.conf) {
       const old = CONF.faces, k = { idle: 0, kz: false };
+      const th = `${CONF.theme}|${CONF.mode}`;
       CONF = { ...m.conf, kiosk: k };
       evList = null;   // Kalender-Auswahl kann sich geändert haben
-      if (old.length === CONF.faces.length && old.every((f, i) => f.id === CONF.faces[i].id)) CONF.faces.forEach((f, i) => JSON.stringify(f) !== JSON.stringify(old[i]) && (f.type === 'grid' ? keep(i) : rerender(i)));
+      if (th !== `${CONF.theme}|${CONF.mode}`) renderAll(idx());   // Theme gewechselt: alle Kacheln neu
+      else if (old.length === CONF.faces.length && old.every((f, i) => f.id === CONF.faces[i].id)) CONF.faces.forEach((f, i) => JSON.stringify(f) !== JSON.stringify(old[i]) && (f.type === 'grid' ? keep(i) : rerender(i)));
       else renderAll(0);
     }
     if (m.face) { const i = CONF.faces.findIndex(f => f.id === m.face); if (i >= 0 && i !== idx()) faces.go(i, !m.anim); }
@@ -1192,7 +1200,7 @@ function tileEl(c) {
   if (t.color) el.style.setProperty('--accent', t.color); el.dataset.size = `${t.w || 1}x${t.h || 1}`;
   if (t.e) el.dataset.e = t.e;
   if (t.noop) el.dataset.noop = '';
-  if (t.look) el.dataset.look = t.look;   // Look „hell“: Apple-Dashboard (Website highlights/homeview), wirkt wie ein helles Face nur für diese Kachel
+  el.dataset.lk = t.look || CONF.theme || 'liquid';   // Look der Kachel überschreibt das Theme des Displays
   if (kind === 'clock') {
     el.className = t.cs === 'digital' ? 'dclock glass' : `dial glass${t.cs === 'numbers' ? ' nums' : ''}`;
     if (t.cs === 'digital') el.innerHTML = '<span data-bind="time"></span>';
@@ -2248,7 +2256,9 @@ const curIdx = () => Math.round(faces.scrollLeft / (faces.clientWidth * 1.025));
 const curEl = () => faces.children[curIdx()];
 const markCur = () => [...faces.children].forEach((f, i) => f.classList.toggle('cur', i === curIdx()));
 function refresh() { npKey = ''; tick(); render(); times(); fillLyrics(); }
+const applyTheme = () => { const r = document.documentElement.dataset; r.theme = CONF.theme || 'liquid'; r.mode = CONF.mode || 'dark'; };
 function renderAll(idx = 0) {
+  applyTheme();
   faces.replaceChildren(...CONF.faces.map(f => buildFace(f)));
   faces.scrollLeft = idx * faces.clientWidth * 1.025;
   markCur(); refresh();
