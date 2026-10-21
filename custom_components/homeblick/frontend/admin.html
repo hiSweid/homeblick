@@ -74,6 +74,8 @@ svg{display:block}
 .gtop{flex:none}.gbody{flex:1;min-height:0;display:flex;flex-direction:column}
 .scc iframe{display:block;width:100%;height:100%;border:0;pointer-events:none}
 .scn{text-align:center;font-weight:600;font-size:17px;min-height:22px}
+.pgrip{flex:none;width:30px;height:30px;display:grid;place-items:center;margin-left:-8px;cursor:grab;touch-action:none;color:var(--sec)}.pgrip svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round}
+.pgr{background:var(--grp-solid,transparent)}.pgr.drag{z-index:3;background:var(--bg);border-radius:14px;box-shadow:0 8px 28px #0004;cursor:grabbing}
 .pks2{padding:12px 16px 4px;font-size:13px;text-transform:uppercase;color:var(--sec);letter-spacing:.2px}
 
 /* Seiten im Detail-Bereich */
@@ -247,6 +249,7 @@ textarea.r{text-align:right}
   <symbol id="i-switch" viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="8" rx="4"/><circle cx="8" cy="12" r="2"/></symbol>
   <symbol id="i-pulse" viewBox="0 0 24 24"><path d="M3 13h4l3-8 4 14 3-6h4"/></symbol>
   <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h8M18 7h2M4 17h2M12 17h8"/><circle cx="15" cy="7" r="2.4"/><circle cx="9" cy="17" r="2.4"/></symbol>
+  <symbol id="i-grip" viewBox="0 0 24 24"><path d="M5 8h14M5 12h14M5 16h14"/></symbol>
   <symbol id="i-dot" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M8 12h8"/></symbol>
 </defs></svg>
 
@@ -527,6 +530,14 @@ const pages = {
     return { back: null, title: 'Einstellungen', body };
   },
 
+  pages() {   // Seiten verwalten: Reihenfolge per Ziehen, Schalter blendet aus/ein
+    const row = (x, i, on) => { const m = FACE[x.type] || [x.type, '#8e8e93', 'grid']; return `<div class="row pgr" data-i="${i}">${on ? `<span class="pgrip" aria-label="Verschieben">${svg('grip', '')}</span>` : ''}<button class="go" data-a="pgopen" data-i="${i}" ${on ? '' : 'disabled'}>${ico(m[2], m[1])}<span class="l two"><b>${esc(faceName(x))}</b><small>${esc(bgName(x.bg))}</small></span></button><label class="sw"><input type="checkbox" data-pv="${on ? 'v' : 'o'}${i}" ${on ? 'checked' : ''}><i></i></label></div>`; };
+    const off = cfg.off || [];
+    return { back: null, title: 'Seiten', body: grp('Seiten', `<div id="pglist">${cfg.faces.map((x, i) => row(x, i, true)).join('')}</div>`, 'Ziehen am Griff ändert die Reihenfolge, Antippen öffnet die Einstellungen der Seite. Der Schalter blendet eine Seite aus; ausgeblendete behalten ihre Einstellungen.')
+      + (off.length ? grp('Ausgeblendet', off.map((x, i) => row(x, i, false)).join('')) : '')
+      + grp('', `<button class="row btn c" data-a="faddsheet">Neue Seite …</button>`) };
+  },
+
   face(e) {
     const f = cfg.faces[e.i], meta = FACE[f.type] || [f.type, '#8e8e93', 'grid'], d = cur();
     const photo = f.bg && typeof f.bg === 'object', sty = STYLES[f.type];
@@ -543,7 +554,7 @@ const pages = {
       ${f.type === 'weather' ? grp('Wetter', epick('Wetter-Entity', 'weather', d.settings.weather, { domains: ['weather'] }) + field('Ortsname', 'place', d.settings.place), 'Gilt für alle Wetter-Anzeigen dieses Displays.') : ''}
       ${f.type === 'energy' ? grp('Entities', ENERGY.map(([k, n]) => epick(n, 'ents.' + k, f.ents?.[k] || '', { domains: ['sensor'], none: 'Standard' }, 'data-f')).join(''), 'Ohne Auswahl liest das Face die Standard-Entities (evcc, Kostal, Solcast).') : ''}
       ${f.type === 'calendar' || f.type === 'info' ? grp('Kalender', entsOf('calendar').map(e => `<div class="row"><span class="l">${esc(e.name)}</span><label class="sw"><input type="checkbox" data-fcal="${esc(e.id)}" ${!f.cals || f.cals.includes(e.id) ? 'checked' : ''}><i></i></label></div>`).join('') || '<div class="row"><span class="l" style="color:var(--sec)">Keine Kalender in Home Assistant</span></div>', 'Diese Auswahl gilt für das Kalender- und das Info-Face. Ohne Haken bei einem Kalender fehlen dessen Termine.') : ''}
-      ${grp('Face', `<div class="row"><span class="l">Position</span><span class="arrows"><button data-a="fleft" aria-label="Nach links" ${e.i === 0 ? 'disabled style="opacity:.3"' : ''}>${svg('up', 'rot-l')}</button><button data-a="fright" aria-label="Nach rechts" ${e.i === cfg.faces.length - 1 ? 'disabled style="opacity:.3"' : ''}>${svg('down', 'rot-r')}</button></span></div><button class="row btn" data-a="fdup">Face duplizieren</button><button class="row red" data-a="fhide">Face ausblenden</button>`, 'Ausgeblendete Faces bleiben mit ihrer Konfiguration erhalten und lassen sich über „+ Face“ wieder einblenden.')}
+      ${grp('Face', `<div class="row"><span class="l">Position</span><span class="arrows"><button data-a="fleft" aria-label="Nach links" ${e.i === 0 ? 'disabled style="opacity:.3"' : ''}>${svg('up', 'rot-l')}</button><button data-a="fright" aria-label="Nach rechts" ${e.i === cfg.faces.length - 1 ? 'disabled style="opacity:.3"' : ''}>${svg('down', 'rot-r')}</button></span></div><button class="row btn" data-a="fdup">Face duplizieren</button><button class="row btn" data-a="pages">Seiten verwalten …</button><button class="row red" data-a="fhide">Face ausblenden</button>`, 'Ausgeblendete Faces bleiben mit ihrer Konfiguration erhalten und lassen sich über „+ Face“ wieder einblenden.')}
       ${grp('', `<button class="row btn c" data-c="face" ${d.connected ? '' : 'disabled style="opacity:.4"'}>Auf dem Display anzeigen</button>`)}
       ${grp('', `<button class="row red c" data-a="fdel">Face löschen</button>`, 'Löscht das Face mit allen Kacheln und Einstellungen. „Face ausblenden“ behält sie.')}`;
     return { back: null, title: faceName(f), body };
@@ -663,7 +674,7 @@ function pvSend() {
   const f = cfg.faces[fi];
   if (edOpen) {   // Seitenpunkte (letzter = neues Face) und Name der Seite
     const dots = $('#eddots');
-    if (dots.dataset.n !== String(cfg.faces.length)) { dots.dataset.n = cfg.faces.length; dots.innerHTML = cfg.faces.map((x, i) => `<button data-dot="${i}" aria-label="${esc(faceName(x))}"></button>`).join('') + '<button class="dp" data-a="faddsheet" aria-label="Neues Face"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>'; }
+    if (dots.dataset.n !== cfg.faces.map(x => x.id).join()) { dots.dataset.n = cfg.faces.map(x => x.id).join(); dots.innerHTML = cfg.faces.map((x, i) => `<button data-dot="${i}" aria-label="${esc(faceName(x))}"></button>`).join('') + '<button class="dp" data-a="faddsheet" aria-label="Neues Face"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>'; }
     dots.querySelectorAll('[data-dot]').forEach((b, i) => b.classList.toggle('on', i === fi));
     $('#edname').textContent = f ? faceName(f) : '';
   }
@@ -832,6 +843,11 @@ document.addEventListener('change', async e => {
     if (k === 'dim') $('#dimdep').classList.toggle('off', !v);
     if (k === 'sched') $('#schdep').classList.toggle('off', !v);
     d.settings[k] = v; guard(call('update', { display: sel, settings: { [k]: v } })).catch(() => {});
+  } else if (t.dataset.pv) {   // Seite aus-/einblenden
+    const k = t.dataset.pv[0], i = +t.dataset.pv.slice(1);
+    if (k === 'v') { if (cfg.faces.length < 2) { t.checked = true; return toast('Mindestens eine Seite', true); } cfg.off.push(...cfg.faces.splice(i, 1)); }
+    else cfg.faces.push(...cfg.off.splice(i, 1));
+    saveCfg(); refresh();
   } else if (t.dataset.f) {   // Face-Feld (Pfad wie „ents.pv“)
     const f = cfg.faces[ctx().i];
     setPath(f, t.dataset.f, t.value.trim() || undefined);
@@ -878,6 +894,8 @@ document.addEventListener('click', async e => {
   if (a === 'sclose') return setIns(null);
   if (a === 'sec') return setIns({ t: 'display', sec: b.dataset.v });
   if (a === 'gear') return setIns({ t: 'display' });
+  if (a === 'pages') return setIns({ t: 'pages' });
+  if (a === 'pgopen') { fi = +b.dataset.i; return openFace(fi); }
   if (a === 'fname') return openFace(fi);
   if (a === 'setup') return setupWizard(displays.find(d => d.id === b.dataset.id));
   if (a === 'edone') return closeEd();
@@ -893,7 +911,7 @@ document.addEventListener('click', async e => {
     const [k, v] = r.split(':');
     if (k === 'show') cfg.faces.push(...cfg.off.splice(cfg.off.findIndex(f => f.id === v), 1));
     else cfg.faces.push({ type: v, id: faceId(cfg, v), bg: v === 'grid' ? 'auto' : 'black', ...(v === 'grid' && { tiles: [] }) });
-    fi = cfg.faces.length - 1; return saveCfg();
+    fi = cfg.faces.length - 1; saveCfg(); return ins?.t === 'pages' ? refresh() : undefined;
   }
   if (a === 'fdel') {
     if (cfg.faces.length < 2) return toast('Mindestens ein Face', true);
@@ -957,6 +975,52 @@ document.addEventListener('click', async e => {
   else if (a === 'tdel') { tiles.splice(j, 1); saveCfg(); return setIns(null); }
   saveCfg(); redraw();
 });
+
+// Seiten per Ziehen am Griff sortieren: die Zeile folgt dem Zeiger, die anderen gleiten mit Feder zur Seite (FLIP)
+let pgd = null;
+document.addEventListener('pointerdown', e => {
+  const g = e.target.closest('.pgrip');
+  if (!g) return;
+  e.preventDefault();
+  const el = g.closest('.pgr'), top = el.getBoundingClientRect().top;
+  pgd = { el, id: e.pointerId, grab: e.clientY - top, from: [...el.parentNode.children].indexOf(el) };
+  el.classList.add('drag'); g.setPointerCapture(e.pointerId);
+});
+document.addEventListener('pointermove', e => {
+  if (!pgd || e.pointerId !== pgd.id) return;
+  const { el } = pgd, list = el.parentNode;
+  el.style.transform = ''; const lay = el.getBoundingClientRect().top;
+  el.style.transform = `translateY(${e.clientY - pgd.grab - lay}px)`;
+  const c = e.clientY - pgd.grab + el.offsetHeight / 2, sib = [...list.children].filter(x => x !== el);
+  const idx = sib.filter(x => { const r = x.getBoundingClientRect(); return r.top + r.height / 2 < c; }).length;
+  if ([...list.children].indexOf(el) !== idx) {
+    const r0 = new Map(sib.map(x => [x, x.getBoundingClientRect().top]));
+    list.insertBefore(el, sib[idx] || null);
+    sib.forEach(x => { const d = r0.get(x) - x.getBoundingClientRect().top; if (d) x.animate([{ translate: `0 ${d}px` }, { translate: '0 0' }], { duration: SD, easing: SPRING }); });
+    el.style.transform = ''; const l2 = el.getBoundingClientRect().top; el.style.transform = `translateY(${e.clientY - pgd.grab - l2}px)`;
+  }
+});
+const pgEnd = e => {
+  if (!pgd || e.pointerId !== pgd.id) return;
+  const { el } = pgd, list = el.parentNode, order = [...list.children].map(x => +x.dataset.i);
+  pgd = null;
+  const tr = el.style.transform;
+  el.style.transform = ''; el.classList.remove('drag');
+  el.animate([{ transform: tr }, { transform: 'none' }], { duration: SD, easing: SPRING });
+  if (order.every((v, k) => v === k)) return;
+  const curId = cfg.faces[fi]?.id;
+  cfg.faces = order.map(i => cfg.faces[i]); fi = Math.max(0, cfg.faces.findIndex(x => x.id === curId));
+  [...list.children].forEach((x, k) => { x.dataset.i = k; x.querySelector('[data-pv]').dataset.pv = 'v' + k; x.querySelector('[data-a=pgopen]').dataset.i = k; });
+  saveCfg();
+};
+document.addEventListener('pointerup', pgEnd); document.addEventListener('pointercancel', pgEnd);
+// langes Drücken auf die Seitenpunkte öffnet die Seiten-Verwaltung
+{
+  let lp = null; const dots = $('#eddots');
+  dots.addEventListener('pointerdown', () => { lp = setTimeout(() => { lp = 'done'; setIns({ t: 'pages' }); }, 500); });
+  for (const n of ['pointerup', 'pointerleave', 'pointercancel']) dots.addEventListener(n, () => { if (lp !== 'done') clearTimeout(lp); });
+  dots.addEventListener('click', e => { if (lp === 'done') { lp = null; e.stopPropagation(); e.preventDefault(); } }, true);
+}
 
 // Gruppenaktion: Befehl an alle Displays, die gerade ein Panel offen haben
 const dur = el => { const n = parseInt(el.closest('.grp').querySelector('[data-dur]')?.value, 10); return n >= 1 ? { duration: Math.min(n, 3600) } : {}; };
