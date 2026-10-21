@@ -41,8 +41,8 @@ svg{display:block}
 .edh .pvp.ok{margin-left:0}
 .pvp{width:46px;height:30px;border-radius:15px;display:flex;flex:none;align-items:center;justify-content:center;background:var(--fill);color:var(--fg);transition:scale .25s var(--spring)}.pvp:active{scale:.9}.pvp svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
 .pvp.ok{background:var(--blue);color:#fff}
-#edm{flex:1;min-height:0;width:100%;display:flex;align-items:center;justify-content:center;touch-action:pan-y}
-#pvf{flex:none;width:min(100%,calc(100dvh - 170px));aspect-ratio:1;border:0;border-radius:8%;background:#000;box-shadow:0 10px 34px #0004}
+#edm{flex:1;min-height:0;width:100%;display:flex;align-items:center;justify-content:center;touch-action:pan-y;filter:drop-shadow(0 10px 17px #0004)}
+#pvf{flex:none;width:min(100%,calc(100dvh - 170px));aspect-ratio:1;border:0;clip-path:inset(0 round 8%);background:#000}
 #eddots{flex:none;display:flex;gap:10px;align-items:center;justify-content:center;min-height:20px}
 #eddots button{position:relative;width:8px;height:8px;border-radius:50%;background:var(--sec);opacity:.35;transition:opacity .2s,scale .25s var(--spring)}
 #eddots button::after{content:"";position:absolute;inset:-9px}
@@ -72,7 +72,7 @@ svg{display:block}
 .scb{position:absolute;top:calc(var(--cs) / 2 - 10px);z-index:2;width:34px;height:34px;border-radius:50%;background:var(--glass);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);box-shadow:0 2px 10px #0003;display:grid;place-items:center;transition:scale .25s var(--spring),opacity .2s}.scb:active{scale:.9}.scb:disabled{opacity:0;pointer-events:none}
 .scb svg{width:16px;height:16px;stroke:var(--fg);fill:none;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}.scb.l{left:12px}.scb.l svg{transform:scaleX(-1)}.scb.r{right:12px}
 #carslot{position:relative}.gcw{flex:none;position:relative}.gcw .scb{top:95px}.gcw.off,.gt.off{height:0;padding:0;overflow:hidden;visibility:hidden}
-.gpv{display:block;width:224px;height:224px;border:0;border-radius:8%;background:#000;box-shadow:0 10px 26px #0003;pointer-events:none;opacity:0;transition:opacity .3s}.gpv.rd{opacity:1}
+.gpv{display:block;width:224px;height:224px;border:0;clip-path:inset(0 round 8%);background:#000;pointer-events:none;opacity:0;transition:opacity .3s}.gpv.rd{opacity:1}
 .gtop{flex:none}.gbody{flex:1;min-height:0;display:flex;flex-direction:column}
 .scc iframe{display:block;width:100%;height:100%;border:0;pointer-events:none}
 .scn{text-align:center;font-weight:600;font-size:17px;min-height:22px}
@@ -195,7 +195,7 @@ textarea.r{text-align:right}
 .gal .pkh button[data-gb]{font-weight:500}.gd{flex:1;display:flex;flex-direction:column;min-height:0;overflow-y:auto;padding:6px 16px 18px}
 .gt{text-align:center;font-size:22px;font-weight:700;padding:8px 0 4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .gc{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}.gc::-webkit-scrollbar{display:none}
-.gs{flex:none;width:100%;scroll-snap-align:center;display:flex;align-items:center;justify-content:center;height:224px}
+.gs{flex:none;width:100%;scroll-snap-align:center;display:flex;align-items:center;justify-content:center;height:224px;filter:drop-shadow(0 10px 13px #0003)}
 .gcard{border-radius:24px;color:#fff;padding:12px 13px;display:flex;flex-direction:column;justify-content:flex-end;box-shadow:0 10px 26px #0003;position:relative;overflow:hidden}
 .gcard svg{position:absolute;right:11px;top:11px;width:24px;height:24px;stroke:#fff;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.gcard b{font-size:14px;line-height:1.2;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.gcard small{font-size:12px;opacity:.8}
 .gdots{display:flex;justify-content:center;gap:7px;padding:10px 0 12px}.gdots i{width:7px;height:7px;border-radius:50%;background:var(--sec);opacity:.35;transition:opacity .2s,scale .2s}.gdots .on{opacity:1;scale:1.15;background:var(--fg)}
@@ -554,7 +554,7 @@ const pages = {
         <div class="sf">${n ? `${n} Kachel${n > 1 ? 'n passen' : ' passt'} nicht mehr ins Raster und ${n > 1 ? 'werden' : 'wird'} nicht angezeigt. ` : ''}Ziehen in der Vorschau verschiebt, der Punkt unten rechts an einer Kachel ändert die Größe. Nachtvarianten bleiben erhalten.</div></div>`)(pack(f.tiles || [], rows(f)).filter(x => !x).length) : ''}
       ${f.type === 'cams' ? camsHTML() : ''}
       ${f.type === 'weather' ? grp('Wetter', epick('Wetter-Entity', 'weather', d.settings.weather, { domains: ['weather'] }) + field('Ortsname', 'place', d.settings.place), 'Gilt für alle Wetter-Anzeigen dieses Displays.') : ''}
-      ${f.type === 'energy' ? grp('Entities', ENERGY.map(([k, n]) => epick(n, 'ents.' + k, f.ents?.[k] || '', { domains: ['sensor'], none: 'Standard' }, 'data-f')).join(''), 'Ohne Auswahl liest das Face die Standard-Entities (evcc, Kostal, Solcast).') : ''}
+      ${f.type === 'energy' ? grp('Entities', ENERGY.map(([k, n, d = ['sensor']]) => epick(n, 'ents.' + k, f.ents?.[k] || '', { domains: d, none: 'Standard' }, 'data-f')).join(''), 'Ohne Auswahl liest das Face die Standard-Entities (evcc, Kostal, Solcast).') : ''}
       ${f.type === 'calendar' || f.type === 'info' ? grp('Kalender', entsOf('calendar').map(e => `<div class="row"><span class="l">${esc(e.name)}</span><label class="sw"><input type="checkbox" data-fcal="${esc(e.id)}" ${!f.cals || f.cals.includes(e.id) ? 'checked' : ''}><i></i></label></div>`).join('') || '<div class="row"><span class="l" style="color:var(--sec)">Keine Kalender in Home Assistant</span></div>', 'Diese Auswahl gilt für das Kalender- und das Info-Face. Ohne Haken bei einem Kalender fehlen dessen Termine.') : ''}
       ${grp('Face', `<div class="row"><span class="l">Position</span><span class="arrows"><button data-a="fleft" aria-label="Nach links" ${e.i === 0 ? 'disabled style="opacity:.3"' : ''}>${svg('up', 'rot-l')}</button><button data-a="fright" aria-label="Nach rechts" ${e.i === cfg.faces.length - 1 ? 'disabled style="opacity:.3"' : ''}>${svg('down', 'rot-r')}</button></span></div><button class="row btn" data-a="fdup">Face duplizieren</button><button class="row btn" data-a="pages">Seiten verwalten …</button><button class="row red" data-a="fhide">Face ausblenden</button>`, 'Ausgeblendete Faces bleiben mit ihrer Konfiguration erhalten und lassen sich über „+ Face“ wieder einblenden.')}
       ${grp('', `<button class="row btn c" data-c="face" ${d.connected ? '' : 'disabled style="opacity:.4"'}>Auf dem Display anzeigen</button>`)}
@@ -810,7 +810,13 @@ async function setupWizard(d) {
 }
 
 // Domains, die eine Kachel bedienen kann (TAP in index.html)
-const ENERGY = [['pv', 'Solar-Leistung'], ['grid', 'Netz-Leistung (+ Bezug)'], ['home', 'Hausverbrauch'], ['bat', 'Batterie-Leistung (− Laden)'], ['soc', 'Batterie-Ladestand'], ['car', 'Auto: Ladeleistung'], ['carSoc', 'Auto: Ladestand'], ['range', 'Auto: Reichweite'], ['today', 'Solar heute (kWh)'], ['todayFc', 'Prognose heute (Solcast, Tageskurve)'], ['tomorrow', 'Prognose morgen'], ['tomorrowPeak', 'Morgen: Zeitpunkt Spitze']];
+const ENERGY = [['pv', 'Solar-Leistung'], ['grid', 'Netz-Leistung (+ Bezug)'], ['home', 'Hausverbrauch'], ['bat', 'Batterie-Leistung (− Laden)'], ['soc', 'Batterie-Ladestand'], ['car', 'Auto: Ladeleistung'], ['carSoc', 'Auto: Ladestand'], ['range', 'Auto: Reichweite'], ['today', 'Solar heute (kWh)'], ['todayFc', 'Prognose heute (Solcast, Tageskurve)'], ['tomorrow', 'Prognose morgen'], ['tomorrowPeak', 'Morgen: Zeitpunkt Spitze'],
+  // nur Detailansichten (Tipp auf eine Kachel); dritter Eintrag = Domains, sonst sensor
+  ['pvPeak', 'Detail Solar: Spitzenleistung heute'], ['pvPeakAt', 'Detail Solar: Zeitpunkt Spitze heute'], ['day3', 'Detail Heute/Morgen: Prognose Tag 3'], ['day4', 'Detail Heute/Morgen: Prognose Tag 4'],
+  ['solarPct', 'Detail Autarkie: Solaranteil gesamt'], ['cap', 'Detail Akku: Kapazität (kWh)'], ['batIn1', 'Detail Akku: heute geladen (1)'], ['batOut1', 'Detail Akku: heute entladen (1)'],
+  ['batIn2', 'Detail Akku: heute geladen (2)'], ['batOut2', 'Detail Akku: heute entladen (2)'], ['carConn', 'Detail Auto: verbunden', ['binary_sensor']], ['carChg', 'Detail Auto: lädt', ['binary_sensor']],
+  ['carRem', 'Detail Auto: Restladedauer'], ['carLim', 'Detail Auto: Ladelimit', ['number']], ['carMode', 'Detail Auto: Lademodus', ['select']],
+  ['sesE', 'Detail Auto: Sitzung Energie'], ['sesSol', 'Detail Auto: Sitzung Solaranteil'], ['sesPrice', 'Detail Auto: Sitzung Preis']];
 const TILE_DOM = ['light', 'switch', 'input_boolean', 'lock', 'cover', 'climate', 'scene', 'script', 'media_player', 'fan', 'timer', 'camera', 'button', 'input_button', 'sensor', 'binary_sensor'];
 const TOGGLE_DOM = ['light', 'switch', 'input_boolean', 'fan', 'cover', 'media_player', 'script'];   // Domains mit Dienst .toggle
 const SIZES = [['1x1', '1 × 1'], ['2x1', '2 × 1'], ['2x2', '2 × 2']];

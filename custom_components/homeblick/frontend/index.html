@@ -466,12 +466,12 @@ input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:tr
 /* Klima + Licht Vollbild: Maße als % W aus dem Frontalbild des Apple-Videos (ref/t43.4.jpg, 2560-px-Frame 43,4 s, Display 328 px) und ref/vorlagen/_Tbq…/01260 (Beschriftung),
    y-MO ab 153 s (Modus-Menü, nur Handkamera); Schrift Inter statt SF (Breite abgeglichen), Zahl Medium */
 #climate,#dimmer{--ty:-86.35%}   /* Inter bei line-height 1: Grundlinie bei 86,35 % der Zeilenhöhe → `top` = Grundlinie, Maße direkt aus dem Frame */
-#climate .x,#dimmer .x{left:6cqw;top:5.8cqw;width:8.75cqw;height:8.75cqw;font-size:6.8cqw}   /* ⌀ 8,75, Mitte 10,4 / 10,2 */
+#climate .x,#dimmer .x,#edet .x{left:6cqw;top:5.8cqw;width:8.75cqw;height:8.75cqw;font-size:6.8cqw}   /* ⌀ 8,75, Mitte 10,4 / 10,2 */
 #climate .x{background:var(--cb)}
-#climate .x{transition:background-color .13s linear}
-#climate .x:active{background:#fff4;transition:none}
-#climate .top,#dimmer .top{top:10.6cqw;translate:0 -50%;line-height:1;font-size:3.8cqw;font-weight:400}   /* Titel mittig, Mitte y 10,3; Breite „Bedroom Air“ 22,3 % */
-#climate .top time,#dimmer .top time{right:8.6cqw}   /* Uhrzeit endet bei 91,4 %, gleiche Farbe wie der Titel */
+#climate .x,#edet .x{transition:background-color .13s linear}
+#climate .x:active,#edet .x:active{background:#fff4;transition:none}
+#climate .top,#dimmer .top,#edet .top{top:10.6cqw;translate:0 -50%;line-height:1;font-size:3.8cqw;font-weight:400}   /* Titel mittig, Mitte y 10,3; Breite „Bedroom Air“ 22,3 % */
+#climate .top time,#dimmer .top time,#edet .top time{right:8.6cqw}   /* Uhrzeit endet bei 91,4 %, gleiche Farbe wie der Titel */
 #climate{--cb:#fff3;--cm:color-mix(in srgb,var(--cc) 55%,#fff);--ct:#1c1c1e;background:var(--cc);transition:background-color .4s}
 #climate.cool{--cb:#08bdfc;--cm:#00c9fa;--ct:#003a73}   /* ✕ #0bc1fc, Knopf #05b9fc, Menü ≈ #00c9fa (Frame/Handkamera), Menütext #003a73 */
 #climate .mode{position:absolute;left:0;right:0;top:33.9cqw;translate:0 var(--ty);text-align:center;font-size:4.8cqw;font-weight:400;line-height:1}   /* „Cooling to“: Mitte 50,4, Grundlinie 33,9, Text ohne Pille */
@@ -804,6 +804,12 @@ input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:tr
 
   <section id="cam" class="view" hidden></section>   <!-- Inhalt: doorbell.js -->
 
+  <section id="edet" class="view" hidden>   <!-- Energie-Detail (Tipp auf eine Kachel des Energie-Face): Inhalt + Stil energy.js -->
+    <div class="ed"></div>
+    <button class="x" data-act="close" aria-label="Schließen"><svg class="i"><use href="#xt"/></svg></button>
+    <div class="top"><span data-bind="d_t"></span><time data-bind="time"></time></div>
+  </section>
+
   <section id="events" class="view" hidden>   <!-- Pillen + Stil: events.js -->
     <button class="x" data-act="close" aria-label="Schließen"><svg class="i"><use href="#x"/></svg></button>
     <div class="top"><span>Termine</span><time data-bind="time"></time></div>
@@ -837,7 +843,7 @@ input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:tr
 
 <script type="module">
 import { weatherFace, weather, weatherHours, weatherNear, COND } from './weather.js';
-import { energyFace, energy, energyDemo, energyInit, energyEnts } from './energy.js';
+import { energyFace, energy, energyDemo, energyInit, energyEnts, energyDetail } from './energy.js';
 import { kioskInit, KIOSK_DEF, luxLevel } from './kiosk.js';
 import { shot } from './shot.js';
 import { ICON, moveTo, normFaces, pack, rows } from './faces.js';
@@ -1504,7 +1510,7 @@ const call = (domain, service, data) => LIVE ? conn.sendMessagePromise({ type: '
 // Service mit Antwort (z. B. sonos.get_queue)
 const ask = (domain, service, data) => conn.sendMessagePromise({ type: 'call_service', domain, service, service_data: data, return_response: true }).then(r => r.response);
 // Energie-Tageskurven: HA-History per WebSocket (nur lesend); Demo simuliert selbst
-energyInit((ids, start) => LIVE && conn ? conn.sendMessagePromise({ type: 'history/history_during_period', start_time: start.toISOString(), entity_ids: ids, minimal_response: true, no_attributes: true, significant_changes_only: false }) : null);
+energyInit((ids, start) => LIVE && conn ? conn.sendMessagePromise({ type: 'history/history_during_period', start_time: start.toISOString(), entity_ids: ids, minimal_response: true, no_attributes: true, significant_changes_only: false }) : null, { call, close: () => close() });   // Detail: Lademodus/-limit live über call (Demo ruft nie), Wisch runter/Escape schließt
 
 // Modus-Menü der Klima-Ansicht: Reihenfolge wie im Video (Off, Cool, Heat, Auto), weitere HA-Modi dahinter
 const HVAC = { off: 'Aus', cool: 'Kühlen', heat: 'Heizen', heat_cool: 'Auto', auto: 'Auto', dry: 'Entfeuchten', fan_only: 'Lüften' };
@@ -2363,7 +2369,7 @@ document.addEventListener('pointerdown', e => {
   if ($('#climate .hm.open') && !e.target.closest('.hm')) { modeMenu(false); suppress = true; return; }   // Modus-Menü: Tipp daneben schließt nur (y-MO 156 s)
   const ch = e.target.closest('[data-act=up],[data-act=down]');
   if (ch) { bump(ch); suppress = true; return; }   // Wert ändert sich bei Touch-down (Apple, STEUERUNG.md P2-4)
-  if (e.target.closest('#climate .x, #dimmer .x')) { suppress = true; setTimeout(close, 50); return; }   // ✕: Scheibe, Schließen 1-2 Frames später, Finger noch drauf (Engadget 152 s, AppleInsider 266,6 s; STEUERUNG P2-4)
+  if (e.target.closest('#climate .x, #dimmer .x, #edet .x')) { suppress = true; setTimeout(close, 50); return; }   // ✕: Scheibe, Schließen 1-2 Frames später, Finger noch drauf (Engadget 152 s, AppleInsider 266,6 s; STEUERUNG P2-4)
   if (cur) return;
   if (!e.target.closest('.face') || e.target.closest('.pop')) return;
   const ll = e.target.closest('.ly .lyrics')?.firstElementChild;
@@ -2447,6 +2453,7 @@ document.addEventListener('click', e => {
   else if (act === 'qplay') NP && call(LIVE ? 'sonos' : 'media_player', 'play_queue', { entity_id: NP, queue_position: +b.dataset.v });
   else if (act === 'cam') st(b.dataset.e).state === 'unavailable' ? shake(b) : open(b, 'cam');
   else if (act === 'events') openEvents(b);
+  else if (act === 'edet') { energyDetail(b.dataset.v, b); open(b, 'edet'); }   // Energie-Kachel → Detail-Vollbild (FLIP wie Klima/Licht)
   else if (act === 'toggle') st(b.dataset.e).state === 'unavailable' ? shake(b) : TAP[b.dataset.e.split('.')[0]]?.(b, b.dataset.e);   // Licht im Klingel-Bild / Kameras-Face
   else if (act === 'avatars') b.closest('.greet').classList.toggle('fan');
   else if (act === 'avpick') { who = b.dataset.v; try { localStorage.hb_person = who; } catch {} b.closest('.greet').classList.remove('fan'); render(); }
