@@ -38,7 +38,7 @@ export async function loadEntities(conn, states) {
   EN = states.map(s => {
     const id = s.entity_id, r = reg[id] || {}, d = dev[r.device_id], a = s.attributes;
     return { id, domain: id.split('.')[0], name: a.friendly_name || id, area: area[r.area_id || d?.area_id] || '', device: d ? d.name_by_user || d.name || '' : '',
-      state: s.state, unit: a.unit_of_measurement, dc: a.device_class, attrs: Object.keys(a).filter(k => !SKIP.has(k) && ['number', 'string'].includes(typeof a[k])), hide: !!(r.disabled_by || r.hidden_by || r.entity_category) };
+      state: s.state, unit: a.unit_of_measurement, dc: a.device_class, attrs: Object.keys(a).filter(k => !SKIP.has(k) && ['number', 'string'].includes(typeof a[k])), hide: !!(r.disabled_by || r.hidden_by || r.entity_category || r.platform === 'homeblick') };   // eigene Entities der Displays (Bildschirm, Screensaver …) gehören nicht auf Kacheln
   });
   BY = new Map(EN.map(e => [e.id, e]));
 }

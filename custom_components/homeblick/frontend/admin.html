@@ -174,6 +174,7 @@ textarea.r{text-align:right}
 .gcard svg{position:absolute;right:11px;top:11px;width:24px;height:24px;stroke:#fff;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.gcard b{font-size:14px;line-height:1.2;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.gcard small{font-size:12px;opacity:.8}
 .gdots{display:flex;justify-content:center;gap:7px;padding:10px 0 12px}.gdots i{width:7px;height:7px;border-radius:50%;background:var(--sec);opacity:.35;transition:opacity .2s,scale .2s}.gdots .on{opacity:1;scale:1.15;background:var(--fg)}
 .gent{width:100%;background:var(--glass);border-radius:14px;margin-bottom:12px}
+.tcard{display:flex;justify-content:center;padding:6px 0 18px}.tcard .gcard{background:linear-gradient(160deg,color-mix(in srgb,var(--c) 62%,#fff),var(--c))}
 .gadd{margin-top:auto;display:flex;align-items:center;justify-content:center;height:52px;border-radius:26px;color:#fff;font-size:17px;font-weight:600;transition:scale .25s var(--spring),opacity .2s}.gadd:active{scale:.97}.gadd[disabled]{opacity:.4}
 #wz{max-height:calc(100dvh - 20px);overflow-y:auto}#wz h3{margin:0;padding:16px 16px 4px;font-size:22px}#wz .sh{padding-top:12px}#wz .pkc{flex-wrap:wrap;padding:10px 14px}
 #wz .ck{width:20px;height:20px;color:var(--blue);opacity:0;transition:opacity .2s}#wz .on>.ck{opacity:1}
@@ -413,6 +414,7 @@ async function camAction(a, i) {
 }
 
 // ---- Seiten ----
+let moreKey = '';   // Kachel, deren „Weitere Optionen“ offen sind (i.j)
 const pages = {
   display() {
     const d = cur(), s = d.settings, faces = cfg?.faces;
@@ -478,18 +480,20 @@ const pages = {
       + (a.do === 'service' ? field('Dienst', k + '.service', a.service || '', 'placeholder="light.turn_on" autocapitalize="off" autocorrect="off" spellcheck="false"', 'data-t') + field('Daten (JSON)', k + '.data', a.data ? JSON.stringify(a.data) : '', 'placeholder=\'{"brightness_pct":50}\' autocapitalize="off" autocorrect="off" spellcheck="false"', 'data-t') : '')
       + (a.do === 'face' ? pick('Face', k + '.face', faceList, a.face || faceList[0]?.[0], 'data-t') : ''); };
     const vals = [['', 'Keine'], ['state', 'Zustand'], ...(en?.attrs || []).map(a => [a, a])];
+    const open = moreKey === e.i + '.' + e.j;
     const body = `
-      <div class="hero"><span class="ico" style="background:${DOM[en?.domain]?.[1] || '#8e8e93'}">${xi(tileIcon(t))}</span><h2>${esc(tileTitle(t))}</h2><p>${esc(clock ? 'Uhr' : wx ? 'Wetter' : en ? en.name : t.e || '')}</p></div>
+      <div class="tcard"><div class="gcard" style="--c:${clock ? '#636366' : wx ? '#32ade6' : DOM[en?.domain]?.[1] || '#8e8e93'};width:${(t.w || 1) * 92 + ((t.w || 1) - 1) * 8}px;height:${(t.h || 1) * 92 + ((t.h || 1) - 1) * 8}px"><svg><use href="#x-${tileIcon(t)}"/></svg><b>${esc(tileTitle(t))}</b><small>${esc(t.sub || (clock ? 'Uhr' : wx ? 'Wetter' : en?.name || ''))}</small></div></div>
       ${grp('', (ent ? `<button class="row" data-a="tent"><span class="l">Entity</span><span class="v"><span class="two" style="align-items:flex-end;min-width:0"><span class="val" style="${t.e && !en ? 'color:var(--red)' : ''}">${esc(en?.name || t.e || 'Wählen …')}</span>${en ? `<small class="val">${esc(t.e)}</small>` : t.e ? '<small>nicht gefunden</small>' : ''}</span>${svg('chev')}</span></button>` : '')
         + (clock ? pick('Stil', 'cs', [['', 'Striche'], ['numbers', 'Zahlen'], ['digital', 'Digital']], t.cs || '', 'data-t') : '')
-        + (ent ? field('Titel', 'title', t.title, '', 'data-t') + field('Untertitel', 'sub', t.sub, '', 'data-t') + (t.kind === 'thermo' ? '' : pick('Zusätzlich anzeigen', 'val', t.val && !vals.some(v => v[0] === t.val) ? [...vals, [t.val, t.val]] : vals, t.val || '', 'data-t')) : ''),
-        ent && t.kind !== 'thermo' ? 'Zustand oder Attribut der Entity steht live hinter dem Untertitel.' : '')}
-      ${grp('Aussehen', (ent ? `<button class="row" data-a="ticon"><span class="l">Symbol</span><span class="v"><span class="ico" style="background:${DOM[en?.domain]?.[1] || '#8e8e93'}">${xi(tileIcon(t))}</span>${svg('chev')}</span></button>` : '')
-        + `<div class="seg" data-size>${SIZES.map(([v, n]) => `<button data-a="tsize" data-v="${v}" class="${sz === v ? 'on' : ''}">${n}</button>`).join('')}</div>`
+        + (ent ? field('Titel', 'title', t.title, '', 'data-t') : ''))}
+      ${grp('', `<div class="seg" data-size>${SIZES.map(([v, n]) => `<button data-a="tsize" data-v="${v}" class="${sz === v ? 'on' : ''}">${n}</button>`).join('')}</div>`
         + (ent ? `<div class="sw-grid">${COLORS.map(([v, n]) => `<button data-a="tcolor" data-v="${v}" class="${(t.color || '') === v ? 'on' : ''}"><i style="background:${v || 'linear-gradient(135deg,#d8d8dc,#8e8e93)'}"></i>${n}</button>`).join('')}</div>` : ''),
         placed ? (ent ? 'Größe in Rasterfeldern; die Farbe färbt das Symbol, wenn die Kachel an ist.' : 'Größe in Rasterfeldern.') : 'Kein Platz mehr im Raster: die Kachel wird nicht angezeigt.')}
-      ${ent && t.kind !== 'thermo' ? grp('Aktionen', act('tap', 'Tippen') + act('hold', 'Halten'), 'Standard: Licht schaltet, Halten öffnet den Dimmer; Schloss, Tor, Szene … wie bisher.') : ''}
-      ${grp('', `<button class="row red c" data-a="tdel">Kachel entfernen</button>`)}`;
+      ${ent ? grp('', `<button class="row" data-a="tmore"><span class="l">Weitere Optionen</span><span class="v">${svg(open ? 'down' : 'chev')}</span></button>`) : ''}
+      ${ent && open ? grp('', field('Untertitel', 'sub', t.sub, '', 'data-t') + (t.kind === 'thermo' ? '' : pick('Zusätzlich anzeigen', 'val', t.val && !vals.some(v => v[0] === t.val) ? [...vals, [t.val, t.val]] : vals, t.val || '', 'data-t'))
+        + `<button class="row" data-a="ticon"><span class="l">Symbol</span><span class="v"><span class="ico" style="background:${DOM[en?.domain]?.[1] || '#8e8e93'}">${xi(tileIcon(t))}</span>${svg('chev')}</span></button>`, t.kind !== 'thermo' ? 'Zustand oder Attribut der Entity steht live hinter dem Untertitel.' : '') : ''}
+      ${ent && open && t.kind !== 'thermo' ? grp('Aktionen', act('tap', 'Tippen') + act('hold', 'Halten'), 'Standard: Licht schaltet, Halten öffnet den Dimmer; Schloss, Tor, Szene … wie bisher.') : ''}
+      ${grp('', `<button class="row red c" data-a="tdel">Widget entfernen</button>`)}`;
     return { back: meta[0], title: tileTitle(t), body };
   },
 };
@@ -771,6 +775,7 @@ document.addEventListener('click', async e => {
   if (a === 'edit') { $('#app').dataset.ed = '1'; pvLoad(); setEdit(true); if (!ins) goFace(0); return; }
   if (a === 'edone') { $('#app').dataset.ed = '0'; return setEdit(false); }
   if (a === 'gal') return addFlow(faceIdx());
+  if (a === 'tmore') { const k = ins.i + '.' + ins.j; moreKey = moreKey === k ? '' : k; return redraw(); }
   if (a === 'faddsheet') {   // ausgeblendetes Face wieder einblenden oder neues anlegen
     const r = await overlay('sheet', `<div class="shs">${cfg.off?.length ? `<div class="grp">${cfg.off.map(f => `<button class="row btn c" data-r="show:${esc(f.id)}">${esc(faceName(f))} einblenden</button>`).join('')}</div>` : ''}<div class="grp" style="max-height:46vh;overflow-y:auto">${TYPES.map(([t, n]) => `<button class="row btn c" data-r="new:${t}">Neu: ${esc(n)}</button>`).join('')}</div><div class="grp"><button class="row btn c" data-r="" style="font-weight:600">Abbrechen</button></div></div>`);
     if (!r) return;
