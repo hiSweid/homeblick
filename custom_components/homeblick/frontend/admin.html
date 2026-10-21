@@ -56,6 +56,11 @@ svg{display:block}
 @media(min-width:820px){#shp{align-items:center}.shc{border-radius:28px}}
 .shc .page{background:var(--wall)}
 .nav .done{justify-self:end;color:var(--blue);font-weight:600;padding:10px 12px}
+.scar{margin:0 -16px 8px}
+.scs{display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;padding:8px calc(50% - 100px) 12px}.scs::-webkit-scrollbar{display:none}
+.scc{flex:none;width:200px;height:200px;scroll-snap-align:center;border-radius:28px;overflow:hidden;background:#000;box-shadow:0 8px 24px #0003;scale:.86;opacity:.55;cursor:pointer;transition:scale .35s var(--spring),opacity .2s}.scc.on{scale:1;opacity:1}
+.scc iframe{display:block;width:100%;height:100%;border:0;pointer-events:none}
+.scn{text-align:center;font-weight:600;font-size:17px;min-height:22px}
 .pks2{padding:12px 16px 4px;font-size:13px;text-transform:uppercase;color:var(--sec);letter-spacing:.2px}
 
 /* Seiten im Detail-Bereich */
@@ -419,6 +424,36 @@ async function camAction(a, i) {
   saveCams(); redraw();
 }
 
+// ---- Stil-Karussell: durch echte Vorschauen wischen statt Auswahlfeld ----
+// def = { items: [[Wert, Name]], cur, conf(v) → { conf, face }, pick(v) }; die Vorschauen sind ?preview-Frames und bleiben beim Neuzeichnen der Seite erhalten
+const cars = new Map();
+const carHTML = (key, def) => { cars.set(key, { ...cars.get(key), def }); return `<div class="scar" data-car="${esc(key)}"></div>`; };
+function carSend(c, win, v) { const { conf, face } = c.def.conf(v); win?.postMessage({ hb: 'preview', conf, face, edit: false, sel: -1, states: pvStates }, location.origin); }
+function carMount(el) {
+  for (const w of el.querySelectorAll('[data-car]')) {
+    const key = w.dataset.car, c = cars.get(key), d = c.def;
+    if (!c.node) {
+      const n = c.node = document.createElement('div'); n.className = 'scar';
+      n.innerHTML = `<div class="scs">${d.items.map(([v, nm]) => `<div class="scc" data-v="${esc(v)}"><iframe src="index.html?preview" title="${esc(nm)}" tabindex="-1"></iframe></div>`).join('')}</div><div class="scn"></div><div class="gdots">${d.items.map(() => '<i></i>').join('')}</div>`;
+      const sc = n.querySelector('.scs'), cards = [...sc.children], dots = [...n.querySelectorAll('.gdots i')];
+      c.cards = cards; c.sent = {};
+      const near = () => cards.reduce((b, x, i) => Math.abs(x.offsetLeft + x.offsetWidth / 2 - sc.scrollLeft - sc.clientWidth / 2) < Math.abs(cards[b].offsetLeft + cards[b].offsetWidth / 2 - sc.scrollLeft - sc.clientWidth / 2) ? i : b, 0);
+      c.mark = i => { cards.forEach((x, k) => x.classList.toggle('on', k === i)); dots.forEach((x, k) => x.classList.toggle('on', k === i)); n.querySelector('.scn').textContent = c.def.items[i][1]; };
+      c.go = (i, smooth) => sc.scrollTo({ left: cards[i].offsetLeft + cards[i].offsetWidth / 2 - sc.clientWidth / 2, behavior: smooth ? 'smooth' : 'instant' });
+      let tm;
+      sc.addEventListener('scroll', () => { const i = near(); c.mark(i); clearTimeout(tm); tm = setTimeout(() => { const v = c.def.items[i][0]; if (String(v) !== String(c.def.cur)) { c.def.cur = v; c.def.pick(v); } }, 150); }, { passive: true });
+      cards.forEach((x, i) => x.addEventListener('click', () => c.go(i, true)));
+      c.first = true;
+    }
+    w.replaceWith(c.node);
+    const i = Math.max(0, d.items.findIndex(x => String(x[0]) === String(d.cur)));
+    c.mark(i);
+    if (c.first) { c.first = false; requestAnimationFrame(() => c.go(i)); }
+    c.cards.forEach((f, k) => { const j = JSON.stringify(d.conf(d.items[k][0]).conf); if (c.sent[k] !== j && c.ready?.[k]) { c.sent[k] = j; carSend(c, f.firstElementChild.contentWindow, d.items[k][0]); } });
+  }
+}
+const carDrop = () => setTimeout(() => { if (!ins) for (const [k, c] of cars) { c.node?.remove(); cars.delete(k); } }, 500);
+
 // ---- Seiten ----
 let moreKey = '';   // Kachel, deren „Weitere Optionen“ offen sind (i.j)
 const pages = {
@@ -470,7 +505,7 @@ const pages = {
     };
     const body = `
       ${photo ? '' : grp('Hintergrund', `<div class="sw-grid">${BG.filter(([v]) => !['calendar', 'date'].includes(f.type) || ['auto', 'black', 'white'].includes(v)).map(([v, n]) => `<button data-a="bg" data-v="${v}" class="${String(v) === String(f.bg) ? 'on' : ''}"><i style="background:${bgCss(v)}"></i>${n}</button>`).join('')}</div>`)}
-      ${sty ? `<div class="sec"><div class="sh">Stil</div><div class="grp"><div class="seg">${sty.concat((LEGACY[f.type] || []).filter(([v]) => v === f.style)).map(([v, n]) => `<button data-a="style" data-v="${v}" class="${(f.style || sty[0][0]) === v ? 'on' : ''}">${n}</button>`).join('')}</div></div></div>` : ''}
+      ${sty ? `<div class="sec"><div class="sh">Stil</div>${carHTML('face:' + f.id, { items: sty.concat((LEGACY[f.type] || []).filter(([v]) => v === f.style)), cur: f.style || sty[0][0], conf: v => ({ conf: { ...cfg, faces: [{ ...f, style: v }] }, face: f.id }), pick: v => { cfg.faces[e.i].style = v; saveCfg(); } })}</div>` : ''}
       ${f.type === 'grid' ? (n => `<div class="sec"><div class="sh"><span>Kacheln</span></div><div class="grp">${(f.tiles || []).map(tileRow).join('')}<button class="row btn" data-a="tadd">${svg('plus', 'plus')}<span class="l">Widget hinzufügen</span></button></div>
         <div class="sf">${n ? `${n} Kachel${n > 1 ? 'n passen' : ' passt'} nicht mehr ins Raster und ${n > 1 ? 'werden' : 'wird'} nicht angezeigt. ` : ''}Ziehen in der Vorschau verschiebt, der Punkt unten rechts an einer Kachel ändert die Größe. Nachtvarianten bleiben erhalten.</div></div>`)(pack(f.tiles || [], rows(f)).filter(x => !x).length) : ''}
       ${f.type === 'cams' ? camsHTML() : ''}
@@ -495,7 +530,7 @@ const pages = {
     const body = `
       <div class="tcard"><div class="gcard" style="--c:${clock ? '#636366' : wx ? '#32ade6' : DOM[en?.domain]?.[1] || '#8e8e93'};width:${(t.w || 1) * 92 + ((t.w || 1) - 1) * 8}px;height:${(t.h || 1) * 92 + ((t.h || 1) - 1) * 8}px"><svg><use href="#x-${tileIcon(t)}"/></svg><b>${esc(tileTitle(t))}</b><small>${esc(t.sub || (clock ? 'Uhr' : wx ? 'Wetter' : en?.name || ''))}</small></div></div>
       ${grp('', (ent ? `<button class="row" data-a="tent"><span class="l">Entity</span><span class="v"><span class="two" style="align-items:flex-end;min-width:0"><span class="val" style="${t.e && !en ? 'color:var(--red)' : ''}">${esc(en?.name || t.e || 'Wählen …')}</span>${en ? `<small class="val">${esc(t.e)}</small>` : t.e ? '<small>nicht gefunden</small>' : ''}</span>${svg('chev')}</span></button>` : '')
-        + (clock ? pick('Stil', 'cs', [['', 'Striche'], ['numbers', 'Zahlen'], ['digital', 'Digital']], t.cs || '', 'data-t') : '')
+        + (clock ? `<div class="sh" style="margin-top:10px">Stil</div>` + carHTML(`clock:${e.i}.${e.j}`, { items: [['', 'Striche'], ['numbers', 'Zahlen'], ['digital', 'Digital']], cur: t.cs || '', conf: v => ({ conf: { ...cfg, faces: [{ type: 'grid', id: 'grid', bg: f.bg, tiles: [{ kind: 'clock', ...(v && { cs: v }), w: 2, h: 2 }] }] }, face: 'grid' }), pick: v => { const x = cfg.faces[e.i].tiles[e.j]; v ? x.cs = v : delete x.cs; saveCfg(); } }) : '')
         + (ent ? field('Titel', 'title', t.title, '', 'data-t') : ''))}
       ${grp('', `<div class="seg" data-size>${SIZES.map(([v, n]) => `<button data-a="tsize" data-v="${v}" class="${sz === v ? 'on' : ''}">${n}</button>`).join('')}</div>`
         + (ent ? `<div class="sw-grid">${COLORS.map(([v, n]) => `<button data-a="tcolor" data-v="${v}" class="${(t.color || '') === v ? 'on' : ''}"><i style="background:${v || 'linear-gradient(135deg,#d8d8dc,#8e8e93)'}"></i>${n}</button>`).join('')}</div>` : ''),
@@ -515,6 +550,7 @@ function fill(el, e, keep) {
   const p = pages[e.t](e), sc = keep ? el.querySelector('.body')?.scrollTop || 0 : 0;
   el.innerHTML = `<header class="nav"><div>${p.back ? `<button class="back" data-a="back">${svg('chev', '')}<span>${esc(p.back)}</span></button>` : ''}</div><b class="ttl">${esc(p.title)}</b><button class="done" data-a="sclose">Fertig</button></header><div class="body">${p.body}</div>`;
   el.querySelector('.body').scrollTop = sc;
+  carMount(el);
   queueMicrotask(pvSend);
 }
 const refresh = () => ins && fill($('#ins'), ins, true);
@@ -523,6 +559,7 @@ function setIns(e) {
   ins = e;
   if (e) fill($('#ins'), e);
   $('#shp').classList.toggle('in', !!e);
+  if (!e) carDrop();
   pvSend();
 }
 $('#shp').addEventListener('click', e => e.target === e.currentTarget && setIns(null));
@@ -607,6 +644,10 @@ function pvSend() {
 }
 addEventListener('message', async e => {
   const m = e.data;
+  if (e.origin === location.origin && m?.hb === 'preview-ready' && e.source !== pvf.contentWindow) {   // Vorschau eines Karussells
+    for (const c of cars.values()) { const k = c.cards?.findIndex(x => x.firstElementChild.contentWindow === e.source); if (k >= 0) { (c.ready ||= {})[k] = true; c.sent[k] = JSON.stringify(c.def.conf(c.def.items[k][0]).conf); carSend(c, e.source, c.def.items[k][0]); } }
+    return;
+  }
   if (e.source !== pvf.contentWindow || e.origin !== location.origin) return;
   if (m?.hb === 'preview-ready') {
     pvReady = true; pvConf = ''; pvFace = ''; pvEd = null; pvSel = -2;

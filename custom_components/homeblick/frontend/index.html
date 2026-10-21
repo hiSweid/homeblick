@@ -877,14 +877,27 @@ if (PREVIEW) {
   // Zelle unter der Mitte der ersten Zelle der gezogenen Kachel (ihre sichtbare Lage mit Verschiebung)
   const to = (t, f) => { const face = t.closest('.face'), r = t.getBoundingClientRect(), u = parseFloat(getComputedStyle(face).gridTemplateColumns) / 2; return cellAt(f, face, r.left + u, r.top + u); };
   // Kacheln nach f neu setzen; alle außer skip gleiten mit Feder von der alten an die neue Stelle (FLIP)
+  const glide = (t, a) => {   // Kachel t gleitet mit Feder von der Lage/Größe a (Rect) an ihre jetzige
+    const r = t.getBoundingClientRect(), dx = a.left - r.left, dy = a.top - r.top, sx = a.width / r.width, sy = a.height / r.height;
+    if (Math.abs(dx) + Math.abs(dy) > .5 || Math.abs(sx - 1) + Math.abs(sy - 1) > .01) t.animate([{ translate: `${dx}px ${dy}px`, scale: `${sx} ${sy}`, transformOrigin: '0 0' }, { translate: '0 0', scale: '1 1', transformOrigin: '0 0' }], { duration: SD, easing: SPRING });
+  };
   const flip = (face, f, skip) => {
     const ts = $$('[data-ti]', face), r0 = ts.map(t => t.getBoundingClientRect());
     place(face, f);
-    ts.forEach((t, i) => {
-      if (t === skip || t.hidden || !r0[i].width) return;
-      const r = t.getBoundingClientRect(), dx = r0[i].left - r.left, dy = r0[i].top - r.top, sx = r0[i].width / r.width, sy = r0[i].height / r.height;
-      if (Math.abs(dx) + Math.abs(dy) > .5 || Math.abs(sx - 1) + Math.abs(sy - 1) > .01) t.animate([{ translate: `${dx}px ${dy}px`, scale: `${sx} ${sy}`, transformOrigin: '0 0' }, { translate: '0 0', scale: '1 1', transformOrigin: '0 0' }], { duration: SD, easing: SPRING });
-    });
+    ts.forEach((t, i) => { if (t !== skip && !t.hidden && r0[i].width) glide(t, r0[i]); });
+  };
+  // Face i neu aufbauen (die Einstellungsseite hat die Konfiguration geändert): Kacheln gleiten von ihrer bisherigen Lage an die neue, eine neue ploppt auf
+  const keep = i => {
+    const tk = t => { const n = (tk.n[t._t.e + '|' + (t._t.kind || '')] = (tk.n[t._t.e + '|' + (t._t.kind || '')] || 0) + 1); return t._t.e + '|' + (t._t.kind || '') + '|' + n; };
+    tk.n = {};
+    const old = faces.children[i], r0 = new Map($$('[data-ti]', old).filter(t => !t.hidden).map(t => [tk(t), t.getBoundingClientRect()]));
+    rerender(i);
+    tk.n = {};
+    for (const t of $$('[data-ti]', faces.children[i])) {
+      const a = r0.get(tk(t));
+      if (a) glide(t, a);
+      else if (r0.size && !t.hidden) t.animate([{ scale: .5, opacity: 0 }, { scale: 1, opacity: 1 }], { duration: SD, easing: SPRING });
+    }
   };
   // gezogene Kachel unter dem Zeiger halten (offsetLeft/Top = Lage im Raster ohne Verschiebung)
   const follow = (e) => { g.t.style.transform = `translate(${e.clientX - g.x + g.ox - g.t.offsetLeft}px,${e.clientY - g.y + g.oy - g.t.offsetTop}px) scale(1.06)`; };
@@ -966,7 +979,14 @@ if (PREVIEW) {
         if (up && (s[0] !== g.w0 || s[1] !== g.h0)) post({ hb: 'resize', face: g.f.id, j: g.j, w: s[0], h: s[1] });
         else flip(g.face, g.f);
       }
-      else if (g.hm) { if (up && !moved) post({ hb: 'remove', face: g.f.id, j: g.j }); }
+      else if (g.hm) {
+        if (up && !moved) {   // Kachel schrumpft weg, die anderen rücken mit Feder nach; danach erst die Konfiguration ändern
+          const t = g.t, area = t.style.gridArea, fid = g.f.id, j = g.j;
+          flip(g.face, { ...g.f, tiles: g.f.tiles.filter(x => x !== t._t) }, t);
+          t.hidden = false; t.style.gridArea = area; t.style.pointerEvents = 'none';
+          t.animate([{ scale: 1, opacity: 1, rotate: '0deg' }, { scale: .3, opacity: 0, rotate: '-8deg' }], { duration: 260, easing: 'cubic-bezier(.4,0,.8,.4)', fill: 'forwards' }).finished.then(() => post({ hb: 'remove', face: fid, j }));
+        }
+      }
       else if (!edit) { /* außerhalb des Bearbeiten-Modus tut ein Tippen nichts; langes Drücken öffnet das Menü */ }
       else if (!g.t) { if (up && swipe(e)) { /* Face wechseln */ } else if (up && !moved) post({ hb: 'empty', face: g.f.id, cell: cellAt(g.f, g.face, e.clientX, e.clientY) }); }   // leere Stelle: Widget hinzufügen
       else if (g.on) {   // loslassen: Kachel gleitet an ihren Platz
@@ -990,7 +1010,7 @@ if (PREVIEW) {
       const old = CONF.faces, k = { idle: 0, kz: false };
       CONF = { ...m.conf, kiosk: k };
       evList = null;   // Kalender-Auswahl kann sich geändert haben
-      if (old.length === CONF.faces.length && old.every((f, i) => f.id === CONF.faces[i].id)) CONF.faces.forEach((f, i) => JSON.stringify(f) !== JSON.stringify(old[i]) && rerender(i));
+      if (old.length === CONF.faces.length && old.every((f, i) => f.id === CONF.faces[i].id)) CONF.faces.forEach((f, i) => JSON.stringify(f) !== JSON.stringify(old[i]) && (f.type === 'grid' ? keep(i) : rerender(i)));
       else renderAll(0);
     }
     if (m.face) { const i = CONF.faces.findIndex(f => f.id === m.face); if (i >= 0 && i !== idx()) faces.go(i, !m.anim); }
