@@ -32,14 +32,18 @@ svg{display:block}
 .lt{font:700 34px/1.15 -apple-system,Inter,system-ui,sans-serif;letter-spacing:.2px;margin:18px 4px 2px}
 .lsub{color:var(--sec);margin:0 4px 18px}
 
-/* Vorschau: nur auf breiten Fenstern, eigene Spalte */
+/* Vorschau + Inspektor: nur auf breiten Fenstern, eigene Spalte */
 #pv{display:none}
 @media(min-width:1180px){
-  #app{grid-template-columns:340px 1fr 440px}
-  #pv{display:flex;flex-direction:column;gap:12px;align-items:stretch;padding:max(env(safe-area-inset-top),20px) 20px;border-left:.5px solid var(--sep);overflow-y:auto}
+  #app{grid-template-columns:340px 1fr 480px}
+  #pv{display:flex;flex-direction:column;gap:10px;align-items:stretch;padding:max(env(safe-area-inset-top),16px) 18px 18px;border-left:.5px solid var(--sep);overflow:hidden;min-height:0}
 }
-.pvh{display:flex;flex-direction:column;gap:2px;min-height:44px}.pvh b{font-size:17px;font-weight:600}.pvh small{color:var(--sec);font-size:13px}
-#pvf{width:100%;aspect-ratio:1;border:0;border-radius:28px;background:#000;box-shadow:0 8px 30px #0003}
+.pvh{display:flex;flex-direction:column;gap:2px}.pvh b{font-size:17px;font-weight:600}
+#pvf{flex:none;width:min(100%,max(300px,calc(100dvh - 470px)));aspect-ratio:1;align-self:center;border:0;border-radius:28px;background:#000;box-shadow:0 8px 30px #0003}
+#pvfaces{flex:none;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:2px 0}
+#pvfaces button{flex:none;padding:6px 12px;border-radius:16px;background:var(--fill);font-size:14px;white-space:nowrap}#pvfaces .on{background:var(--blue);color:#fff}
+#insw{position:relative;flex:1;min-height:0;border-radius:22px;overflow:hidden;border:.5px solid var(--sep)}
+.insh{padding:26px 20px;color:var(--sec);font-size:15px;text-align:center}
 
 /* Seiten im Detail-Bereich */
 .page{position:absolute;inset:0;display:flex;flex-direction:column;background:var(--wall) fixed;transition:transform var(--sd) var(--spring),opacity .3s}
@@ -205,7 +209,7 @@ textarea.r{text-align:right}
 <div id="app" data-open="0">
   <aside id="side"></aside>
   <main id="pane"></main>
-  <aside id="pv"><div class="pvh"><b id="pvt"></b><small>Kacheln ziehen zum Verschieben, antippen zum Bearbeiten.</small></div><iframe id="pvf" title="Vorschau"></iframe></aside>
+  <aside id="pv"><div class="pvh"><b id="pvt"></b></div><iframe id="pvf" title="Vorschau"></iframe><div id="pvfaces"></div><div id="insw"><section class="page" id="ins"></section></div></aside>
 </div>
 <div id="toast"></div>
 
@@ -363,17 +367,17 @@ function camEdit(t) {
     const x = c.list[+t.closest('[data-ci]').dataset.ci], old = x.entity;
     const had = !!x.go2rtc;
     x[t.dataset.cam] = t.value.trim();
-    if (t.dataset.cam === 'go2rtc' && had !== !!x.go2rtc) { saveCams(); return fill(top(), stack.at(-1)); }   // Feld „go2rtc-Stream“ ein-/ausblenden
+    if (t.dataset.cam === 'go2rtc' && had !== !!x.go2rtc) { saveCams(); return redraw(); }   // Feld „go2rtc-Stream“ ein-/ausblenden
     if (t.dataset.cam === 'entity' && c.bell?.camera === old) c.bell.camera = x.entity;   // Klingel folgt der getauschten Kamera
     saveCams();
-    if (t.dataset.cam === 'entity') fill(top(), stack.at(-1));   // Auswahl „Kamera der Klingel“ neu aufbauen
+    if (t.dataset.cam === 'entity') redraw();   // Auswahl „Kamera der Klingel“ neu aufbauen
     return;
   }
   saveCams();
 }
 async function camAction(a, i) {
   const c = camState.cameras;
-  if (a === 'creset') { clearTimeout(cst); await guard(call('set_cameras', { cameras: null })); camState = await call('cameras'); return fill(top(), stack.at(-1)); }
+  if (a === 'creset') { clearTimeout(cst); await guard(call('set_cameras', { cameras: null })); camState = await call('cameras'); return redraw(); }
   if (a === 'cadd') {
     const e = (camEnts.find(k => !c.list.some(x => x.entity === k[0])) || [])[0];
     if (!e) return toast(camEnts.length ? 'Alle Kameras sind schon in der Liste' : 'Keine Kamera in Home Assistant', true);
@@ -381,7 +385,7 @@ async function camAction(a, i) {
     c.list.push({ entity: e, name: '', light: '' });
   } else if (a === 'cup' || a === 'cdown') swap(c.list, i, i + (a === 'cup' ? -1 : 1));
   else if (a === 'cdel') { const [x] = c.list.splice(i, 1); if (c.bell?.camera === x.entity) c.bell.camera = ''; }
-  saveCams(); fill(top(), stack.at(-1));
+  saveCams(); redraw();
 }
 
 // ---- Seiten ----
@@ -481,12 +485,13 @@ const pages = {
 const pane = () => $('#pane');
 function fill(el, e) {
   const p = pages[e.t](e), sc = el.querySelector('.body')?.scrollTop || 0;
+  if (el.id === 'ins' && e.t === 'face') p.back = null;
   el.innerHTML = `<header class="nav"><div>${p.back ? `<button class="back" data-a="back">${svg('chev', '')}<span>${esc(p.back)}</span></button>` : ''}</div><b class="ttl">${esc(p.title)}</b><div></div></header><div class="body">${p.body}</div>`;
   el.querySelector('.body').scrollTop = sc;
   queueMicrotask(pvSend);
 }
 const top = () => pane().lastElementChild;
-const refresh = () => stack.forEach((e, i) => fill(pane().children[i], e));
+const refresh = () => { stack.forEach((e, i) => fill(pane().children[i], e)); if (wideIns() && ins) fill($('#ins'), ins); };
 function push(e, animate = true) {
   const el = Object.assign(document.createElement('section'), { className: 'page' });
   fill(el, e); if (stack.length) pane().children[stack.length - 1].classList.add('under');
@@ -506,7 +511,7 @@ async function open(id) {
   sel = id;
   cfg = (await call('get_config', { display: id })).config;
   pane().replaceChildren(); stack = [];
-  push({ t: 'display' }, false);
+  push({ t: 'display' }, false); setIns(null);
   if (!wide()) $('#app').dataset.open = '1'; else pane().firstElementChild.animate([{ opacity: 0 }, { opacity: 1 }], 200);
   renderSide();
 }
@@ -520,16 +525,31 @@ async function reload() {
 // ---- Eingaben ----
 // ---- Vorschau: index.html?preview im iframe (Konfiguration und Zustände per postMessage, Ziehen/Antippen kommt zurück) ----
 const pvf = $('#pvf');
-let pvReady = false, pvConf = '', pvFace = '', pvStates = {};
+let pvReady = false, pvConf = '', pvFace = '', pvSel = -2, pvStates = {};
+// Auf breiten Fenstern liegen Face- und Kachelseiten nicht im Seitenstapel, sondern im Inspektor unter der Vorschau (ins = { t: 'face', i } | { t: 'tile', i, j } | null)
+let ins = null;
+const wideIns = () => matchMedia('(min-width:1180px)').matches;
+const ctx = () => wideIns() ? ins : stack.at(-1);
+const redraw = () => wideIns() ? ins && fill($('#ins'), ins) : fill(top(), stack.at(-1));
+function setIns(e) {
+  ins = e;
+  if (e) fill($('#ins'), e);
+  else { $('#ins').innerHTML = '<div class="body"><div class="insh">Tippe in der Vorschau eine Kachel an, um sie zu bearbeiten, oder eine leere Stelle, um eine hinzuzufügen. Mit den Knöpfen darüber wechselst du das Face und stellst Hintergrund und Stil ein.</div></div>'; pvSend(); }
+}
+const goFace = i => wideIns() ? setIns({ t: 'face', i }) : push({ t: 'face', i });
+const goTile = (i, j) => wideIns() ? setIns({ t: 'tile', i, j }) : push({ t: 'tile', i, j });
 const pvPost = m => pvf.contentWindow?.postMessage({ hb: 'preview', ...m }, location.origin);
 function pvSend() {
-  if (!pvReady || !cfg || !wide()) return;
-  const m = {}, j = JSON.stringify(cfg.faces), top = stack.at(-1), f = top?.i != null ? cfg.faces[top.i] : cfg.faces.find(x => x.id === pvFace) || cfg.faces[0];
+  if (!pvReady || !cfg || !wideIns()) return;
+  const c = ctx(), f = c?.i != null ? cfg.faces[c.i] : cfg.faces.find(x => x.id === pvFace) || cfg.faces[0], sel = c?.j ?? -1;
+  const m = {}, j = JSON.stringify(cfg.faces);
   if (j !== pvConf) { pvConf = j; m.conf = cfg; }
   if (f && f.id !== pvFace) { pvFace = f.id; m.face = f.id; }
   if (m.conf) m.face = pvFace;
+  if (sel !== pvSel || m.conf) { pvSel = sel; m.sel = sel; }
   if (Object.keys(m).length) pvPost(m);
   $('#pvt').textContent = `${cur()?.name || ''}${f ? ' · ' + (FACE[f.type]?.[0] || f.type) : ''}`;
+  $('#pvfaces').innerHTML = cfg.faces.map(x => `<button data-pf="${esc(x.id)}" class="${x.id === f?.id ? 'on' : ''}">${esc((FACE[x.type]?.[0] || x.type) + (x.id !== x.type ? ' ' + x.id.replace(x.type, '') : ''))}</button>`).join('');
 }
 // Kachel j so einsortieren, dass sie auf Rasterzelle (r, c) landet; sonst die nächstliegende mögliche Stelle
 function moveTo(tiles, j, [r, c], n) {
@@ -549,22 +569,39 @@ addEventListener('message', async e => {
   if (m?.hb === 'preview-ready') {
     pvReady = true; pvConf = ''; pvFace = '';
     pvPost({ states: pvStates }); pvSend();
-  } else if (m?.hb === 'move' || m?.hb === 'tile') {
+  } else if (m?.hb === 'move' || m?.hb === 'tile' || m?.hb === 'empty') {
     const i = cfg?.faces.findIndex(x => x.id === m.face);
     if (i < 0 || i == null) return;
     const f = cfg.faces[i];
-    if (m.hb === 'move') { f.tiles = moveTo(f.tiles, m.j, m.cell, rows(f)); pvConf = ''; saveCfg(); return refresh(); }
-    const top = stack.at(-1);
-    if (top.t === 'tile' && top.i === i && top.j === m.j) return;
-    if (top.t === 'tile') await pop();
-    if (stack.at(-1).t === 'display') push({ t: 'face', i }, false);
-    push({ t: 'tile', i, j: m.j });
+    if (m.hb === 'move') { const tm = f.tiles[m.j]; f.tiles = moveTo(f.tiles, m.j, m.cell, rows(f)); ins = { t: 'tile', i, j: f.tiles.indexOf(tm) }; pvConf = ''; saveCfg(); return refresh(); }
+    if (m.hb === 'tile') return setIns({ t: 'tile', i, j: m.j });
+    // leere Stelle: nur wenn keine Kachel dort liegt
+    const n = rows(f);
+    if (pack(f.tiles, n).some((p, k) => p && m.cell[0] >= p[0] && m.cell[0] < p[0] + (f.tiles[k].h || 1) && m.cell[1] >= p[1] && m.cell[1] < p[1] + (f.tiles[k].w || 1))) return;
+    const t = await addTile(f, m.cell);
+    if (t) { saveCfg(); setIns({ t: 'tile', i, j: f.tiles.indexOf(t) }); }
   }
 });
 // Zustände für die Vorschau (Namen, Werte, Symbole echter Entities); alle 15 s nachziehen
 const pvStatesLoad = () => conn.sendMessagePromise({ type: 'get_states' }).then(a => { pvStates = Object.fromEntries(a.map(x => [x.entity_id, x])); pvPost({ states: pvStates }); }).catch(() => {});
 if (matchMedia('(min-width:1180px)').matches) pvf.src = 'index.html?preview';
 addEventListener('resize', () => { if (!pvf.getAttribute('src') && matchMedia('(min-width:1180px)').matches) pvf.src = 'index.html?preview'; });
+
+// Neue Kachel: erst die Art (Uhr und Wetter brauchen keine Entity), sonst Entity per Picker; mit cell auf diese Rasterzelle
+async function addTile(f, cell) {
+  const k = await overlay('sheet', `<div class="shs"><div class="grp">${[['entity', 'Entity …'], ['clock', 'Analoguhr'], ['digital', 'Digitaluhr'], ['wx', 'Wetter']].map(([v, n]) => `<button class="row btn c" data-r="${v}">${n}</button>`).join('')}</div><div class="grp"><button class="row btn c" data-r="" style="font-weight:600">Abbrechen</button></div></div>`);
+  if (!k) return null;
+  let t;
+  if (k === 'entity') {
+    const en = await pickEntity({ title: 'Entity der Kachel', domains: TILE_DOM });
+    if (!en) return null;
+    t = { e: en.id, title: autoTitle(en), sub: en.area };
+    if (en.domain === 'sensor' || en.domain === 'binary_sensor') t.val = 'state';
+  } else t = k === 'wx' ? { kind: 'wx' } : { kind: 'clock', ...(k === 'digital' && { cs: 'digital' }) };
+  f.tiles.push(t);
+  if (cell) f.tiles = moveTo(f.tiles, f.tiles.length - 1, cell, rows(f));
+  return t;
+}
 
 // Domains, die eine Kachel bedienen kann (TAP in index.html)
 const TILE_DOM = ['light', 'switch', 'input_boolean', 'lock', 'cover', 'climate', 'scene', 'script', 'media_player', 'fan', 'timer', 'camera', 'button', 'input_button', 'sensor', 'binary_sensor'];
@@ -612,14 +649,14 @@ document.addEventListener('change', async e => {
     cfg[to].push(...cfg[from].splice(i, 1)); normFaces(cfg); saveCfg(); refresh();
   } else if (t.dataset.cam || t.dataset.bell) camEdit(t);
   else if (t.dataset.t) {   // Kachel-Seite: Pfad wie „tap.service“
-    const at = stack.at(-1), tl = cfg.faces[at.i].tiles[at.j], k = t.dataset.t, [o, p] = k.split('.');
+    const at = ctx(), tl = cfg.faces[at.i].tiles[at.j], k = t.dataset.t, [o, p] = k.split('.');
     let v = t.value.trim();
     if (p === 'do') { if (v === 'default') delete tl[o]; else tl[o] = { do: v, ...(v === 'face' && { face: cfg.faces[0].id }) }; }
     else if (p === 'data') {
       try { v = v ? JSON.parse(v) : undefined; if (v && (typeof v !== 'object' || Array.isArray(v))) throw 0; } catch { return toast('Daten müssen ein JSON-Objekt sein', true); }
       setPath(tl, k, v);
     } else setPath(tl, k, k === 'title' || k === 'sub' || v ? v : undefined);
-    saveCfg(); if (p === 'do' || k === 'val') fill(top(), at);
+    saveCfg(); if (p === 'do' || k === 'val') redraw();
   }
   else if (t.dataset.area !== undefined) { area = t.value; renderSide(); }
   else if (t.dataset.allface !== undefined) { if (t.value) all({ action: 'face', face: t.value, ...dur() }); t.value = ''; t.closest('.pick').querySelector('.val').textContent = 'Wählen …'; }
@@ -630,9 +667,10 @@ document.addEventListener('click', async e => {
   const b = e.target.closest('button');
   if (!b) return;
   if (b.dataset.d) return open(b.dataset.d);
+  if (b.dataset.pf) return goFace(cfg.faces.findIndex(x => x.id === b.dataset.pf));
   if (b.dataset.all) return all({ action: b.dataset.all });
   if (b.dataset.alls !== undefined) { const v = !!+b.dataset.alls; return guard(Promise.all(inArea().map(x => (x.settings.dim = v, call('update', { display: x.id, settings: { dim: v } })))).then(() => { const d = cur(); if (d) refresh(); })).catch(() => {}); }
-  if (b.dataset.c) return guard(call('command', { display: sel, action: b.dataset.c, ...(b.dataset.c === 'face' && { face: cfg.faces[stack.at(-1).i].type }) })).catch(() => {});
+  if (b.dataset.c) return guard(call('command', { display: sel, action: b.dataset.c, ...(b.dataset.c === 'face' && { face: cfg.faces[ctx().i].type }) })).catch(() => {});
   if (b.dataset.ep) {
     const i = b.querySelector('input'), en = await pickEntity({ ...JSON.parse(b.dataset.ep), current: i.value });
     if (en) { i.value = en.id; i.dispatchEvent(new Event('change', { bubbles: true })); refresh(); }
@@ -640,7 +678,7 @@ document.addEventListener('click', async e => {
   }
   const a = b.dataset.a;
   if (!a) return;
-  if (a === 'back') { if (stack.length > 1) return pop(); $('#app').dataset.open = '0'; return; }
+  if (a === 'back') { if (b.closest('#ins')) return setIns({ t: 'face', i: ins.i }); if (stack.length > 1) return pop(); $('#app').dataset.open = '0'; return; }
   if (a === 'rm') {
     if (await ask(`„${cur().name}“ entfernen?`, 'Faces und Einstellungen gehen verloren. Das Gerät in Home Assistant bitte danach unter Geräte löschen.', 'Entfernen')) { await guard(call('remove', { display: sel })); sel = null; await reload(); }
     return;
@@ -661,41 +699,35 @@ document.addEventListener('click', async e => {
     b.disabled = false; return;
   }
   if (/^c(add|up|down|del|reset)$/.test(a)) return camAction(a, +b.closest('[data-ci]')?.dataset.ci);
-  if (a === 'face') return push({ t: 'face', i: +b.closest('[data-fi]').dataset.fi });
+  if (a === 'face') return goFace(+b.closest('[data-fi]').dataset.fi);
   // Face-Seite
-  const at = stack.at(-1), i = at.i, f = cfg.faces[i], tiles = f.tiles, j = at.j ?? +b.closest('[data-ti]')?.dataset.ti;
+  const at = ctx();
+  if (!at) return;
+  const i = at.i, f = cfg.faces[i], tiles = f.tiles, j = at.j ?? +b.closest('[data-ti]')?.dataset.ti;
   if (a === 'bg') f.bg = bgVal(b.dataset.v);
   else if (a === 'style') f.style = b.dataset.v;
-  else if (a === 'tile') return push({ t: 'tile', i, j });
+  else if (a === 'tile') return goTile(i, j);
   else if (a === 'tsize') { const t = tiles[j], [w, h] = b.dataset.v.split('x').map(Number); w > 1 ? t.w = w : delete t.w; h > 1 ? t.h = h : delete t.h; }
   else if (a === 'tcolor') b.dataset.v ? tiles[j].color = b.dataset.v : delete tiles[j].color;
   else if (a === 'ticon') {
     const t = tiles[j], r = await overlay('sheet', `<div class="shs"><div class="grp"><div class="ig">${ICONS.map(n => `<button data-r="${n}" class="${t.icon === n ? 'on' : ''}" aria-label="${n}">${xi(n)}</button>`).join('')}</div></div><div class="grp"><button class="row btn c" data-r="-">Standard-Symbol</button></div><div class="grp"><button class="row btn c" data-r="" style="font-weight:600">Abbrechen</button></div></div>`);
     if (!r) return; r === '-' ? delete t.icon : t.icon = r;
   }
-  else if (a === 'tadd' || a === 'tent') {
-    let t = a === 'tent' ? tiles[j] : null;
-    if (!t) {   // Art der Kachel; Uhr und Wetter brauchen keine Entity
-      const k = await overlay('sheet', `<div class="shs"><div class="grp">${[['entity', 'Entity …'], ['clock', 'Analoguhr'], ['digital', 'Digitaluhr'], ['wx', 'Wetter']].map(([v, n]) => `<button class="row btn c" data-r="${v}">${n}</button>`).join('')}</div><div class="grp"><button class="row btn c" data-r="" style="font-weight:600">Abbrechen</button></div></div>`);
-      if (!k) return;
-      if (k !== 'entity') { tiles.push(k === 'wx' ? { kind: 'wx' } : { kind: 'clock', ...(k === 'digital' && { cs: 'digital' }) }); saveCfg(); return fill(top(), at); }
-    }
-    const en = await pickEntity({ title: 'Entity der Kachel', domains: t?.kind === 'thermo' ? ['climate'] : TILE_DOM, current: t?.e });
+  else if (a === 'tadd') { const t = await addTile(f); if (!t) return; if (wideIns()) ins = { t: 'tile', i, j: f.tiles.indexOf(t) }; }
+  else if (a === 'tent') {
+    const t = tiles[j], en = await pickEntity({ title: 'Entity der Kachel', domains: t.kind === 'thermo' ? ['climate'] : TILE_DOM, current: t.e });
     if (!en) return;
-    if (!t) { t = { e: en.id, title: autoTitle(en), sub: en.area }; tiles.push(t); }
-    else {   // Titel/Untertitel mitführen, solange sie noch die Vorgabe der alten Entity sind
-      const old = entOf(t.e);
-      if (!t.title || t.title === 'Neu' || (old && t.title === autoTitle(old))) t.title = autoTitle(en);
-      if (!t.sub || t.sub === old?.area) t.sub = en.area;
-      t.e = en.id;
-      if (t.val && t.val !== 'state' && !en.attrs.includes(t.val)) delete t.val;
-      for (const x of ['tap', 'hold']) if (t[x]?.do === 'toggle' && !TOGGLE_DOM.includes(en.domain)) delete t[x];
-    }
+    const old = entOf(t.e);   // Titel/Untertitel mitführen, solange sie noch die Vorgabe der alten Entity sind
+    if (!t.title || t.title === 'Neu' || (old && t.title === autoTitle(old))) t.title = autoTitle(en);
+    if (!t.sub || t.sub === old?.area) t.sub = en.area;
+    t.e = en.id;
+    if (t.val && t.val !== 'state' && !en.attrs.includes(t.val)) delete t.val;
+    for (const x of ['tap', 'hold']) if (t[x]?.do === 'toggle' && !TOGGLE_DOM.includes(en.domain)) delete t[x];
     if (en.domain === 'sensor' || en.domain === 'binary_sensor') t.val ||= 'state';
   }
   else if (a === 'tup' || a === 'tdown') swap(tiles, j, j + (a === 'tup' ? -1 : 1));
-  else if (a === 'tdel') { tiles.splice(j, 1); saveCfg(); return pop(); }
-  saveCfg(); fill(top(), stack.at(-1));
+  else if (a === 'tdel') { tiles.splice(j, 1); saveCfg(); return wideIns() ? setIns({ t: 'face', i }) : pop(); }
+  saveCfg(); wideIns() ? (pvSend(), redraw()) : fill(top(), at);
 });
 
 // Gruppenaktion: Befehl an alle Displays, die gerade ein Panel offen haben
@@ -748,6 +780,7 @@ try {
   await reload();
   setInterval(() => { if (!document.hidden && !document.querySelector('input:focus,#ov')) poll(); }, 5000);
   matchMedia('(min-width:820px)').addEventListener('change', () => reload());
+  matchMedia('(min-width:1180px)').addEventListener('change', () => { if (wideIns() && !pvf.getAttribute('src')) pvf.src = 'index.html?preview'; reload(); });
 } catch (e) { $('#side').innerHTML = `<div class="lt">Homeblick</div>` + grp('', `<div class="row"><span class="l">Keine Verbindung zu Home Assistant (${esc(e?.message || e)}). Die Seite braucht ein Administrator-Konto.</span></div>`); }
 </script>
 </body>

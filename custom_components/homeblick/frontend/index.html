@@ -51,6 +51,7 @@ svg.i{width:1em;height:1em;flex:none;fill:none;stroke:currentColor;stroke-width:
 [data-e^="cover."]{--accent:#ff9500}[data-e^="media_player."]{--accent:#ff2d55}   /* Schloss/Ventilator an: Icon dunkel wie Titel (Vorlage y-MO 02750), kein Akzent */
 .tile.on[data-e^="fan."]{--fanplay:running}
 .tile.na{opacity:.45}
+.pvsel{outline:.8cqw solid #0a84ff;outline-offset:.5cqw}   /* Vorschau: in der Einstellungsseite gewählte Kachel */
 .tile[data-arm] .sub{font-size:0}.tile[data-arm] .sub::after{content:"Nochmal tippen";font-size:3cqw}
 /* Helle Variante (Website highlights/homeview, Pixelproben): flach ohne Schatten; Aus = hellgrau 232, An = Lavendel (198,194,227), Icon/Titel lila */
 .light .tile{background:#e8e8e8;box-shadow:none;color:#454546}.light .tile::before{display:none}.light .tile .sub{color:#828284}
@@ -866,16 +867,20 @@ if (PREVIEW) {
   const gesture = e => {
     e.stopImmediatePropagation(); e.preventDefault?.();
     const f = CONF.faces[idx()], face = faces.children[idx()];
-    if (e.type === 'pointerdown') { const t = e.target.closest?.('[data-ti]'); g = t && f?.type === 'grid' && face.contains(t) ? { t, x: e.clientX, y: e.clientY, on: false, f, face } : null; }
+    if (e.type === 'pointerdown') { const t = e.target.closest?.('[data-ti]'); g = f?.type === 'grid' && face.contains(e.target) ? { t: t && face.contains(t) ? t : null, x: e.clientX, y: e.clientY, on: false, f, face } : null; }
     else if (g && e.type === 'pointermove') {
       const dx = e.clientX - g.x, dy = e.clientY - g.y;
-      if (!g.on && Math.hypot(dx, dy) > 6) { g.on = true; g.t.style.cssText += ';z-index:9;transition:none'; }
+      if (g.t && !g.on && Math.hypot(dx, dy) > 6) { g.on = true; g.t.style.cssText += ';z-index:9;transition:none'; }
       if (g.on) { g.t.style.transform = `translate(${dx}px,${dy}px) scale(1.04)`; mark(g.face, g.f, g.t._t, to(g.t, g.f)); }
     }
     else if (g && (e.type === 'pointerup' || e.type === 'pointercancel')) {
-      const j = g.f.tiles.indexOf(g.t._t), c = g.on && e.type === 'pointerup' ? to(g.t, g.f) : null;
-      if (g.on) { g.t.style.transform = g.t.style.zIndex = g.t.style.transition = ''; g.face._hl?.remove(); g.face._hl = null; }
-      if (e.type === 'pointerup') parent.postMessage(c ? { hb: 'move', face: g.f.id, j, cell: c } : { hb: 'tile', face: g.f.id, j }, location.origin);
+      const up = e.type === 'pointerup';
+      if (!g.t) { if (up && Math.hypot(e.clientX - g.x, e.clientY - g.y) < 6) parent.postMessage({ hb: 'empty', face: g.f.id, cell: cellAt(g.f, g.face, e.clientX, e.clientY) }, location.origin); }   // leere Stelle: Kachel hinzufügen (die Einstellungsseite prüft, ob sie frei ist)
+      else {
+        const j = g.f.tiles.indexOf(g.t._t), c = g.on && up ? to(g.t, g.f) : null;
+        if (g.on) { g.t.style.transform = g.t.style.zIndex = g.t.style.transition = ''; g.face._hl?.remove(); g.face._hl = null; }
+        if (up) parent.postMessage(c ? { hb: 'move', face: g.f.id, j, cell: c } : { hb: 'tile', face: g.f.id, j }, location.origin);
+      }
       g = null;
     }
   };
@@ -891,6 +896,11 @@ if (PREVIEW) {
       else renderAll(0);
     }
     if (m.face) { const i = CONF.faces.findIndex(f => f.id === m.face); if (i >= 0 && i !== idx()) faces.go(i, true); }
+    if (m.sel !== undefined) {   // gewählte Kachel umranden
+      $$('.pvsel').forEach(x => x.classList.remove('pvsel'));
+      const t = CONF.faces[idx()]?.tiles?.[m.sel];
+      if (t) [...faces.children[idx()].querySelectorAll('[data-ti]')].find(x => x._t === t)?.classList.add('pvsel');
+    }
   });
   addEventListener('load', () => parent.postMessage({ hb: 'preview-ready' }, location.origin));
 }
