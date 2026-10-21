@@ -2005,14 +2005,17 @@ function rerender(i) {
 {
   let g = null;
   const scroller = t => { for (let e = t; e && e !== document.body; e = e.parentElement) { if (e.id === 'faces') return null; const o = getComputedStyle(e).overflowY; if ((o === 'auto' || o === 'scroll') && e.scrollHeight > e.clientHeight + 2) return e; } return null; };
-  addEventListener('pointerdown', e => { const s = e.pointerType === 'mouse' ? null : scroller(e.target); g = s && { s, id: e.pointerId, x: e.clientX, y: e.clientY, t: s.scrollTop, on: false }; }, true);
+  addEventListener('pointerdown', e => { const s = e.button || (e.pointerType === 'mouse' && e.target.matches('input[type=range]')) ? null : scroller(e.target); g = s && { s, id: e.pointerId, x: e.clientX, y: e.clientY, t: s.scrollTop, on: false, mouse: e.pointerType === 'mouse' }; }, true);   // auch Maus: Kioske/Fernzugriffe liefern Touch oft als Mausklick-Ziehen
   addEventListener('pointermove', e => {
     if (!g || e.pointerId !== g.id) return;
+    if (g.mouse && !e.buttons) return void (g = null);
     const dy = e.clientY - g.y;
     if (!g.on) { if (Math.abs(dy) < 8 || Math.abs(dy) < Math.abs(e.clientX - g.x)) return; g.on = true; }
     g.s.scrollTop = g.t - dy;
   }, true);
-  for (const n of ['pointerup', 'pointercancel']) addEventListener(n, () => g = null, true);
+  for (const n of ['pointerup', 'pointercancel']) addEventListener(n, () => { if (g?.on && g.mouse) dragEnd = Date.now(); g = null; }, true);
+  let dragEnd = 0;
+  addEventListener('click', e => { if (Date.now() - dragEnd < 300) { e.stopImmediatePropagation(); e.preventDefault(); } }, true);   // Ziehen mit der Maus soll keinen Eintrag antippen
 }
 // Face-Pager (STEUERUNG.md P1-1): Karte folgt dem Finger 1:1 (Touch + Maus), Auslauf = kritisch gedämpfte Feder mit Übernahme der Fingergeschwindigkeit
 // ponytail: Weiter-Schwelle ≥ 20 % Breite oder ≥ 0,5 Breiten/s ist Annahme (Apple-Schwelle nicht belegt); kein Gummiband am Rand (unbelegt)
