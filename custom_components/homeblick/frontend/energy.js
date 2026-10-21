@@ -114,7 +114,7 @@ function curve() {
   const P = ([t, v]) => [100 * (t - t0) / (t1 - t0), 30 - 28 * Math.max(0, v) / peak];
   const ist = now > t0 ? bins(H, t0, Math.min(now, t1), 9e5).map(P) : [];
   if (ist.length) ist.unshift([0, 30]);
-  const end = ist.at(-1), rest = F.filter(p => p[0] > Math.max(now, t0) + 6e5 && p[0] < t1).map(P);
+  const end = ist.at(-1), rest = F.filter(p => p[0] > Math.max(now, t0) + 18e5 && p[0] < t1).map(P);
   const fc = rest.length ? [end || P([t0, 0]), ...rest, [100, 30]] : [];
   const ln = ist.length > 1 ? smooth(ist) : '';
   return { ln, ar: ln && `${ln}V30H0Z`, fc: fc.length > 1 ? smooth(fc) : '' };
@@ -162,10 +162,11 @@ export function energy(ents, roll) {
   if (!faces.length) return;
   const n = (k, t) => rb('e_' + k, ok[k] ? t : '–');
   n('pv', kw(pv)); n('home', kw(home)); n('soc', String(Math.round(soc))); n('carSoc', String(Math.round(carSoc))); n('today', de(today)); n('tomorrow', de(tomorrow));
-  const aut = ok.home && ok.grid ? (home > 0 ? Math.round(100 * (1 - Math.min(1, Math.max(0, grid) / home))) : 100) : null;   // Autarkie = 1 − Netzbezug / Verbrauch
+  const imp = grid > 50, exp = grid < -50;   // |Netz| ≤ 50 W = Regelrauschen → 0 (Text, Balken und Autarkie gleich)
+  const aut = ok.home && ok.grid ? (home > 0 ? Math.round(100 * (1 - Math.min(1, (imp ? grid : 0) / home))) : 100) : null;   // Autarkie = 1 − Netzbezug / Verbrauch
   rb('e_aut', aut == null ? '–' : String(aut));
-  const imp = grid > 50;   // < 50 W = Regelrauschen; „vom Netz“ statt „aus dem Netz“: passt wie „ins Netz“ in die 1×1-Kachel (3 cqw), sonst abgeschnitten
-  bd('e_gl', !ok.grid ? '' : imp ? `↓ ${kw(grid)} kW vom Netz` : `↑ ${kw(Math.min(0, grid))} kW ins Netz`);
+  // „Bezug“ statt „aus dem Netz“: passt auch bei ≥ 10 kW (Wallbox) in die 1×1-Kachel (3 cqw), sonst abgeschnitten
+  bd('e_gl', !ok.grid ? '' : imp ? `↓ ${kw(grid)} kW Bezug` : exp ? `↑ ${kw(grid)} kW ins Netz` : '0,0 kW Netz');
   bd('e_batl', !ok.bat ? '' : bat < -50 ? `lädt · ${kw(bat)} kW` : bat > 50 ? `entlädt · ${kw(bat)} kW` : 'bereit');
   bd('e_carl', ok.car && car > 50 ? `lädt · ${kw(car)} kW` : ok.range ? `${Math.round(range)} km` : '');
   bd('e_todayl', ok.todayFc ? `kWh von ${de(todayFc)}` : 'kWh');
@@ -175,29 +176,34 @@ export function energy(ents, roll) {
   for (const f of faces) {
     const set = (s, k, x, show = true) => { const b = f.querySelector(s); b.style.setProperty(k, x); b.style.visibility = show ? '' : 'hidden'; };
     set('.rg .on', '--v', aut == null ? 0 : aut / 100);
-    set('.bar.g', '--g', ok.grid && Math.abs(grid) > 50 ? Math.max(-1, Math.min(1, -grid / 4000)) : 0, ok.grid);   // ponytail: halbe Balkenbreite = 4 kW, darüber voll
+    set('.bar.g', '--g', imp || exp ? Math.max(-1, Math.min(1, -grid / 4000)) : 0, ok.grid);   // ponytail: halbe Balkenbreite = 4 kW, darüber voll
     set('.bar.soc', '--v', c01(soc / 100), ok.soc);
     set('.bar.carSoc', '--v', c01(carSoc / 100), ok.carSoc);
     set('.bar.today', '--v', c01(today / todayFc), ok.today && ok.todayFc && todayFc > 0);
-    f.querySelector('.gl').classList.toggle('imp', imp);
+    const gl = f.querySelector('.gl'); gl.classList.toggle('imp', imp); gl.classList.toggle('z', !imp && !exp);
     paint(f);
   }
 }
 
 // ---------- Demo ----------
 // Oktobertag in Schwäbisch Gmünd: PV ~7:40–18:30, mittags ~4,3 kW mit durchziehenden Wolken, Grundlast + Wasserkocher/Kochen,
-// Akku regelt auf Netz ≈ 0 (Laden 1,2 kW / Entladen 1,5 kW, 10,24 kWh), e-Golf lädt bei Überschuss (35,8 kWh) → Bezug und Einspeisung wechseln (Wolken, Wasserkocher).
-const S = { soc: 52, socC: 41, last: 0, car: false };
+// Akku regelt auf Netz ≈ 0 (Laden 1,2 kW, vormittags 0,7 kW / Entladen 1,5 kW, 10,24 kWh), e-Golf lädt bei Überschuss (35,8 kWh) → Bezug und Einspeisung wechseln (Wolken, Wasserkocher).
+const S = { soc: 70, socC: 41, last: 0, car: false };
+let kd = [];
 const sunAt = h => Math.max(0, Math.sin(Math.PI * (h - 7.65) / 10.9)) ** 1.25;
+const haze = t => .74 + .26 * Math.sin(t / 2.3e6 + 1);   // langsame Bewölkung
+// Heute-Prognose: fester Tagesfaktor = sonnengewichteter Mittelwert von haze × 1,06 (Solcast leicht optimistisch) → Ist bleibt am Abend knapp darunter
+const kDay = d => { let a = 0, b = 0; for (let t = d; t < d + 864e5; t += 6e5) { const w = sunAt(new Date(t).getHours() + new Date(t).getMinutes() / 60); a += w * haze(t); b += w; } return 1.06 * a / b; };
 function model(now, s, live = true) {
   const d = new Date(now), h = d.getHours() + d.getMinutes() / 60 + d.getSeconds() / 3600, n = k => (Math.sin(now / k) + Math.sin(now / k / 2.7 + 1)) / 2;
   const sun = sunAt(h);
-  const cloud = (.74 + .26 * Math.sin(now / 2.3e6 + 1)) * (live ? (1 - .18 * Math.max(0, Math.sin(now / 4.1e5)) ** 2) * (1 - .5 * Math.max(0, Math.sin(now / 2.6e4)) ** 3) : 1);   // langsame Bewölkung; live zusätzlich Wolkenzüge (Verlauf ohne, sonst zackige Tageskurve)
+  const cloud = haze(now) * (live ? (1 - .18 * Math.max(0, Math.sin(now / 4.1e5)) ** 2) * (1 - .5 * Math.max(0, Math.sin(now / 2.6e4)) ** 3) : 1);   // langsame Bewölkung; live zusätzlich Wolkenzüge (Verlauf ohne, sonst zackige Tageskurve)
   const pv = sun ? Math.max(0, 4300 * sun * cloud + 35 * n(7e3)) : 0;
-  const base = 360 + 170 * n(5e4) + (h > 18 && h < 19.4 ? 1300 : 0), home = base + (Math.sin(now / 7e4) > .85 ? 2000 : 0);   // Wasserkocher/Herdplatte ≈ alle 7 min für ~70 s
+  const cyc = Math.sin(now / 5e4);   // Demo-Zyklus ≈ 5 min: Ladepause → Einspeisung; Wasserkocher während das Auto lädt → Bezug
+  const base = 360 + 170 * n(5e4) + (h > 18 && h < 19.4 ? 1300 : 0), home = base + (cyc < -.85 ? 2400 : 0);   // Wasserkocher ~55 s
   if (s.socC >= 85 || pv - base < 900) s.car = false; else if (pv - base > 1700) s.car = true;   // Hysterese wie evcc „PV“
-  const car = s.car ? Math.min(3700, Math.max(1400, pv - base - 1500)) : 0;
-  let bat = Math.max(-1200, Math.min(1500, home + car - pv));
+  const car = s.car && cyc < .2 ? Math.min(3700, Math.max(1400, pv - base - 1200)) : 0;   // Auto nimmt den Überschuss nach Akku-Laden (1,2 kW); Pause ≈ 2 min
+  let bat = Math.max(h < 12 ? -700 : -1200, Math.min(1500, home + car - pv));   // prognosebasiertes Laden: vormittags gedrosselt → Einspeisung
   if (bat > 0 && (s.soc <= 10.5 || car) || bat < 0 && s.soc >= 99.5) bat = 0;   // evcc: Akku-Entladung gesperrt, solange das Auto lädt → Lastspitzen kommen aus dem Netz
   const dt = s.last ? (now - s.last) / 3.6e6 : 0;
   s.soc = Math.min(100, Math.max(10, s.soc - bat * dt / 102.4)); s.socC = Math.min(100, s.socC + car * dt / 358); s.last = now;
@@ -211,7 +217,7 @@ export function energyDemo(now = Date.now()) {
     for (let t = day0(); t < now; t += 12e4) H.push([t, model(t, S, false).pv]);
   }
   const m = model(now, S), W = { unit_of_measurement: 'W' }, P = { unit_of_measurement: '%' }, K = { unit_of_measurement: 'kWh' };
-  const d = day0(), fc = fcDay(d, .78), fc2 = fcDay(d + 864e5, 1), sum = l => l.reduce((a, p) => a + p.pv_estimate / 2, 0);
+  const d = day0(), fc = fcDay(d, kd[0] === d ? kd[1] : (kd = [d, kDay(d)])[1]), fc2 = fcDay(d + 864e5, 1), sum = l => l.reduce((a, p) => a + p.pv_estimate / 2, 0);
   const pk = fc2.reduce((a, p) => p.pv_estimate > a.pv_estimate ? p : a);
   const today = H.reduce((a, [t, w], i) => a + w * ((H[i + 1]?.[0] ?? now) - t), 0) / 3.6e9;
   return { [E.pv]: [Math.round(m.pv), W], [E.grid]: [Math.round(m.grid), W], [E.home]: [Math.round(m.home), W],
@@ -263,6 +269,7 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 .f-energy .bar.mid::after{content:"";position:absolute;left:50%;top:-.6cqw;bottom:-.6cqw;width:.3cqw;margin-left:-.15cqw;background:currentColor;border-radius:.2cqw}
 .f-energy .use .sub{margin-top:1.8cqw;color:#c8ffd4}.f-energy .use .sub.imp{color:#ffd9a8}
 .f-energy.light .use .sub{color:#248a3d}.f-energy.light .use .sub.imp{color:#c93400}
+.f-energy .use .sub.z{color:#ffffff9e}.f-energy.light .use .sub.z{color:#828284}
 .f-energy .on .sub{margin-top:1.8cqw}
 .f-energy .tmr .pk{margin-top:2cqw}
 /* Weiße An-Kacheln (Akku, e-Golf): Fläche #fffe → #ffffffc8, Schrift im Face-Ton */
@@ -271,6 +278,7 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 .f-energy:not(.light) :is(.et,.dial.glass){background:none}
 .f-energy:not(.light) .dial.glass{isolation:isolate;box-shadow:inset 0 .25cqw .1cqw #ffffff59,inset 0 -.25cqw .1cqw #ffffff40,inset 0 0 0 .25cqw #ffffff2e,0 0 0 .13cqw #0000002e,0 .6cqw 2cqw #0003}
 .f-energy:not(.light) :is(.et,.dial.glass)::after{content:"";position:absolute;inset:0;z-index:-2;border-radius:inherit;filter:saturate(1.3);
+  box-shadow:inset 0 .25cqw .1cqw #ffffff59,inset 0 -.25cqw .1cqw #ffffff40,inset 0 0 0 .25cqw #ffffff2e;   /* helle Glaskante: ::after (isolation) liegt über den inset-Schatten des Elements */
   background:linear-gradient(165deg,#fff3,#fff1 45%,#fff0 75%),linear-gradient(#ffffff0f,#ffffff0f),var(--wpb) calc(-1*(var(--pad) + var(--c)*(var(--t) + var(--gap)))) calc(-1*(var(--pad) + var(--r)*(var(--t) + var(--gap))))/100cqw 100cqw}
 .f-energy:not(.light) .et.on{color:var(--eink)}.f-energy:not(.light) .et.on .sub{color:var(--eink2)}
 .f-energy:not(.light) .et.on::before{background:linear-gradient(#fffe,#ffffffc8)}
