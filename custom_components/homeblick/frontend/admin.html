@@ -29,6 +29,8 @@ svg{display:block}
 .dcimg{position:relative;aspect-ratio:1;border-radius:24px;overflow:hidden;display:grid;place-items:center;margin-bottom:8px;box-shadow:0 8px 22px #0003;background:linear-gradient(160deg,#9aa6ba,#5d687c)}
 .dcimg img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}.dcimg>svg{width:44px;height:44px;stroke:#ffffffcc;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
 .dcimg .dot{position:absolute;right:10px;top:10px;box-shadow:0 0 0 2px #0004}
+.dc.off .dcimg img{filter:grayscale(1) brightness(.7)}.dc.off .dcimg{background:linear-gradient(160deg,#8e8e93,#48484a)}
+.dcimg .off{position:absolute;left:8px;bottom:8px;padding:3px 9px;border-radius:10px;font:600 12px/1.3 inherit;color:#fff;background:#000a;backdrop-filter:blur(8px)}
 .dc b{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 4px}.dc small{color:var(--sec);font-size:13px;padding:0 4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.dc small.warn{color:var(--red)}
 
 /* Editor: das Display im Vollbild, Bearbeiten-Modus wie bei iOS (Pillen „+“ „Einstellungen“ „✓“, Seitenpunkte, Name der Seite) */
@@ -370,7 +372,7 @@ const issues = d => {
 function listHTML() {
   const fresh = displays.filter(d => d.new), ready = displays.filter(d => !d.new);
   const news = fresh.map(d => `<button class="row" data-a="setup" data-id="${esc(d.id)}">${ico('disp', '#34c759')}<span class="l two"><b>${esc(d.name)}</b><small>${d.connected ? 'Wartet auf die Einrichtung' : 'Nicht verbunden'}</small></span><span class="v" style="color:var(--blue)">Einrichten</span>${svg('chev')}</button>`).join('');
-  const cards = ready.map(d => { const w = issues(d)[0], img = shots[d.id]; return `<button class="dc" data-d="${esc(d.id)}"><span class="dcimg">${img ? `<img src="${img}" alt="">` : svg('disp', '')}<i class="dot ${d.connected ? 'on' : ''}"></i></span><b>${esc(d.name)}</b><small class="${w ? 'warn' : ''}">${esc(w || [d.area, d.connected ? 'Online' : 'Offline'].filter(Boolean).join(' · '))}</small></button>`; }).join('');
+  const cards = ready.map(d => { const w = issues(d)[0], img = shots[d.id]; return `<button class="dc ${d.connected ? '' : 'off'}" data-d="${esc(d.id)}"><span class="dcimg">${img ? `<img src="${img}" alt="">` : svg('disp', '')}${d.connected ? '<i class="dot on"></i>' : '<span class="off">Offline</span>'}</span><b>${esc(d.name)}</b><small class="${w ? 'warn' : ''}">${esc(w || [d.area, d.connected ? 'Online' : 'Offline'].filter(Boolean).join(' · '))}</small></button>`; }).join('');
   const areas = [...new Set(displays.map(x => x.area).filter(Boolean))].sort();
   if (!areas.includes(area)) area = '';
   const on = inArea().filter(x => x.connected).length, dis = on ? '' : 'disabled';
@@ -523,7 +525,7 @@ const pages = {
     };
     if (e.sec) return { back: 'Einstellungen', title: SEC[e.sec][0], body: SEC[e.sec][3]() };
     const row = k => `<button class="row" data-a="sec" data-v="${k}">${ico(SEC[k][1], SEC[k][2])}<span class="l">${SEC[k][0]}</span><span class="v">${svg('chev')}</span></button>`;
-    const body = `${grp('', field('Name', 'name', d.name))}
+    const w = issues(d)[0], body = `${grp('', field('Name', 'name', d.name) + `<div class="row"><span class="l">Status</span><span class="v" ${w ? 'style="color:var(--red)"' : ''}>${esc(w || (d.connected ? 'Online' : 'Offline'))}</span></div>`)}
       ${grp('', ['steuern', 'schoner', 'nacht', 'sprache', 'mehr'].map(row).join(''))}
       ${grp('', ['status', 'verwalten'].map(row).join(''))}
       ${grp('', `<button class="row red c" data-a="rm">Display entfernen</button>`)}`;
@@ -658,7 +660,11 @@ async function reload() {
   displays = await call('displays');
   if (edOpen && !displays.some(d => d.id === sel && !d.new)) closeEd();
   renderSide();
-  displays.filter(d => d.connected && !d.new && !shots[d.id]).forEach(d => snap(d.id));
+  displays.filter(d => !d.new && !shots[d.id]).forEach(async d => {   // letztes Bild vom Server (auch offline), sonst neu aufnehmen
+    const { image } = await call('get_shot', { display: d.id }).catch(() => ({}));
+    if (image) { shots[d.id] = image; renderSide(); }
+    if (d.connected) snap(d.id);
+  });
 }
 const goFace = i => { if (!cfg || i < 0 || i >= cfg.faces.length || i === fi) return; fi = i; pvAnim = true; pvSend(); };
 const openFace = i => setIns({ t: 'face', i });
