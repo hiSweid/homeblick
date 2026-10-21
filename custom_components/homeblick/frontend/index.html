@@ -2000,6 +2000,20 @@ function rerender(i) {
   if (cur?.tile === old) cur.tile = n;   // offene Terminliste: Schließen fliegt aufs neue Face (Tageswechsel)
   old.replaceWith(n); refresh();
 }
+// Touch-Fallback für scrollbare Listen (Spielerauswahl, Warteschlange, Bibliothek, Termine …): übernimmt der Browser das Wischen nicht selbst (touch-action, Kiosk-/WebView-Eigenheiten),
+// scrollt die Liste mit dem Finger; übernimmt er es, kommt pointercancel und der Fallback ist sofort still
+{
+  let g = null;
+  const scroller = t => { for (let e = t; e && e !== document.body; e = e.parentElement) { if (e.id === 'faces') return null; const o = getComputedStyle(e).overflowY; if ((o === 'auto' || o === 'scroll') && e.scrollHeight > e.clientHeight + 2) return e; } return null; };
+  addEventListener('pointerdown', e => { const s = e.pointerType === 'mouse' ? null : scroller(e.target); g = s && { s, id: e.pointerId, x: e.clientX, y: e.clientY, t: s.scrollTop, on: false }; }, true);
+  addEventListener('pointermove', e => {
+    if (!g || e.pointerId !== g.id) return;
+    const dy = e.clientY - g.y;
+    if (!g.on) { if (Math.abs(dy) < 8 || Math.abs(dy) < Math.abs(e.clientX - g.x)) return; g.on = true; }
+    g.s.scrollTop = g.t - dy;
+  }, true);
+  for (const n of ['pointerup', 'pointercancel']) addEventListener(n, () => g = null, true);
+}
 // Face-Pager (STEUERUNG.md P1-1): Karte folgt dem Finger 1:1 (Touch + Maus), Auslauf = kritisch gedämpfte Feder mit Übernahme der Fingergeschwindigkeit
 // ponytail: Weiter-Schwelle ≥ 20 % Breite oder ≥ 0,5 Breiten/s ist Annahme (Apple-Schwelle nicht belegt); kein Gummiband am Rand (unbelegt)
 {
