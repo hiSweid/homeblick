@@ -39,7 +39,7 @@ const cell = (r, c, h = 1, w = 1) => `grid-area:${r + 1}/${c + 1}/span ${h}/span
 const nv = (k, u, cls = '') => `<div class="nv ${cls}"><b class="num" data-bind="e_${k}" data-digits></b><small>${u}</small></div>`;
 const one = (k, ttl, u) => `${nv(k, u)}<div><div class="ttl">${ttl}</div><div class="sub" data-bind="e_${k}l"></div></div>`;
 const car = () => `<div class="ttl lb">e-Golf</div>${nv('car', '%')}<div class="sub bl" data-bind="e_carl"></div><svg class="i cic" viewBox="0 0 24 24">${CAR}</svg>`;
-const ticks = cls => `<svg class="${cls}" viewBox="-50 -50 100 100">${Array.from({ length: 60 }, (_, i) => `<line y1="-45.5" y2="-38" transform="rotate(${i * 6})" style="--i:${i}"/>`).join('')}</svg>`;
+const ticks = cls => `<svg class="${cls}" viewBox="-50 -50 100 100">${Array.from({ length: 60 }, (_, i) => `<line y1="-45.9" y2="-41.8" transform="rotate(${i * 6})" style="--i:${i}"/>`).join('')}</svg>`;
 let gN = 0;
 
 // Kurve beim Erscheinen des Faces einmal einzeichnen; Fluss nur animieren, solange das Face sichtbar ist
@@ -323,7 +323,7 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 /* Solarkurve 6–21 Uhr rechts neben der Zahl (wie ein Aktien-Widget), unten/rechts randlos; Fenster ragt 8 cqw rechts hinaus (weiche Wischkante liegt in Ruhe draußen) */
 .et .cw{position:absolute;left:52%;right:-8cqw;top:34%;bottom:0;overflow:hidden;color:${C.pv};pointer-events:none;
   -webkit-mask:linear-gradient(90deg,#000 calc(100% - 8cqw),#0000);mask:linear-gradient(90deg,#000 calc(100% - 8cqw),#0000)}
-.et .ci{position:absolute;left:0;top:0;bottom:0;right:8cqw}
+.et .ci{position:absolute;left:0;top:0;bottom:0;right:12.3cqw}
 .et .ci svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
 .et .ci .ln{fill:none;stroke:currentColor;stroke-width:.42cqw;vector-effect:non-scaling-stroke;stroke-linejoin:round;stroke-linecap:round}
 .et .nd{position:absolute;width:1.9cqw;height:1.9cqw;margin:-.95cqw;border-radius:50%;background:currentColor;box-shadow:0 0 0 .55cqw color-mix(in srgb,currentColor 30%,transparent)}
@@ -340,7 +340,7 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 /* Autarkie: Glasscheibe wie die Uhr-Kachel, Strichkranz wie der Timer (60 Striche), leuchtende Striche blenden gestaffelt */
 .ad{position:relative;height:100%;aspect-ratio:1;justify-self:center;border-radius:50%;display:grid;place-items:center;box-shadow:inset 0 0 0 .13cqw #ffffff59,inset 0 .5cqw .8cqw #fff3,0 .6cqw 2cqw #0001}
 .light .ad{box-shadow:none}
-.ad svg{position:absolute;inset:0;width:100%;height:100%;stroke-width:2.3;stroke-linecap:round}
+.ad svg{position:absolute;inset:0;width:100%;height:100%;stroke-width:1.53;stroke-linecap:round}
 .ad .t0{stroke:currentColor;opacity:.2}
 .ad .t1{stroke:currentColor}.ad .t1 line{opacity:0;transition:opacity .3s calc(var(--i) * 9ms)}.ad .t1 line.on{opacity:1}
 .ad .ac{position:relative;display:grid;justify-items:center;gap:.7cqw}
