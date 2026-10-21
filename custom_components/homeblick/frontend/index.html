@@ -395,7 +395,10 @@ svg.i{width:1em;height:1em;flex:none;fill:none;stroke:currentColor;stroke-width:
 .pop{position:absolute;z-index:3;width:62cqw;padding:2cqw;border-radius:5cqw;background:#2c2c2ef7;box-shadow:0 2cqw 6cqw #0006;font-size:3.8cqw;
   opacity:0;scale:.4;pointer-events:none;touch-action:none;transition:opacity .2s,scale var(--sd) var(--spring)}
 .pop.open{opacity:1;scale:1;pointer-events:auto}
-.outs{top:16.5cqw;right:6.3cqw;transform-origin:top right}
+.outs{top:16.5cqw;right:6.3cqw;transform-origin:top right;max-height:calc(100% - 22cqw);overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none}   /* viele Player (Sonos, Demo …): Liste scrollt, statt über den Bildschirm hinauszulaufen */
+.outs::-webkit-scrollbar{display:none}
+.outs.open{touch-action:pan-y}
+.outs input[type=range]{touch-action:pan-y}   /* Regler waagerecht ziehen, senkrechter Wisch scrollt die Liste (mit touch-action:none blockierten die breiten Regler das Scrollen) */
 .menu{bottom:40cqw;right:9.6cqw;width:56cqw;transform-origin:bottom right}
 .pop h4{font-size:3.2cqw;font-weight:600;color:#ffffff8c;padding:1.4cqw 2.4cqw 1cqw}
 .orow{padding:1.4cqw 2.4cqw}
