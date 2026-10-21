@@ -85,8 +85,8 @@ svg.i{width:1em;height:1em;flex:none;fill:none;stroke:currentColor;stroke-width:
 .tile[data-size="2x1"]:not(.thermo){flex-direction:row;justify-content:flex-start;gap:4cqw;padding:0 5cqw;text-align:left}
 /* Stil-Varianten (Ideen-Galerie), im Layout der Apple-Vorlage (Website highlights/dashboard): zentriert wie die Thermostat-Zahl 68 mit Titel/Untertitel darunter, Glas, weiße An-Fläche, Ring/Kreis nur als dünne weiße Linie.
    value = Messwert groß statt Symbol (Sensor), circle = Symbol im Kreis (Szene, Schalter, Ventilator …), ring = Thermostat mit dünnem Messring, fill = Licht als Dimmer (weiße Fläche steigt) */
-.tile[data-sv=value] .ico{display:none}.tile[data-sv=value] .big{flex:1;display:flex;align-items:center;justify-content:center;font-size:8.5cqw;font-weight:500;letter-spacing:-.02em;line-height:1;white-space:nowrap}
-.tile[data-sv=value] .big small{font-size:.42em;font-weight:500;margin-left:.12em;align-self:flex-start;margin-top:.15em}
+.tile[data-sv=value] .ico{display:none}.tile[data-sv=value] .big{flex:1;display:flex;flex-wrap:wrap;align-items:baseline;align-content:center;justify-content:center;font-size:8.5cqw;font-weight:500;letter-spacing:-.02em;line-height:1;white-space:nowrap;padding-top:1.5cqw}
+.tile[data-sv=value] .big small{font-size:.5em;font-weight:500;margin-left:.15em}
 .tile[data-sv=value][data-size="2x1"] .big{font-size:12cqw}.tile[data-sv=value][data-size="2x2"] .big{font-size:20cqw}
 .tile[data-sv=circle] .ico{box-sizing:content-box;font-size:6.2cqw;padding:2.4cqw;border-radius:50%;background:#ffffff26;transition:background .3s,color .3s}
 .tile[data-sv=circle].on .ico{background:var(--accent,var(--ink));color:#fff}
@@ -100,9 +100,9 @@ svg.i{width:1em;height:1em;flex:none;fill:none;stroke:currentColor;stroke-width:
 .tile[data-sv=fill].hi .ttl,.tile[data-sv=fill].hi .pct{color:var(--ink)!important}.tile[data-sv=fill].hi .sub{color:var(--ink2)!important}.tile[data-sv=fill].full .ico{color:var(--ink)!important}
 .tile[data-sv=fill][data-size="2x2"] .pct{font-size:4.4cqw;right:5cqw;top:5cqw}
 .thermo .ring{display:none}
-.thermo[data-sv=ring] .ring{display:block;position:absolute;left:50%;translate:-50% 0;width:38cqw;top:9cqw;pointer-events:none;overflow:visible}
-.thermo[data-sv=ring][data-size="2x1"] .ring{width:24cqw;top:1.3cqw}.thermo[data-sv=ring][data-size="1x1"] .ring{width:18cqw;top:3.6cqw}
-.thermo[data-sv=ring] .num{font-size:15cqw}.thermo[data-sv=ring][data-size="2x1"] .num{font-size:9cqw}.thermo[data-sv=ring][data-size="1x1"] .num{font-size:7cqw}
+.thermo[data-sv=ring]{--rd:38cqw;--ry:8.3cqw}.thermo[data-sv=ring][data-size="2x1"],.thermo[data-sv=ring][data-size="1x1"]{--rd:14cqw;--ry:4cqw}   /* Ring und Zahl teilen Mitte: beide füllen dasselbe Quadrat (--ry oben, --rd Kantenlänge); 2×2: Mitte bei 43 % der Höhe */
+.thermo[data-sv=ring] .ring{display:block;position:absolute;left:50%;translate:-50% 0;width:var(--rd);top:var(--ry);pointer-events:none;overflow:visible}
+.thermo[data-sv=ring][data-size] .num{position:absolute;left:0;right:0;top:var(--ry);height:var(--rd);margin:0;align-content:center;font-size:15cqw}.thermo[data-sv=ring][data-size="2x1"] .num,.thermo[data-sv=ring][data-size="1x1"] .num{font-size:6cqw}
 .ring .tr,.ring .v,.ring .mk{stroke:currentColor}.ring .tr{opacity:.25}.ring .v{transition:stroke-dasharray .6s var(--spring),opacity .3s}.ring .mk{stroke-width:7}
 .thermo[data-hm=off] .ring .v{opacity:.4}
 
