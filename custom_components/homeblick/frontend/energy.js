@@ -33,7 +33,7 @@ const SPR = () => getComputedStyle(root).getPropertyValue('--spring').trim() || 
 const cell = (r, c, w = 1) => `grid-area:${r + 1}/${c + 1}/span 1/span ${w};--r:${r};--c:${c}`;
 const ttl = (s, t, cls = '') => `<div class="ttl"><svg class="i ${cls}" viewBox="0 0 24 24">${SYM[s]}</svg> ${t}</div>`;
 const val = (k, u = '') => `<div class="enum"><b class="num" data-bind="e_${k}" data-digits></b>${u && `<small>${u}</small>`}</div>`;
-const bar = (k, mid = '') => `<div class="bar ${k} ${mid}"><div class="cl"><i></i></div></div>`;
+const bar = k => `<div class="bar ${k}"><div class="cl"><i></i></div></div>`;
 let gN = 0;
 
 // Kurve einmal einzeichnen, wenn das Face steht (≥ 95 % sichtbar = Pager eingerastet); ganz weg → beim nächsten Erscheinen wieder
@@ -54,7 +54,7 @@ export function energyFace(el) {
 <div class="tile et use" style="${cell(1, 0)}">${ttl('home', 'Verbrauch')}${val('home', ' kW')}<div class="bar g mid"><div class="cl l"><i></i></div><div class="cl r"><i></i></div></div><div class="sub gl" data-bind="e_gl"></div></div>
 <div class="tile et on bat" style="${cell(1, 1)}">${ttl('bat', 'Akku', 'gr')}${val('soc', '%')}${bar('soc')}<div class="sub" data-bind="e_batl"></div></div>
 <div class="tile et on car" style="${cell(1, 2)}">${ttl('car', 'e-Golf', 'bl')}${val('carSoc', '%')}${bar('carSoc')}<div class="sub" data-bind="e_carl"></div></div>
-<div class="tile et day" style="${cell(2, 0)}">${ttl('sun', 'Heute', 'y')}${val('today')}<div class="sub dim" data-bind="e_todayl"></div>${bar('today', 'mid')}</div>
+<div class="tile et day" style="${cell(2, 0)}">${ttl('sun', 'Heute', 'y')}${val('today')}<div class="sub dim" data-bind="e_todayl"></div>${bar('today')}</div>
 <div class="tile et tmr" style="${cell(2, 1)}">${ttl('sun', 'Morgen')}${val('tomorrow')}<div class="sub dim">kWh Prognose</div><div class="sub pk" data-bind="e_peak"></div></div>
 <div class="dial glass" style="grid-area:3/3;--r:2;--c:2"></div>`);
   veil(el, !still());   // Kurve bis zum Einzeichnen verdeckt, auch während das Face hereingleitet
