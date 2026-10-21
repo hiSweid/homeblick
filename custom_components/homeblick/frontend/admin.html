@@ -574,7 +574,10 @@ const pages = {
     const vals = [['', 'Keine'], ['state', 'Zustand'], ...(en?.attrs || []).map(a => [a, a])];
     const open = moreKey === e.i + '.' + e.j;
     const body = `
-      ${clock ? '' : `<div class="sec">${carHTML(`size:${e.i}.${e.j}`, { items: SIZES.map(([v, n]) => [v, n]), cur: sz, conf: v => { const [w, h] = v.split('x').map(Number); return { conf: { ...cfg, faces: [{ type: 'grid', id: 'grid', bg: f.bg, tiles: [{ ...t, ...(w > 1 && { w }), ...(h > 1 && { h }), ...(w === 1 && { w: undefined }), ...(h === 1 && { h: undefined }) }] }] }, face: 'grid' }; }, pick: v => {   // Größe wählen; passt dadurch eine andere Kachel nicht mehr ins Raster, springt das Karussell zurück
+      ${(() => { const k = e.i + '.' + e.j; if (carTile !== k) { carTile = k; carTab = 'size'; } return ''; })()}
+      ${svOf(t) ? `<div class="seg">${[['size', 'Größe'], ['style', 'Stil']].map(([v, n]) => `<button data-a="ctab" data-v="${v}" class="${carTab === v ? 'on' : ''}">${n}</button>`).join('')}</div>` : ''}
+      ${svOf(t) && carTab === 'style' ? `<div class="sec">${carHTML(`sv:${e.i}.${e.j}`, { items: svOf(t), cur: t.sv || '', conf: v => ({ conf: { ...cfg, faces: [{ type: 'grid', id: 'grid', bg: f.bg, tiles: [{ ...t, sv: v || undefined }] }] }, face: 'grid' }), pick: v => { const x = cfg.faces[e.i].tiles[e.j]; v ? x.sv = v : delete x.sv; saveCfg(); } })}</div>` : ''}
+      ${clock || (svOf(t) && carTab === 'style') ? '' : `<div class="sec">${carHTML(`size:${e.i}.${e.j}`, { items: SIZES.map(([v, n]) => [v, n]), cur: sz, conf: v => { const [w, h] = v.split('x').map(Number); return { conf: { ...cfg, faces: [{ type: 'grid', id: 'grid', bg: f.bg, tiles: [{ ...t, ...(w > 1 && { w }), ...(h > 1 && { h }), ...(w === 1 && { w: undefined }), ...(h === 1 && { h: undefined }) }] }] }, face: 'grid' }; }, pick: v => {   // Größe wählen; passt dadurch eine andere Kachel nicht mehr ins Raster, springt das Karussell zurück
         const fc = cfg.faces[e.i], x = fc.tiles[e.j], [w, h] = v.split('x').map(Number), was = [x.w, x.h], lost = () => pack(fc.tiles, rows(fc)).filter(k => !k).length, n = lost();
         w > 1 ? x.w = w : delete x.w; h > 1 ? x.h = h : delete x.h;
         if (lost() > n) { was[0] ? x.w = was[0] : delete x.w; was[1] ? x.h = was[1] : delete x.h; const back = `${was[0] || 1}x${was[1] || 1}`; car.def.cur = back; car.go(SIZES.findIndex(z => z[0] === back), true); return toast('Kein Platz für diese Größe', true); }
@@ -824,6 +827,9 @@ const TOGGLE_DOM = ['light', 'switch', 'input_boolean', 'fan', 'cover', 'media_p
 const THEMES = [['liquid', 'Liquid', 'linear-gradient(135deg,#e29b56,#a8541a)'], ['flat', 'Flat', 'linear-gradient(135deg,#e8e8e8 50%,#c6c2e3 50%)']];
 const MODES = [['dark', 'Dunkel', 'linear-gradient(135deg,#3a3a3c,#1c1c1e)'], ['light', 'Hell', 'linear-gradient(135deg,#fff,#d8d8dc)']];
 const LOOKS = [['', 'Theme', 'linear-gradient(135deg,#d8d8dc,#8e8e93)'], ...THEMES];
+const SV = { thermo: [['', 'Standard'], ['ring', 'Ring']], value: [['', 'Standard'], ['value', 'Wert']], circle: [['', 'Standard'], ['circle', 'Kreis']] };   // Stil-Varianten (Ideen-Galerie) je Kachel-Art
+const svOf = t => { const d = t.e?.split('.')[0]; return d === 'climate' ? SV.thermo : ['sensor', 'binary_sensor'].includes(d) ? SV.value : ['scene', 'script', 'switch', 'input_boolean', 'fan', 'button', 'input_button'].includes(d) ? SV.circle : null; };
+let carTab = 'size', carTile = '';
 const SIZES = [['1x1', '1 × 1'], ['2x1', '2 × 1'], ['2x2', '2 × 2']];
 const COLORS = [['', 'Standard'], ['#ff9500', 'Orange'], ['#ff3b30', 'Rot'], ['#ff2d55', 'Rosa'], ['#af52de', 'Violett'], ['#007aff', 'Blau'], ['#30b0c7', 'Türkis'], ['#34c759', 'Grün']];
 const ICONS = ['bulb', 'pendant', 'lock', 'unlock', 'garage', 'blind', 'video', 'fan', 'timer', 'sun', 'moon', 'house', 'power', 'play', 'thermo', 'drop', 'wind', 'cloud', 'intercom', 'note'];
@@ -917,6 +923,7 @@ document.addEventListener('click', async e => {
   if (a === 'setup') return setupWizard(displays.find(d => d.id === b.dataset.id));
   if (a === 'edone') return closeEd();
   if (a === 'gal') return addFlow(fi);
+  if (a === 'ctab') { carTab = b.dataset.v; return redraw(); }
   if (a === 'theme' || a === 'mode') { cfg[a] = b.dataset.v; saveCfg(); return redraw(); }
   if (a === 'apply') return applyTemplate();
   if (a === 'ximport') return importConfig();
