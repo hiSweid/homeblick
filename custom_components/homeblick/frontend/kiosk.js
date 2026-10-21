@@ -13,6 +13,12 @@ export function kioskInit({ faces, conf, busy, touched, onState, music, lux }) {
   const cfg = () => ({ ...KIOSK_DEF, ...conf().kiosk });
   const idx = () => Math.round(faces.scrollLeft / (faces.clientWidth * 1.025));
   const goto = (i, behavior = 'smooth') => faces.go(i, behavior !== 'smooth');
+  // Inhaltswechsel durch den Schoner/Musikstart: ≈ 0,5 s Blur-Überblendung statt Federwisch (NOTIZEN §6); ohne View-Transition-API wie bisher
+  const fade = i => {
+    if (!document.startViewTransition) return goto(i);
+    const r = document.documentElement; r.classList.add('vt-blur');
+    document.startViewTransition(() => goto(i, 'instant')).finished.catch(() => {}).finally(() => r.classList.remove('vt-blur'));
+  };
   let last = Date.now(), back = -1, st = {};   // back = Face vor dem Screensaver
 
   // Display wach halten (braucht https/localhost; unter http gibt es kein wakeLock → still ignorieren)
@@ -43,7 +49,7 @@ export function kioskInit({ faces, conf, busy, touched, onState, music, lux }) {
   const sleep = () => {
     if (back >= 0) return;
     if (cfg().black) { back = idx(); return; }
-    const s = saver(); if (s >= 0 && s !== idx()) { back = idx(); goto(s); }
+    const s = saver(); if (s >= 0 && s !== idx()) { back = idx(); fade(s); }
   };
 
   setInterval(() => {
@@ -52,7 +58,7 @@ export function kioskInit({ faces, conf, busy, touched, onState, music, lux }) {
     if (idle && !hold && back < 0 && !busy() && Date.now() - Math.max(last, touched()) > idle * 1000) {
       sleep();
     } else if (back >= 0 && !busy() && !black) {   // im Schoner: Musik startet/endet → passendes Face
-      const s = saver(); if (s >= 0 && s !== idx()) goto(s);
+      const s = saver(); if (s >= 0 && s !== idx()) fade(s);
     }
     const face = faces.children[idx()]?.className.match(/f-(\w+)/)?.[1] ?? null;
     if (onState && (face !== st.face || (back >= 0) !== st.saver)) onState(st = { face, saver: back >= 0 });

@@ -246,9 +246,9 @@ svg.i{width:1em;height:1em;flex:none;fill:none;stroke:currentColor;stroke-width:
 .np{left:0;top:0;width:100%;height:100%;pointer-events:none}.np>*{pointer-events:auto}
 .np .cover{position:absolute;left:6.2cqw;top:53.03cqw;width:21.76cqw;aspect-ratio:1;border-radius:1.5cqw}
 .np b,.np>span{position:absolute;left:6.2cqw;width:34cqw;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.np b{top:76.64cqw;font-size:3.18cqw;font-weight:600;text-transform:uppercase}
+.np b{top:76.64cqw;font-size:3.18cqw;font-weight:600}   /* Titel wie geliefert: „FEVER DREAM“ (Website faces_enhanced/carousel_1) ist so getaggt, „Collect 200“/„Enséñame a Bailar“ (Videos) nicht */
 .np>span{top:80.84cqw;font-size:3cqw;color:var(--ar)}
-.np button{position:absolute;left:6.2cqw;top:85.88cqw;width:21.5cqw;height:7.78cqw;display:flex;align-items:center;justify-content:center;gap:1.2cqw;font-size:3.8cqw;border-radius:9cqw;background:var(--btn);color:var(--t1)}
+.np button{position:absolute;left:6.2cqw;top:85.88cqw;min-width:21.5cqw;padding:0 3cqw;height:7.78cqw;white-space:nowrap;display:flex;align-items:center;justify-content:center;gap:1.2cqw;font-size:3.8cqw;border-radius:9cqw;background:var(--btn);color:var(--t1)}
 .np button span{color:inherit}
 .f-info .mn{left:41.1cqw;top:51.6cqw;width:6.65cqw;height:8.55cqw;color:var(--acc)}
 .f-info.evon .mn,.f-info.evon .np,.f-info:not(.evon) .evb{display:none}
@@ -278,46 +278,74 @@ svg.i{width:1em;height:1em;flex:none;fill:none;stroke:currentColor;stroke-width:
 /* ---------- Musik (Maße aus Video t = 36 s) ---------- */
 .f-music{background:#1c1c1e}
 /* ponytail: CSS-Blur auf dem Cover-Layer; ruckelt das beim Wischen auf dem Tablet → vorgerendertes Blur-Bild */
-.f-music .mbg{position:absolute;inset:-15%;background:var(--art) center/cover;filter:blur(60px) brightness(.6) saturate(1.3)}
-.mb,.mpill{position:absolute;top:6cqw;height:8.6cqw;border-radius:9cqw;background:#ffffff1f;box-shadow:inset 0 .15cqw .1cqw #ffffff40,inset 0 0 0 .1cqw #ffffff1a;display:flex;align-items:center;justify-content:space-around;font-size:5cqw}
+.f-music .mbg{position:absolute;inset:-30%;background:var(--art) center/cover;filter:blur(130px) brightness(.78) saturate(1.4)}   /* Vorlage _Tbq 00635: weicher Mesh-Verlauf ohne erkennbare Cover-Flecken */
+.mb,.mpill{position:absolute;z-index:1;top:6cqw;height:8.6cqw;border-radius:9cqw;background:#ffffff1f;box-shadow:inset 0 .15cqw .1cqw #ffffff40,inset 0 0 0 .1cqw #ffffff1a;display:flex;align-items:center;justify-content:space-around;font-size:5cqw}
 .mb{left:6cqw;width:8.6cqw;justify-content:center}
-.mpill{right:6.3cqw;width:18cqw;padding:0 1.5cqw}
-.f-music>.cover{position:absolute;left:18.75cqw;top:18.5cqw;width:62.5cqw;aspect-ratio:1;border-radius:2.8cqw;box-shadow:0 2cqw 6cqw #0005;transform-origin:0 0}
+/* Pille (Vorlage _Tbq 00635/00280: AirPlay-Symbol + Raumname + Lautsprecher; Apple-Video 36 s ohne Namen): Tipp auf den Lautsprecher weitet sie nach links zum Regler,
+   ≈ 37 × 8 % W, 140 ms auf / 125 ms zu, 2,25 s offen (STEUERUNG.md 23, ref/steuerung/medien/NOTIZEN.md 1–2); Tipp auf den Lautsprecher in der offenen Pille = Stumm */
+.mpill{right:6.3cqw;min-width:18cqw;justify-content:space-between;gap:1.4cqw;padding:0 2.4cqw;transition:background-color .1s,opacity .45s,transform var(--sd) var(--spring)}
+.mpill:not(.vo):has(button:active){background:#ffffff4d}   /* Gedrückt: Glas hellt auf (Shane 960,02 s) */
+.mpill button{display:flex;align-items:center;gap:1.4cqw;min-width:0;height:100%}
+.mpill .po span{font-size:3.4cqw;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:16cqw}   /* zu ≈ 33–37 % W (_Tbq 00635), offen 37 % W → die Pille wächst beim Öffnen */
+.mpill .po span:empty{display:none}
+.mpill .po,.mpill .pv{padding:0 .8cqw}
+.mpill .vs{display:none;flex:1;min-width:0;align-items:center}
+.mpill.vo{width:37cqw}
+.mpill.vo .po{display:none}.mpill.vo .vs{display:flex}
+.mpill .vs input{height:2.6cqw;border-radius:1.3cqw;touch-action:none}
+.mpill .pv .v0,.mpill.mu .pv .v1{display:none}.mpill.mu .pv .v0{display:block}
+.mpill.mu .vs input{opacity:.45}
+.f-music>.cover{position:absolute;left:18.75cqw;top:18.5cqw;width:62.5cqw;aspect-ratio:1;border-radius:2.8cqw;box-shadow:0 2cqw 6cqw #0005;transform-origin:0 0;display:grid;place-items:center;font-size:18cqw;color:#ffffff59}
+/* ohne Cover: blaugraues Platzhalter-Quadrat auf Marineblau, ohne Glyphe (Vorlage 9mAre 574,8 s: PIL ≈ #6e93bd auf #2c3b50 → #1b2331) */
+.f-music>.cover svg{display:none}
+.f-music.nocov{background:linear-gradient(165deg,#2c3b50,#1b2331)}
+.f-music.nocov>.cover{background:#6e93bd}.f-music.nocov>.cover::after{display:none}
+/* Podcast (Vorlage highlights/sound_visuals + steuerung/medien 35,6 s „Good Hang“): Cover randlos über das ganze Display, Pille/Titel/Balken/Transport liegen darauf, unten dezenter Verlauf für die Lesbarkeit */
+.f-music.pod:not(.nocov)>.cover{left:0;top:0;width:100%;border-radius:0;box-shadow:none}
+.f-music.pod:not(.nocov)>.cover::after{filter:none;-webkit-mask-image:none;mask-image:none;background:linear-gradient(#0000 48%,#0000008c);transition:opacity .3s linear}
+.f-music.pod.amb:not(.ly,.qm)>.cover{transform:none}.f-music.pod.amb:not(.ly,.qm)>.cover::after{transform:none;opacity:0}
+.mb svg.pod,.f-music.pod .mb svg.std{display:none}.f-music.pod .mb svg.pod{display:block}
 /* unteres Cover-Drittel weich verwischt unter dem Text (statischer Filter, wird einmal gerastert) */
 .f-music>.cover::after{content:"";position:absolute;inset:0;border-radius:inherit;background:inherit;filter:blur(1.6cqw) brightness(.85);-webkit-mask-image:linear-gradient(#0000 55%,#000 82%);mask-image:linear-gradient(#0000 55%,#000 82%);transform-origin:50% 45%;transition:transform var(--sd) var(--spring)}
 .minfo{position:absolute;left:9cqw;right:16cqw;top:59cqw;text-shadow:0 .2cqw 1.5cqw #0004}
 .minfo b,.minfo span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.minfo b{font-size:6.1cqw;font-weight:600;line-height:1.2;text-transform:uppercase}   /* Titel in Versalien wie Vorlage carousel_1/entertainment_2 */
+.minfo b{font-size:6.1cqw;font-weight:600;line-height:1.2}   /* Schreibweise wie geliefert: echte Geräte (Apple-Video 36 s „Collect 200“, _Tbq 00635, Shane 962 s) zeigen Groß-/Kleinschreibung; die Versalien in carousel_1/entertainment_2 stammen aus dem Tag der Demo-Titel */
 .minfo span{font-size:4cqw;line-height:1.25;color:#ffffffa6}
 .more{position:absolute;right:9.6cqw;top:61.8cqw;width:5cqw;height:5cqw;border-radius:50%;background:#ffffffd9;color:#3a3a3c;display:grid;place-items:center;font-size:3.6cqw}
 /* Trefferfläche 5,6 % hoch, sichtbarer Balken 1,1 % (beim Ziehen dicker) */
 .f-music .prog{position:absolute;left:9cqw;right:9cqw;top:72.95cqw;height:5.6cqw;display:flex;align-items:center;touch-action:none;cursor:pointer}
-.prog b{flex:1;height:1.1cqw;border-radius:1cqw;background:#ffffff40;overflow:hidden;transition:height .2s}
+/* Restbalken + Zeiten + Sekundär-Symbole nehmen den Ton des Covers an (Website entertainment_2: magenta getönter Rest; --tint kommt aus tintOf()) */
+.prog b{flex:1;height:1.1cqw;border-radius:1cqw;background:color-mix(in srgb,var(--tint,#fff) 42%,#ffffff26);overflow:hidden;transition:height .2s}
 .prog.drag b{height:2.2cqw}
 .prog i{display:block;height:100%;background:#fff;transform-origin:left;transform:scaleX(0)}
-.f-music .times{position:absolute;left:9cqw;right:9cqw;top:78cqw;display:flex;justify-content:space-between;font-size:2.8cqw;color:#ffffff99;font-variant-numeric:tabular-nums}
+.f-music .times{position:absolute;left:9cqw;right:9cqw;top:78cqw;display:flex;justify-content:space-between;font-size:2.8cqw;color:color-mix(in srgb,var(--tint,#fff) 30%,#ffffffa0);font-variant-numeric:tabular-nums}
 .f-music .c{position:absolute;top:88cqw;translate:-50% -50%;display:grid;place-items:center;transition:scale var(--sd) var(--spring),opacity .45s,background-color .3s,color .3s}
 .f-music .c:active{scale:.85;transition-duration:.1s}
-.c.lyr{left:12cqw;font-size:6.6cqw;color:#ffffff99}
+.c.lyr{left:12cqw;font-size:6.6cqw;color:color-mix(in srgb,var(--tint,#fff) 30%,#ffffffa0)}
 .c.prev{left:28.3cqw;font-size:11.9cqw}
 /* Podcast (media_content_type podcast/episode; Vorlage highlights/sound_visuals): 15 s zurück / 30 s vor statt Titelwechsel, Titel läuft aus (Maske) statt …  */
 .f-music .c svg.pod{display:none}.f-music.pod .c svg.pod{display:block}.f-music.pod .c svg.std{display:none}
-.f-music.pod .minfo b{text-transform:none;text-overflow:clip;-webkit-mask:linear-gradient(90deg,#000 88%,#0000);mask:linear-gradient(90deg,#000 88%,#0000)}
+.f-music.pod .minfo b{text-overflow:clip;-webkit-mask:linear-gradient(90deg,#000 88%,#0000);mask:linear-gradient(90deg,#000 88%,#0000)}
 .f-music.pod .c:is(.prev,.next){font-size:9.6cqw}
+/* Zustände: nichts geladen/nicht erreichbar → Bedienung gedimmt; Radio/Livestream ohne Dauer → kein Fortschritt (LIVE) */
+.f-music.none:not(.amb) :is(.lyr,.queue,.prev,.next,.more,.prog,.times){opacity:.3;pointer-events:none}
+.f-music.live .prog{pointer-events:none}.f-music.live .prog i{display:none}
+.f-music.live .times span:first-child{visibility:hidden}
 .c.play{left:50cqw;font-size:11cqw}
 .c.next{left:71.5cqw;font-size:11.9cqw}
-.c.queue{left:88cqw;font-size:6.6cqw;color:#ffffff99}
+.c.queue{left:88cqw;font-size:6.6cqw;color:color-mix(in srgb,var(--tint,#fff) 30%,#ffffffa0)}
 .c:is(.lyr,.queue){width:10.5cqw;height:10.5cqw;border-radius:50%}
 .ly .c.lyr,.qm .c.queue{color:#fff;background:#ffffff38;--bf:#fff;--qf:#3a3a3c}
 .f-music>:is(.cover,.mb,.mpill,.minfo,.more,.prog,.times,.lyrics,.qlist){transition:opacity .45s,transform var(--sd) var(--spring)}
 /* Liedtext (Video 38 s): Cover/Titel/Fortschritt weg, Zeilen links, aktive weiß, Rest gedimmt + je Abstand stärker verwischt */
 :is(.ly,.qm)>:is(.cover,.minfo,.more,.prog,.times){opacity:0;pointer-events:none}
-:is(.ly,.qm)>.cover{transform:translate(1.9cqw,1.9cqw) scale(.94)}
-:is(.ly,.qm)>.minfo{transform:translateY(-8cqw)}
+/* Überblendung Cover ↔ Liedtext (Apple-Video 37,6–38,8 s, STEUERUNG 24): reine Opacity + Blur, 0,2–0,27 s, nichts bewegt sich */
+.f-music:is(.ly,.qm)>:is(.cover,.minfo,.more,.prog,.times){transition:opacity .23s ease-out}
 .lyrics{position:absolute;inset:0 0 21cqw;overflow:hidden;opacity:0;pointer-events:none;
   -webkit-mask-image:linear-gradient(#0000 6cqw,#000 24cqw,#000 60cqw,#0000);mask-image:linear-gradient(#0000 6cqw,#000 24cqw,#000 60cqw,#0000)}
-.lyrics{transform:translateY(-6cqw);touch-action:none}
-.ly .lyrics{opacity:1;pointer-events:auto;transform:none}
+.lyrics{touch-action:none;filter:blur(1.4cqw)}
+.f-music>.lyrics{transition:opacity .23s ease-out,filter .23s ease-out}
+.ly .lyrics{opacity:1;pointer-events:auto;filter:none}
 /* --o = von Hand gescrollt; nach 3 s federt es zurück zur aktiven Zeile */
 .ll{padding:0 12cqw 0 9cqw;transform:translateY(var(--o,0px));transition:transform var(--sd) var(--spring)}
 .ll.scrub{transition:none}
@@ -326,6 +354,8 @@ svg.i{width:1em;height:1em;flex:none;fill:none;stroke:currentColor;stroke-width:
 .ll p{font-size:6.6cqw;font-weight:700;line-height:1.2;margin-bottom:3.4cqw;opacity:.35;filter:blur(calc(var(--d,2)*.3cqw));transform:translateY(var(--y,0));
   transition:opacity .5s,filter .5s,transform var(--sd) var(--spring) calc(var(--w,0)*40ms);cursor:pointer}
 .ll p.on,.ll.plain p{opacity:1}
+@property --lp{syntax:'<percentage>';inherits:false;initial-value:110%}
+.ll p.on .lw{background:linear-gradient(90deg,#fff calc(var(--lp,110%) - 5%),#ffffffb3 calc(var(--lp,110%) + 5%));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
 .ll:is(.scrub,.plain) p{filter:none}
 /* Instrumental: drei Punkte füllen sich über die Pause, die Gruppe atmet */
 .ll .gap{display:flex;gap:1.8cqw;height:5cqw;align-items:center;transform-origin:0 50%}
@@ -337,17 +367,18 @@ svg.i{width:1em;height:1em;flex:none;fill:none;stroke:currentColor;stroke-width:
 @keyframes dotfill{to{opacity:1}}
 @keyframes breathe{50%{scale:1.12}}
 /* Ruhe-Modus: nach IDLE ohne Berührung Cover randlos, Bedienelemente aus; erster Tipp weckt nur */
-/* Video 36 s: am Ende steht nur noch das Cover, auch der Titel blendet aus */
-.amb :is(.mb,.mpill,.more,.prog,.times,.c,.minfo){opacity:0;pointer-events:none}
+/* Musik: Titel + Künstler bleiben (sound_visuals); Podcast (Video 36 s): nur noch das Cover */
+.amb :is(.mb,.mpill,.more,.prog,.times,.c),.pod.amb .minfo{opacity:0;pointer-events:none;transition:opacity .3s linear}   /* Apple-Video 36,1–36,4 s: ≈ 0,3 s linear */
 .amb:not(.ly,.qm)>.cover{transform:translate(-18.75cqw,-18.5cqw) scale(1.6)}
-.amb:not(.ly,.qm)>.minfo{transform:translateY(4cqw)}
+.amb:not(.ly,.qm)>.minfo{transform:translateY(19cqw);text-shadow:0 .2cqw 2.4cqw #0007}   /* sound_visuals (Website): Musik behält Titel/Künstler unten links (Titel ≈ 82 %, Künstler ≈ 87 %); Podcast: alles aus (Video 36 s) */
 /* randlos: Blur-Ebene etwas größer, sonst scheint am Bildrand das scharfe Cover durch */
 .amb:not(.ly,.qm)>.cover::after{transform:scale(1.12)}
 
 /* Warteschlange (wie Lyrics-Modus, Liste statt Text) */
-.qlist{position:absolute;inset:17cqw 0 21cqw;overflow-y:auto;scrollbar-width:none;padding:0 6cqw 4cqw;opacity:0;pointer-events:none;transform:translateY(4cqw)}
+.qlist{position:absolute;inset:17cqw 0 21cqw;overflow-y:auto;scrollbar-width:none;padding:0 6cqw 4cqw;opacity:0;pointer-events:none;filter:blur(1.4cqw)}
 .qlist::-webkit-scrollbar{display:none}
-.qm .qlist{opacity:1;pointer-events:auto;transform:none}
+.qm .qlist{opacity:1;pointer-events:auto;filter:none}
+.f-music>.qlist{transition:opacity .23s ease-out,filter .23s ease-out}
 .qhead{display:flex;align-items:center;gap:2cqw;padding:0 3cqw 2cqw;font-weight:700;font-size:5cqw}
 .qhead span{flex:1}
 .tg{position:relative;width:9.5cqw;height:7cqw;border-radius:2.4cqw;background:#ffffff1f;display:grid;place-items:center;font-size:4cqw;color:#ffffffb3;transition:background-color .2s,color .2s}
@@ -404,6 +435,8 @@ input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:tr
 
 /* Tag ↔ Nacht langsam überblenden (phase() in JS) */
 ::view-transition-old(root),::view-transition-new(root){animation-duration:1.4s}
+.vt-blur::view-transition-old(root){animation:.5s ease-in both vtout}.vt-blur::view-transition-new(root){animation:.5s ease-out both vtin}   /* Handoff Face → Now Playing: ≈ 0,5 s Blur-Überblendung (NOTIZEN §6), nur opacity/filter */
+@keyframes vtout{to{opacity:0;filter:blur(20px)}}@keyframes vtin{from{opacity:0;filter:blur(20px)}}
 
 /* ---------- Vollbild-Ansichten ---------- */
 .view{position:absolute;inset:0;z-index:2;transform-origin:0 0;overflow:hidden}
@@ -461,6 +494,7 @@ input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:tr
 /* Musikauswahl (Video 36 s: hell, Titel mittig, Zurück rund, 3 Spalten) */
 #lib{background:#f2f2f7;color:#1c1c1e}
 #lib .x{background:#0000000f}
+#lib.det .x{left:6cqw;top:5.8cqw;width:8.75cqw;height:8.75cqw}
 #lib .top{font-size:3.8cqw}
 .lgrid{position:absolute;inset:15cqw 0 0;overflow-y:auto;scrollbar-width:none;padding:1cqw 5cqw 6cqw;display:grid;grid-template-columns:repeat(3,1fr);gap:4cqw 3cqw;align-content:start}
 .lgrid::-webkit-scrollbar{display:none}
@@ -471,6 +505,44 @@ input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:tr
 .li b{font-size:3.3cqw;font-weight:600;margin-top:1.6cqw}
 .li small{font-size:3cqw;color:#8e8e93}
 .lnone{grid-column:1/-1;text-align:center;color:#8e8e93;padding-top:20cqw;font-size:3.8cqw}
+#lib .lgrid{padding-bottom:22cqw}
+/* Suchfeld (nur Player mit SEARCH_MEDIA): Glasfeld unter der Kopfzeile; kein Apple-Beleg, Designsystem der Seite (Hellgrau, 3 Spalten) */
+.lsr{position:absolute;z-index:1;left:5cqw;right:5cqw;top:14.5cqw;height:8.4cqw;border-radius:3cqw;background:#7676801f;display:none;align-items:center;gap:2cqw;padding:0 3cqw;font-size:3.6cqw;color:#8e8e93}
+.lsr input{flex:1;min-width:0;color:#1c1c1e}
+#lib input::placeholder{color:#8e8e93}
+#lib.sr .lsr{display:flex}#lib.sr .lgrid{inset:25cqw 0 0}
+/* Playlist-/Album-Seite (Vorlage _Tbq 01400, Playlist „Today’s Country“: Cover randlos oben, Titel + Untertitel weiß mittig, Play-Kreis rechts; Seitenfarbe = Ton des Covers) */
+#lib{transition:background-color .35s}
+#lib.det{background:var(--lt,#9aa4b8)}
+#lib.det .top,#lib.det .lsr{display:none}
+#lib.det :is(.x,.lmore){background:none;color:#fff;box-shadow:none;filter:drop-shadow(0 0 1.2cqw #0006)}   /* Vorlage _Tbq 01400: reine Glyphen ohne Kreis */
+#lib input::-webkit-search-cancel-button{display:none}
+#lib.det .lgrid{inset:0;display:block;padding:0 0 22cqw}
+.lmore{position:absolute;z-index:1;right:6cqw;top:5.8cqw;width:8.75cqw;height:8.75cqw;border-radius:50%;background:#0000000f;display:grid;place-items:center;font-size:4cqw}
+.ldh .cover{width:100%;height:72.5cqw;border-radius:0;display:grid;place-items:center;font-size:20cqw;color:#ffffff59;-webkit-mask-image:linear-gradient(#000 82%,#0000);mask-image:linear-gradient(#000 82%,#0000)}
+.ldt{position:relative;display:flex;align-items:center;justify-content:center;padding:1cqw 14cqw 0;min-height:14cqw;color:#fff;text-align:center}
+.ldt b,.ldt small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ldt b{font-size:4.8cqw;font-weight:500}.ldt small{font-size:3.9cqw;opacity:.88;margin-top:-1.2cqw}
+.ldt>div{min-width:0}
+.ldp{position:absolute;right:4.7cqw;top:calc(50% - 2cqw);translate:0 -50%;width:7.6cqw;height:7.6cqw;border-radius:50%;background:#ffffffa6;color:#16253c;display:grid;place-items:center;font-size:3.6cqw;transition:scale var(--sd) var(--spring)}
+.ldp:active{scale:.88;transition-duration:.1s}
+.ldl{padding:4cqw 5cqw 0;color:#fff}
+.lr{display:flex;align-items:center;gap:3cqw;width:100%;padding:1.6cqw 2cqw;border-radius:3cqw;text-align:left;transition:background-color .2s}
+.lr:active{background:#ffffff26}
+.lr .cover{width:10cqw;aspect-ratio:1;border-radius:1.6cqw;flex:none}
+.lr .ln{width:10cqw;text-align:center;font-size:3.6cqw;font-style:normal;opacity:.7;flex:none;font-variant-numeric:tabular-nums}
+.lr>div{min-width:0}.lr b,.lr small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lr b{font-size:3.8cqw;font-weight:600}.lr small{font-size:3.2cqw;opacity:.75}
+/* Mini-Player (Vorlage _Tbq 01400: kleines Cover + Titel unten): Tipp = zurück zu Now Playing */
+.lmini{position:absolute;z-index:2;left:4cqw;right:4cqw;bottom:3.5cqw;height:13cqw;display:none;align-items:center;gap:3cqw;padding:1.5cqw 3cqw 1.5cqw 1.5cqw;border-radius:4cqw;background:#ffffffc7;box-shadow:0 .4cqw 2cqw #0002;color:#1c1c1e;cursor:pointer}
+#lib.hasnp .lmini{display:flex}
+#lib.det .lmini{bottom:-12cqw;height:19cqw;align-items:flex-start;padding-top:1.5cqw}   /* Vorlage: Mini-Player ragt nur mit der oberen Hälfte ins Bild */
+.lmini .cover{width:10cqw;aspect-ratio:1;border-radius:2cqw;flex:none}
+.lmini>div{flex:1;min-width:0}.lmini b,.lmini small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lmini b{font-size:3.5cqw;font-weight:600}.lmini small{font-size:2.9cqw;color:#6c6c70}
+.lmp{width:9cqw;height:9cqw;display:grid;place-items:center;font-size:5.6cqw}
+#lib.det .lmini{background:linear-gradient(#ffffff1f,#ffffff1f),var(--lt,#9aa4b8);box-shadow:none;color:#fff}   /* Seitenfarbe + 12 % Weiß: keine helle Karte, verdeckt aber die darunter scrollende Liste */#lib.det .lmini small{color:#ffffffc0}
+.lmenu{color:#fff;top:14cqw;right:5cqw;width:56cqw;transform-origin:top right;z-index:4}
 
 /* ---------- Assist/Siri (Video 15,3–18 s) ----------
    Tropfen: schwarzer Kreis + Kamerarand im Goo-Filter (Blur + Alpha-Schwelle) → Metaball-Hals, reißt ab (~0,2 s);
@@ -586,9 +658,12 @@ input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:tr
   <symbol id="back15" viewBox="0 0 24 24"><path d="M12 5a8 8 0 1 1-5.66 2.34M12 1.8 8.8 5 12 8.2" stroke-width="1.7"/><text x="12" y="16.2" text-anchor="middle" font-size="7.6" font-weight="700" fill="currentColor" stroke="none">15</text></symbol>
   <symbol id="fwd30" viewBox="0 0 24 24"><path d="M12 5a8 8 0 1 0 5.66 2.34M12 1.8 15.2 5 12 8.2" stroke-width="1.7"/><text x="12" y="16.2" text-anchor="middle" font-size="7.6" font-weight="700" fill="currentColor" stroke="none">30</text></symbol>
   <symbol id="next" viewBox="0 0 24 24"><path d="M3.5 7v10l8-5zM12.5 7v10l8-5z" fill="currentColor" stroke-width="1.5"/></symbol>
+  <symbol id="podg" viewBox="0 0 24 24"><circle cx="12" cy="10.2" r="1.9" fill="currentColor" stroke="none"/><path d="M8.8 13.4a4.6 4.6 0 1 1 6.4 0M6 16.2a8.6 8.6 0 1 1 12 0"/><path d="M12 14v6.5" stroke-width="2.2"/></symbol>
   <symbol id="note" viewBox="0 0 24 24"><path d="M9 17.5V6l10-2v11.5"/><circle cx="6.6" cy="17.6" r="2.6" fill="currentColor"/><circle cx="16.6" cy="15.6" r="2.6" fill="currentColor"/></symbol>
   <symbol id="cast" viewBox="0 0 24 24"><path d="M6.5 16.5a7.5 7.5 0 1 1 11 0M9 14a4 4 0 1 1 6 0"/><path d="M12 14.5l4 5.5H8z" fill="currentColor" stroke-width="1.2"/></symbol>
   <symbol id="vol" viewBox="0 0 24 24"><path d="M3.5 9.5h3.5L11.5 6v12L7 14.5H3.5z" fill="currentColor" stroke-width="1.2"/><path d="M15 9a4.5 4.5 0 0 1 0 6M17.8 6.5a8 8 0 0 1 0 11"/></symbol>
+  <symbol id="volx" viewBox="0 0 24 24"><path d="M3.5 9.5h3.5L11.5 6v12L7 14.5H3.5z" fill="currentColor" stroke-width="1.2"/><path d="M15.5 9.5l5 5M20.5 9.5l-5 5" stroke-width="1.8"/></symbol>
+  <symbol id="search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 20.5 20.5" stroke-width="2.4"/></symbol>
   <symbol id="more" viewBox="0 0 24 24"><circle cx="6" cy="12" r="1.9" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.9" fill="currentColor" stroke="none"/><circle cx="18" cy="12" r="1.9" fill="currentColor" stroke="none"/></symbol>
   <symbol id="quote" viewBox="0 0 24 24"><path d="M5 4.5h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-7.5L7 21v-3.5H5a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2z" style="fill:var(--bf,none)"/><circle cx="9.2" cy="10.2" r="1.7" stroke="none" style="fill:var(--qf,currentColor)"/><circle cx="14.8" cy="10.2" r="1.7" stroke="none" style="fill:var(--qf,currentColor)"/><path d="M10.8 10.4c0 1.7-.7 2.7-2 3.3M16.4 10.4c0 1.7-.7 2.7-2 3.3" stroke-width="1.4" style="stroke:var(--qf,currentColor)"/></symbol>
   <symbol id="back" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" stroke-width="2.4"/></symbol>
@@ -636,7 +711,11 @@ input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:tr
   <section id="lib" class="view" hidden>
     <button class="x" data-act="libback" aria-label="Zurück"><svg class="i"><use href="#x"/></svg></button>
     <div class="top"><span data-bind="libt"></span><time data-bind="time"></time></div>
+    <label class="lsr"><svg class="i"><use href="#search"/></svg><input type="search" placeholder="Suchen" enterkeyhint="search" autocomplete="off" aria-label="Musik suchen"></label>
+    <button class="lmore" data-act="libmore" aria-label="Mehr" hidden><svg class="i"><use href="#more"/></svg></button>
     <div class="lgrid"></div>
+    <div class="lmini" data-act="libmini"><span class="cover"></span><div><b data-bind="npt"></b><small data-bind="npa"></small></div><button class="lmp" data-act="play" aria-label="Abspielen/Pause"><svg class="i"><use href="#play"/></svg></button></div>
+    <div class="pop lmenu"></div>
   </section>
 
   <section id="cam" class="view" hidden></section>   <!-- Inhalt: doorbell.js -->
@@ -949,10 +1028,10 @@ const FACE = {
   music: el => el.innerHTML = `<div class="mbg"></div>
 <div class="lyrics"><div class="ll"></div></div>
 <div class="qlist"></div>
-<button class="mb" data-act="lib" aria-label="Musikauswahl">${svg('note')}</button>
-<div class="mpill"><button data-act="outs" aria-label="Ausgabe">${svg('cast')}</button><button data-act="vol" aria-label="Lautstärke">${svg('vol')}</button></div>
-<div class="cover"></div>
-<div class="minfo"><b data-bind="npt"></b><span data-bind="npa"></span></div>
+<button class="mb" data-act="lib" aria-label="Musikauswahl">${svg('note', 'std')}${svg('podg', 'pod')}</button>
+<div class="mpill"><button class="po" data-act="outs" aria-label="Ausgabe">${svg('cast')}<span data-bind="npn"></span></button><div class="vs"><input type="range" min="0" max="100" value="0" aria-label="Lautstärke"></div><button class="pv" data-act="vol" aria-label="Lautstärke">${svg('vol', 'v1')}${svg('volx', 'v0')}</button></div>
+<div class="cover">${svg('note')}</div>
+<div class="minfo"><b data-bind="npt"></b><span data-bind="npa" data-act="artist"></span></div>
 <button class="more" data-act="menu" aria-label="Mehr">${svg('more')}</button>
 <div class="prog"><b><i></i></b></div>
 <div class="times"><span data-bind="npe"></span><span data-bind="npr"></span></div>
@@ -1089,8 +1168,9 @@ function tick() {
 }
 
 // ---------- Home Assistant (oder Demo) ----------
-let ents = {}, forecast = null, NP = null, npKey = '';
+let ents = {}, forecast = null, NP = null, npKey = '', netDown = false;   // netDown: HA-Verbindung weg → Musik zeigt „Keine Verbindung“ statt eines laufend weiterzählenden Standbilds
 const st = id => ents[id] || { state: 'unavailable', attributes: {} };
+const abs = u => u && (u.startsWith('/') ? HASS + u : u);
 const hold = {}, held = id => hold[id] > Date.now();   // lokale Eingabe gewinnt kurz gegen HA-Echo
 const fmt = v => v == null ? '–' : (+v).toLocaleString('de-DE', { maximumFractionDigits: 1 });
 const pct = s => s.state === 'on' ? Math.round((s.attributes.brightness ?? 255) / 2.55) : 0;
@@ -1131,7 +1211,9 @@ const RADIO = ['Radio Pop', 'Radio Jazz', 'Radio Klassik', 'Radio Rock'].map((t,
 node('pls', 'Playlists', `${PLAYL.length} Playlists`, LIB[PLAYL[0]].art, { kids: PLAYL });
 node('albs', 'Alben', `${ALBUMS.length} Alben`, LIB[ALBUMS[1]].art, { kids: ALBUMS });
 node('radio', 'Radio', `${RADIO.length} Sender`, LIB[RADIO[0]].art, { kids: RADIO });
-node('root', 'Musik', '', null, { kids: ['pls', 'albs', 'radio', ALBUMS[0], PLAYL[0], ALBUMS[2], RADIO[0], PLAYL[1], ALBUMS[4]] });
+node('recent', 'Zuletzt gespielt', 'Verlauf', coverArt(20, 3), { tracks: [SONGS[4], SONGS[9], SONGS[1], SONGS[12], SONGS[6]] });
+node('fav', 'Favoriten', 'Lieblingstitel', coverArt(300, 4), { kids: [ALBUMS[0], RADIO[1], PLAYL[2], ALBUMS[3]] });
+node('root', 'Musik', '', null, { kids: ['recent', 'fav', 'pls', 'albs', 'radio', ALBUMS[0], PLAYL[0], ALBUMS[2], RADIO[0], PLAYL[1], ALBUMS[4]] });
 const track = (q, i, pos = 0) => {
   const t = q[i];
   return { _q: q, _i: i, media_title: t.title, media_artist: t.artist, media_album_name: t.album, entity_picture: t.art, media_duration: t.dur,
@@ -1163,11 +1245,18 @@ function demoCall(domain, service, data) {
     media_next_track: () => q && set(s.state, track(q, (a.shuffle ? Math.floor(Math.random() * q.length) : a._i + 1) % q.length)),
     media_previous_track: () => q && set(s.state, track(q, npPos(id)[0] > 3 || !a._i ? a._i : a._i - 1)),
     media_seek: () => set(s.state, { media_position: data.seek_position, media_position_updated_at: new Date().toISOString() }),
-    play_media: () => LIB[data.media_content_id]?.tracks && set('playing', track(LIB[data.media_content_id].tracks, 0)),
+    play_media: () => {   // Demo: „trk:<Ordner>:<Nr>“ = Titel eines Albums (Warteschlange = Album ab diesem Titel), sonst der ganze Ordner; enqueue next/add hängt an die Warteschlange
+      const m = /^trk:(.+):(\d+)$/.exec(data.media_content_id), n = LIB[m ? m[1] : data.media_content_id];
+      if (!n?.tracks) return;
+      const add = m ? [n.tracks[+m[2]]] : n.tracks;
+      if (data.enqueue === 'next' || data.enqueue === 'add') { if (!q) return; const nq = [...q]; nq.splice(data.enqueue === 'next' ? a._i + 1 : nq.length, 0, ...add); return set(s.state, { _q: nq }); }
+      set('playing', track([...n.tracks], m ? +m[2] : 0));
+    },
     play_queue: () => q && set('playing', track(q, data.queue_position)),
     shuffle_set: () => set(s.state, { shuffle: data.shuffle }),
     repeat_set: () => set(s.state, { repeat: data.repeat }),
     volume_set: () => set(s.state, { volume_level: data.volume_level }),
+    volume_mute: () => set(s.state, { is_volume_muted: data.is_volume_muted }),
   })[service]?.();
 }
 const call = (domain, service, data) => LIVE ? conn.sendMessagePromise({ type: 'call_service', domain, service, service_data: data }).catch(e => console.warn('HA', service, e)) : demoCall(domain, service, data);
@@ -1194,12 +1283,41 @@ function npPos(id = NP) {
   const pos = a.media_position + (s.state === 'playing' ? (Date.now() - Date.parse(a.media_position_updated_at)) / 1000 : 0);
   return [dur ? Math.min(pos, dur) : pos, dur];
 }
+// Dominanter Farbton des Covers: 24×24-Raster, Farbwinkel nach Sättigung × Helligkeitsabstand gewichtet. Lesbar nur, wenn das Bild CORS-frei kommt
+// (gleicher Origin/HA-Proxy); sonst (oder ohne Cover) bleibt es null und die Oberfläche beim neutralen Weiß. ponytail: pro URL einmal, Map wächst bis zum Neuladen
+const tints = new Map();
+function domColor(url) {
+  if (!url) return Promise.resolve(null);
+  if (!tints.has(url)) tints.set(url, new Promise(ok => {
+    const img = new Image(); img.crossOrigin = 'anonymous';
+    img.onerror = () => ok(null);
+    img.onload = () => { try {
+      const c = document.createElement('canvas'); c.width = c.height = 24;
+      const g = c.getContext('2d', { willReadFrequently: true }); g.drawImage(img, 0, 0, 24, 24);
+      const d = g.getImageData(0, 0, 24, 24).data; let x = 0, y = 0, w = 0, sat = 0;
+      for (let i = 0; i < d.length; i += 4) {
+        const r = d[i] / 255, gg = d[i + 1] / 255, b = d[i + 2] / 255, mx = Math.max(r, gg, b), mn = Math.min(r, gg, b), l = (mx + mn) / 2, dl = mx - mn;
+        if (dl < .08) continue;
+        const sv = dl / (1 - Math.abs(2 * l - 1) || 1), k = sv * (1 - Math.abs(2 * l - 1)),
+          h = (mx === r ? ((gg - b) / dl + 6) % 6 : mx === gg ? (b - r) / dl + 2 : (r - gg) / dl + 4) * 60 * Math.PI / 180;
+        x += Math.cos(h) * k; y += Math.sin(h) * k; w += k; sat += sv * k;
+      }
+      ok(w < 3 ? null : `hsl(${Math.round((Math.atan2(y, x) * 180 / Math.PI + 360) % 360)} ${Math.round(Math.min(90, Math.max(35, sat / w * 100)))}% 64%)`);
+    } catch { ok(null); } };   // getImageData: „tainted“ → ohne Ton
+    img.src = url;
+  }));
+  return tints.get(url);
+}
+function tintOf(url) {
+  screen.style.removeProperty('--tint');
+  domColor(url).then(c => { if (c && screen.style.getPropertyValue('--art').includes(url)) screen.style.setProperty('--tint', c); });
+}
 // Fortschritt läuft als lineare Compositor-Animation bis zum Songende
 function progress(bar) {
   const [pos, dur] = npPos(), p = dur ? pos / dur : 0;
   bar.getAnimations().forEach(a => a.cancel());
   bar.style.transform = `scaleX(${p})`;
-  if (dur && st(NP).state === 'playing') bar.animate([{ transform: `scaleX(${p})` }, { transform: 'scaleX(1)' }], { duration: (dur - pos) * 1000, easing: 'linear', fill: 'forwards' });
+  if (dur && st(NP).state === 'playing' && !netDown) bar.animate([{ transform: `scaleX(${p})` }, { transform: 'scaleX(1)' }], { duration: (dur - pos) * 1000, easing: 'linear', fill: 'forwards' });
 }
 
 const isPod = id => /^(podcast|episode)$/.test(st(id).attributes.media_content_type);
@@ -1291,21 +1409,30 @@ function render() {
   const np = ents[CONF.player] || started || (cp && has(cp) && /^(playing|paused)$/.test(cp.state) ? cp : null) || mps.find(e => e.state === 'playing' && has(e) && e.attributes.media_content_type === 'music') || mps.find(e => e.state === 'playing' && has(e))
     || mps.find(e => e.state === 'paused' && has(e)) || mps.find(e => e.attributes.device_class === 'speaker') || mps[0], a = np?.attributes || {};
   NP = np?.entity_id;
-  for (const f of $$('.f-music')) f.classList.toggle('pod', !!NP && isPod(NP));
+  const pic = a.entity_picture, title = a.media_title, off = /^(off|standby)$/.test(np?.state), busy = /^(playing|buffering)$/.test(np?.state);
+  for (const f of $$('.f-music')) {
+    f.classList.toggle('pod', !!NP && isPod(NP));
+    f.classList.toggle('none', !title || netDown);         // nichts geladen / aus / nicht erreichbar / Verbindung weg
+    f.classList.toggle('live', !!title && !a.media_duration);   // Radio/Livestream: keine Dauer → kein Fortschritt
+    f.classList.toggle('nocov', !pic);
+  }
   timerMusic(np, HASS);
-  bind('npt', a.media_title || 'Nichts läuft');
-  bind('npa', a.media_artist || a.friendly_name || '');
-  bind('npb', np?.state === 'playing' ? 'Pause' : 'Abspielen');
-  const icon = np?.state === 'playing' ? '#pause' : '#play';
+  bind('npt', netDown ? 'Keine Verbindung' : title || (np?.state === 'unavailable' ? 'Nicht verfügbar' : off ? 'Aus' : 'Nichts läuft'));
+  bind('npa', netDown ? 'Home Assistant nicht erreichbar' : title ? a.media_artist || a.media_series_title || a.media_channel || a.media_album_name || '' : a.friendly_name || '');
+  bind('npn', (a.friendly_name || '').replace(/^Sonos\s+(?=\S)/i, ''));   // Herstellerpräfix nur in der Pille weglassen, damit der Raum lesbar bleibt
+  bind('npb', busy ? 'Pause' : 'Abspielen');
+  const icon = busy ? '#pause' : '#play';
   for (const u of $$('[data-act=play] use')) if (u.getAttribute('href') !== icon) u.setAttribute('href', icon);
-  const pic = a.entity_picture, art = pic ? `url("${pic.startsWith('/') ? HASS + pic : pic}")` : 'none';
-  if (screen.style.getPropertyValue('--art') !== art) screen.style.setProperty('--art', art);
-  const key = [NP, np?.state, a.media_position, a.media_position_updated_at, a.media_duration, a.shuffle, a.repeat, a.media_title].join();
+  const art = pic ? `url("${abs(pic)}")` : 'none';
+  if (screen.style.getPropertyValue('--art') !== art) { screen.style.setProperty('--art', art); tintOf(pic && abs(pic)); }
+  $('#lib').classList.toggle('hasnp', !!title);
+  volSync();
+  const key = [netDown, NP, np?.state, a.media_position, a.media_position_updated_at, a.media_duration, a.shuffle, a.repeat, a.media_title].join();
   if (key !== npKey) {
     npKey = key; $$('.prog i').forEach(progress); syncLyrics(); times();
     $$('.f-music.qm').forEach(fillQueue); $$('.menu.open').forEach(fillMenu);
   }
-  if (members(NP).join() !== grpKey) $$('.outs.open').forEach(p => fillOuts(p, !!p.dataset.all));   // Gruppe geändert (auch von außen) → offene Ausgabewahl neu zeichnen; nicht bei jedem Tick, sonst reißt es laufende Regler ab
+  if (members(NP).join() !== grpKey) $$('.outs.open').forEach(fillOuts);   // Gruppe geändert (auch von außen) → offene Ausgabewahl neu zeichnen; nicht bei jedem Tick, sonst reißt es laufende Regler ab
   if (`${a.media_title}|${a.media_artist}` !== lyr.key) loadLyrics(a);
 }
 function times() {
@@ -1314,7 +1441,7 @@ function times() {
   // Demo: am Songende weiter (bzw. Titel wiederholen)
   if (!LIVE && dur && p >= dur && s.state === 'playing') demoCall('media_player', s.attributes.repeat === 'one' ? 'media_seek' : 'media_next_track', { entity_id: NP, seek_position: 0 });
   if (f?.classList.contains('f-music') && s.attributes.media_title && !cur && !AS.className && Date.now() - touched > IDLE && !f.classList.contains('amb')) {
-    f.classList.add('amb'); $$('.pop.open', f).forEach(x => x.classList.remove('open'));
+    f.classList.add('amb'); volOpen(false); $$('.pop.open', f).forEach(x => x.classList.remove('open'));
   }
 }
 const IDLE = 10000;   // ms ohne Berührung → Musik geht in den Ruhe-Modus
@@ -1346,7 +1473,7 @@ function fillLyrics() {
   const L = lyr.lines, plain = L?.[0]?.t === null;
   const rest = L === null ? '<p>Liedtext wird geladen …</p>' : !L.length ? (lyr.title ? `<p>${lyr.msg || 'Kein Liedtext gefunden'}</p>` : '')
     : plain ? L.map(l => `<p>${esc(l.s) || '&nbsp;'}</p>`).join('')
-    : L.map((l, k) => l.s ? `<p data-act="seek" data-t="${l.t}">${esc(l.s)}</p>`
+    : L.map((l, k) => l.s ? `<p data-act="seek" data-t="${l.t}"><span class="lw">${esc(l.s)}</span></p>`
       : `<p class="gap" data-act="seek" data-t="${l.t}" style="--gd:${((L[k + 1]?.t ?? l.t + 4) - l.t).toFixed(2)}s"><i></i><i></i><i></i></p>`).join('');
   for (const ll of $$('.ll')) { ll.innerHTML = `<p>${esc(lyr.title)}</p>` + rest; ll.classList.toggle('plain', plain); ll.classList.remove('scrub'); ll.style.removeProperty('--o'); }
   lyrIdx = NaN; syncLyrics();
@@ -1372,6 +1499,21 @@ function syncLyrics() {
     }
   }
   if (playing && L[i + 1]?.t != null) lyrT = setTimeout(syncLyrics, (L[i + 1].t - pos) * 1000 + 30);
+  wipe(L, i, pos, playing);
+}
+// Wortfortschritt der aktiven Zeile (Vorlage Website sound_visuals: Wipe über die Zeile, letztes Wort halb hell). LRCLIB liefert nur Zeilenstempel →
+// Wipe linear über die geschätzte Singzeit (0,07 s je Zeichen + 0,8 s, höchstens 92 % der Zeilendauer); mit Enhanced-LRC ließe sich das exakt machen
+function wipe(L, i, pos, playing) {
+  for (const ll of $$('.ll')) {
+    const on = i >= 0 && L[i].s && ll.children[i + 1]?.firstElementChild;
+    for (const w of ll.querySelectorAll('.lw')) if (w !== on) { w._a?.cancel(); w._a = null; }
+    if (!on || ll.classList.contains('plain')) continue;
+    const dur = Math.min(((L[i + 1]?.t ?? L[i].t + 5) - L[i].t) * .92, .07 * L[i].s.length + .8) * 1000;
+    on._a?.cancel();
+    on._a = on.animate([{ '--lp': '-6%' }, { '--lp': '106%' }], { duration: dur, easing: 'linear', fill: 'forwards' });
+    on._a.currentTime = Math.min(dur, (pos - L[i].t) * 1000);
+    if (!playing) on._a.pause();
+  }
 }
 const resync = () => { lyrIdx = NaN; syncLyrics(); };
 document.fonts.ready.then(resync);
@@ -1536,79 +1678,173 @@ document.addEventListener('keydown', e => {
 const STATE = { playing: 'Spielt', paused: 'Pausiert', idle: 'Bereit', off: 'Aus', on: 'An', unavailable: 'Nicht verfügbar' };
 const players = () => Object.values(ents).filter(e => e.entity_id.startsWith('media_player.') && e.attributes.device_class !== 'tv');
 const cssUrl = u => `url(&quot;${String(u).replace(/"/g, '%22')}&quot;)`;
-const abs = u => u && (u.startsWith('/') ? HASS + u : u);
-// HA: media_player/browse_media (Spotify, Sonos, Music Assistant …) – gleiche Form wie die Demo-Bibliothek
+// HA: media_player/browse_media (Spotify, Sonos, Music Assistant …) – gleiche Form wie die Demo-Bibliothek. Favoriten, Playlists, „Zuletzt gespielt“ liefert die Integration selbst als Wurzelordner
+const MCLS = { album: 'Album', artist: 'Künstler', playlist: 'Playlist', track: 'Titel', podcast: 'Podcast', episode: 'Folge', genre: 'Genre', channel: 'Sender', radio: 'Radio' };
+const searchOK = () => !LIVE || !!(st(NP).attributes.supported_features & 4194304);   // SEARCH_MEDIA
+const enqOK = () => !LIVE || !!(st(NP).attributes.supported_features & 2097152);      // MEDIA_ENQUEUE
+const kidsOf = n => n.kids ? n.kids.map(k => LIB[k]) : n.tracks.map((t, j) => ({ id: `trk:${n.id}:${j}`, title: t.title, sub: t.artist, art: t.art, trk: 1 }));
+const demoItem = c => ({ title: c.title, sub: c.sub, thumbnail: c.art, media_content_id: c.id, media_content_type: 'music', can_play: !!(c.tracks || c.trk), can_expand: !!c.kids || c.tracks?.length > 1 });
+const demoSearch = q => {
+  q = q.toLowerCase();
+  const nodes = [...PLAYL, ...ALBUMS].map(a => LIB[a]), trk = ALBUMS.flatMap(a => kidsOf(LIB[a]));
+  const seen = new Set();   // Album und gleichnamiger Titel (gleiche Untertitel) nur einmal
+  return [...nodes.filter(n => (n.title + ' ' + n.sub).toLowerCase().includes(q)), ...trk.filter(t => (t.title + ' ' + t.sub).toLowerCase().includes(q))].filter(n => { const k = n.title + '|' + n.sub; return !seen.has(k) && seen.add(k); }).map(demoItem);
+};
 async function browse(item) {
-  if (!LIVE) {
-    const n = LIB[item?.media_content_id || 'root'];
-    return { title: n.title, children: n.kids.map(k => LIB[k]).map(c => ({ title: c.title, sub: c.sub, thumbnail: c.art, media_content_id: c.id, media_content_type: 'music', can_play: !!c.tracks, can_expand: !!c.kids })) };
-  }
+  if (!LIVE) return { title: LIB[item?.media_content_id || 'root'].title, children: kidsOf(LIB[item?.media_content_id || 'root']).map(demoItem) };
   const r = await conn.sendMessagePromise({ type: 'media_player/browse_media', entity_id: NP, ...(item && { media_content_id: item.media_content_id, media_content_type: item.media_content_type }) });
   return { title: r.title, children: r.children || [] };
 }
-let libStack = [];
+// Suche (nur Player mit SEARCH_MEDIA): ponytail: Antwortform media_player/search_media = { result: [BrowseMedia] } nach HA-Quelltext, ungetestet an echter Instanz
+async function search(q) {
+  if (!LIVE) return demoSearch(q);
+  const r = await conn.sendMessagePromise({ type: 'media_player/search_media', entity_id: NP, search_query: q });
+  return r.result || r.children || [];
+}
+let libStack = [], libQ = 0, ppT = 0;
+const libRoot = () => libStack.length === 1 || (libStack.length === 2 && !!libStack[1].detail);   // Wurzel + direkt daraus geöffnete Playlist-/Album-Seite: ✕ (Vorlage _Tbq 01400) schließt zu Now Playing
+const itemSub = c => c.sub ?? MCLS[c.media_class] ?? '';
+const libRow = (c, k, n) => `<button class="lr" data-act="libgo" data-v="${k}">${c.thumbnail && c.thumbnail !== n.thumb ? `<span class="cover" style="--art:${cssUrl(abs(c.thumbnail))}"></span>` : `<i class="ln">${k + 1}</i>`}<div><b>${esc(c.title)}</b><small>${esc(itemSub(c))}</small></div></button>`;
 function showLib(dir = 0) {
-  const n = libStack.at(-1), g = $('.lgrid');
+  const n = libStack.at(-1), g = $('.lgrid'), L = $('#lib'), det = !!n.detail;
+  L.classList.toggle('det', det);
+  $('.lmore', L).hidden = !det; $('.lmenu', L).classList.remove('open');
+  L.classList.toggle('sr', searchOK() && (libStack.length === 1 || (libStack.length === 2 && !!libStack[1].search)));
+  L.classList.toggle('hasnp', !!st(NP).attributes.media_title);
   bind('libt', n.title);
-  $('#lib .x use').setAttribute('href', libStack.length > 1 ? '#back' : '#x');
-  g.innerHTML = !n.children ? '<p class="lnone">Lädt …</p>' : !n.children.length ? '<p class="lnone">Keine Einträge</p>'
-    : n.children.map((c, k) => `<button class="li" data-act="libgo" data-v="${k}"><span class="cover" style="--art:${c.thumbnail ? cssUrl(abs(c.thumbnail)) : 'linear-gradient(135deg,#aeaeb2,#636366)'}">${c.thumbnail ? '' : svg(c.can_expand ? 'queue' : 'note')}</span><b>${esc(c.title)}</b><small>${esc(c.sub)}</small></button>`).join('');
+  $('#lib .x use').setAttribute('href', libRoot() ? '#x' : '#back');
+  const rows = !n.children ? '<p class="lnone">Lädt …</p>' : !n.children.length ? `<p class="lnone">${n.search ? 'Nichts gefunden' : 'Keine Einträge'}</p>` : null;
+  if (det) {
+    // Playlist-/Album-Seite (Vorlage _Tbq 01400): Cover randlos oben, Titel + Untertitel mittig, runder Play-Knopf rechts; Seite scrollt, Mini-Player bleibt unten
+    L.style.setProperty('--lt', '');
+    domColor(n.thumb && abs(n.thumb)).then(c => { if (libStack.at(-1) === n && c) L.style.setProperty('--lt', `color-mix(in srgb,${c} 72%,#4c5568)`); });
+    g.innerHTML = `<div class="ldh"><div class="cover" style="--art:${n.thumb ? cssUrl(abs(n.thumb)) : 'none'}">${n.thumb ? '' : svg('note')}</div></div>`
+      + `<div class="ldt"><div><b>${esc(n.title)}</b><small>${esc(n.sub)}</small></div><button class="ldp" data-act="libplay" aria-label="Abspielen">${svg('play')}</button></div>`
+      + `<div class="ldl">${rows ?? n.children.map((c, k) => libRow(c, k, n)).join('')}</div>`;
+  } else g.innerHTML = rows ?? n.children.map((c, k) => `<button class="li" data-act="libgo" data-v="${k}"><span class="cover" style="--art:${c.thumbnail ? cssUrl(abs(c.thumbnail)) : 'linear-gradient(135deg,#aeaeb2,#636366)'}">${c.thumbnail ? '' : svg(c.can_expand ? 'queue' : 'note')}</span><b>${esc(c.title)}</b><small>${esc(itemSub(c))}</small></button>`).join('');
   if (dir) { g.scrollTop = 0; g.animate([{ transform: `translateX(${dir * 25}%)`, opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: SD, easing: SPRING }); }
 }
 async function libLoad(n, item) {
   try { Object.assign(n, await browse(item)); } catch (e) { n.children = []; console.warn('Musikauswahl', e); }
+  if (n.detail) n.title = item.title;   // Seitentitel bleibt der des Eintrags
   if (libStack.at(-1) === n) showLib();
 }
 function openLib(btn) {
   libStack = [{ title: 'Musik', children: null }];
+  $('#lib .lsr input').value = '';
   showLib(); open(btn, 'lib'); libLoad(libStack[0]);
 }
 function libGo(k) {
   const c = libStack.at(-1).children[k];
-  if (c.can_play) { call('media_player', 'play_media', { entity_id: NP, media_content_id: c.media_content_id, media_content_type: c.media_content_type }); return close(); }
-  if (!c.can_expand) return;
-  const n = { title: c.title, children: null };
-  libStack.push(n); showLib(1); libLoad(n, c);
+  if (c.can_expand) {   // Album/Playlist (spielbar + aufklappbar) → eigene Seite mit Play-Knopf, sonst Ordner
+    const n = { title: c.title, sub: itemSub(c), thumb: c.thumbnail, item: c, detail: !!c.can_play, children: null };
+    libStack.push(n); showLib(1); libLoad(n, c); return;
+  }
+  if (c.can_play) { libPlay(c); close(); }
+}
+const libPlay = (c, extra = {}) => call('media_player', 'play_media', { entity_id: NP, media_content_id: c.media_content_id, media_content_type: c.media_content_type, ...extra });
+let libST;
+function libSearch(q) {
+  clearTimeout(libST);
+  q = q.trim();
+  if (!q) { libStack.length = 1; return showLib(); }
+  libST = setTimeout(async () => {
+    const my = ++libQ, n = { title: 'Suche', search: true, children: null };
+    libStack.length = 1; libStack.push(n); showLib();
+    try { n.children = await search(q); } catch (e) { n.children = []; console.warn('Suche', e); }
+    if (my === libQ && libStack.at(-1) === n) showLib();
+  }, 450);
 }
 // Multiroom: ist der gewählte Player gruppenfähig (JOIN = 524288), schaltet der Haken rechts einen weiteren Lautsprecher in dessen Gruppe
 // (media_player.join/unjoin), die Zeile selbst wählt wie bisher den Player. Gruppenlautstärke = ein Regler, der alle Mitglieder mitzieht
 const JOIN = 524288, members = id => (st(id).attributes.group_members || []).filter(m => m !== id && ents[m]);
 const canGroup = id => !!(st(id).attributes.supported_features & JOIN);
 let grpKey = '';
-function fillOuts(p, all) {
-  p.dataset.all = all ? '1' : ''; grpKey = members(NP).join();
-  const list = all ? players() : players().filter(e => e.entity_id === NP), grp = all && canGroup(NP), mem = members(NP);
-  const gv = !all && mem.length ? Math.round([NP, ...mem].reduce((x, m) => x + (st(m).attributes.volume_level ?? 0), 0) / (mem.length + 1) * 100) : null;
-  p.innerHTML = `<h4>${all ? 'Wiedergabe auf' : 'Lautstärke · ' + esc(st(NP).attributes.friendly_name)}</h4>`
+function fillOuts(p) {
+  const xf = p.dataset.xfer === '1', mem = members(NP), grp = !xf && canGroup(NP);
+  grpKey = mem.join();
+  const gv = !xf && mem.length ? Math.round([NP, ...mem].reduce((x, m) => x + (st(m).attributes.volume_level ?? 0), 0) / (mem.length + 1) * 100) : null;
+  p.innerHTML = `<h4>${xf ? 'Übertragen auf' : 'Wiedergabe auf'}</h4>`
     + (gv == null ? '' : `<div class="orow"><small>Gruppe · ${mem.length + 1} Lautsprecher</small><input type="range" min="0" max="100" value="${gv}" data-gvol style="--v:${gv}%" aria-label="Gruppenlautstärke"></div>`)
-    + list.map(e => {
-    const v = Math.round((e.attributes.volume_level ?? 0) * 100), on = e.entity_id === NP, inG = mem.includes(e.entity_id);
-    return `<div class="orow">${all ? `<button data-act="pick" data-v="${e.entity_id}">${svg('vol')}<span>${esc(e.attributes.friendly_name || e.entity_id)}<small>${inG ? 'In der Gruppe · ' : ''}${STATE[e.state] || esc(e.state)}</small></span>${grp && !on ? `<i class="ck${inG ? ' on' : ''}" data-act="grp" data-v="${e.entity_id}" role="checkbox" aria-checked="${inG}" aria-label="Zur Gruppe">${inG ? svg('check') : ''}</i>` : `<i class="ck${on ? ' on' : ''}">${on ? svg('check') : ''}</i>`}</button>` : ''}`
-      + `<input type="range" min="0" max="100" value="${v}" data-vol="${e.entity_id}" style="--v:${v}%" aria-label="Lautstärke ${esc(e.attributes.friendly_name)}"></div>`;
-  }).join('');
+    + players().map(e => {
+      const v = Math.round((e.attributes.volume_level ?? 0) * 100), on = e.entity_id === NP, inG = mem.includes(e.entity_id), nm = esc(e.attributes.friendly_name || e.entity_id);
+      if (xf) return on ? '' : `<div class="orow"><button data-act="xfer" data-v="${e.entity_id}">${svg('vol')}<span>${nm}<small>${STATE[e.state] || esc(e.state)}</small></span></button></div>`;
+      return `<div class="orow"><button data-act="pick" data-v="${e.entity_id}">${svg('vol')}<span>${nm}<small>${inG ? 'In der Gruppe · ' : ''}${STATE[e.state] || esc(e.state)}</small></span>${grp && !on ? `<i class="ck${inG ? ' on' : ''}" data-act="grp" data-v="${e.entity_id}" role="checkbox" aria-checked="${inG}" aria-label="Zur Gruppe">${inG ? svg('check') : ''}</i>` : `<i class="ck${on ? ' on' : ''}">${on ? svg('check') : ''}</i>`}</button>`
+        + (e.attributes.volume_level == null ? '' : `<input type="range" min="0" max="100" value="${v}" data-vol="${e.entity_id}" style="--v:${v}%" aria-label="Lautstärke ${nm}">`) + '</div>';
+    }).join('') + (xf && players().length < 2 ? '<p class="qnone">Kein weiterer Lautsprecher</p>' : '');
+}
+// Lautstärke-Pille (oben rechts): Regler wächst nach links aus der Pille. Kein Überschwingen (ref/steuerung/medien/NOTIZEN.md 1–2): 140 ms auf, 125 ms zu, 2,25 s offen
+let volClose = 0, volDrag = false, volHold = 0;
+function volOpen(on) {
+  clearTimeout(volClose);
+  for (const pl of $$('.mpill')) {
+    if (pl.classList.contains('vo') === on) continue;
+    const a = pl.offsetWidth; pl.classList.toggle('vo', on); const b = pl.offsetWidth;
+    pl.animate([{ width: a + 'px' }, { width: b + 'px' }], { duration: on ? 140 : 125, easing: 'cubic-bezier(.2,.7,.3,1)' });
+  }
+  if (on) volArm();
+}
+const volArm = () => { clearTimeout(volClose); if (!volDrag) volClose = setTimeout(() => volOpen(false), 2250); };
+function volSync() {
+  const a = st(NP).attributes, lv = a.volume_level, mem = members(NP), v = Math.round((mem.length ? [NP, ...mem].reduce((x, m) => x + (st(m).attributes.volume_level ?? 0), 0) / (mem.length + 1) : lv ?? 0) * 100);
+  for (const pl of $$('.mpill')) {
+    pl.classList.toggle('mu', !!a.is_volume_muted);
+    pl.classList.toggle('nv', lv == null);
+    const inp = $('.vs input', pl);
+    if (mem.length) { inp.removeAttribute('data-vol'); inp.setAttribute('data-gvol', ''); } else { inp.removeAttribute('data-gvol'); inp.dataset.vol = NP || ''; }
+    if (!volDrag && volHold < Date.now() && +inp.value !== v) { inp.value = v; inp.style.setProperty('--v', v + '%'); }
+  }
+}
+// Wiedergabe übertragen: Gruppenfähige Player (Sonos): Ziel in die Gruppe holen, Quelle verlässt sie, die Anzeige folgt. Sonst: gleicher Titel auf dem Ziel starten, Position nachziehen, Quelle stoppen.
+// ponytail: ungetestet an echter Hardware (Demo-Modus); Sonos-Koordinatorwechsel beim Verlassen der Gruppe hängt vom Gerät ab
+async function transfer(dst) {
+  const src = NP, a = st(src).attributes, [pos] = npPos(src);
+  CONF.player = dst; save();
+  if (!LIVE) {
+    const d = ents[dst]; ents = { ...ents, [dst]: { ...d, state: st(src).state, attributes: { ...d.attributes, ...Object.fromEntries(Object.entries(a).filter(([k]) => /^(media_|entity_picture|_|shuffle|repeat)/.test(k))), media_position: pos, media_position_updated_at: new Date().toISOString() } }, [src]: { ...ents[src], state: 'idle', attributes: { friendly_name: a.friendly_name, device_class: a.device_class, volume_level: a.volume_level, supported_features: a.supported_features } } };
+    return schedule();
+  }
+  if (canGroup(src) && canGroup(dst)) { await call('media_player', 'join', { entity_id: src, group_members: [dst] }); await call('media_player', 'unjoin', { entity_id: src }); }
+  else if (a.media_content_id) {
+    await call('media_player', 'play_media', { entity_id: dst, media_content_id: a.media_content_id, media_content_type: a.media_content_type || 'music' });
+    if (pos > 2) setTimeout(() => call('media_player', 'media_seek', { entity_id: dst, seek_position: pos + 2 }), 2500);
+    call('media_player', 'media_stop', { entity_id: src });
+  }
 }
 function fillMenu(m) {
   const a = st(NP).attributes;
   m.innerHTML = `<button class="mi" data-act="shuffle">${svg('shuffle')}<span>Zufallswiedergabe</span><small>${a.shuffle ? 'Ein' : 'Aus'}</small></button>
 <button class="mi" data-act="repeat">${svg('repeat')}<span>Wiederholen</span><small>${{ all: 'Alle', one: 'Titel' }[a.repeat] || 'Aus'}</small></button>
 <button class="mi" data-act="lib">${svg('note')}<span>Musikauswahl</span></button>
+${players().length > 1 && a.media_title ? `<button class="mi" data-act="xferopen">${svg('cast')}<span>Übertragen auf …</span></button>` : ''}
 <button class="mi" data-act="stop">${svg('stop')}<span>Wiedergabe stoppen</span></button>`;
 }
-function openPop(b, sel, fill) {
+function openPop(b, sel, fill, xfer = '') {
   const p = $(sel, b.closest('.face'));
-  fill(p); p.classList.add('open');
+  volOpen(false); p.dataset.xfer = xfer; fill(p); p.classList.add('open');
 }
-// Warteschlange: Demo aus der Bibliothek, live nur Sonos (sonos.get_queue); andere Player liefern keine
+// Warteschlange: Demo aus der Bibliothek, live nur Sonos (sonos.get_queue; Plattform aus der Entity-Registry, ohne Registry-Zugriff wird es versucht).
+// Andere Player liefern keine Liste → Fallback: laufender Titel + Hinweis, Zufall/Wiederholen bleiben bedienbar
+const plat = {};
+async function platformOf(id) {
+  if (!(id in plat)) plat[id] = await conn.sendMessagePromise({ type: 'config/entity_registry/get', entity_id: id }).then(r => r.platform, () => '');
+  return plat[id];
+}
 async function fillQueue(face) {
-  const box = $('.qlist', face), a = st(NP).attributes;
+  const box = $('.qlist', face), a = st(NP).attributes, id = NP;
   let items = [], i = -1;
   if (!LIVE) { items = a._q || []; i = a._i ?? -1; }
-  else if (NP) try { items = (await ask('sonos', 'get_queue', { entity_id: NP }))?.[NP] || []; i = items.findIndex(x => x.title === a.media_title); } catch {}
+  else if (id) {
+    const pf = await platformOf(id);
+    if (pf === 'sonos' || pf === '') try { items = (await ask('sonos', 'get_queue', { entity_id: id }))?.[id] || []; i = items.findIndex(x => x.title === a.media_title); } catch {}
+  }
+  if (id !== NP) return;   // Player wechselte während der Abfrage
+  const art = x => x.art || x.album_art || x.album_art_uri || x.thumbnail, row = (x, k) => { const u = art(x); return `<button class="qi" data-act="qplay" data-v="${k}"><span class="cover" style="${u ? '--art:' + cssUrl(abs(u)) : ''}"></span><div><b>${esc(x.title)}</b><small>${esc(x.artist || x.creator)}</small></div></button>`; };
   const rest = items.map((x, k) => [x, k]).filter(([, k]) => k > i);
   box.innerHTML = `<div class="qhead"><span>Als Nächstes</span><button class="tg${a.shuffle ? ' on' : ''}" data-act="shuffle" aria-label="Zufallswiedergabe">${svg('shuffle')}</button>`
     + `<button class="tg${a.repeat && a.repeat !== 'off' ? ' on' : ''}" data-act="repeat" aria-label="Wiederholen">${svg('repeat')}${a.repeat === 'one' ? '<small>1</small>' : ''}</button></div>`
-    + (rest.length ? rest.map(([x, k]) => `<button class="qi" data-act="qplay" data-v="${k}"><span class="cover" style="${x.art ? '--art:' + cssUrl(x.art) : ''}"></span><div><b>${esc(x.title)}</b><small>${esc(x.artist)}</small></div></button>`).join('')
-      : `<p class="qnone">${items.length ? 'Ende der Warteschlange' : 'Keine Warteschlange verfügbar'}</p>`);
+    + (items.length ? rest.length ? rest.map(([x, k]) => row(x, k)).join('') : '<p class="qnone">Ende der Warteschlange</p>'
+      : `${a.media_title ? `<div class="qi"><span class="cover" style="${a.entity_picture ? '--art:' + cssUrl(abs(a.entity_picture)) : ''}"></span><div><b>${esc(a.media_title)}</b><small>${esc(a.media_artist || a.friendly_name)}</small></div></div>` : ''}<p class="qnone">Dieser Player meldet keine Warteschlange.</p>`);
 }
 let volT, volV = {};
 function sendVol(id, v) {   // max. alle 200 ms, letzter Wert je Player gewinnt
@@ -1853,14 +2089,18 @@ document.addEventListener('pointermove', e => {
   if (ls && (ls.on || Math.abs(e.clientY - ls.y) > 8)) { ls.on = true; lyrScroll(ls.ll, ls.o + e.clientY - ls.y); }
   if (pull && e.clientY - py > 20) { pull = false; suppress = true; assistStart(); }
 });
+document.addEventListener('pointerdown', e => { if (e.target.closest('.mpill .vs')) { volDrag = true; clearTimeout(volClose); } });
 for (const ev of ['pointerup', 'pointercancel']) document.addEventListener(ev, () => {
   clearTimeout(lp);
+  if (volDrag) { volDrag = false; volArm(); }
   if (ls?.on) suppress = true;   // Scrollen ist kein Tipp auf eine Zeile
   ls = null;
   if (sk) { call('media_player', 'media_seek', { entity_id: NP, seek_position: sk.f * npPos()[1] }); sk.classList.remove('drag'); sk = null; suppress = true; }
 });
 document.addEventListener('contextmenu', e => e.preventDefault());
+document.addEventListener('input', e => { if (e.target.matches('.lsr input')) libSearch(e.target.value); });
 document.addEventListener('input', e => {
+  if (e.target.matches('[data-vol],[data-gvol]')) { volHold = Date.now() + 1500; volArm(); }   // lokaler Wert gewinnt kurz gegen das HA-Echo
   if (e.target.matches('[data-gvol]')) {   // Gruppe: alle um denselben Abstand verschieben, Verhältnisse bleiben
     const all = [NP, ...members(NP)], avg = all.reduce((x, m) => x + (st(m).attributes.volume_level ?? 0), 0) / all.length, d = e.target.value / 100 - avg;
     e.target.style.setProperty('--v', e.target.value + '%');
@@ -1875,6 +2115,7 @@ document.addEventListener('input', e => {
 document.addEventListener('click', e => {
   if (suppress) { suppress = false; return; }
   const b = e.target.closest('[data-act]'), act = b?.dataset.act, pop = $('.pop.open');
+  if (!e.target.closest('.mpill')) volOpen(false);
   if (act === 'assist') return assistStart();
   if (e.target.closest('#assist')) { assistEnd(); if (act !== 'go') return; }   // Tipp schließt; Pille führt zusätzlich hin
   if (pop && !e.target.closest('.pop')) return pop.classList.remove('open');   // Tipp daneben schließt nur
@@ -1883,12 +2124,30 @@ document.addEventListener('click', e => {
   else if (act === 'hvacset') { call('climate', 'set_hvac_mode', { entity_id: cur.e, hvac_mode: b.dataset.v }); modeMenu(false); }
   else if (act === 'lib') { pop?.classList.remove('open'); openLib($('.mb', b.closest('.face'))); }
   else if (act === 'libgo') libGo(+b.dataset.v);
-  else if (act === 'libback') { if (libStack.length > 1) { libStack.pop(); showLib(-1); } else close(); }
-  else if (act === 'outs') openPop(b, '.outs', p => fillOuts(p, true));
-  else if (act === 'vol') openPop(b, '.outs', p => fillOuts(p, false));
+  else if (act === 'libback') { if (!libRoot()) { libStack.pop(); if (libStack.length === 1) $('#lib .lsr input').value = ''; showLib(-1); } else close(); }
+  else if (act === 'libmini') close();
+  else if (act === 'libplay') { libPlay(libStack.at(-1).item); close(); }
+  else if (act === 'libmore') {
+    const m = $('#lib .lmenu');
+    m.innerHTML = `<button class="mi" data-act="libshuf">${svg('shuffle')}<span>Zufällig abspielen</span></button>`
+      + (enqOK() ? `<button class="mi" data-act="libenq" data-v="next">${svg('play')}<span>Als Nächstes</span></button><button class="mi" data-act="libenq" data-v="add">${svg('queue')}<span>Zur Warteschlange</span></button>` : '');
+    m.classList.add('open');
+  }
+  else if (act === 'libshuf') { const it = libStack.at(-1).item; call('media_player', 'shuffle_set', { entity_id: NP, shuffle: true }); libPlay(it); pop?.classList.remove('open'); close(); }
+  else if (act === 'libenq') {   // Wiedergabe läuft weiter; kurze Bestätigung im Menü, dann zu
+    libPlay(libStack.at(-1).item, { enqueue: b.dataset.v }); $('span', b).textContent = 'Hinzugefügt'; setTimeout(() => pop?.classList.remove('open'), 700);
+  }
+  else if (act === 'outs') openPop(b, '.outs', fillOuts);
+  else if (act === 'vol') {
+    const pl = b.closest('.mpill');
+    if (!pl.classList.contains('vo')) volOpen(true);
+    else { call('media_player', 'volume_mute', { entity_id: NP, is_volume_muted: !st(NP).attributes.is_volume_muted }); volArm(); }   // offene Pille: Lautsprecher = Stumm
+  }
   else if (act === 'menu') openPop(b, '.menu', fillMenu);
+  else if (act === 'xferopen') { const f = b.closest('.face'); pop?.classList.remove('open'); openPop($('.more', f), '.outs', fillOuts, '1'); }
+  else if (act === 'xfer') { pop?.classList.remove('open'); transfer(b.dataset.v); }
   else if (act === 'grp') { const id = b.dataset.v; call('media_player', members(NP).includes(id) ? 'unjoin' : 'join', members(NP).includes(id) ? { entity_id: id } : { entity_id: NP, group_members: [id] }); }
-  else if (act === 'pick') { CONF.player = b.dataset.v; save(); render(); fillOuts(b.closest('.pop'), true); }
+  else if (act === 'pick') { CONF.player = b.dataset.v; save(); render(); fillOuts(b.closest('.pop')); }
   else if (act === 'shuffle') NP && call('media_player', 'shuffle_set', { entity_id: NP, shuffle: !st(NP).attributes.shuffle });
   else if (act === 'repeat') NP && call('media_player', 'repeat_set', { entity_id: NP, repeat: { off: 'all', all: 'one', one: 'off' }[st(NP).attributes.repeat || 'off'] });
   else if (act === 'stop') { pop?.classList.remove('open'); NP && call('media_player', 'media_stop', { entity_id: NP }); }
@@ -1899,7 +2158,10 @@ document.addEventListener('click', e => {
   else if (act === 'avatars') b.closest('.greet').classList.toggle('fan');
   else if (act === 'avpick') { who = b.dataset.v; try { localStorage.hb_person = who; } catch {} b.closest('.greet').classList.remove('fan'); render(); }
   else if (act === 'go') { const i = CONF.faces.findIndex(f => f.type === b.dataset.v); if (i >= 0) faces.go(i); }
-  else if (act === 'play') NP && call('media_player', 'media_play_pause', { entity_id: NP });
+  else if (act === 'play') {   // 300 ms Sperre: Doppeltipp würde sonst Pause und Play auslösen und sich aufheben; ausgeschaltet → einschalten
+    if (NP && Date.now() - ppT > 300) { ppT = Date.now(); call('media_player', /^(off|standby)$/.test(st(NP).state) ? 'turn_on' : 'media_play_pause', { entity_id: NP }); }
+  }
+  else if (act === 'artist') { const q = st(NP).attributes.media_artist; if (q && searchOK()) { pop?.classList.remove('open'); openLib($('.mb', b.closest('.face'))); $('#lib .lsr input').value = q; libSearch(q); } }
   else if (act === 'prev') NP && (isPod(NP) ? skip(-15) : call('media_player', 'media_previous_track', { entity_id: NP }));
   else if (act === 'next') NP && (isPod(NP) ? skip(30) : call('media_player', 'media_next_track', { entity_id: NP }));
   else if (act === 'seek') NP && call('media_player', 'media_seek', { entity_id: NP, seek_position: +b.dataset.t });
@@ -1972,6 +2234,18 @@ if (!LIVE) {
   };
   const put = o => { for (const [id, [state, attributes]] of Object.entries(o)) ents[id] = { entity_id: id, state: String(state), attributes }; };
   put(demo); put(energyDemo());
+  // Demo-Prüfhilfe ?mp=nocover|radio|pod|long|off|unavail|idle|buffering: Zustand des Musik-Players (nur Demo, ruft nie echte Geräte)
+  const MP = new URLSearchParams(location.search).get('mp'), mp = ents['media_player.wohnzimmer_2'], mpa = { ...mp.attributes };
+  if (MP) ents['media_player.wohnzimmer_2'] = { ...mp, ...{
+    nocover: {}, buffering: { state: 'buffering' },
+    radio: { attributes: { ...mpa, media_title: 'Radio Pop', media_artist: 'Live-Radio', media_duration: undefined, media_position: undefined, media_content_type: 'music', _q: undefined } },
+    pod: { attributes: { ...mpa, media_title: 'Folge 142: Über die Äußerste Gelassenheit des Seins in Öffentlichen Verkehrsmitteln', media_artist: 'Der Tägliche Müßiggang', media_content_type: 'podcast', media_duration: 3600, media_position: 1500, _q: undefined } },
+    long: { attributes: { ...mpa, media_title: 'Überall Äpfel und Öl: Die sehr lange Geschichte vom Straßenfest in Schwäbisch Gmünd', media_artist: 'Die Größten Künstler Ünd Gäste Süddeutschlands' } },
+    off: { state: 'off', attributes: { friendly_name: mpa.friendly_name, device_class: 'speaker' } },
+    unavail: { state: 'unavailable', attributes: { friendly_name: mpa.friendly_name } },
+    idle: { state: 'idle', attributes: { friendly_name: mpa.friendly_name, device_class: 'speaker', volume_level: .3 } },
+  }[MP] };
+  if (MP === 'nocover') delete ents['media_player.wohnzimmer_2'].attributes.entity_picture;
   for (const e of Object.values(ents)) if (e.entity_id.startsWith('media_player.')) e.attributes = { ...e.attributes, supported_features: (e.attributes.supported_features || 0) | 524288 };   // Demo: gruppenfähig
   setInterval(() => { put(energyDemo()); schedule(); }, 3000);
   forecast = { temperature: 14, templow: 6 };
@@ -2035,6 +2309,8 @@ if (LIVE) {
       else { save(); if (cam) renderAll(curIdx()); }
     }).catch(console.warn);
     ha.subscribeEntities(conn, e => { ents = e; schedule(); });
+    conn.addEventListener('disconnected', () => { netDown = true; schedule(); });
+    conn.addEventListener('ready', () => { netDown = false; schedule(); });
     // Neu laden am HTTP-Cache vorbei: eigene Dateien (Ordner dieser Seite) erst frisch holen, sonst laufen nach einem Update alte Module weiter
     const hardReload = () => { const dir = new URL('.', location.href).href; return Promise.allSettled([location.href, ...performance.getEntriesByType('resource').map(e => e.name)].filter(u => u.startsWith(dir)).map(u => fetch(u, { cache: 'reload' }))).then(() => location.reload()); };
     // Nach HA-Neustart (z. B. Update über HACS) wieder verbinden: andere Integrationsversion → Seite neu laden, sonst läuft altes JS weiter
