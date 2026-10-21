@@ -40,7 +40,7 @@ svg{display:block}
 .pvp{width:46px;height:30px;border-radius:15px;display:flex;flex:none;align-items:center;justify-content:center;background:var(--fill);color:var(--fg);transition:scale .25s var(--spring)}.pvp:active{scale:.9}.pvp svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
 .pvp.ok{background:var(--blue);color:#fff}
 #edm{flex:1;min-height:0;width:100%;display:flex;align-items:center;justify-content:center;touch-action:pan-y}
-#pvf{flex:none;width:min(100%,calc(100dvh - 170px));aspect-ratio:1;border:0;border-radius:30px;background:#000;box-shadow:0 10px 34px #0004}
+#pvf{flex:none;width:min(100%,calc(100dvh - 170px));aspect-ratio:1;border:0;border-radius:8%;background:#000;box-shadow:0 10px 34px #0004}
 #eddots{flex:none;display:flex;gap:10px;align-items:center;justify-content:center;min-height:20px}
 #eddots button{position:relative;width:8px;height:8px;border-radius:50%;background:var(--sec);opacity:.35;transition:opacity .2s,scale .25s var(--spring)}
 #eddots button::after{content:"";position:absolute;inset:-9px}
@@ -54,16 +54,23 @@ svg{display:block}
 .shc{position:relative;width:min(620px,100%);height:min(780px,92dvh);border-radius:28px 28px 0 0;overflow:hidden;background:var(--bg);transform:translateY(105%);transition:transform var(--sd) var(--spring)}
 #shp.in .shc{transform:none}
 @media(min-width:820px){#shp{align-items:center}.shc{border-radius:28px}}
+/* Breite Fenster: das Sheet dockt rechts an, ohne Abdunkeln – das Display bleibt sichtbar und antippbar, Änderungen sind sofort zu sehen */
+@media(min-width:900px){
+  #shp,#shp.in{background:none;pointer-events:none;justify-content:flex-end;align-items:stretch;padding:14px}
+  #shp.in .shc{pointer-events:auto}
+  .shc{width:430px;height:auto;border-radius:26px;box-shadow:0 14px 44px #0004;transform:translateX(115%)}
+  #ed{transition:padding-right var(--sd) var(--spring)}#ed.dock{padding-right:460px}
+}
 .shc .page{background:var(--wall)}
 .nav .done{justify-self:end;color:var(--blue);font-weight:600;padding:10px 12px}
 :root{--cs:min(200px,24dvh)}
 #carslot{flex:none;padding-top:6px}#carslot[hidden]{display:block;height:0;padding:0;overflow:hidden;visibility:hidden}   /* vorgeladen: die Frames behalten ihre Größe, auch wenn sie nicht gezeigt werden */
 .scs{display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;padding:8px calc(50% - var(--cs) / 2) 12px}.scs::-webkit-scrollbar{display:none}
-.scc{flex:none;width:var(--cs);height:var(--cs);scroll-snap-align:center;border-radius:28px;overflow:hidden;background:linear-gradient(160deg,#9aa6ba,#5d687c);box-shadow:0 8px 24px #0003;scale:.86;opacity:.55;cursor:pointer;transition:scale .35s var(--spring),opacity .2s}.scc.on{scale:1;opacity:1}.scc.off{display:none}
+.scc{flex:none;width:var(--cs);height:var(--cs);scroll-snap-align:center;border-radius:8%;overflow:hidden;background:linear-gradient(160deg,#9aa6ba,#5d687c);box-shadow:0 8px 24px #0003;scale:.86;opacity:.55;cursor:pointer;transition:scale .35s var(--spring),opacity .2s}.scc.on{scale:1;opacity:1}.scc.off{display:none}
 .scb{position:absolute;top:calc(var(--cs) / 2 - 10px);z-index:2;width:34px;height:34px;border-radius:50%;background:var(--glass);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);box-shadow:0 2px 10px #0003;display:grid;place-items:center;transition:scale .25s var(--spring),opacity .2s}.scb:active{scale:.9}.scb:disabled{opacity:0;pointer-events:none}
 .scb svg{width:16px;height:16px;stroke:var(--fg);fill:none;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}.scb.l{left:12px}.scb.l svg{transform:scaleX(-1)}.scb.r{right:12px}
 #carslot{position:relative}.gcw{flex:none;position:relative}.gcw .scb{top:95px}.gcw.off,.gt.off{height:0;padding:0;overflow:hidden;visibility:hidden}
-.gpv{display:block;width:224px;height:224px;border:0;border-radius:28px;background:#000;box-shadow:0 10px 26px #0003;pointer-events:none;opacity:0;transition:opacity .3s}.gpv.rd{opacity:1}
+.gpv{display:block;width:224px;height:224px;border:0;border-radius:8%;background:#000;box-shadow:0 10px 26px #0003;pointer-events:none;opacity:0;transition:opacity .3s}.gpv.rd{opacity:1}
 .gtop{flex:none}.gbody{flex:1;min-height:0;display:flex;flex-direction:column}
 .scc iframe{display:block;width:100%;height:100%;border:0;pointer-events:none}
 .scn{text-align:center;font-weight:600;font-size:17px;min-height:22px}
@@ -587,7 +594,7 @@ const redraw = refresh, ctx = () => ins;
 function setIns(e) {
   ins = e;
   if (e) fill($('#ins'), e);
-  $('#shp').classList.toggle('in', !!e);
+  $('#shp').classList.toggle('in', !!e); ed.classList.toggle('dock', !!e);
   pvSend();
 }
 $('#shp').addEventListener('click', e => e.target === e.currentTarget && setIns(null));
@@ -647,7 +654,7 @@ const openTile = (i, j) => setIns({ t: 'tile', i, j });
 let sw = null;   // Wischen neben dem Display wechselt das Face (im Display selbst meldet es die Vorschau)
 ed.addEventListener('pointerdown', e => { sw = { x: e.clientX, y: e.clientY }; });
 ed.addEventListener('pointerup', e => { if (!sw) return; const dx = e.clientX - sw.x, dy = e.clientY - sw.y; sw = null; if (Math.abs(dx) > 50 && Math.abs(dx) > 2 * Math.abs(dy)) goFace(fi + (dx < 0 ? 1 : -1)); });
-addEventListener('keydown', e => { if (edOpen && !ins && !$('#ov') && /^Arrow(Left|Right)$/.test(e.key)) goFace(fi + (e.key === 'ArrowLeft' ? -1 : 1)); });
+addEventListener('keydown', e => { if (e.key === 'Escape' && ins && !$('#ov')) return setIns(null); if (edOpen && !ins && !$('#ov') && /^Arrow(Left|Right)$/.test(e.key)) goFace(fi + (e.key === 'ArrowLeft' ? -1 : 1)); });
 const pvPost = m => pvf.contentWindow?.postMessage({ hb: 'preview', ...m }, location.origin);
 function pvSend() {
   if (!cfg) return;
@@ -801,6 +808,7 @@ const setPath = (o, path, v) => { const k = path.split('.'); const last = k.pop(
 const swap = (a, i, j) => j >= 0 && j < a.length && ([a[i], a[j]] = [a[j], a[i]]);
 document.addEventListener('input', e => {
   const t = e.target;
+  if ((t.dataset.t === 'title' || t.dataset.t === 'sub') && ins?.t === 'tile') { const tl = cfg.faces[ins.i].tiles[ins.j]; tl[t.dataset.t] = t.value; if (t.dataset.t === 'title') $('#ins .ttl').textContent = tileTitle(tl); saveCfg(); }   // Titel/Untertitel erscheinen schon beim Tippen im Display
   if (t.type === 'range') t.closest('.v').querySelector('.val').textContent = t.value + ' %';
 });
 document.addEventListener('change', async e => {
