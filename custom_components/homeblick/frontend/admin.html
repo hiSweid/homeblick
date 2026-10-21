@@ -541,7 +541,7 @@ const pages = {
         <div class="sf">${n ? `${n} Kachel${n > 1 ? 'n passen' : ' passt'} nicht mehr ins Raster und ${n > 1 ? 'werden' : 'wird'} nicht angezeigt. ` : ''}Ziehen in der Vorschau verschiebt, der Punkt unten rechts an einer Kachel ändert die Größe. Nachtvarianten bleiben erhalten.</div></div>`)(pack(f.tiles || [], rows(f)).filter(x => !x).length) : ''}
       ${f.type === 'cams' ? camsHTML() : ''}
       ${f.type === 'weather' ? grp('Wetter', epick('Wetter-Entity', 'weather', d.settings.weather, { domains: ['weather'] }) + field('Ortsname', 'place', d.settings.place), 'Gilt für alle Wetter-Anzeigen dieses Displays.') : ''}
-      ${f.type === 'energy' ? grp('Entities', ENERGY.map(([k, n]) => epick(n, 'ents.' + k, f.ents?.[k] || '', { domains: ['sensor'], none: 'Standard (evcc)' }, 'data-f')).join(''), 'Ohne Auswahl liest das Face die evcc-Entities (ha-evcc).') : ''}
+      ${f.type === 'energy' ? grp('Entities', ENERGY.map(([k, n]) => epick(n, 'ents.' + k, f.ents?.[k] || '', { domains: ['sensor'], none: 'Standard' }, 'data-f')).join(''), 'Ohne Auswahl liest das Face die Standard-Entities (evcc, Kostal, Solcast).') : ''}
       ${f.type === 'calendar' || f.type === 'info' ? grp('Kalender', entsOf('calendar').map(e => `<div class="row"><span class="l">${esc(e.name)}</span><label class="sw"><input type="checkbox" data-fcal="${esc(e.id)}" ${!f.cals || f.cals.includes(e.id) ? 'checked' : ''}><i></i></label></div>`).join('') || '<div class="row"><span class="l" style="color:var(--sec)">Keine Kalender in Home Assistant</span></div>', 'Diese Auswahl gilt für das Kalender- und das Info-Face. Ohne Haken bei einem Kalender fehlen dessen Termine.') : ''}
       ${grp('Face', `<div class="row"><span class="l">Position</span><span class="arrows"><button data-a="fleft" aria-label="Nach links" ${e.i === 0 ? 'disabled style="opacity:.3"' : ''}>${svg('up', 'rot-l')}</button><button data-a="fright" aria-label="Nach rechts" ${e.i === cfg.faces.length - 1 ? 'disabled style="opacity:.3"' : ''}>${svg('down', 'rot-r')}</button></span></div><button class="row btn" data-a="fdup">Face duplizieren</button><button class="row red" data-a="fhide">Face ausblenden</button>`, 'Ausgeblendete Faces bleiben mit ihrer Konfiguration erhalten und lassen sich über „+ Face“ wieder einblenden.')}
       ${grp('', `<button class="row btn c" data-c="face" ${d.connected ? '' : 'disabled style="opacity:.4"'}>Auf dem Display anzeigen</button>`)}`;
@@ -618,7 +618,7 @@ async function snap(id) {
 // ---- Editor: das Display im Vollbild, Bearbeiten-Modus immer an ----
 // Vorschau: index.html?preview im iframe (Konfiguration und Zustände per postMessage, Ziehen/Antippen/Wischen kommt zurück)
 const pvf = $('#pvf'), ed = $('#ed');
-let pvReady = false, pvConf = '', pvFace = '', pvSel = -2, pvEd = null, pvAnim = false, pvStates = {};
+let pvFlash = -1, pvReady = false, pvConf = '', pvFace = '', pvSel = -2, pvEd = null, pvAnim = false, pvStates = {};
 const faceName = x => (FACE[x.type]?.[0] || x.type) + (x.id !== x.type ? ' ' + x.id.replace(x.type, '') : '');
 async function openEd(id, from) {
   const c = await call('get_config', { display: id }).catch(() => null);
@@ -674,6 +674,7 @@ function pvSend() {
   if (f && f.id !== pvFace) { pvFace = f.id; m.face = f.id; if (pvAnim) m.anim = true; }
   pvAnim = false;
   if (m.conf) m.face = pvFace;
+  if (pvFlash >= 0) { m.flash = pvFlash; pvFlash = -1; }   // neue Kachel kurz markieren
   if (t !== pvSel || m.conf) { pvSel = t; m.sel = t; }
   if (Object.keys(m).length) pvPost(m);
 }
@@ -710,9 +711,14 @@ addEventListener('message', async e => {
   }
 });
 async function addFlow(i, cell) {   // „+“ oben links, leere Stelle im Display
-  const f = cfg.faces[i];
-  if (f.type !== 'grid') return toast('Widgets gibt es auf Smart-Home-Faces: wische zu einem oder lege unter den Punkten mit „+“ ein neues an', true);
-  if (await galleryAdd(f, cell)) saveCfg();
+  let f = cfg.faces[i];
+  if (f.type !== 'grid') {   // auf Faces ohne Kacheln: zum nächsten Smart-Home-Face wechseln
+    const j = cfg.faces.findIndex(x => x.type === 'grid');
+    if (j < 0) return toast('Widgets gibt es auf Smart-Home-Faces: lege unter den Punkten mit „+“ eins an', true);
+    goFace(j); i = j; f = cfg.faces[j]; cell = undefined;
+  }
+  const t = await galleryAdd(f, cell);
+  if (t) { pvFlash = f.tiles.indexOf(t); saveCfg(); }
 }
 // Zustände für die Vorschau (Namen, Werte, Symbole echter Entities); alle 15 s nachziehen
 const pvStatesLoad = () => conn.sendMessagePromise({ type: 'get_states' }).then(a => { pvStates = Object.fromEntries(a.map(x => [x.entity_id, x])); pvPost({ states: pvStates }); }).catch(() => {});
@@ -786,7 +792,7 @@ async function setupWizard(d) {
 }
 
 // Domains, die eine Kachel bedienen kann (TAP in index.html)
-const ENERGY = [['pv', 'Solar-Leistung'], ['grid', 'Netz-Leistung (+ Bezug)'], ['home', 'Hausverbrauch'], ['bat', 'Batterie-Leistung (− Laden)'], ['soc', 'Batterie-Ladestand'], ['cap', 'Batterie-Kapazität'], ['car', 'Auto: Ladeleistung'], ['carSoc', 'Auto: Ladestand'], ['range', 'Auto: Reichweite']];
+const ENERGY = [['pv', 'Solar-Leistung'], ['grid', 'Netz-Leistung (+ Bezug)'], ['home', 'Hausverbrauch'], ['bat', 'Batterie-Leistung (− Laden)'], ['soc', 'Batterie-Ladestand'], ['car', 'Auto: Ladeleistung'], ['carSoc', 'Auto: Ladestand'], ['range', 'Auto: Reichweite'], ['today', 'Solar heute (kWh)'], ['todayFc', 'Prognose heute (Solcast, Tageskurve)'], ['tomorrow', 'Prognose morgen'], ['tomorrowPeak', 'Morgen: Zeitpunkt Spitze']];
 const TILE_DOM = ['light', 'switch', 'input_boolean', 'lock', 'cover', 'climate', 'scene', 'script', 'media_player', 'fan', 'timer', 'camera', 'button', 'input_button', 'sensor', 'binary_sensor'];
 const TOGGLE_DOM = ['light', 'switch', 'input_boolean', 'fan', 'cover', 'media_player', 'script'];   // Domains mit Dienst .toggle
 const SIZES = [['1x1', '1 × 1'], ['2x1', '2 × 1'], ['2x2', '2 × 2']];

@@ -804,12 +804,6 @@ input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:tr
 
   <section id="cam" class="view" hidden></section>   <!-- Inhalt: doorbell.js -->
 
-  <section id="edet" class="view" hidden>   <!-- Energie-Vollbild (Solar/Akku/e-Golf): Inhalt + Stil energy.js -->
-    <button class="x" data-act="close" aria-label="Schließen"><svg class="i"><use href="#xt"/></svg></button>
-    <div class="top"><span data-bind="edn"></span><time data-bind="time"></time></div>
-    <div class="ed"></div>
-  </section>
-
   <section id="events" class="view" hidden>   <!-- Pillen + Stil: events.js -->
     <button class="x" data-act="close" aria-label="Schließen"><svg class="i"><use href="#x"/></svg></button>
     <div class="top"><span>Termine</span><time data-bind="time"></time></div>
@@ -843,7 +837,7 @@ input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:tr
 
 <script type="module">
 import { weatherFace, weather, weatherHours, weatherNear, COND } from './weather.js';
-import { energyFace, energy, energyDemo, energyInit, energyDetail, energyEnts } from './energy.js';
+import { energyFace, energy, energyDemo, energyInit, energyEnts } from './energy.js';
 import { kioskInit, KIOSK_DEF, luxLevel } from './kiosk.js';
 import { shot } from './shot.js';
 import { ICON, moveTo, normFaces, pack, rows } from './faces.js';
@@ -1014,6 +1008,10 @@ if (PREVIEW) {
       else renderAll(0);
     }
     if (m.face) { const i = CONF.faces.findIndex(f => f.id === m.face); if (i >= 0 && i !== idx()) faces.go(i, !m.anim); }
+    if (m.flash !== undefined) {   // neue Kachel: zweimal blauer Ring, der sich ausbreitet
+      const t = [...(faces.children[idx()]?.querySelectorAll('[data-ti]') || [])].find(x => x._t === CONF.faces[idx()]?.tiles?.[m.flash]);
+      t?.animate([{ boxShadow: '0 0 0 0 #0a84ffee' }, { boxShadow: '0 0 0 3.2cqw #0a84ff00' }], { duration: 650, iterations: 2, easing: 'ease-out' });
+    }
     if (m.sel !== undefined) {   // gewählte Kachel umranden
       $$('.pvsel').forEach(x => x.classList.remove('pvsel'));
       const t = CONF.faces[idx()]?.tiles?.[m.sel];
@@ -2365,7 +2363,7 @@ document.addEventListener('pointerdown', e => {
   if ($('#climate .hm.open') && !e.target.closest('.hm')) { modeMenu(false); suppress = true; return; }   // Modus-Menü: Tipp daneben schließt nur (y-MO 156 s)
   const ch = e.target.closest('[data-act=up],[data-act=down]');
   if (ch) { bump(ch); suppress = true; return; }   // Wert ändert sich bei Touch-down (Apple, STEUERUNG.md P2-4)
-  if (e.target.closest('#climate .x, #dimmer .x, #edet .x')) { suppress = true; setTimeout(close, 50); return; }   // ✕: Scheibe, Schließen 1-2 Frames später, Finger noch drauf (Engadget 152 s, AppleInsider 266,6 s; STEUERUNG P2-4)
+  if (e.target.closest('#climate .x, #dimmer .x')) { suppress = true; setTimeout(close, 50); return; }   // ✕: Scheibe, Schließen 1-2 Frames später, Finger noch drauf (Engadget 152 s, AppleInsider 266,6 s; STEUERUNG P2-4)
   if (cur) return;
   if (!e.target.closest('.face') || e.target.closest('.pop')) return;
   const ll = e.target.closest('.ly .lyrics')?.firstElementChild;
@@ -2449,7 +2447,6 @@ document.addEventListener('click', e => {
   else if (act === 'qplay') NP && call(LIVE ? 'sonos' : 'media_player', 'play_queue', { entity_id: NP, queue_position: +b.dataset.v });
   else if (act === 'cam') st(b.dataset.e).state === 'unavailable' ? shake(b) : open(b, 'cam');
   else if (act === 'events') openEvents(b);
-  else if (act === 'edet') { open(b, 'edet'); energyDetail(b.dataset.v); }   // Energie-Kachel → Vollbild (FLIP wie Klima/Licht)
   else if (act === 'toggle') st(b.dataset.e).state === 'unavailable' ? shake(b) : TAP[b.dataset.e.split('.')[0]]?.(b, b.dataset.e);   // Licht im Klingel-Bild / Kameras-Face
   else if (act === 'avatars') b.closest('.greet').classList.toggle('fan');
   else if (act === 'avpick') { who = b.dataset.v; try { localStorage.hb_person = who; } catch {} b.closest('.greet').classList.remove('fan'); render(); }
