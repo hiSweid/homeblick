@@ -558,6 +558,7 @@ input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:tr
 #shade :is(.fill,.fill .in,.grip){transition:transform .55s var(--spring)}#shade.drag :is(.fill,.fill .in,.grip){transition:none}   /* Feder beim Nachlaufen (Tasten, HA), 1:1 unter dem Finger */
 #shade .ico{width:12.9cqw;height:12.9cqw;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
 #shade .grip{top:0;background:#ffffffb8;transform:translateY(calc(var(--f,0) * 100cqw - 2.4cqw))}
+#shade .top,#shade .x{transition:color .3s,background-color .3s}#shade.lo .top{color:#fff}#shade.lo .x{background:#ffffff2e;color:#fff}   /* Titel/✕ hell, sobald der Panzer sie erreicht */
 #shade .sb{position:absolute;z-index:2;left:0;right:0;bottom:7cqw;display:flex;justify-content:center;gap:5cqw}
 #shade .sb button{width:14cqw;height:14cqw;border-radius:50%;background:#00000014;color:#1c1c1e;display:grid;place-items:center;transition:scale .25s var(--spring),background .13s}
 #shade .sb button:active{scale:.92;background:#0000002a;transition:none}#shade .sb svg{width:6.4cqw;height:6.4cqw;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}#shade .sb [data-v=stop_cover] svg{fill:currentColor}
@@ -1601,7 +1602,7 @@ const T = {};   // Soll-Temperatur je Klima-Entity
 function setTemp(id, v, dir = 0) { T[id] = v; for (const el of $$(`[data-temp="${id}"]`)) roll(el, fmt(v), dir); }
 const S = { light: 0 };
 // Füllhöhe ≈ Wert + 6 Punkte (Gerade durch drei Messpunkte 33/37/80 %, bei 100 % geklammert; Enden unbelegt, STEUERUNG F7)
-function setShade(c) { S.shade = 100 - c; $('#shade').style.setProperty('--f', c / 100); bind('shade', 100 - c); }   // c = Schließgrad
+function setShade(c) { S.shade = 100 - c; $('#shade').style.setProperty('--f', c / 100); $('#shade').classList.toggle('lo', c >= 14); bind('shade', 100 - c); }   // c = Schließgrad
 function setLight(p) { S.light = p; $('#dimmer').style.setProperty('--f', p ? Math.min(1, .079 + .0096 * p) : 0); bind('light', p); }
 function npPos(id = NP) {
   const s = st(id), a = s.attributes, dur = a.media_duration || 0;
