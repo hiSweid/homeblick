@@ -508,13 +508,13 @@ input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:tr
 .top time{position:absolute;right:5cqw}
 /* Klima + Licht Vollbild: Maße als % W aus dem Frontalbild des Apple-Videos (ref/t43.4.jpg, 2560-px-Frame 43,4 s, Display 328 px) und ref/vorlagen/_Tbq…/01260 (Beschriftung),
    y-MO ab 153 s (Modus-Menü, nur Handkamera); Schrift Inter statt SF (Breite abgeglichen), Zahl Medium */
-#climate,#dimmer{--ty:-86.35%}   /* Inter bei line-height 1: Grundlinie bei 86,35 % der Zeilenhöhe → `top` = Grundlinie, Maße direkt aus dem Frame */
-#climate .x,#dimmer .x,#edet .x{left:6cqw;top:5.8cqw;width:8.75cqw;height:8.75cqw;font-size:6.8cqw}   /* ⌀ 8,75, Mitte 10,4 / 10,2 */
+#climate,#dimmer,#shade{--ty:-86.35%}   /* Inter bei line-height 1: Grundlinie bei 86,35 % der Zeilenhöhe → `top` = Grundlinie, Maße direkt aus dem Frame */
+#climate .x,#dimmer .x,#edet .x,#shade .x{left:6cqw;top:5.8cqw;width:8.75cqw;height:8.75cqw;font-size:6.8cqw}   /* ⌀ 8,75, Mitte 10,4 / 10,2 */
 #climate .x{background:var(--cb)}
 #climate .x,#edet .x{transition:background-color .13s linear}
 #climate .x:active,#edet .x:active{background:#fff4;transition:none}
-#climate .top,#dimmer .top,#edet .top{top:10.6cqw;translate:0 -50%;line-height:1;font-size:3.8cqw;font-weight:400}   /* Titel mittig, Mitte y 10,3; Breite „Bedroom Air“ 22,3 % */
-#climate .top time,#dimmer .top time,#edet .top time{right:8.6cqw}   /* Uhrzeit endet bei 91,4 %, gleiche Farbe wie der Titel */
+#climate .top,#dimmer .top,#edet .top,#shade .top{top:10.6cqw;translate:0 -50%;line-height:1;font-size:3.8cqw;font-weight:400}   /* Titel mittig, Mitte y 10,3; Breite „Bedroom Air“ 22,3 % */
+#climate .top time,#dimmer .top time,#edet .top time,#shade .top time{right:8.6cqw}   /* Uhrzeit endet bei 91,4 %, gleiche Farbe wie der Titel */
 #climate{--cb:#fff3;--cm:color-mix(in srgb,var(--cc) 55%,#fff);--ct:#1c1c1e;background:var(--cc);transition:background-color .4s}
 #climate.cool{--cb:#08bdfc;--cm:#00c9fa;--ct:#003a73}   /* ✕ #0bc1fc, Knopf #05b9fc, Menü ≈ #00c9fa (Frame/Handkamera), Menütext #003a73 */
 #climate .mode{position:absolute;left:0;right:0;top:33.9cqw;translate:0 var(--ty);text-align:center;font-size:4.8cqw;font-weight:400;line-height:1}   /* „Cooling to“: Mitte 50,4, Grundlinie 33,9, Text ohne Pille */
@@ -538,18 +538,28 @@ input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:tr
 .hm.open button{opacity:1;transition:opacity .15s linear .07s}
 .hm .i{position:absolute;left:5.4cqw;top:50%;translate:0 -50%;font-size:3cqw;opacity:0}
 .hm .on .i{opacity:1}
-#dimmer{background:#fefaec;color:#111;touch-action:none}   /* Creme #fefaec, Füllung #f9c100, Zahl fast schwarz */
-#dimmer .fill{position:absolute;inset:0;overflow:hidden;background:#f9c100;transform:translateY(calc((1 - var(--f,0)) * 100%))}   /* Füllung nur per transform; --f = Füllhöhe (setLight) */
-#dimmer .fill .in{position:absolute;inset:0;transform:translateY(calc((1 - var(--f,0)) * -100%))}   /* Innen-Layer steht still: helle Zahl/Glühbirne werden an der Füllkante geteilt (Vorlage y-MO 0,5 s, zT8 42,0 s) */
-#dimmer .fill .ico,#dimmer .fill .pct{color:#fefaec}
-#dimmer .fill small{color:#fefaecb0}
-#dimmer .x{background:#0000000f}
-#dimmer .top{color:#1c1c1e}
-#dimmer .ico{position:absolute;left:50%;top:19.9cqw;translate:-50% 0;width:7.75cqw;height:12.9cqw;font-size:inherit;fill:currentColor;stroke:none}   /* Glühbirne 7,75 × 12,9, oben 19,9 */
-#dimmer .pct{position:absolute;left:50%;top:60.2cqw;translate:-50% var(--ty);font-size:29cqw;font-weight:500;line-height:1;letter-spacing:-.02em;white-space:nowrap}   /* „33“: Ziffernhöhe ≈ 21,3, Grundlinie 60,2, Zahl fest mittig */
-#dimmer small{display:inline-block;width:0;margin-left:.9cqw;font-size:14cqw;font-weight:400;letter-spacing:0;color:#0000006e}   /* „%“ 10,3 hoch, hängt rechts neben der Zahl (nicht mitzentriert), Schwarz 43 % */
+#dimmer,#shade{background:#fefaec;color:#111;touch-action:none}   /* Creme #fefaec, Füllung #f9c100, Zahl fast schwarz */
+#dimmer .fill,#shade .fill{position:absolute;inset:0;overflow:hidden;background:#f9c100;transform:translateY(calc((1 - var(--f,0)) * 100%))}   /* Füllung nur per transform; --f = Füllhöhe (setLight) */
+#dimmer .fill .in,#shade .fill .in{position:absolute;inset:0;transform:translateY(calc((1 - var(--f,0)) * -100%))}   /* Innen-Layer steht still: helle Zahl/Glühbirne werden an der Füllkante geteilt (Vorlage y-MO 0,5 s, zT8 42,0 s) */
+#dimmer .fill .ico,#dimmer .fill .pct,#shade .fill .ico,#shade .fill .pct{color:#fefaec}
+#dimmer .fill small,#shade .fill small{color:#fefaecb0}
+#dimmer .x,#shade .x{background:#0000000f}
+#dimmer .top,#shade .top{color:#1c1c1e}
+#dimmer .ico,#shade .ico{position:absolute;left:50%;top:19.9cqw;translate:-50% 0;width:7.75cqw;height:12.9cqw;font-size:inherit;fill:currentColor;stroke:none}   /* Glühbirne 7,75 × 12,9, oben 19,9 */
+#dimmer .pct,#shade .pct{position:absolute;left:50%;top:60.2cqw;translate:-50% var(--ty);font-size:29cqw;font-weight:500;line-height:1;letter-spacing:-.02em;white-space:nowrap}   /* „33“: Ziffernhöhe ≈ 21,3, Grundlinie 60,2, Zahl fest mittig */
+#dimmer small,#shade small{display:inline-block;width:0;margin-left:.9cqw;font-size:14cqw;font-weight:400;letter-spacing:0;color:#0000006e}   /* „%“ 10,3 hoch, hängt rechts neben der Zahl (nicht mitzentriert), Schwarz 43 % */
 /* Griff: kurzer Strich 8,8 × 1,2 an der Füllkante (Frame 43,4 s: Kante 60,8, Griff 62,3–63,5; Füllhöhe gegen Wert siehe STEUERUNG F7, unverändert) */
-#dimmer .grip{position:absolute;left:50%;top:0;width:8.8cqw;height:1.2cqw;margin-left:-4.4cqw;border-radius:.6cqw;background:#000000a0;transform:translateY(calc((1 - var(--f,0)) * 100cqw + 1.9cqw))}
+#dimmer .grip,#shade .grip{position:absolute;left:50%;top:0;width:8.8cqw;height:1.2cqw;margin-left:-4.4cqw;border-radius:.6cqw;background:#000000a0;transform:translateY(calc((1 - var(--f,0)) * 100cqw + 1.9cqw))}
+/* Rollo-Ansicht (#shade): wie der Dimmer, nur von oben nach unten: Füllung = Schließgrad (--f 0–1), Zahl = offen in %, unten Auf / Stopp / Zu */
+#shade{background:#eef0f6;color:#111;touch-action:none}
+#shade .fill{background:#ff9500;transform:translateY(calc((var(--f,0) - 1) * 100%))}
+#shade .fill .in{transform:translateY(calc((1 - var(--f,0)) * 100%))}
+#shade .ico{width:12.9cqw;height:12.9cqw;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+#shade .grip{top:0;transform:translateY(calc(var(--f,0) * 100cqw - 3.1cqw))}
+#shade .sb{position:absolute;z-index:2;left:0;right:0;bottom:7cqw;display:flex;justify-content:center;gap:5cqw}
+#shade .sb button{width:14cqw;height:14cqw;border-radius:50%;background:#00000014;color:#1c1c1e;display:grid;place-items:center;transition:scale .25s var(--spring),background .13s}
+#shade .sb button:active{scale:.92;background:#0000002a;transition:none}#shade .sb svg{width:6.4cqw;height:6.4cqw;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}#shade .sb [data-v=stop_cover] svg{fill:currentColor}
+#shade .sb [hidden]{display:none}
 /* Musikauswahl (Video 36 s: hell, Titel mittig, Zurück rund, 3 Spalten) */
 #lib{background:#f2f2f7;color:#1c1c1e}
 #lib .x{background:#0000000f}
@@ -831,6 +841,19 @@ input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:tr
       <div class="pct"><span data-bind="light"></span><small>%</small></div>
     </div></div>
     <div class="grip"></div>
+    <button class="x" data-act="close" aria-label="Schließen"><svg class="i"><use href="#xt"/></svg></button>
+    <div class="top"><span data-bind="vname"></span><time data-bind="time"></time></div>
+  </section>
+
+  <section id="shade" class="view" hidden>
+    <svg class="ico" viewBox="0 0 24 24"><use href="#blind"/></svg>
+    <div class="pct"><span data-bind="shade"></span><small>%</small></div>
+    <div class="fill"><div class="in">
+      <svg class="ico" viewBox="0 0 24 24"><use href="#blind"/></svg>
+      <div class="pct"><span data-bind="shade"></span><small>%</small></div>
+    </div></div>
+    <div class="grip"></div>
+    <div class="sb"><button data-act="cov" data-v="open_cover" aria-label="Öffnen"><svg viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></svg></button><button data-act="cov" data-v="stop_cover" aria-label="Stopp"><svg viewBox="0 0 24 24"><rect x="6.5" y="6.5" width="11" height="11" rx="2"/></svg></button><button data-act="cov" data-v="close_cover" aria-label="Schließen"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button></div>
     <button class="x" data-act="close" aria-label="Schließen"><svg class="i"><use href="#xt"/></svg></button>
     <div class="top"><span data-bind="vname"></span><time data-bind="time"></time></div>
   </section>
@@ -1576,6 +1599,7 @@ const T = {};   // Soll-Temperatur je Klima-Entity
 function setTemp(id, v, dir = 0) { T[id] = v; for (const el of $$(`[data-temp="${id}"]`)) roll(el, fmt(v), dir); }
 const S = { light: 0 };
 // Füllhöhe ≈ Wert + 6 Punkte (Gerade durch drei Messpunkte 33/37/80 %, bei 100 % geklammert; Enden unbelegt, STEUERUNG F7)
+function setShade(c) { S.shade = 100 - c; $('#shade').style.setProperty('--f', c / 100); bind('shade', 100 - c); }   // c = Schließgrad
 function setLight(p) { S.light = p; $('#dimmer').style.setProperty('--f', p ? Math.min(1, .079 + .0096 * p) : 0); bind('light', p); }
 function npPos(id = NP) {
   const s = st(id), a = s.attributes, dur = a.media_duration || 0;
@@ -1728,6 +1752,7 @@ function render() {
     fillModes(c);
   }
   if (cur?.view.id === 'dimmer' && y0 === null && !held(cur.e)) setLight(pct(st(cur.e)));
+  if (cur?.view.id === 'shade' && sy === null && !held(cur.e)) { setShade(closedPct(st(cur.e))); $('#shade .sb [data-v=stop_cover]').hidden = !(st(cur.e).attributes.supported_features & 8); }
 
   weather(st(CFG.weather), ents['sun.sun'], forecast);
   doorbell(ents);
@@ -2308,13 +2333,14 @@ function fly(tile, view, opening, done) {
   }
   if (!opening) main.onfinish = () => { view._an.forEach(a => a.cancel()); view._an = []; if (view._tile) view._tile.style.visibility = ''; if (cur?.view === view) return; view.hidden = true; done?.(); };   // während des Schließens neu geöffnet → offen lassen
 }
-let cur = null, y0 = null, p0, camStale = false;   // camStale: Kamera-Konfiguration kam bei offener Ansicht, Faces noch alt
+let cur = null, y0 = null, p0, sy = null, sp = 0, shT = 0, camStale = false;   // camStale: Kamera-Konfiguration kam bei offener Ansicht, Faces noch alt
 function open(tile, id) {
   kzClose(true);   // Kamera (Klingel), Musikauswahl … liegen unter dem Kontrollzentrum
   const view = $('#' + id), e = tile.dataset.e;
   cur = { tile, view, e };
   bind('vname', (tile._t ? tile._t.sub : $('.sub', tile)?.textContent) || st(e).attributes.friendly_name || '');   // Konfig-Wert: render() hängt beim Thermostat „• Ist°“ an
   if (id === 'dimmer') setLight(pct(st(e)));
+  if (id === 'shade') { sy = null; setShade(closedPct(st(e))); $('#shade .sb [data-v=stop_cover]').hidden = !(st(e).attributes.supported_features & 8); }
   if (id === 'climate') { const n = $('.num', view); n.dataset.temp = e; n.replaceChildren(); modeMenu(false); }
   if (id === 'cam') camShow(tile, e, st(e));
   render();
@@ -2475,16 +2501,16 @@ document.addEventListener('pointerdown', e => {
   if ($('#climate .hm.open') && !e.target.closest('.hm')) { modeMenu(false); suppress = true; return; }   // Modus-Menü: Tipp daneben schließt nur (y-MO 156 s)
   const ch = e.target.closest('[data-act=up],[data-act=down]');
   if (ch) { bump(ch); suppress = true; return; }   // Wert ändert sich bei Touch-down (Apple, STEUERUNG.md P2-4)
-  if (e.target.closest('#climate .x, #dimmer .x, #edet .x')) { suppress = true; setTimeout(close, 50); return; }   // ✕: Scheibe, Schließen 1-2 Frames später, Finger noch drauf (Engadget 152 s, AppleInsider 266,6 s; STEUERUNG P2-4)
+  if (e.target.closest('#climate .x, #dimmer .x, #shade .x, #edet .x')) { suppress = true; setTimeout(close, 50); return; }   // ✕: Scheibe, Schließen 1-2 Frames später, Finger noch drauf (Engadget 152 s, AppleInsider 266,6 s; STEUERUNG P2-4)
   if (cur) return;
   if (!e.target.closest('.face') || e.target.closest('.pop')) return;
   const ll = e.target.closest('.ly .lyrics')?.firstElementChild;
   if (ll?.children.length) ls = { ll, y: e.clientY, o: lyrOff(ll), on: false };
   const pg = e.target.closest('.prog');
   if (pg) { if (npPos()[1]) { sk = pg; pg.classList.add('drag'); seekMove(e); } return; }
-  const ht = e.target.closest('.tile[data-ti]'), light = e.target.closest('.tile[data-e^="light."]');
+  const ht = e.target.closest('.tile[data-ti]'), light = e.target.closest('.tile[data-e^="light."],.tile[data-e^="cover."]');
   if (ht?.dataset.e && own(ht._hold)) lp = setTimeout(() => { suppress = true; tileAct(ht, ht.dataset.e, ht._hold); }, 450);
-  else if (light) lp = setTimeout(() => { suppress = true; open(light, 'dimmer'); }, 450);
+  else if (light && !(light.dataset.e.startsWith('cover.') && st(light.dataset.e).attributes.device_class === 'garage')) lp = setTimeout(() => { suppress = true; open(light, light.dataset.e.startsWith('cover.') ? 'shade' : 'dimmer'); }, 450);
 });
 document.addEventListener('pointermove', e => {
   if (Math.hypot(e.clientX - px, e.clientY - py) > 8) clearTimeout(lp);
@@ -2525,6 +2551,7 @@ document.addEventListener('click', e => {
   if (e.target.closest('#assist')) { assistEnd(); if (act !== 'go') return; }   // Tipp schließt; Pille führt zusätzlich hin
   if (pop && !e.target.closest('.pop')) return pop.classList.remove('open');   // Tipp daneben schließt nur
   if (act === 'close') close();
+  else if (act === 'cov') { hold[cur.e] = Date.now() + 1500; setTimeout(schedule, 1600); call('cover', b.dataset.v, { entity_id: cur.e }); }
   else if (act === 'hvac') modeMenu(true);
   else if (act === 'hvacset') { call('climate', 'set_hvac_mode', { entity_id: cur.e, hvac_mode: b.dataset.v }); modeMenu(false); }
   else if (act === 'lib') { pop?.classList.remove('open'); openLib($('.mb', b.closest('.face'))); }
@@ -2704,6 +2731,17 @@ for (const el of $$('.kzsl', kz)) {
 }
 
 // Dimmer: ganzer Screen ist der Slider, relativ ziehen wie im Kontrollzentrum
+// Rollo-Ansicht: relativ ziehen (nach unten = schließen), HA höchstens alle 200 ms
+const shd = $('#shade');
+shd.addEventListener('pointerdown', e => { if (e.target.closest('[data-act]') || st(cur.e).attributes.current_position == null) return; sy = e.clientY; sp = 100 - S.shade; shd.setPointerCapture(e.pointerId); });
+shd.addEventListener('pointermove', e => {
+  if (sy === null) return;
+  const c = Math.round(Math.min(100, Math.max(0, sp + (e.clientY - sy) / shd.clientHeight * 100)));
+  if (100 - c === S.shade) return;
+  setShade(c); hold[cur.e] = Date.now() + 1500; setTimeout(schedule, 1600);
+  shT ||= setTimeout(() => { shT = 0; call('cover', 'set_cover_position', { entity_id: cur.e, position: S.shade }); }, 200);
+});
+for (const n of ['pointerup', 'pointercancel']) shd.addEventListener(n, () => sy = null);
 const dim = $('#dimmer');
 dim.addEventListener('pointerdown', e => { if (e.target.closest('[data-act]')) return; y0 = e.clientY; p0 = S.light; dim.setPointerCapture(e.pointerId); });
 dim.addEventListener('pointermove', e => {
