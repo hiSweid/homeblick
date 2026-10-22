@@ -304,9 +304,9 @@ const BG = [['auto', 'Tageszeit'], ['black', 'Schwarz'], ['white', 'Weiß'], ['m
 const STYLES = { weather: [['', 'Kompakt'], ['cond', 'Bedingungen']], bigclock: [['stack', 'Gestapelt'], ['line', 'Lavalampe']], analog: [['big', 'Große Ziffern'], ['relief', 'Relief']], info: [['events', 'Termine'], ['music', 'Musik']] };
 const LEGACY = { bigclock: [['depth', 'Tiefe']], analog: [['numbers', 'Zahlen'], ['ticks', 'Striche'], ['minimal', 'Minimal']] };   // ohne Vorlage: nur sichtbar, wenn gespeichert
 // Uhr und Kalender gibt es je Display nur einmal; Design (digital/analog bzw. Monat/Datum) und Farbe stellt man am Face ein. Wert = "Typ:Stil"
-const DESIGN = { clock: [['bigclock:stack', 'Digital · Gestapelt'], ['bigclock:line', 'Digital · Lavalampe'], ['analog:big', 'Analog · Große Ziffern'], ['analog:relief', 'Analog · Relief']], cal: [['calendar:', 'Monat'], ['date:', 'Datum']] };
+const DESIGN = { clock: [['bigclock:stack', 'Digital · Gestapelt'], ['bigclock:line', 'Digital · Lavalampe'], ['analog:big', 'Analog · Große Ziffern'], ['analog:relief', 'Analog · Relief'], ['info:events', 'Info · Termine'], ['info:music', 'Info · Musik']], cal: [['calendar:', 'Monat'], ['date:', 'Datum']] };
 const GNAME = { clock: 'Uhr', cal: 'Kalender' };
-const designs = f => GROUP[f.type] ? DESIGN[GROUP[f.type]].concat((LEGACY[f.type] || []).filter(([v]) => v === f.style).map(([v, n]) => [`${f.type}:${v}`, `${f.type === 'bigclock' ? 'Digital' : 'Analog'} · ${n}`])) : STYLES[f.type];
+const designs = f => GROUP[f.type] ? DESIGN[GROUP[f.type]].concat((LEGACY[f.type] || []).filter(([v]) => v === f.style).map(([v, n]) => [`${f.type}:${v}`, `${{ bigclock: 'Digital', analog: 'Analog', info: 'Info' }[f.type]} · ${n}`])) : STYLES[f.type];
 const designCur = f => GROUP[f.type] ? `${f.type}:${f.style || STYLES[f.type]?.[0][0] || ''}` : f.style || STYLES[f.type]?.[0][0];
 const withDesign = (f, v) => { if (!GROUP[f.type]) return { ...f, style: v }; const [type, style] = v.split(':'); return { ...f, type, style: style || undefined, id: type === f.type ? f.id : faceId(cfg, type) }; };
 const WAKE = [['off', 'Aus'], ['hey_jarvis', 'Hey Jarvis'], ['alexa', 'Alexa']];
@@ -809,7 +809,7 @@ const FACE_BG = { grid: 'auto', music: 'black', bigclock: 150, weather: 212, ene
 const SETUP = [   // [Schlüssel, Name, Beschreibung, Faces]
   ['room', 'Raum-Panel', 'Kacheln aus dem Bereich, Musik, Wetter, Kalender und Uhr', ['grid', 'music', 'weather', 'calendar', 'bigclock']],
   ['clock', 'Uhr & Wetter', 'Uhr, Wetter und Kalender – ganz ohne Entities', ['bigclock', 'weather', 'calendar']],
-  ['all', 'Alle Faces', 'Jedes Face einmal; was nicht passt, blendest du später aus', Object.keys(FACE).filter(t => !['analog', 'date'].includes(t))],
+  ['all', 'Alle Faces', 'Jedes Face einmal; was nicht passt, blendest du später aus', Object.keys(FACE).filter(t => !['analog', 'date', 'info'].includes(t))],
 ];
 const ROOM_DOM = ['climate', 'light', 'cover', 'lock', 'scene', 'switch', 'fan', 'media_player', 'script'];   // Reihenfolge = Wichtigkeit
 // Kacheln aus den Entities eines Bereichs: Thermostat groß, je Art höchstens 3, insgesamt 9 Zellen
@@ -970,7 +970,7 @@ document.addEventListener('click', async e => {
   if (a === 'xesp') return dl(`homeblick-esp-${sel}.json`, espExport(cur(), cfg, { en: entOf, icon: tileIcon }));
   if (a === 'tmore') { const k = ins.i + '.' + ins.j; moreKey = moreKey === k ? '' : k; return redraw(); }
   if (a === 'faddsheet') {   // ausgeblendetes Face wieder einblenden oder neues anlegen
-    const r = await overlay('sheet', `<div class="shs">${cfg.off?.length ? `<div class="grp">${cfg.off.map(f => `<button class="row btn c" data-r="show:${esc(f.id)}">${esc(faceName(f))} einblenden</button>`).join('')}</div>` : ''}<div class="grp" style="max-height:46vh;overflow-y:auto">${TYPES.filter(([t]) => !GROUP[t] || (!['analog', 'date'].includes(t) && ![...cfg.faces, ...(cfg.off || [])].some(x => GROUP[x.type] === GROUP[t]))).map(([t, n]) => `<button class="row btn c" data-r="new:${t}">Neu: ${esc(GNAME[GROUP[t]] || n)}</button>`).join('')}</div><div class="grp"><button class="row btn c" data-r="" style="font-weight:600">Abbrechen</button></div></div>`);
+    const r = await overlay('sheet', `<div class="shs">${cfg.off?.length ? `<div class="grp">${cfg.off.map(f => `<button class="row btn c" data-r="show:${esc(f.id)}">${esc(faceName(f))} einblenden</button>`).join('')}</div>` : ''}<div class="grp" style="max-height:46vh;overflow-y:auto">${TYPES.filter(([t]) => !GROUP[t] || (!['analog', 'date', 'info'].includes(t) && ![...cfg.faces, ...(cfg.off || [])].some(x => GROUP[x.type] === GROUP[t]))).map(([t, n]) => `<button class="row btn c" data-r="new:${t}">Neu: ${esc(GNAME[GROUP[t]] || n)}</button>`).join('')}</div><div class="grp"><button class="row btn c" data-r="" style="font-weight:600">Abbrechen</button></div></div>`);
     if (!r) return;
     const [k, v] = r.split(':');
     if (k === 'show') cfg.faces.push(...cfg.off.splice(cfg.off.findIndex(f => f.id === v), 1));

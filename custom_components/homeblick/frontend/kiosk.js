@@ -1,6 +1,6 @@
 // Wanddisplay-Verhalten im Browser: Idle-Screensaver, Nacht-Dimmen, Display wach halten, Face per #<typ>.
 // Einstellungen: CONF.kiosk = { idle: Sekunden (0 = aus), saver: Face-Typ, dim: { from: 'HH:MM', to: 'HH:MM', level: 0–1 } | null, black: Schoner = 100 % schwarz statt Face, hold: true = Schoner startet nicht, sched: { from, to } | null (im Fenster startet der Schoner nach 30 s, auch bei idle 0), wake: Modellname | null }
-import { SIBLING } from './faces.js';
+import { siblings } from './faces.js';
 export const KIOSK_DEF = { idle: 300, saver: 'bigclock', black: false, sched: null, dim: null, wake: null, bright: 1, hold: false, kz: true };   // wake: 'hey_jarvis_v0.1' | 'alexa_v0.1' | null (Mikrofon dauerhaft offen → nur auf Wunsch)
 
 const mins = s => { const [h, m] = s.split(':'); return h * 60 + +m; };
@@ -41,7 +41,7 @@ export function kioskInit({ faces, conf, busy, touched, onState, music, lux }) {
   document.addEventListener('pointerdown', e => { lock(); if (wake()) { e.stopPropagation(); e.preventDefault(); } }, true);
 
   const at = t => [...faces.children].findIndex(f => f.classList.contains('f-' + t));
-  const find = t => { const i = at(t); return i >= 0 ? i : at(SIBLING[t]); };   // Uhr/Kalender gibt es nur einmal, egal in welchem Design
+  const find = t => { const i = at(t); return i >= 0 ? i : Math.max(-1, ...(siblings(t)).map(at)); };   // Uhr/Kalender gibt es nur einmal, egal in welchem Design
   const saver = () => {
     const m = cfg().music !== false && music?.() ? find('music') : -1; if (m >= 0) return m;
     const i = find(cfg().saver);

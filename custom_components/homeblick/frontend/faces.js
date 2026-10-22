@@ -8,10 +8,10 @@ export function faceId(conf, type) {
   return n > 1 ? type + n : type;
 }
 
-// Uhr und Kalender gibt es je Display nur einmal; das Design (Typ + Stil) und die Farbe wählt man am Face.
-// Uhr: bigclock = digital, analog = analog. Kalender: calendar = Monat, date = Datum.
-export const GROUP = { bigclock: 'clock', analog: 'clock', calendar: 'cal', date: 'cal' };
-export const SIBLING = { bigclock: 'analog', analog: 'bigclock', calendar: 'date', date: 'calendar' };
+// Uhr (Watchface) und Kalender gibt es je Display nur einmal; das Design (Typ + Stil) und die Farbe wählt man am Face.
+// Uhr: bigclock = digital, analog = analog, info = Info. Kalender: calendar = Monat, date = Datum.
+export const GROUP = { bigclock: 'clock', analog: 'clock', info: 'clock', calendar: 'cal', date: 'cal' };
+export const siblings = t => Object.keys(GROUP).filter(k => GROUP[k] === GROUP[t] && k !== t);
 const dedupe = (list, seen) => { for (let i = 0; i < list.length; i++) { const g = GROUP[list[i].type]; if (!g) continue; if (seen.has(g)) list.splice(i--, 1); else seen.add(g); } };
 
 // Alte Konfiguration (ohne id/off) übernehmen, fehlende Standard-Faces als ausgeschaltet ergänzen, Uhr/Kalender nur einmal; true = geändert
