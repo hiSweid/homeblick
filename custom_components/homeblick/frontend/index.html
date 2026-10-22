@@ -1708,7 +1708,8 @@ function liveTile(t, s) {   // Kamera-Livebild: Pille (Live/Offline) + Bewegungs
   t.classList.toggle('off', na);
   const pill = $('.lvp', t), txt = na ? 'Offline' : 'Live'; if (pill.textContent !== txt) pill.textContent = txt;
   if (t._mn !== n) { t._mn = n; t._mid = Object.keys(ents).find(id => id.startsWith('binary_sensor.' + slug) && /motion|person|bewegung/.test(id)) || ''; }
-  t.classList.toggle('mv', !!t._mid && ents[t._mid].state === 'on');
+  const mid = t._t.motion || t._mid;
+  t.classList.toggle('mv', !!mid && ents[mid]?.state === 'on');
 }
 const KNS = { open: 'Offen', closed: 'Zu', opening: 'Öffnet …', closing: 'Schließt …' };
 function knobTile(t, s) {   // Schloss/Tor-Knopf: Zustand → Farbe + Statuszeile

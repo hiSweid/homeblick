@@ -586,6 +586,7 @@ const pages = {
       ${grp('', (ent ? `<button class="row" data-a="tent"><span class="l">Entity</span><span class="v"><span class="two" style="align-items:flex-end;min-width:0"><span class="val" style="${t.e && !en ? 'color:var(--red)' : ''}">${esc(en?.name || t.e || 'Wählen …')}</span>${en ? `<small class="val">${esc(t.e)}</small>` : t.e ? '<small>nicht gefunden</small>' : ''}</span>${svg('chev')}</span></button>` : '')
         + (clock ? `<div class="sh" style="margin-top:10px">Stil</div>` + carHTML(`clock:${e.i}.${e.j}`, { items: [['', 'Striche'], ['numbers', 'Zahlen'], ['digital', 'Digital']], cur: t.cs || '', conf: v => ({ conf: { ...cfg, faces: [{ type: 'grid', id: 'grid', bg: f.bg, tiles: [{ kind: 'clock', ...(v && { cs: v }), w: 2, h: 2 }] }] }, face: 'grid' }), pick: v => { const x = cfg.faces[e.i].tiles[e.j]; v ? x.cs = v : delete x.cs; saveCfg(); } }) : '')
         + (ent ? field('Titel', 'title', t.title, '', 'data-t') : ''))}
+      ${t.sv === 'live' ? grp('', `<button class="row" data-a="tmot"><span class="l">Bewegungssensor</span><span class="v"><span class="val">${esc(entOf(t.motion)?.name || (t.motion ? t.motion : 'Automatisch'))}</span>${svg('chev')}</span></button>`, 'Automatisch: ein Sensor der Kamera mit „motion“, „person“ oder „bewegung“ im Namen. Der Chip erscheint, solange er an ist.') : ''}
       ${ent ? grp('Look', `<div class="sw-grid">${LOOKS.map(([v, n, bg]) => `<button data-a="tlook" data-v="${v}" class="${(t.look || '') === v ? 'on' : ''}"><i style="background:${bg}"></i>${n}</button>`).join('')}</div>`, 'Theme: wie im Display eingestellt; Liquid oder Flat gilt nur für diese Kachel (Hell/Dunkel folgt dem Display).') : ''}
       ${(ent || !placed) ? grp('', (ent ? `<div class="sw-grid">${COLORS.map(([v, n]) => `<button data-a="tcolor" data-v="${v}" class="${(t.color || '') === v ? 'on' : ''}"><i style="background:${v || 'linear-gradient(135deg,#d8d8dc,#8e8e93)'}"></i>${n}</button>`).join('')}</div>` : ''),
         placed ? (ent ? 'Größe in Rasterfeldern; die Farbe färbt das Symbol, wenn die Kachel an ist.' : 'Größe in Rasterfeldern.') : 'Kein Platz mehr im Raster: die Kachel wird nicht angezeigt.') : ''}
@@ -987,6 +988,11 @@ document.addEventListener('click', async e => {
     if (!r) return; r === '-' ? delete t.icon : t.icon = r;
   }
   else if (a === 'tadd') { if (!await galleryAdd(f)) return; }
+  else if (a === 'tmot') {
+    const t = tiles[j], en = await pickEntity({ title: 'Bewegungssensor', domains: ['binary_sensor'], none: 'Automatisch', current: t.motion || '' });
+    if (!en) return;
+    en.id ? t.motion = en.id : delete t.motion;
+  }
   else if (a === 'tent') {
     const t = tiles[j], en = await pickEntity({ title: 'Entity der Kachel', domains: t.kind === 'thermo' ? ['climate'] : TILE_DOM, current: t.e });
     if (!en) return;
