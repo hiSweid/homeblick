@@ -100,8 +100,8 @@ svg.i{width:1em;height:1em;flex:none;fill:none;stroke:currentColor;stroke-width:
 .tile:is([data-sv=fill],[data-sv=blind]).hi .ttl,.tile:is([data-sv=fill],[data-sv=blind]).hi .pct{color:var(--ink)!important}.tile:is([data-sv=fill],[data-sv=blind]).hi .sub{color:var(--ink2)!important}.tile:is([data-sv=fill],[data-sv=blind]).full .ico{color:var(--ink)!important}
 .tile:is([data-sv=fill],[data-sv=blind])[data-size="2x2"] .pct{font-size:4.4cqw;right:5cqw;top:5cqw}
 /* Rollo: Lamellenpanzer schiebt sich von oben nach unten (Höhe = Schließgrad); Symbol/Prozent oben werden dunkel, sobald die Fläche sie erreicht (.full), der Titel unten erst bei fast zu (.hi) */
-.tile[data-sv=blind] .fill{inset:0 0 auto}   /* wie der Licht-Füllstand (weiße Fläche), nur von oben nach unten; Kante unten */
-.tile[data-sv=blind] .fill::before{inset:auto 0 0;height:.25cqw}
+.tile[data-sv=blind] .fill{inset:0 0 auto;background:repeating-linear-gradient(#fff 0 .3cqw,#f3f3f6 .3cqw 2.05cqw,#cdcdd5 2.05cqw 2.4cqw)}   /* Rolladenpanzer von oben nach unten: weiße Lamellen mit Lichtkante und Fuge, Abschlussschiene unten */
+.tile[data-sv=blind] .fill::before{inset:auto 0 0;height:.9cqw;background:linear-gradient(#c8c8d0,#a9a9b3)}
 .tile[data-sv=blind] .ttl,.tile[data-sv=blind] .sub{transition:color .3s}
 .tile[data-sv=blind].hi .ttl{color:var(--ink)!important}.tile[data-sv=blind].hi .sub{color:var(--ink2)!important}
 .tile[data-sv=blind].full .ico,.tile[data-sv=blind].full .pct{color:var(--ink)!important}
@@ -552,8 +552,8 @@ input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:tr
 #dimmer .grip,#shade .grip{position:absolute;left:50%;top:0;width:8.8cqw;height:1.2cqw;margin-left:-4.4cqw;border-radius:.6cqw;background:#000000a0;transform:translateY(calc((1 - var(--f,0)) * 100cqw + 1.9cqw))}
 /* Rollo-Ansicht (#shade): wie der Dimmer, nur von oben nach unten: Füllung = Schließgrad (--f 0–1), Zahl = offen in %, unten Auf / Stopp / Zu */
 #shade{background:#eef0f6;color:#111;touch-action:none}
-#shade .fill{background:repeating-linear-gradient(#ffb847 0 .9cqw,#ff9d14 .9cqw 5.3cqw,#d97d00 5.3cqw 6.2cqw);transform:translateY(calc((var(--f,0) - 1) * 100%));filter:drop-shadow(0 1.4cqw 2.4cqw #0000004d)}   /* Lamellenpanzer: je Lamelle Lichtkante, Fläche, Schattenfuge; hängt mit Abschlussschiene (::after) von oben herab */
-#shade .fill::after{content:"";position:absolute;inset:auto 0 0;height:3.6cqw;background:linear-gradient(#c47400,#8c5000)}
+#shade .fill{background:repeating-linear-gradient(#838891 0 .9cqw,#656a73 .9cqw 5.3cqw,#454950 5.3cqw 6.2cqw);transform:translateY(calc((var(--f,0) - 1) * 100%));filter:drop-shadow(0 1.4cqw 2.4cqw #0000004d)}   /* Lamellenpanzer: je Lamelle Lichtkante, Fläche, Schattenfuge; hängt mit Abschlussschiene (::after) von oben herab */
+#shade .fill::after{content:"";position:absolute;inset:auto 0 0;height:3.6cqw;background:linear-gradient(#34373d,#212428)}
 #shade .fill .in{transform:translateY(calc((1 - var(--f,0)) * 100%))}
 #shade :is(.fill,.fill .in,.grip){transition:transform .55s var(--spring)}#shade.drag :is(.fill,.fill .in,.grip){transition:none}   /* Feder beim Nachlaufen (Tasten, HA), 1:1 unter dem Finger */
 #shade .ico{width:12.9cqw;height:12.9cqw;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
