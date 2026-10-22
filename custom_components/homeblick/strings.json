@@ -24,7 +24,8 @@
           "date": "Date",
           "energy": "Energy",
           "info": "Info",
-          "cams": "Cameras"
+          "cams": "Cameras",
+          "people": "People"
         }
       },
       "saver": {
@@ -39,7 +40,8 @@
           "date": "Date",
           "energy": "Energy",
           "info": "Info",
-          "cams": "Cameras"
+          "cams": "Cameras",
+          "people": "People"
         }
       },
       "wake": {

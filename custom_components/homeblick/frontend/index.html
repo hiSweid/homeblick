@@ -791,6 +791,14 @@ input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:tr
 /* Gastmodus: Face wird unscharf und dunkel überdeckt, Schloss mittig */
 .guestlock{position:absolute;inset:0;z-index:30;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.4cqw;background:#000d;-webkit-backdrop-filter:blur(6cqw);backdrop-filter:blur(6cqw);color:#fff;text-align:center}
 .guestlock .gl{width:17cqw;height:17cqw;margin-bottom:2cqw}.guestlock b{font-size:5.6cqw;font-weight:600}.guestlock span{font-size:3.8cqw;opacity:.6}
+/* Personen-Face */
+.f-people{padding:0;overflow:hidden}.f-people header{position:absolute;left:7cqw;top:9cqw;font-size:7cqw;font-weight:600;letter-spacing:-.03em}
+.f-people .plist{position:absolute;left:5cqw;right:5cqw;top:23cqw;bottom:4cqw;display:flex;flex-direction:column;gap:2.2cqw;overflow-y:auto;scrollbar-width:none}.f-people .plist::-webkit-scrollbar{display:none}
+.prow{flex:none;display:flex;align-items:center;gap:3.4cqw;height:16cqw;padding:0 4cqw;border-radius:4.3cqw;corner-shape:squircle;background:var(--glass,linear-gradient(165deg,#ffffff3d,#ffffff29 50%,#ffffff1f));box-shadow:inset 0 0 0 .25cqw #ffffff47}
+.prow.home{background:linear-gradient(165deg,#ffffffd9,#ffffffb8);color:#3c3c3c}
+.pav{flex:none;width:10.4cqw;height:10.4cqw;border-radius:50%;overflow:hidden;display:grid;place-items:center;background:#ffffff40;font-size:5cqw;font-weight:600}.pav img{width:100%;height:100%;object-fit:cover}
+.pt{flex:1;min-width:0}.pt b{display:block;font-size:4.4cqw;font-weight:600;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pt span{display:block;font-size:3.5cqw;opacity:.75;margin-top:.6cqw}
+.pb{font-size:3.5cqw;font-weight:500;opacity:.8}.pnone{position:absolute;left:0;right:0;top:40cqw;text-align:center;opacity:.6;font-size:4cqw}
 </style>
 </head>
 <body>
@@ -1282,6 +1290,7 @@ const DEF = { cams: 1, energy: 1, dyn: 2, faces: [   // Flags: Migrationen unten
   { type: 'analog', bg: 150 },
   { type: 'info', bg: 'auto' },
   { type: 'cams', bg: 'black' },
+  { type: 'people', bg: 'auto' },
 ] };
 let conn;   // vor save(): die Migrationen unten rufen save() schon vor der Verbindung
 const KEY = 'homeview.v1';
@@ -1473,6 +1482,7 @@ const FACE = {
   weather: (el, f) => weatherFace(el, f, CFG.place),
   energy: (el, f) => { energyEnts(f.ents); energyFace(el); },
   cams: el => camFace(el),
+  people: el => { el.innerHTML = '<header>Personen</header><div class="plist"></div>'; peopleFill(); },
   info: (el, f) => {
     // Farbtöne laut Vorlage: Türkis y-MO 08500 = 190; Himmel (hellblau, TGo 00179) ≈ 203; Blau (dunkelblau, TGo 00387) ≈ 213; Metall = Graublau #92abb1 (helle Variante)
     const hh = { 205: 190, 212: 203, 228: 213 }[f.bg]; if (hh) el.style.setProperty('--h', hh);
@@ -1488,6 +1498,19 @@ ${svg('note', 'mn')}
 };
 // Gastmodus (Einstellung „Gastmodus“, auch als HA-Schalter): persönliche Faces zeigen nur ein Schloss; Vorlage: Privacy-Schloss (overview/privacy), Text und Anordnung eigene Annahme
 const GUEST_HIDES = new Set(['calendar', 'info', 'cams']);
+// Personen-Face („Wo ist?“): person.* mit Zone bzw. Entfernung zu zone.home und Akku des verknüpften Geräts; Glaszeilen wie die Kacheln (keine Apple-Vorlage, eigener Entwurf)
+const kmBetween = (a, b, c, d) => { const q = x => x * Math.PI / 180, h = Math.sin(q(c - a) / 2) ** 2 + Math.cos(q(a)) * Math.cos(q(c)) * Math.sin(q(d - b) / 2) ** 2; return 12742 * Math.asin(Math.sqrt(h)); };
+function peopleFill() {
+  const fs = $$('.f-people'); if (!fs.length) return;
+  const home = ents['zone.home']?.attributes;
+  const html = Object.keys(ents).filter(i => i.startsWith('person.')).sort().map(id => {
+    const s = ents[id], a = s.attributes, name = a.friendly_name || id, bat = ents[a.source]?.attributes.battery_level;
+    const away = s.state === 'not_home', d = away && a.latitude != null && home?.latitude != null ? kmBetween(a.latitude, a.longitude, home.latitude, home.longitude) : null;
+    const where = s.state === 'home' ? 'Zuhause' : away ? 'Unterwegs' + (d != null ? ` • ${d < 10 ? d.toFixed(1).replace('.', ',') : Math.round(d)} km` : '') : s.state === 'unknown' || s.state === 'unavailable' ? 'Unbekannt' : s.state;
+    return `<div class="prow${s.state === 'home' ? ' home' : ''}"><div class="pav">${a.entity_picture ? `<img src="${esc(abs(a.entity_picture))}" alt="">` : esc(name.trim()[0] || '?').toUpperCase()}</div><div class="pt"><b>${esc(name)}</b><span>${esc(where)}</span></div>${bat != null ? `<div class="pb">${Math.round(bat)} %</div>` : ''}</div>`;
+  }).join('') || '<p class="pnone">Keine Personen in Home Assistant</p>';
+  for (const f of fs) if (f._h !== html) { f._h = html; $('.plist', f).innerHTML = html; }
+}
 function buildFace(f) {
   const el = document.createElement('div');
   el.className = `face f-${f.type}`;
@@ -1863,6 +1886,7 @@ function render() {
   weather(st(CFG.weather), ents['sun.sun'], forecast);
   weatherPlaces(Object.keys(ents).filter(id => id.startsWith('weather.')).sort().map(id => [id, id === HOME.weather ? HOME.place : ents[id].attributes.friendly_name || id]), CFG.weather, pickPlace);
   doorbell(ents);
+  peopleFill();
   energy(ents, roll);
   if (timers(ents)) kiosk.wake();   // Timer abgelaufen → Display weckt
 
@@ -2918,6 +2942,11 @@ if (!LIVE) {
     'person.henryk': ['home', { friendly_name: 'Henryk' }],
     'person.mia': ['not_home', { friendly_name: 'Mia' }],
     'person.tom': ['home', { friendly_name: 'Tom' }],
+    'person.henryk': ['home', { friendly_name: 'Henryk', source: 'device_tracker.henryk_handy' }],
+    'person.anna': ['not_home', { friendly_name: 'Anna', source: 'device_tracker.anna_handy', latitude: 48.85, longitude: 9.85 }],
+    'zone.home': ['zoning', { friendly_name: 'Home', latitude: 48.8, longitude: 9.8 }],
+    'device_tracker.henryk_handy': ['home', { battery_level: 82 }],
+    'device_tracker.anna_handy': ['not_home', { battery_level: 41 }],
     'lock.eingangstur': ['locked', { friendly_name: 'Eingangstür', code_format: '^\\d{4}$' }],
     'lock.garagentur': ['locked', { friendly_name: 'Garagentür' }],
     'cover.garagentor': ['closed', { friendly_name: 'Garagentor', device_class: 'garage' }],

@@ -240,6 +240,7 @@ textarea.r{text-align:right}
   <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6L7 7M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4"/></symbol>
   <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 3L5 14h6l-1 7 8-11h-6z"/></symbol>
   <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5M12 8v.01"/></symbol>
+  <symbol id="i-person" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20c.8-4 3.9-6 7.5-6s6.7 2 7.5 6"/></symbol>
   <symbol id="i-cam" viewBox="0 0 24 24"><rect x="3" y="6.5" width="12" height="11" rx="3"/><path d="M15 10.5l6-3v9l-6-3"/></symbol>
   <symbol id="i-disp" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="12" rx="3"/><path d="M9 20h6M12 16.5V20"/></symbol>
   <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></symbol>
@@ -297,7 +298,7 @@ document.documentElement.style.setProperty('--sd', SD + 'ms');
 
 const FACE = {
   grid: ['Smart Home', '#ff9500', 'grid'], music: ['Musik', '#ff2d55', 'music'], bigclock: ['Uhr digital', '#636366', 'clock'], analog: ['Uhr analog', '#5856d6', 'clock'],
-  calendar: ['Kalender', '#ff3b30', 'cal'], date: ['Datum', '#8e8e93', 'cal'], weather: ['Wetter', '#32ade6', 'sun'], energy: ['Energie', '#34c759', 'bolt'], info: ['Info', '#30b0c7', 'info'], cams: ['Kameras', '#8e8e93', 'cam'],
+  calendar: ['Kalender', '#ff3b30', 'cal'], date: ['Datum', '#8e8e93', 'cal'], weather: ['Wetter', '#32ade6', 'sun'], energy: ['Energie', '#34c759', 'bolt'], info: ['Info', '#30b0c7', 'info'], cams: ['Kameras', '#8e8e93', 'cam'], people: ['Personen', '#5ac8fa', 'person'],
 };
 const TYPES = Object.entries(FACE).map(([k, v]) => [k, v[0]]);
 const BG = [['auto', 'Tageszeit'], ['black', 'Schwarz'], ['white', 'Weiß'], ['metal', 'Metall'], ['prism', 'Prisma'], ['teal', 'Teal'], [30, 'Orange'], [5, 'Rot'], [340, 'Rosa'], [285, 'Violett'], [307, 'Pink'], [228, 'Blau'], [205, 'Türkis'], [212, 'Himmel'], [150, 'Grün']];
@@ -816,7 +817,7 @@ const stripArea = (en, area) => area ? en.name.replace(new RegExp('^' + area.rep
 const tileOf = (en, area = en.area) => ({ e: en.id, title: stripArea(en, area) || autoTitle(en), sub: area, ...(['sensor', 'binary_sensor'].includes(en.domain) && { val: 'state' }) });
 
 // ---- Neues Display einrichten: Name, Bereich, Vorlage → fertige Konfiguration; danach gleich im Live-Editor ----
-const FACE_BG = { grid: 'auto', music: 'black', bigclock: 150, weather: 212, energy: 'auto', calendar: 'white', date: 'auto', analog: 150, info: 'auto', cams: 'black' };
+const FACE_BG = { grid: 'auto', music: 'black', bigclock: 150, weather: 212, energy: 'auto', calendar: 'white', date: 'auto', analog: 150, info: 'auto', cams: 'black', people: 'auto' };
 const SETUP = [   // [Schlüssel, Name, Beschreibung, Faces]
   ['room', 'Raum-Panel', 'Kacheln aus dem Bereich, Musik, Wetter, Kalender und Uhr', ['grid', 'music', 'weather', 'calendar', 'bigclock']],
   ['clock', 'Uhr & Wetter', 'Uhr, Wetter, Kalender und Datum – ganz ohne Entities', ['bigclock', 'weather', 'calendar', 'date']],
@@ -885,7 +886,7 @@ const THEME_SET = [
   ['p-prisma', 'Prisma Hell', 'prism:245', 'liquid', 'light'], ['p-teal', 'Teal Hell', 'fan:172', 'liquid', 'light'],
   ['flat-dunkel', 'Flat Dunkel', 'black', 'flat', 'dark'], ['flat-hell', 'Flat Hell', 'white', 'flat', 'light'],
 ];
-const THEME_TYPES = ['grid', 'analog', 'bigclock', 'energy', 'info'];   // Faces, deren Hintergrund ein Theme mitnimmt (Foto-Hintergründe bleiben)
+const THEME_TYPES = ['grid', 'analog', 'bigclock', 'energy', 'info', 'people'];   // Faces, deren Hintergrund ein Theme mitnimmt (Foto-Hintergründe bleiben)
 const themeBg = f => !f.bg || typeof f.bg !== 'object';
 const themeGrid = () => cfg.faces.find(f => f.type === 'grid') || cfg.faces[0];
 const themeCur = () => { const g = themeGrid(); return THEME_SET.find(t => t[3] === (cfg.theme || 'liquid') && t[4] === (cfg.mode || 'dark') && String(t[2]) === String(g.bg))?.[0] ?? ''; };
