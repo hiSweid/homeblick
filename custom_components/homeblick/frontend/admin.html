@@ -304,11 +304,11 @@ const BG = [['auto', 'Tageszeit'], ['black', 'Schwarz'], ['white', 'Weiß'], ['m
 const STYLES = { weather: [['', 'Kompakt'], ['cond', 'Bedingungen']], bigclock: [['stack', 'Gestapelt'], ['line', 'Lavalampe']], analog: [['big', 'Große Ziffern'], ['relief', 'Relief']], info: [['events', 'Termine'], ['music', 'Musik']] };
 const LEGACY = { bigclock: [['depth', 'Tiefe']], analog: [['numbers', 'Zahlen'], ['ticks', 'Striche'], ['minimal', 'Minimal']] };   // ohne Vorlage: nur sichtbar, wenn gespeichert
 // Uhr und Kalender gibt es je Display nur einmal; Design (digital/analog bzw. Monat/Datum) und Farbe stellt man am Face ein. Wert = "Typ:Stil"
-const DESIGN = { clock: [['bigclock:stack', 'Digital · Gestapelt'], ['bigclock:line', 'Digital · Lavalampe'], ['analog:big', 'Analog · Große Ziffern'], ['analog:relief', 'Analog · Relief'], ['info:events', 'Info · Termine'], ['info:music', 'Info · Musik']], cal: [['calendar:', 'Monat'], ['date:', 'Datum']] };
-const GNAME = { clock: 'Uhr', cal: 'Kalender' };
-const designs = f => GROUP[f.type] ? DESIGN[GROUP[f.type]].concat((LEGACY[f.type] || []).filter(([v]) => v === f.style).map(([v, n]) => [`${f.type}:${v}`, `${{ bigclock: 'Digital', analog: 'Analog', info: 'Info' }[f.type]} · ${n}`])) : STYLES[f.type];
-const designCur = f => GROUP[f.type] ? `${f.type}:${f.style || STYLES[f.type]?.[0][0] || ''}` : f.style || STYLES[f.type]?.[0][0];
-const withDesign = (f, v) => { if (!GROUP[f.type]) return { ...f, style: v }; const [type, style] = v.split(':'); return { ...f, type, style: style || undefined, id: type === f.type ? f.id : faceId(cfg, type) }; };
+const DESIGN = { clock: [['bigclock:stack', 'Digital · Gestapelt'], ['bigclock:line', 'Digital · Lavalampe'], ['analog:big', 'Analog · Große Ziffern'], ['analog:relief', 'Analog · Relief'], ['info:events', 'Info · Termine'], ['info:music', 'Info · Musik']]};
+const GNAME = { clock: 'Uhr' };
+const designs = f => DESIGN[GROUP[f.type]] ? DESIGN[GROUP[f.type]].concat((LEGACY[f.type] || []).filter(([v]) => v === f.style).map(([v, n]) => [`${f.type}:${v}`, `${{ bigclock: 'Digital', analog: 'Analog', info: 'Info' }[f.type]} · ${n}`])) : STYLES[f.type];
+const designCur = f => DESIGN[GROUP[f.type]] ? `${f.type}:${f.style || STYLES[f.type]?.[0][0] || ''}` : f.style || STYLES[f.type]?.[0][0];
+const withDesign = (f, v) => { if (!DESIGN[GROUP[f.type]]) return { ...f, style: v }; const [type, style] = v.split(':'); return { ...f, type, style: style || undefined, id: type === f.type ? f.id : faceId(cfg, type) }; };
 const WAKE = [['off', 'Aus'], ['hey_jarvis', 'Hey Jarvis'], ['alexa', 'Alexa']];
 const bgCss = bg => bg === 'auto' ? 'linear-gradient(135deg,#ffb36b,#5a6bb5)' : bg === 'black' ? '#1c1c1e' : bg === 'white' ? '#f2f2f7' : bg === 'metal' ? 'linear-gradient(135deg,#b5c4d6,#8795ad)' : typeof bg === 'number' ? `linear-gradient(135deg,hsl(${bg} 75% 66%),hsl(${bg + 25} 70% 52%))` : '#8e8e93';
 const bgName = bg => BG.find(b => String(b[0]) === String(bg))?.[1] || 'Foto';
@@ -551,7 +551,7 @@ const pages = {
   },
 
   pages() {   // Seiten verwalten: Reihenfolge per Ziehen, Schalter blendet aus/ein
-    const row = (x, i, on) => { const m = FACE[x.type] || [x.type, '#8e8e93', 'grid']; return `<div class="row pgr" data-i="${i}">${on ? `<span class="pgrip" aria-label="Verschieben">${svg('grip', '')}</span>` : ''}<button class="go" data-a="pgopen" data-i="${i}" ${on ? '' : 'disabled'}>${ico(m[2], m[1])}<span class="l two"><b>${esc(faceName(x))}</b><small>${esc((GROUP[x.type] ? designs(x).find(([v]) => v === designCur(x))?.[1] + ' · ' : '') + bgName(x.bg))}</small></span></button><label class="sw"><input type="checkbox" data-pv="${on ? 'v' : 'o'}${i}" ${on ? 'checked' : ''}><i></i></label></div>`; };
+    const row = (x, i, on) => { const m = FACE[x.type] || [x.type, '#8e8e93', 'grid']; return `<div class="row pgr" data-i="${i}">${on ? `<span class="pgrip" aria-label="Verschieben">${svg('grip', '')}</span>` : ''}<button class="go" data-a="pgopen" data-i="${i}" ${on ? '' : 'disabled'}>${ico(m[2], m[1])}<span class="l two"><b>${esc(faceName(x))}</b><small>${esc((DESIGN[GROUP[x.type]] ? designs(x).find(([v]) => v === designCur(x))?.[1] + ' · ' : '') + bgName(x.bg))}</small></span></button><label class="sw"><input type="checkbox" data-pv="${on ? 'v' : 'o'}${i}" ${on ? 'checked' : ''}><i></i></label></div>`; };
     const off = cfg.off || [];
     return { back: null, title: 'Seiten', body: grp('Seiten', `<div id="pglist">${cfg.faces.map((x, i) => row(x, i, true)).join('')}</div>`, 'Ziehen am Griff ändert die Reihenfolge, Antippen öffnet die Einstellungen der Seite. Der Schalter blendet eine Seite aus; ausgeblendete behalten ihre Einstellungen.')
       + (off.length ? grp('Ausgeblendet', off.map((x, i) => row(x, i, false)).join('')) : '')
@@ -567,7 +567,7 @@ const pages = {
     };
     const body = `
       ${photo ? '' : grp('Hintergrund', `<div class="sw-grid">${BG.filter(([v]) => !['calendar', 'date'].includes(f.type) || ['auto', 'black', 'white'].includes(v)).map(([v, n]) => `<button data-a="bg" data-v="${v}" class="${String(v) === String(f.bg) ? 'on' : ''}"><i style="background:${bgCss(v)}"></i>${n}</button>`).join('')}</div>`)}
-      ${sty ? `<div class="sec"><div class="sh">Stil</div>${carHTML('face:' + f.id, { items: GROUP[f.type] ? sty : sty.concat((LEGACY[f.type] || []).filter(([v]) => v === f.style)), cur: designCur(f), conf: v => { const g = withDesign(f, v); return { conf: { ...cfg, faces: [g] }, face: g.id }; }, pick: v => { Object.assign(cfg.faces[e.i], withDesign(cfg.faces[e.i], v)); saveCfg(); } })}</div>` : ''}
+      ${sty ? `<div class="sec"><div class="sh">Stil</div>${carHTML('face:' + f.id, { items: DESIGN[GROUP[f.type]] ? sty : sty.concat((LEGACY[f.type] || []).filter(([v]) => v === f.style)), cur: designCur(f), conf: v => { const g = withDesign(f, v); return { conf: { ...cfg, faces: [g] }, face: g.id }; }, pick: v => { Object.assign(cfg.faces[e.i], withDesign(cfg.faces[e.i], v)); saveCfg(); } })}</div>` : ''}
       ${f.type === 'grid' ? (n => `<div class="sec"><div class="sh"><span>Kacheln</span></div><div class="grp">${(f.tiles || []).map(tileRow).join('')}<button class="row btn" data-a="tadd">${svg('plus', 'plus')}<span class="l">Widget hinzufügen</span></button></div>
         <div class="sf">${n ? `${n} Kachel${n > 1 ? 'n passen' : ' passt'} nicht mehr ins Raster und ${n > 1 ? 'werden' : 'wird'} nicht angezeigt. ` : ''}Ziehen in der Vorschau verschiebt, der Punkt unten rechts an einer Kachel ändert die Größe. Nachtvarianten bleiben erhalten.</div></div>`)(pack(f.tiles || [], rows(f)).filter(x => !x).length) : ''}
       ${f.type === 'cams' ? camsHTML() : ''}
@@ -677,7 +677,7 @@ const edTabs = f => f.type === 'grid' ? [['widgets', 'Widgets'], ['color', 'Farb
 let edKey = '';
 function edChrome(f) {   // Reiter oben und Auswahlspalte rechts wie bei Apple (Stil: Liste, Farbe: Punkte)
   const tabs = edTabs(f); if (!tabs.some(([k]) => k === edTab)) edTab = tabs[0][0];
-  const photo = f.bg && typeof f.bg === 'object', sty = GROUP[f.type] ? designs(f) : (STYLES[f.type] || []).concat((LEGACY[f.type] || []).filter(([v]) => v === f.style)), key = JSON.stringify([f.id, f.type, edTab, f.style || '', photo ? 'p' : f.bg]);
+  const photo = f.bg && typeof f.bg === 'object', sty = DESIGN[GROUP[f.type]] ? designs(f) : (STYLES[f.type] || []).concat((LEGACY[f.type] || []).filter(([v]) => v === f.style)), key = JSON.stringify([f.id, f.type, edTab, f.style || '', photo ? 'p' : f.bg]);
   if (key === edKey) return; edKey = key;
   $('#edtabs').innerHTML = tabs.length > 1 ? tabs.map(([k, n]) => `<button data-a="etab" data-v="${k}" class="${k === edTab ? 'on' : ''}">${n}</button>`).join('') : '';
   $('#edside').innerHTML = edTab === 'style' ? sty.map(([v, n]) => `<button class="est ${v === designCur(f) ? 'on' : ''}" data-a="esty" data-v="${v}">${esc(n)}</button>`).join('')
@@ -808,8 +808,8 @@ const tileOf = (en, area = en.area) => ({ e: en.id, title: stripArea(en, area) |
 const FACE_BG = { grid: 'auto', music: 'black', bigclock: 150, weather: 212, energy: 'auto', calendar: 'white', date: 'auto', analog: 150, info: 'auto', cams: 'black' };
 const SETUP = [   // [Schlüssel, Name, Beschreibung, Faces]
   ['room', 'Raum-Panel', 'Kacheln aus dem Bereich, Musik, Wetter, Kalender und Uhr', ['grid', 'music', 'weather', 'calendar', 'bigclock']],
-  ['clock', 'Uhr & Wetter', 'Uhr, Wetter und Kalender – ganz ohne Entities', ['bigclock', 'weather', 'calendar']],
-  ['all', 'Alle Faces', 'Jedes Face einmal; was nicht passt, blendest du später aus', Object.keys(FACE).filter(t => !['analog', 'date', 'info'].includes(t))],
+  ['clock', 'Uhr & Wetter', 'Uhr, Wetter, Kalender und Datum – ganz ohne Entities', ['bigclock', 'weather', 'calendar', 'date']],
+  ['all', 'Alle Faces', 'Jedes Face einmal; was nicht passt, blendest du später aus', Object.keys(FACE).filter(t => !['analog', 'info'].includes(t))],
 ];
 const ROOM_DOM = ['climate', 'light', 'cover', 'lock', 'scene', 'switch', 'fan', 'media_player', 'script'];   // Reihenfolge = Wichtigkeit
 // Kacheln aus den Entities eines Bereichs: Thermostat groß, je Art höchstens 3, insgesamt 9 Zellen
@@ -970,7 +970,7 @@ document.addEventListener('click', async e => {
   if (a === 'xesp') return dl(`homeblick-esp-${sel}.json`, espExport(cur(), cfg, { en: entOf, icon: tileIcon }));
   if (a === 'tmore') { const k = ins.i + '.' + ins.j; moreKey = moreKey === k ? '' : k; return redraw(); }
   if (a === 'faddsheet') {   // ausgeblendetes Face wieder einblenden oder neues anlegen
-    const r = await overlay('sheet', `<div class="shs">${cfg.off?.length ? `<div class="grp">${cfg.off.map(f => `<button class="row btn c" data-r="show:${esc(f.id)}">${esc(faceName(f))} einblenden</button>`).join('')}</div>` : ''}<div class="grp" style="max-height:46vh;overflow-y:auto">${TYPES.filter(([t]) => !GROUP[t] || (!['analog', 'date', 'info'].includes(t) && ![...cfg.faces, ...(cfg.off || [])].some(x => GROUP[x.type] === GROUP[t]))).map(([t, n]) => `<button class="row btn c" data-r="new:${t}">Neu: ${esc(GNAME[GROUP[t]] || n)}</button>`).join('')}</div><div class="grp"><button class="row btn c" data-r="" style="font-weight:600">Abbrechen</button></div></div>`);
+    const r = await overlay('sheet', `<div class="shs">${cfg.off?.length ? `<div class="grp">${cfg.off.map(f => `<button class="row btn c" data-r="show:${esc(f.id)}">${esc(faceName(f))} einblenden</button>`).join('')}</div>` : ''}<div class="grp" style="max-height:46vh;overflow-y:auto">${TYPES.filter(([t]) => !GROUP[t] || (!['analog', 'info'].includes(t) && ![...cfg.faces, ...(cfg.off || [])].some(x => GROUP[x.type] === GROUP[t]))).map(([t, n]) => `<button class="row btn c" data-r="new:${t}">Neu: ${esc(GNAME[GROUP[t]] || n)}</button>`).join('')}</div><div class="grp"><button class="row btn c" data-r="" style="font-weight:600">Abbrechen</button></div></div>`);
     if (!r) return;
     const [k, v] = r.split(':');
     if (k === 'show') cfg.faces.push(...cfg.off.splice(cfg.off.findIndex(f => f.id === v), 1));
@@ -986,7 +986,7 @@ document.addEventListener('click', async e => {
   if (/^f(left|right|dup|hide)$/.test(a)) {
     const i = ins.i, f = cfg.faces[i];
     if (a === 'fleft' || a === 'fright') { const j = i + (a === 'fleft' ? -1 : 1); if (j < 0 || j >= cfg.faces.length) return; swap(cfg.faces, i, j); fi = j; ins = { t: 'face', i: j }; }
-    else if (a === 'fdup') { if (GROUP[f.type]) return toast('Uhr und Kalender gibt es je Display nur einmal', true); cfg.faces.splice(i + 1, 0, { ...structuredClone(f), id: faceId(cfg, f.type) }); fi = i + 1; ins = { t: 'face', i: i + 1 }; }
+    else if (a === 'fdup') { if (GROUP[f.type]) return toast('Uhr, Kalender und Datum gibt es je Display nur einmal', true); cfg.faces.splice(i + 1, 0, { ...structuredClone(f), id: faceId(cfg, f.type) }); fi = i + 1; ins = { t: 'face', i: i + 1 }; }
     else { if (cfg.faces.length < 2) return toast('Mindestens ein Face', true); cfg.off.push(...cfg.faces.splice(i, 1)); saveCfg(); return setIns(null); }
     saveCfg(); return redraw();
   }
