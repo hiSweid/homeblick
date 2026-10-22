@@ -84,7 +84,7 @@ svg.i{width:1em;height:1em;flex:none;fill:none;stroke:currentColor;stroke-width:
 .tile[data-size="2x2"] :is(.ttl,.sub){font-size:4.4cqw}
 .tile[data-size="2x1"]:not(.thermo){flex-direction:row;justify-content:flex-start;gap:4cqw;padding:0 5cqw;text-align:left}
 /* Stil-Varianten (Ideen-Galerie), im Layout der Apple-Vorlage (Website highlights/dashboard): zentriert wie die Thermostat-Zahl 68 mit Titel/Untertitel darunter, Glas, weiße An-Fläche, Ring/Kreis nur als dünne weiße Linie.
-   value = Messwert groß statt Symbol (Sensor), circle = Symbol im Kreis (Szene, Schalter, Ventilator …), ring = Thermostat mit dünnem Messring, fill = Licht als Dimmer (weiße Fläche steigt) */
+   value = Messwert groß statt Symbol (Sensor), circle = Symbol im Kreis (Szene, Schalter, Ventilator …), fill = Licht als Dimmer (weiße Fläche steigt) */
 .tile[data-sv=value] .ico{display:none}.tile[data-sv=value] .big{flex:1;display:flex;flex-wrap:wrap;align-items:baseline;align-content:center;justify-content:center;font-size:8.5cqw;font-weight:500;letter-spacing:-.02em;line-height:1;white-space:nowrap;padding-top:1.5cqw}
 .tile[data-sv=value] .big small{font-size:.5em;font-weight:500;margin-left:.15em}
 .tile[data-sv=value][data-size="2x1"] .big{font-size:12cqw}.tile[data-sv=value][data-size="2x2"] .big{font-size:20cqw}
@@ -99,12 +99,6 @@ svg.i{width:1em;height:1em;flex:none;fill:none;stroke:currentColor;stroke-width:
 .tile[data-sv=fill] .pct{position:absolute;right:2.6cqw;top:2.6cqw;font-size:2.6cqw;font-weight:600;transition:color .3s}
 .tile[data-sv=fill].hi .ttl,.tile[data-sv=fill].hi .pct{color:var(--ink)!important}.tile[data-sv=fill].hi .sub{color:var(--ink2)!important}.tile[data-sv=fill].full .ico{color:var(--ink)!important}
 .tile[data-sv=fill][data-size="2x2"] .pct{font-size:4.4cqw;right:5cqw;top:5cqw}
-.thermo .ring{display:none}
-.thermo[data-sv=ring]{--rd:38cqw;--ry:8.3cqw}.thermo[data-sv=ring][data-size="2x1"],.thermo[data-sv=ring][data-size="1x1"]{--rd:14cqw;--ry:4cqw}   /* Ring und Zahl teilen Mitte: beide füllen dasselbe Quadrat (--ry oben, --rd Kantenlänge); 2×2: Mitte bei 43 % der Höhe */
-.thermo[data-sv=ring] .ring{display:block;position:absolute;left:50%;translate:-50% 0;width:var(--rd);top:var(--ry);pointer-events:none;overflow:visible}
-.thermo[data-sv=ring][data-size] .num{position:absolute;left:0;right:0;top:var(--ry);height:var(--rd);margin:0;align-content:center;font-size:15cqw}.thermo[data-sv=ring][data-size="2x1"] .num,.thermo[data-sv=ring][data-size="1x1"] .num{font-size:6cqw}
-.ring .tr,.ring .v,.ring .mk{stroke:currentColor}.ring .tr{opacity:.25}.ring .v{transition:stroke-dasharray .6s var(--spring),opacity .3s}.ring .mk{stroke-width:7}
-.thermo[data-hm=off] .ring .v{opacity:.4}
 
 .num{display:grid;justify-items:center;font-weight:500;line-height:1;letter-spacing:-.02em}
 .num>span{grid-area:1/1}
@@ -1229,7 +1223,7 @@ function tileEl(c) {
     if (t.cs === 'digital') el.innerHTML = '<span data-bind="time"></span>';
   }
   else if (kind === 'wx') { el.className = 'tile wxtile'; el.dataset.act = 'go'; el.dataset.v = 'weather'; el.innerHTML = `<div class="loc">${esc(CFG.place)}</div><div class="tmp" data-bind="wxt"></div><i class="wi" data-wxi></i>`; }
-  else if (kind === 'thermo') { el.className = 'tile thermo'; el.innerHTML = `<svg class="ring" viewBox="0 0 100 100"><g transform="rotate(135 50 50)" fill="none" stroke-width="3" stroke-linecap="round"><circle class="tr" cx="50" cy="50" r="42" stroke-dasharray="197.9 264"/><circle class="v" cx="50" cy="50" r="42" stroke-dasharray="0 264"/><circle class="mk" cx="50" cy="50" r="42" stroke-dasharray="0.01 264" stroke-dashoffset="0"/></g></svg><div class="num" data-temp="${esc(t.e)}"></div><div class="foot">${chev('down')}${label}${chev('up')}</div>`; }
+  else if (kind === 'thermo') { el.className = 'tile thermo'; el.innerHTML = `<div class="num" data-temp="${esc(t.e)}"></div><div class="foot">${chev('down')}${label}${chev('up')}</div>`; }
   else {
     el.className = 'tile';
     el.innerHTML = (t.e?.startsWith('camera.') ? '<div class="feed"></div>' : '') + (t.sv === 'fill' ? '<div class="fill"></div><div class="pct"></div>' : '') + svg(iconOf(t), 'ico') + (t.sv === 'value' ? '<div class="big"></div>' : '') + label;
@@ -1691,12 +1685,6 @@ function render() {
     const id = el.dataset.temp, v = st(id).attributes.temperature, th = el.closest('.thermo');
     // Untertitel „Wohnzimmer • 20,5°“; 1×1 zu schmal → nur Raum
     const c = st(id).attributes.current_temperature, sub = th && $('.sub', th);
-    if (th?.dataset.sv === 'ring') {   // Ring = Ist-Temperatur im Bereich, Punkt = Soll
-      const a = st(id).attributes, lo = a.min_temp ?? 7, hi = a.max_temp ?? 35, pos = x => Math.max(0, Math.min(1, (x - lo) / (hi - lo))) * 197.9, g = $('.ring', th);
-      th.dataset.hm = st(id).state === 'cool' ? 'cool' : st(id).state === 'off' ? 'off' : 'heat';
-      if (g && c != null) $('.v', g).setAttribute('stroke-dasharray', `${pos(c)} 264`);
-      if (g && v != null) $('.mk', g).setAttribute('stroke-dashoffset', -pos(v));
-    }
     if (sub) { const txt = [th._t.sub, c != null && th.dataset.size !== '1x1' && fmt(c) + '°'].filter(Boolean).join(' • '); if (sub.textContent !== txt) sub.textContent = txt; }
     if (!held(id) && v != null && v !== T[id]) setTemp(id, v, T[id] == null ? 0 : Math.sign(v - T[id]));
     else if (!el.firstChild && T[id] != null) roll(el, fmt(T[id]));
