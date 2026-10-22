@@ -118,11 +118,11 @@ svg.i{width:1em;height:1em;flex:none;fill:none;stroke:currentColor;stroke-width:
 .tile[data-sv=cover].art-on{padding:3cqw;align-items:flex-start;justify-content:flex-end;text-align:left;color:#fff}
 .tile[data-sv=cover].art-on .ico{display:none}.tile[data-sv=cover].art-on :is(.ttl,.sub){color:#fff!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.tile[data-sv=cover].art-on .sub{opacity:.78}
 .tile[data-sv=cover]>div:last-child{min-width:0;max-width:100%}
-.tile[data-sv=cover] .cvb{display:none;position:absolute;z-index:3;top:46%;translate:0 -50%;width:8.6cqw;height:8.6cqw;border-radius:50%;place-items:center;color:#fff;background:#ffffff33;backdrop-filter:blur(1.5cqw);-webkit-backdrop-filter:blur(1.5cqw);font-size:3.4cqw;transition:scale .25s var(--spring),background-color .13s}
-.tile[data-sv=cover].art-on .cvb{display:grid}.tile[data-sv=cover] .cvb.l{left:1.8cqw}.tile[data-sv=cover] .cvb.r{right:1.8cqw}
-.tile[data-sv=cover] .cvb:active{scale:.88;background:#ffffff59;transition:none}
-.tile[data-sv=cover][data-size="2x2"] .cvb{width:12cqw;height:12cqw;font-size:5cqw;left:auto}.tile[data-sv=cover][data-size="2x2"] .cvb.l{left:3cqw}.tile[data-sv=cover][data-size="2x2"] .cvb.r{right:3cqw}
-.tile[data-sv=cover][data-size="2x1"] .cvb{top:50%}
+.tile[data-sv=cover] .cvr{display:none;position:absolute;z-index:3;left:2.4cqw;right:2.4cqw;bottom:2cqw;height:5.6cqw;border-radius:99px;background:#ffffff33;backdrop-filter:blur(1.6cqw);-webkit-backdrop-filter:blur(1.6cqw);justify-content:space-around;align-items:center}   /* Tastenzeile unten: Zurück · Play/Pause · Weiter */
+.tile[data-sv=cover].art-on .cvr{display:flex}.tile[data-sv=cover] .cvr button{display:grid;place-items:center;width:30%;height:100%;color:#fff;font-size:2.8cqw;border-radius:99px;transition:scale .25s var(--spring),background-color .13s}.tile[data-sv=cover] .cvr .i{width:1em;height:1em}
+.tile[data-sv=cover] .cvr .pp{font-size:3.2cqw}.tile[data-sv=cover] .cvr button:active{scale:.86;background:#ffffff33;transition:none}
+.tile[data-sv=cover].art-on{padding-bottom:9.4cqw}.tile[data-sv=cover] .pct{display:none!important}
+.tile[data-sv=cover][data-size="2x2"] .cvr{left:4cqw;right:4cqw;bottom:4cqw;height:10cqw}.tile[data-sv=cover][data-size="2x2"] .cvr button{font-size:5cqw}.tile[data-sv=cover][data-size="2x2"] .cvr .pp{font-size:5.8cqw}.tile[data-sv=cover][data-size="2x2"].art-on{padding-bottom:16cqw}
 .tile[data-sv=cover][data-size="2x1"].art-on:not(.thermo){flex-direction:column;align-items:flex-start;justify-content:flex-end;gap:0;padding:3cqw}
 /* Schloss/Tor: großer Pastell-Knopf als einzige Bedienfläche (Galerie „Großer Riegel-Knopf“); Zustand = Pastellfarbe: Mint zu/verriegelt, Pfirsich offen, Gelb in Bewegung, Rosé blockiert */
 .tile[data-sv=knob]{--kb:#ffffff33;--kf:#fffc;padding:3.4cqw 1cqw 3cqw}.tile[data-sv=knob]::before{display:none}
@@ -1322,7 +1322,7 @@ function tileEl(c) {
   else if (kind === 'thermo') { el.className = 'tile thermo'; el.innerHTML = `<div class="num" data-temp="${esc(t.e)}"></div><div class="foot">${chev('down')}${label}${chev('up')}</div>`; }
   else {
     el.className = 'tile';
-    el.innerHTML = (t.e?.startsWith('camera.') ? '<div class="feed"></div>' + (t.sv === 'live' ? '<div class="lvp"></div><div class="mch">Bewegung</div>' : '') : '') + (t.sv === 'fill' || t.sv === 'blind' ? '<div class="fill"></div><div class="pct"></div>' : t.sv === 'cover' ? `<div class="art"></div><div class="pill">${esc(t.title)}</div><div class="pct"></div><button class="cvb l" data-act="tmp" aria-label="Zurück">${svg('prev')}</button><button class="cvb r" data-act="tmn" aria-label="Weiter">${svg('next')}</button>` : '') + (t.sv === 'knob' ? `<div class="kn">${svg(iconOf(t), 'ico')}</div>` : svg(iconOf(t), 'ico')) + (t.sv === 'value' ? '<div class="big"></div>' : '') + label;
+    el.innerHTML = (t.e?.startsWith('camera.') ? '<div class="feed"></div>' + (t.sv === 'live' ? '<div class="lvp"></div><div class="mch">Bewegung</div>' : '') : '') + (t.sv === 'fill' || t.sv === 'blind' ? '<div class="fill"></div><div class="pct"></div>' : t.sv === 'cover' ? `<div class="art"></div><div class="pill">${esc(t.title)}</div><div class="pct"></div><div class="cvr"><button data-act="tmp" aria-label="Zurück">${svg('prev')}</button><button class="pp" data-act="tmt" aria-label="Abspielen/Pause"></button><button data-act="tmn" aria-label="Weiter">${svg('next')}</button></div>` : '') + (t.sv === 'knob' ? `<div class="kn">${svg(iconOf(t), 'ico')}</div>` : svg(iconOf(t), 'ico')) + (t.sv === 'value' ? '<div class="big"></div>' : '') + label;
   }   // Livebild: camTile in render()
   return el;
 }
@@ -1750,7 +1750,7 @@ function coverTile(t, s) {   // Medien-Kachel mit Cover-Vollbild
   const art = $('.art', t); if (t._pic !== pic) { t._pic = pic; art.style.backgroundImage = pic ? `url("${pic}")` : ''; }
   const set = (sel, v) => { const n = $(sel, t); if (n && n.innerHTML !== v) n.innerHTML = v; };
   set('.ttl', esc(act ? a.media_title || t._t.title : t._t.title)); set('.sub', esc(act ? a.media_artist || a.media_album_name || '' : t._sub || ''));
-  set('.pct', act ? svg(s.state === 'paused' ? 'play' : 'pause') : '');
+  set('.cvr .pp', act ? svg(s.state === 'paused' ? 'play' : 'pause') : '');
 }
 function statusSub(t, d, s) {
   if (t._ls === s.state) return;
@@ -2570,7 +2570,7 @@ document.addEventListener('pointerdown', e => {
   if ($('#climate .hm.open') && !e.target.closest('.hm')) { modeMenu(false); suppress = true; return; }   // Modus-Menü: Tipp daneben schließt nur (y-MO 156 s)
   const ch = e.target.closest('[data-act=up],[data-act=down]');
   if (ch) { bump(ch); suppress = true; return; }
-  if (e.target.closest('.cvb')) return;   // Zurück/Weiter der Cover-Kachel: nur Klick, kein Langdruck/Tippen der Kachel   // Wert ändert sich bei Touch-down (Apple, STEUERUNG.md P2-4)
+  if (e.target.closest('.cvr')) return;   // Tastenzeile der Cover-Kachel: nur Klick, kein Langdruck/Tippen der Kachel   // Wert ändert sich bei Touch-down (Apple, STEUERUNG.md P2-4)
   if (e.target.closest('#climate .x, #dimmer .x, #shade .x, #edet .x')) { suppress = true; setTimeout(close, 50); return; }   // ✕: Scheibe, Schließen 1-2 Frames später, Finger noch drauf (Engadget 152 s, AppleInsider 266,6 s; STEUERUNG P2-4)
   if (cur) return;
   if (!e.target.closest('.face') || e.target.closest('.pop')) return;
@@ -2622,7 +2622,7 @@ document.addEventListener('click', e => {
   if (pop && !e.target.closest('.pop')) return pop.classList.remove('open');   // Tipp daneben schließt nur
   if (act === 'close') close();
   else if (act === 'cov') { hold[cur.e] = Date.now() + 1500; setTimeout(schedule, 1600); call('cover', b.dataset.v, { entity_id: cur.e }); }
-  else if (act === 'tmp' || act === 'tmn') call('media_player', act === 'tmp' ? 'media_previous_track' : 'media_next_track', { entity_id: b.closest('.tile').dataset.e });
+  else if (/^tm[ptn]$/.test(act)) call('media_player', { tmp: 'media_previous_track', tmn: 'media_next_track', tmt: 'media_play_pause' }[act], { entity_id: b.closest('.tile').dataset.e });
   else if (act === 'hvac') modeMenu(true);
   else if (act === 'hvacset') { call('climate', 'set_hvac_mode', { entity_id: cur.e, hvac_mode: b.dataset.v }); modeMenu(false); }
   else if (act === 'lib') { pop?.classList.remove('open'); openLib($('.mb', b.closest('.face'))); }
