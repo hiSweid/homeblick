@@ -302,10 +302,10 @@ const FACE = {
 };
 const TYPES = Object.entries(FACE).map(([k, v]) => [k, v[0]]);
 const BG = [['auto', 'Tageszeit'], ['black', 'Schwarz'], ['white', 'Weiß'], ['metal', 'Metall'], ['prism', 'Prisma'], ['teal', 'Teal'], [30, 'Orange'], [5, 'Rot'], [340, 'Rosa'], [285, 'Violett'], [307, 'Pink'], [228, 'Blau'], [205, 'Türkis'], [212, 'Himmel'], [150, 'Grün']];
-const STYLES = { weather: [['', 'Kompakt'], ['cond', 'Bedingungen']], bigclock: [['stack', 'Gestapelt'], ['line', 'Lavalampe']], analog: [['big', 'Große Ziffern'], ['relief', 'Relief']], info: [['events', 'Termine'], ['music', 'Musik']] };
+const STYLES = { weather: [['', 'Kompakt'], ['cond', 'Bedingungen']], bigclock: [['stack', 'Gestapelt'], ['line', 'Lavalampe'], ['flow', 'Flow']], analog: [['big', 'Große Ziffern'], ['relief', 'Relief']], info: [['events', 'Termine'], ['music', 'Musik']] };
 const LEGACY = { bigclock: [['depth', 'Tiefe']], analog: [['numbers', 'Zahlen'], ['ticks', 'Striche'], ['minimal', 'Minimal']] };   // ohne Vorlage: nur sichtbar, wenn gespeichert
 // Uhr und Kalender gibt es je Display nur einmal; Design (digital/analog bzw. Monat/Datum) und Farbe stellt man am Face ein. Wert = "Typ:Stil"
-const DESIGN = { clock: [['bigclock:stack', 'Digital · Gestapelt'], ['bigclock:line', 'Digital · Lavalampe'], ['analog:big', 'Analog · Große Ziffern'], ['analog:relief', 'Analog · Relief'], ['info:events', 'Info · Termine'], ['info:music', 'Info · Musik']]};
+const DESIGN = { clock: [['bigclock:stack', 'Digital · Gestapelt'], ['bigclock:line', 'Digital · Lavalampe'], ['bigclock:flow', 'Digital · Flow'], ['analog:big', 'Analog · Große Ziffern'], ['analog:relief', 'Analog · Relief'], ['info:events', 'Info · Termine'], ['info:music', 'Info · Musik']]};
 const GNAME = { clock: 'Uhr' };
 const designs = f => DESIGN[GROUP[f.type]] ? DESIGN[GROUP[f.type]].concat((LEGACY[f.type] || []).filter(([v]) => v === f.style).map(([v, n]) => [`${f.type}:${v}`, `${{ bigclock: 'Digital', analog: 'Analog', info: 'Info' }[f.type]} · ${n}`])) : STYLES[f.type];
 const designCur = f => DESIGN[GROUP[f.type]] ? `${f.type}:${f.style || STYLES[f.type]?.[0][0] || ''}` : f.style || STYLES[f.type]?.[0][0];

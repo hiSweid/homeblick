@@ -799,6 +799,12 @@ input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:tr
 .pav{flex:none;width:10.4cqw;height:10.4cqw;border-radius:50%;overflow:hidden;display:grid;place-items:center;background:#ffffff40;font-size:5cqw;font-weight:600}.pav img{width:100%;height:100%;object-fit:cover}
 .pt{flex:1;min-width:0}.pt b{display:block;font-size:4.4cqw;font-weight:600;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pt span{display:block;font-size:3.5cqw;opacity:.75;margin-top:.6cqw}
 .pb{font-size:3.5cqw;font-weight:500;opacity:.8}.pnone{position:absolute;left:0;right:0;top:40cqw;text-align:center;opacity:.6;font-size:4cqw}
+/* Flow: eigener Farbton (wie Lavalampe), Flecken driften langsam; Ziffern = breite, schwere Glasformen */
+.f-bigclock.flow{background:hsl(285 72% 82%)}
+.flow .ft{font-size:49px;font-weight:900;font-variation-settings:'wght' 1000,'wdth' 151,'opsz' 144}.flow .dg{fill:#ffffff2e}
+.flow .fb{animation:flowd 17s ease-in-out infinite alternate}.flow .fb1{animation-duration:23s;animation-direction:alternate-reverse}.flow .fb2{animation-duration:19s}.flow .fb3{animation-duration:29s;animation-direction:alternate-reverse}
+@keyframes flowd{0%{transform:translate(-9px,5px)}50%{transform:translate(8px,-7px)}100%{transform:translate(-4px,10px)}}
+@media (prefers-reduced-motion:reduce){.flow .fb{animation:none}}
 </style>
 </head>
 <body>
@@ -1419,6 +1425,21 @@ function glassSlots(hm) {
     setTimeout(() => old.remove(), 160);
   }
 }
+// Flow (Vorlage faces_enhanced, unten links): weicher Verlauf aus Rosa, Blau und Violett, die Zeit als Glasformen. Linse = dieselben Farbflecken noch einmal, in die Ziffern geclippt und leicht vergrößert/versetzt
+// (keine Verzerrung per Filter: läuft ohne Live-Blur auch auf schwachen Tablets). Ziffern wechseln ohne Roll.
+const FSLOT = [[0, 27, 46], [1, 70, 46], [2, 27, 90], [3, 70, 90]];   // Mitte x, Grundlinie y (% Face)
+function flowHTML() {
+  const id = 'fw' + ++gN, t = c => FSLOT.map(([i, x, y]) => `<text class="ft${c}" data-fl="${i}" x="${x}" y="${y}" text-anchor="middle"></text>`).join('');
+  const B = [[330, 90, 72, 18, 80, 46], [232, 88, 68, 84, 24, 50], [196, 92, 74, 62, 94, 38], [290, 82, 76, 12, 20, 36]];
+  const rg = B.map(([h, s, l], i) => `<radialGradient id="${id}g${i}"><stop offset="0" stop-color="hsl(${h} ${s}% ${l}%)"/><stop offset="1" stop-color="hsl(${h} ${s}% ${l}%)" stop-opacity="0"/></radialGradient>`).join('');
+  const blobs = `<g id="${id}b"><rect width="100" height="100" fill="hsl(285 72% 82%)"/>${B.map(([, , , x, y, r], i) => `<ellipse class="fb fb${i}" cx="${x}" cy="${y}" rx="${r * 1.15}" ry="${r}" fill="url(#${id}g${i})"/>`).join('')}</g>`;
+  return `<svg class="dsvg flow" style="animation:none" viewBox="0 0 100 100" preserveAspectRatio="none"><defs>${rg}${blobs}<clipPath id="${id}c">${t('')}</clipPath>${glassEdge(id + 'e', .5, 1)}</defs>`
+    + `<use href="#${id}b"/><g clip-path="url(#${id}c)"><use href="#${id}b" transform="translate(-11 -9) scale(1.2)"/></g><g filter="url(#${id}e)">${t(' dg')}</g></svg>`;
+}
+function flowSlots(hm) {
+  const ch = [...hm.slice(0, 2), ...hm.slice(3, 5)]; if (ch[0] === '0') ch[0] = '';
+  for (const x of $$('[data-fl]')) if (x.textContent !== ch[x.dataset.fl]) x.textContent = ch[x.dataset.fl];
+}
 function depthHTML(f) {
   const b = bgOf(f), src = b?.photo ? b.blur : typeof b === 'number' ? svgData((lightMode() ? wpL : wp)(b, 5)) : MOTIF(b) ? svgData(wpPrism(MOTIF(b).h, 5, MOTIF(b).fan)) : '';
   // Vorlage faces_endframe (per Pixel gemessen): Ziffern 6–94 % hoch, „0“ 16 % breit, Strich ≈ 5,6 % (monoline), Paare um 21/76 %;
@@ -1459,6 +1480,7 @@ const FACE = {
 <div class="pop outs"></div><div class="pop menu"></div>`,
   bigclock: (el, f) => {
     if (f.style === 'depth') return el.innerHTML = depthHTML(f);
+    if (f.style === 'flow') { el.classList.add('flow'); el.style.backgroundColor = ''; el.classList.remove('light', 'mono'); return el.innerHTML = flowHTML(); }
     const line = f.style === 'line';
     el.classList.add(line ? 'lava' : 'stack');
     if (line) { el.style.backgroundColor = ''; el.classList.remove('light', 'mono'); }   // Lavalampe hat immer ihre eigene Farbwelt
@@ -1585,7 +1607,7 @@ function tick() {
   hands = hands.filter(([, a]) => a.effect.target.isConnected || a.cancel());
   for (const [per, a] of hands) a.currentTime = (s % per) * 1000;
   const hm = d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
-  bind('time', hm); glassSlots(hm); [...hm.slice(0, 2)].forEach((c, i) => bind('dh' + i, !i && c === '0' ? '\u2007' : c)); [...hm.slice(3, 5)].forEach((c, i) => bind('dm' + i, c));
+  bind('time', hm); glassSlots(hm); flowSlots(hm); [...hm.slice(0, 2)].forEach((c, i) => bind('dh' + i, !i && c === '0' ? '\u2007' : c)); [...hm.slice(3, 5)].forEach((c, i) => bind('dm' + i, c));
   bind('wd', d.toLocaleDateString('de-DE', { weekday: 'short' }));
   bind('mo', d.toLocaleDateString('de-DE', { month: 'short' }));
   bind('day', d.getDate());
