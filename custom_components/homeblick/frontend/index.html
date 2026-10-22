@@ -552,10 +552,12 @@ input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:tr
 #dimmer .grip,#shade .grip{position:absolute;left:50%;top:0;width:8.8cqw;height:1.2cqw;margin-left:-4.4cqw;border-radius:.6cqw;background:#000000a0;transform:translateY(calc((1 - var(--f,0)) * 100cqw + 1.9cqw))}
 /* Rollo-Ansicht (#shade): wie der Dimmer, nur von oben nach unten: Füllung = Schließgrad (--f 0–1), Zahl = offen in %, unten Auf / Stopp / Zu */
 #shade{background:#eef0f6;color:#111;touch-action:none}
-#shade .fill{background:#ff9500;transform:translateY(calc((var(--f,0) - 1) * 100%))}
+#shade .fill{background:repeating-linear-gradient(#ffb847 0 .9cqw,#ff9d14 .9cqw 5.3cqw,#d97d00 5.3cqw 6.2cqw);transform:translateY(calc((var(--f,0) - 1) * 100%));filter:drop-shadow(0 1.4cqw 2.4cqw #0000004d)}   /* Lamellenpanzer: je Lamelle Lichtkante, Fläche, Schattenfuge; hängt mit Abschlussschiene (::after) von oben herab */
+#shade .fill::after{content:"";position:absolute;inset:auto 0 0;height:3.6cqw;background:linear-gradient(#c47400,#8c5000)}
 #shade .fill .in{transform:translateY(calc((1 - var(--f,0)) * 100%))}
+#shade :is(.fill,.fill .in,.grip){transition:transform .55s var(--spring)}#shade.drag :is(.fill,.fill .in,.grip){transition:none}   /* Feder beim Nachlaufen (Tasten, HA), 1:1 unter dem Finger */
 #shade .ico{width:12.9cqw;height:12.9cqw;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
-#shade .grip{top:0;transform:translateY(calc(var(--f,0) * 100cqw - 3.1cqw))}
+#shade .grip{top:0;background:#ffffffb8;transform:translateY(calc(var(--f,0) * 100cqw - 2.4cqw))}
 #shade .sb{position:absolute;z-index:2;left:0;right:0;bottom:7cqw;display:flex;justify-content:center;gap:5cqw}
 #shade .sb button{width:14cqw;height:14cqw;border-radius:50%;background:#00000014;color:#1c1c1e;display:grid;place-items:center;transition:scale .25s var(--spring),background .13s}
 #shade .sb button:active{scale:.92;background:#0000002a;transition:none}#shade .sb svg{width:6.4cqw;height:6.4cqw;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}#shade .sb [data-v=stop_cover] svg{fill:currentColor}
@@ -2733,7 +2735,7 @@ for (const el of $$('.kzsl', kz)) {
 // Dimmer: ganzer Screen ist der Slider, relativ ziehen wie im Kontrollzentrum
 // Rollo-Ansicht: relativ ziehen (nach unten = schließen), HA höchstens alle 200 ms
 const shd = $('#shade');
-shd.addEventListener('pointerdown', e => { if (e.target.closest('[data-act]') || st(cur.e).attributes.current_position == null) return; sy = e.clientY; sp = 100 - S.shade; shd.setPointerCapture(e.pointerId); });
+shd.addEventListener('pointerdown', e => { if (e.target.closest('[data-act]') || st(cur.e).attributes.current_position == null) return; sy = e.clientY; sp = 100 - S.shade; shd.classList.add('drag'); shd.setPointerCapture(e.pointerId); });
 shd.addEventListener('pointermove', e => {
   if (sy === null) return;
   const c = Math.round(Math.min(100, Math.max(0, sp + (e.clientY - sy) / shd.clientHeight * 100)));
@@ -2741,7 +2743,7 @@ shd.addEventListener('pointermove', e => {
   setShade(c); hold[cur.e] = Date.now() + 1500; setTimeout(schedule, 1600);
   shT ||= setTimeout(() => { shT = 0; call('cover', 'set_cover_position', { entity_id: cur.e, position: S.shade }); }, 200);
 });
-for (const n of ['pointerup', 'pointercancel']) shd.addEventListener(n, () => sy = null);
+for (const n of ['pointerup', 'pointercancel']) shd.addEventListener(n, () => { sy = null; shd.classList.remove('drag'); });
 const dim = $('#dimmer');
 dim.addEventListener('pointerdown', e => { if (e.target.closest('[data-act]')) return; y0 = e.clientY; p0 = S.light; dim.setPointerCapture(e.pointerId); });
 dim.addEventListener('pointermove', e => {
