@@ -1157,8 +1157,9 @@ const wp = (h, blur = 0) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 
 </g></svg>`;
 // Facettierte Wallpaper der Website (Vorlage installation = Violett „Prisma“, product-viewer wall_mount = Teal): harte Kanten, schräge Balken mit heller Fläche und dunkler Seite, darunter Kristallflächen; Teal zusätzlich mit Fächerblatt oben links.
 // Eigene Annäherung an das Website-Bild (Muster nicht exakt), Farbtöne per Pixelprobe: Violett ≈ #5a5acf (H 240), Teal ≈ #2a7f72 (H 172)
-const HUEOF = { metal: 215, prism: 245, teal: 172 };
-const hueOf = b => typeof b === 'number' ? b : HUEOF[b] ?? null;
+// bg 'prism:H' (Prisma) / 'fan:H' (Fächerblatt) = Motiv in Farbton H; 'prism' und 'teal' sind die ersten beiden Einträge (Violett 245, Teal 172)
+const MOTIF = b => { const m = typeof b === 'string' && b.match(/^(prism|fan):(\d+)$/); return m ? { h: +m[2], fan: m[1] === 'fan' } : b === 'prism' ? { h: 245, fan: false } : b === 'teal' ? { h: 172, fan: true } : null; };
+const hueOf = b => typeof b === 'number' ? b : b === 'metal' ? 215 : MOTIF(b)?.h ?? null;
 const wpPrism = (h, blur = 0, fan = false) => {
   const c = (s, l, a = 1) => `hsl(${h} ${s}% ${l}% / ${a})`, poly = (pts, f) => `<polygon points="${pts}" fill="${f}"/>`;
   const beams = [0, 1, 2].map(k => { const o = k * 17; return poly(`${8 + o},-10 ${22 + o},-10 ${80 + o},48 ${66 + o},48`, c(72, 62, .4)) + poly(`${22 + o},-10 ${27 + o},-10 ${85 + o},48 ${80 + o},48`, c(55, 20, .5)); }).join('');
@@ -1199,7 +1200,7 @@ const wpL = (h, blur = 0) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0
 <path d="M40-10C30 40 60 70 110 80" stroke="hsl(${h + 8},100%,97%)" stroke-opacity=".5" stroke-width="10" fill="none"/>
 </g></svg>`;
 const lightMode = () => CONF.mode === 'light';
-const wall = h => wallCache[h + (lightMode() ? 'L' : '')] ||= h === 'prism' || h === 'teal' ? [svgUrl(wpPrism(HUEOF[h], 0, h === 'teal')), svgUrl(wpPrism(HUEOF[h], 1, h === 'teal'))] : h === 'metal' ? [svgUrl(wpMetal()), svgUrl(wpMetal(1))] : lightMode() ? [svgUrl(wpL(h)), svgUrl(wpL(h, 1))] : [svgUrl(wp(h)), svgUrl(wp(h, 1))];
+const wall = h => wallCache[h + (lightMode() ? 'L' : '')] ||= MOTIF(h) ? [svgUrl(wpPrism(MOTIF(h).h, 0, MOTIF(h).fan)), svgUrl(wpPrism(MOTIF(h).h, 1, MOTIF(h).fan))] : h === 'metal' ? [svgUrl(wpMetal()), svgUrl(wpMetal(1))] : lightMode() ? [svgUrl(wpL(h)), svgUrl(wpL(h, 1))] : [svgUrl(wp(h)), svgUrl(wp(h, 1))];
 // Dynamische Faces:
 // Nacht = Sonne unter dem Horizont (sun.sun), ohne sun.sun nach Uhrzeit; ?tod=night|day erzwingt
 const TOD = new URLSearchParams(location.search).get('tod');
@@ -1384,7 +1385,7 @@ function glassSlots(hm) {
   }
 }
 function depthHTML(f) {
-  const b = bgOf(f), src = b?.photo ? b.blur : typeof b === 'number' ? svgData((lightMode() ? wpL : wp)(b, 5)) : b === 'prism' || b === 'teal' ? svgData(wpPrism(HUEOF[b], 5, b === 'teal')) : '';
+  const b = bgOf(f), src = b?.photo ? b.blur : typeof b === 'number' ? svgData((lightMode() ? wpL : wp)(b, 5)) : MOTIF(b) ? svgData(wpPrism(MOTIF(b).h, 5, MOTIF(b).fan)) : '';
   // Vorlage faces_endframe (per Pixel gemessen): Ziffern 6–94 % hoch, „0“ 16 % breit, Strich ≈ 5,6 % (monoline), Paare um 21/76 %;
   // Roboto Flex schmal + dünn (XOPQ/YOPQ) und per scale(K KY) auf diese Maße gezogen, proportionale Ziffern wie die Vorlage
   // Reveal: jede Ziffer eigene Ebene (die anderen visibility:hidden, Platz bleibt), links → rechts versetzt mit Feder

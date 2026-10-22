@@ -310,8 +310,8 @@ const designs = f => DESIGN[GROUP[f.type]] ? DESIGN[GROUP[f.type]].concat((LEGAC
 const designCur = f => DESIGN[GROUP[f.type]] ? `${f.type}:${f.style || STYLES[f.type]?.[0][0] || ''}` : f.style || STYLES[f.type]?.[0][0];
 const withDesign = (f, v) => { if (!DESIGN[GROUP[f.type]]) return { ...f, style: v }; const [type, style] = v.split(':'); return { ...f, type, style: style || undefined, id: type === f.type ? f.id : faceId(cfg, type) }; };
 const WAKE = [['off', 'Aus'], ['hey_jarvis', 'Hey Jarvis'], ['alexa', 'Alexa']];
-const bgCss = bg => bg === 'auto' ? 'linear-gradient(135deg,#ffb36b,#5a6bb5)' : bg === 'black' ? '#1c1c1e' : bg === 'white' ? '#f2f2f7' : bg === 'metal' ? 'linear-gradient(135deg,#b5c4d6,#8795ad)' : bg === 'prism' ? 'linear-gradient(135deg,#8483f3,#3c3cae)' : bg === 'teal' ? 'linear-gradient(135deg,#4fae9f,#1d5f56)' : typeof bg === 'number' ? `linear-gradient(135deg,hsl(${bg} 75% 66%),hsl(${bg + 25} 70% 52%))` : '#8e8e93';
-const bgName = bg => BG.find(b => String(b[0]) === String(bg))?.[1] || 'Foto';
+const bgCss = bg => bg === 'auto' ? 'linear-gradient(135deg,#ffb36b,#5a6bb5)' : bg === 'black' ? '#1c1c1e' : bg === 'white' ? '#f2f2f7' : bg === 'metal' ? 'linear-gradient(135deg,#b5c4d6,#8795ad)' : /^(prism|fan):\d+$/.test(bg) ? `linear-gradient(135deg,hsl(${bg.split(':')[1]} 70% 62%),hsl(${bg.split(':')[1]} 60% 28%))` : bg === 'prism' ? 'linear-gradient(135deg,#8483f3,#3c3cae)' : bg === 'teal' ? 'linear-gradient(135deg,#4fae9f,#1d5f56)' : typeof bg === 'number' ? `linear-gradient(135deg,hsl(${bg} 75% 66%),hsl(${bg + 25} 70% 52%))` : '#8e8e93';
+const bgName = bg => BG.find(b => String(b[0]) === String(bg))?.[1] || THEME_SET.find(t => String(t[2]) === String(bg))?.[1] || 'Foto';
 const bgVal = v => /^\d+$/.test(v) ? +v : v;
 
 const ico = (id, c = '#007aff') => `<span class="ico" style="background:${c}"><svg><use href="#i-${id}"/></svg></span>`;
@@ -465,28 +465,37 @@ async function camAction(a, i) {
 const car = { def: null, key: '', ready: [], sent: [], up: false };
 let carNext = null;
 const carHTML = (key, def) => { carNext = { key, ...def }; return ''; };
-const carWins = () => [...document.querySelectorAll('#carslot iframe')];
+const carCards = () => [...document.querySelectorAll('#carslot .scc')];
+const carWin = k => carCards()[k]?.querySelector('iframe')?.contentWindow;
+// Die ersten drei Karten behalten ihren Frame (vorgeladen); weitere Karten bekommen ihn nur, solange sie höchstens eine Karte neben der gewählten liegen
+function carLive(i) {
+  carCards().forEach((x, k) => {
+    const f = x.querySelector('iframe'), want = k < 3 || Math.abs(k - i) <= 1;
+    if (want && !f) x.insertAdjacentHTML('beforeend', '<iframe src="index.html?preview" tabindex="-1"></iframe>');
+    else if (!want && f) { f.remove(); car.ready[k] = false; car.sent[k] = ''; }
+  });
+}
 function carInit() {
   if (car.up) return; car.up = true;
   const n = $('#carslot');
   n.innerHTML = `<div class="scs">${'<div class="scc off"><iframe src="index.html?preview" tabindex="-1"></iframe></div>'.repeat(3)}</div><div class="scn"></div><div class="gdots"></div><button class="scb l" aria-label="Zurück"><svg><use href="#i-chev"/></svg></button><button class="scb r" aria-label="Weiter"><svg><use href="#i-chev"/></svg></button>`;
-  const sc = n.querySelector('.scs'), cards = [...sc.children];
+  const sc = n.querySelector('.scs'), cards = () => [...sc.children];
   const mid = x => x.offsetLeft + x.offsetWidth / 2 - sc.scrollLeft - sc.clientWidth / 2;
-  const near = () => cards.filter(x => !x.classList.contains('off')).reduce((b, x) => Math.abs(mid(x)) < Math.abs(mid(b)) ? x : b, cards[0]);
-  car.mark = i => { car.i = i; n.querySelector('.scb.l').disabled = i <= 0; n.querySelector('.scb.r').disabled = !car.def || i >= car.def.items.length - 1; cards.forEach((x, k) => x.classList.toggle('on', k === i)); n.querySelectorAll('.gdots i').forEach((x, k) => x.classList.toggle('on', k === i)); if (car.def) n.querySelector('.scn').textContent = car.def.items[i]?.[1] || ''; };
-  car.go = (i, smooth) => sc.scrollTo({ left: cards[i].offsetLeft + cards[i].offsetWidth / 2 - sc.clientWidth / 2, behavior: smooth ? 'smooth' : 'instant' });
+  const near = () => cards().filter(x => !x.classList.contains('off')).reduce((b, x) => Math.abs(mid(x)) < Math.abs(mid(b)) ? x : b, sc.children[0]);
+  car.mark = i => { car.i = i; n.querySelector('.scb.l').disabled = i <= 0; n.querySelector('.scb.r').disabled = !car.def || i >= car.def.items.length - 1; cards().forEach((x, k) => x.classList.toggle('on', k === i)); carLive(i); n.querySelectorAll('.gdots i').forEach((x, k) => x.classList.toggle('on', k === i)); if (car.def) n.querySelector('.scn').textContent = car.def.items[i]?.[1] || ''; };
+  car.go = (i, smooth) => sc.scrollTo({ left: sc.children[i].offsetLeft + sc.children[i].offsetWidth / 2 - sc.clientWidth / 2, behavior: smooth ? 'smooth' : 'instant' });
   let tm;
   sc.addEventListener('scroll', () => {
-    const i = cards.indexOf(near()); car.mark(i); clearTimeout(tm);
+    const i = cards().indexOf(near()); car.mark(i); clearTimeout(tm);
     tm = setTimeout(() => { const d = car.def, v = d?.items[i]?.[0]; if (d && v !== undefined && String(v) !== String(d.cur)) { d.cur = v; d.pick(v); } }, 150);
   }, { passive: true });
-  cards.forEach((x, i) => x.addEventListener('click', () => car.go(i, true)));
+  sc.addEventListener('click', e => { const x = e.target.closest('.scc'); if (x) car.go(cards().indexOf(x), true); });
   swipable(sc);
   n.querySelector('.scb.l').onclick = () => car.go(Math.max(0, car.i - 1), true);
   n.querySelector('.scb.r').onclick = () => car.go(Math.min(car.def.items.length - 1, car.i + 1), true);
 }
 function carSend(k) {
-  const d = car.def, win = carWins()[k]?.contentWindow;
+  const d = car.def, win = carWin(k);
   if (!d || !car.ready[k] || !d.items[k]) return;
   const { conf, face } = d.conf(d.items[k][0]), j = JSON.stringify(conf);
   if (car.sent[k] === j) return;
@@ -498,8 +507,9 @@ function carShow(d) {
   car.def = d;
   if (!d) return n.hidden = true;
   n.hidden = false;
-  const cards = [...n.querySelectorAll('.scc')];
-  cards.forEach((x, k) => x.classList.toggle('off', k >= d.items.length));
+  const sc = n.querySelector('.scs');
+  while (sc.children.length < d.items.length) sc.insertAdjacentHTML('beforeend', '<div class="scc off"></div>');
+  carCards().forEach((x, k) => x.classList.toggle('off', k >= d.items.length));
   n.querySelector('.gdots').innerHTML = d.items.map(() => '<i></i>').join('');
   const i = Math.max(0, d.items.findIndex(x => String(x[0]) === String(d.cur)));
   car.mark(i);
@@ -537,7 +547,7 @@ const pages = {
         + grp('Leistung', toggle('Leistungsmodus', 'perf', s.perf), 'Schaltet Animationen und Übergänge auf diesem Display ab – für schwache Tablets.')],
       status: ['Status & Bildschirmfoto', 'info', '#34c759', () => `<div id="liveGrp">${liveHTML(d)}</div>`
         + grp('Bildschirmfoto', `<button class="row btn c" data-a="shot" ${off}>Bildschirmfoto aufnehmen</button>${shots[d.id] ? `<img class="shot" src="${shots[d.id]}" alt="">` : ''}`, 'Bilder von fremden Servern, Kamera-Video und WebGL fehlen im Foto.')],
-      darstellung: ['Darstellung', 'sun', '#ff9500', () => grp('Theme', `<div class="sw-grid">${THEMES.map(([v, n, bg]) => `<button data-a="theme" data-v="${v}" class="${(cfg?.theme || 'liquid') === v ? 'on' : ''}"><i style="background:${bg}"></i>${n}</button>`).join('')}</div>`, 'Liquid: durchsichtiges Glas. Flat: flache Kacheln (Apple-Dashboard).') + grp('Modus', `<div class="sw-grid">${MODES.map(([v, n, bg]) => `<button data-a="mode" data-v="${v}" class="${(cfg?.mode || 'dark') === v ? 'on' : ''}"><i style="background:${bg}"></i>${n}</button>`).join('')}</div>`, 'Gilt für alle Kacheln des Displays; einzelne Kacheln können im Kachel-Sheet einen anderen Look haben.')],
+      darstellung: ['Darstellung', 'sun', '#ff9500', () => `<div class="sec">${carHTML('themes', { items: THEME_SET.map(t => [t[0], t[1]]), cur: themeCur(), conf: themeConf, pick: v => { themeApply(v); redraw(); } })}<div class="sf">Wischen wählt ein Theme für das ganze Display: Look (Liquid/Flat), Hell/Dunkel und der Hintergrund aller Farb-Faces.</div></div>` + grp('Theme', `<div class="sw-grid">${THEMES.map(([v, n, bg]) => `<button data-a="theme" data-v="${v}" class="${(cfg?.theme || 'liquid') === v ? 'on' : ''}"><i style="background:${bg}"></i>${n}</button>`).join('')}</div>`, 'Liquid: durchsichtiges Glas. Flat: flache Kacheln (Apple-Dashboard).') + grp('Modus', `<div class="sw-grid">${MODES.map(([v, n, bg]) => `<button data-a="mode" data-v="${v}" class="${(cfg?.mode || 'dark') === v ? 'on' : ''}"><i style="background:${bg}"></i>${n}</button>`).join('')}</div>`, 'Gilt für alle Kacheln des Displays; einzelne Kacheln können im Kachel-Sheet einen anderen Look haben.')],
       verwalten: ['Vorlagen & Sicherung', 'grid', '#8e8e93', () => grp('Verwalten', pick('Konfiguration übernehmen von', 'copy', [['', 'Display wählen …'], ...displays.filter(x => x.id !== sel && !x.new).map(x => [x.id, x.name])], '', 'data-copy') + `<button class="row btn c" data-a="apply">Auf andere Displays anwenden …</button>`, 'Vorlage: Faces, Kacheln und Einstellungen dieses Displays für andere übernehmen, auf Wunsch mit den Entities des jeweiligen Bereichs.')
         + grp('Sichern', `<button class="row btn c" data-a="xjson">Konfiguration exportieren (JSON)</button><button class="row btn c" data-a="ximport">Konfiguration importieren …</button><button class="row btn c" data-a="xesp">Für ESP-Display exportieren</button>`, 'Die ESP-Datei enthält nur, was ein LVGL-Panel (480×480) darstellen kann: Smart-Home-Kacheln mit einfacher Bedienung, Musik, Uhr digital und Wetter, mit fertiger Rasterposition. Was fehlt, steht unter „skipped“.')],
     };
@@ -740,7 +750,7 @@ function pvSend() {
 addEventListener('message', async e => {
   const m = e.data;
   if (e.origin === location.origin && m?.hb === 'preview-ready' && e.source !== pvf.contentWindow) {   // Vorschau-Frame des Karussells
-    const k = carWins().findIndex(f => f.contentWindow === e.source);
+    const k = carCards().findIndex(x => x.querySelector('iframe')?.contentWindow === e.source);
     if (k >= 0) { car.ready[k] = true; car.sent[k] = ''; carSend(k); }
     return;
   }
@@ -860,6 +870,21 @@ const ENERGY = [['pv', 'Solar-Leistung'], ['grid', 'Netz-Leistung (+ Bezug)'], [
   ['sesE', 'Detail Auto: Sitzung Energie'], ['sesSol', 'Detail Auto: Sitzung Solaranteil'], ['sesPrice', 'Detail Auto: Sitzung Preis']];
 const TILE_DOM = ['light', 'switch', 'input_boolean', 'lock', 'cover', 'climate', 'scene', 'script', 'media_player', 'fan', 'timer', 'camera', 'button', 'input_button', 'sensor', 'binary_sensor'];
 const TOGGLE_DOM = ['light', 'switch', 'input_boolean', 'fan', 'cover', 'media_player', 'script'];   // Domains mit Dienst .toggle
+// Theme-Karussell: [Id, Name, Hintergrund, Look, Modus] – ein Theme setzt Look/Modus des Displays und den Hintergrund der Farb-Faces
+const THEME_SET = [
+  ['prisma', 'Prisma', 'prism:245', 'liquid', 'dark'], ['teal', 'Teal', 'fan:172', 'liquid', 'dark'], ['amethyst', 'Amethyst', 'fan:285', 'liquid', 'dark'], ['ozean', 'Ozean', 'prism:212', 'liquid', 'dark'],
+  ['nordlicht', 'Nordlicht', 'prism:165', 'liquid', 'dark'], ['bernstein', 'Bernstein', 'prism:35', 'liquid', 'dark'], ['koralle', 'Koralle', 'prism:8', 'liquid', 'dark'], ['beere', 'Beere', 'fan:330', 'liquid', 'dark'],
+  ['wald', 'Wald', 'fan:140', 'liquid', 'dark'], ['daemmerung', 'Dämmerung', 30, 'liquid', 'dark'], ['rot', 'Rot', 5, 'liquid', 'dark'], ['rosa', 'Rosa', 340, 'liquid', 'dark'], ['violett', 'Violett', 285, 'liquid', 'dark'],
+  ['pink', 'Pink', 307, 'liquid', 'dark'], ['blau', 'Blau', 228, 'liquid', 'dark'], ['tuerkis', 'Türkis', 205, 'liquid', 'dark'], ['himmel', 'Himmel', 212, 'liquid', 'dark'], ['gruen', 'Grün', 150, 'liquid', 'dark'],
+  ['metall', 'Metall', 'metal', 'liquid', 'dark'], ['p-rosa', 'Pastell Rosa', 340, 'liquid', 'light'], ['p-blau', 'Pastell Blau', 212, 'liquid', 'light'], ['p-gruen', 'Pastell Grün', 150, 'liquid', 'light'], ['p-gelb', 'Pastell Gelb', 50, 'liquid', 'light'],
+  ['flat-dunkel', 'Flat Dunkel', 'black', 'flat', 'dark'], ['flat-hell', 'Flat Hell', 'white', 'flat', 'light'],
+];
+const THEME_TYPES = ['grid', 'analog', 'bigclock', 'energy', 'info'];   // Faces, deren Hintergrund ein Theme mitnimmt (Foto-Hintergründe bleiben)
+const themeBg = f => !f.bg || typeof f.bg !== 'object';
+const themeGrid = () => cfg.faces.find(f => f.type === 'grid') || cfg.faces[0];
+const themeCur = () => { const g = themeGrid(); return THEME_SET.find(t => t[3] === (cfg.theme || 'liquid') && t[4] === (cfg.mode || 'dark') && String(t[2]) === String(g.bg))?.[0] ?? ''; };
+const themeConf = v => { const t = THEME_SET.find(x => x[0] === v) || THEME_SET[0], g = themeGrid(); return { conf: { ...cfg, theme: t[3], mode: t[4], faces: [{ ...g, bg: t[2] }] }, face: g.id }; };
+const themeApply = v => { const t = THEME_SET.find(x => x[0] === v); if (!t) return; cfg.theme = t[3]; cfg.mode = t[4]; cfg.faces.forEach(f => { if (THEME_TYPES.includes(f.type) && themeBg(f)) f.bg = t[2]; }); saveCfg(); };
 const THEMES = [['liquid', 'Liquid', 'linear-gradient(135deg,#e29b56,#a8541a)'], ['flat', 'Flat', 'linear-gradient(135deg,#e8e8e8 50%,#c6c2e3 50%)']];
 const MODES = [['dark', 'Dunkel', 'linear-gradient(135deg,#3a3a3c,#1c1c1e)'], ['light', 'Hell', 'linear-gradient(135deg,#fff,#d8d8dc)']];
 const LOOKS = [['', 'Theme', 'linear-gradient(135deg,#d8d8dc,#8e8e93)'], ...THEMES];
