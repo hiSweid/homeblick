@@ -121,8 +121,8 @@ svg.i{width:1em;height:1em;flex:none;fill:none;stroke:currentColor;stroke-width:
 .tile[data-sv=cover] .cvr{display:none;position:absolute;z-index:3;left:2.4cqw;right:2.4cqw;bottom:2cqw;height:5.6cqw;border-radius:99px;background:#ffffff33;backdrop-filter:blur(1.6cqw);-webkit-backdrop-filter:blur(1.6cqw);justify-content:space-around;align-items:center}   /* Tastenzeile unten: Zurück · Play/Pause · Weiter */
 .tile[data-sv=cover].art-on .cvr{display:flex}.tile[data-sv=cover] .cvr button{display:grid;place-items:center;width:30%;height:100%;color:#fff;font-size:2.8cqw;border-radius:99px;transition:scale .25s var(--spring),background-color .13s}.tile[data-sv=cover] .cvr .i{width:1em;height:1em}
 .tile[data-sv=cover] .cvr .pp{font-size:3.2cqw}.tile[data-sv=cover] .cvr button:active{scale:.86;background:#ffffff33;transition:none}
-.tile[data-sv=cover].art-on{padding-bottom:9.4cqw}.tile[data-sv=cover] .pct{display:none!important}
-.tile[data-sv=cover][data-size="2x2"] .cvr{left:4cqw;right:4cqw;bottom:4cqw;height:10cqw}.tile[data-sv=cover][data-size="2x2"] .cvr button{font-size:5cqw}.tile[data-sv=cover][data-size="2x2"] .cvr .pp{font-size:5.8cqw}.tile[data-sv=cover][data-size="2x2"].art-on{padding-bottom:16cqw}
+.tile[data-sv=cover] .pct{display:none!important}
+.tile[data-sv=cover][data-size="2x2"] .cvr{left:4cqw;right:4cqw;bottom:4cqw;height:10cqw}.tile[data-sv=cover][data-size="2x2"] .cvr button{font-size:5cqw}.tile[data-sv=cover][data-size="2x2"] .cvr .pp{font-size:5.8cqw}
 .tile[data-sv=cover][data-size="2x1"].art-on:not(.thermo){flex-direction:column;align-items:flex-start;justify-content:flex-end;gap:0;padding:3cqw}
 /* Schloss/Tor: großer Pastell-Knopf als einzige Bedienfläche (Galerie „Großer Riegel-Knopf“); Zustand = Pastellfarbe: Mint zu/verriegelt, Pfirsich offen, Gelb in Bewegung, Rosé blockiert */
 .tile[data-sv=knob]{--kb:#ffffff33;--kf:#fffc;padding:3.4cqw 1cqw 3cqw}.tile[data-sv=knob]::before{display:none}
@@ -148,6 +148,7 @@ svg.i{width:1em;height:1em;flex:none;fill:none;stroke:currentColor;stroke-width:
 .tile[data-sv=live][data-size="2x1"].live:not(.thermo){flex-direction:column;align-items:flex-start;justify-content:flex-end;gap:0;padding:3cqw}
 .tile[data-sv=live][data-size="2x2"].live{padding:5cqw}.tile[data-sv=live][data-size="2x2"] :is(.lvp,.mch){font-size:3.2cqw;top:4cqw}.tile[data-sv=live][data-size="2x2"] .lvp{left:4cqw}.tile[data-sv=live][data-size="2x2"] .mch{right:4cqw}
 .tile[data-sv=cover][data-size="2x2"].art-on{padding:5cqw}.tile[data-sv=cover][data-size="2x2"] .pill{font-size:3.2cqw;left:4cqw;top:4cqw}.tile[data-sv=cover][data-size="2x2"] .pct{right:4.5cqw;top:4.5cqw}.tile[data-sv=cover][data-size="2x2"] .pct .i{width:4.4cqw;height:4.4cqw}
+.tile[data-sv=cover].art-on:not(.thermo){padding-bottom:9.4cqw}.tile[data-sv=cover][data-size="2x1"].art-on:not(.thermo){padding-bottom:9.4cqw}.tile[data-sv=cover][data-size="2x2"].art-on:not(.thermo){padding-bottom:16cqw}   /* Platz für die Tastenzeile (steht nach den Größenregeln, sonst überschreibt deren padding-Kurzform) */
 
 .num{display:grid;justify-items:center;font-weight:500;line-height:1;letter-spacing:-.02em}
 .num>span{grid-area:1/1}
