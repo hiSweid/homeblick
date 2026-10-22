@@ -2198,7 +2198,7 @@ const fillSet = (t, p) => { t.style.setProperty('--p', p); t.classList.toggle('h
   });
 }
 function sendLight() {   // max. alle 200 ms während des Ziehens
-  hold[cur.e] = Date.now() + 1500;
+  hold[cur.e] = Date.now() + 1500; setTimeout(schedule, 1600);   // Kachel nach Ablauf der Sperre neu zeichnen (HA-Echo kam währenddessen an)
   if (lightT) return;
   lightT = setTimeout(() => {
     lightT = 0;
