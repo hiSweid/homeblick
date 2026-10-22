@@ -300,7 +300,7 @@ const FACE = {
   calendar: ['Kalender', '#ff3b30', 'cal'], date: ['Datum', '#8e8e93', 'cal'], weather: ['Wetter', '#32ade6', 'sun'], energy: ['Energie', '#34c759', 'bolt'], info: ['Info', '#30b0c7', 'info'], cams: ['Kameras', '#8e8e93', 'cam'],
 };
 const TYPES = Object.entries(FACE).map(([k, v]) => [k, v[0]]);
-const BG = [['auto', 'Tageszeit'], ['black', 'Schwarz'], ['white', 'Weiß'], ['metal', 'Metall'], [30, 'Orange'], [5, 'Rot'], [340, 'Rosa'], [285, 'Violett'], [307, 'Pink'], [228, 'Blau'], [205, 'Türkis'], [212, 'Himmel'], [150, 'Grün']];
+const BG = [['auto', 'Tageszeit'], ['black', 'Schwarz'], ['white', 'Weiß'], ['metal', 'Metall'], ['prism', 'Prisma'], ['teal', 'Teal'], [30, 'Orange'], [5, 'Rot'], [340, 'Rosa'], [285, 'Violett'], [307, 'Pink'], [228, 'Blau'], [205, 'Türkis'], [212, 'Himmel'], [150, 'Grün']];
 const STYLES = { weather: [['', 'Kompakt'], ['cond', 'Bedingungen']], bigclock: [['stack', 'Gestapelt'], ['line', 'Lavalampe']], analog: [['big', 'Große Ziffern'], ['relief', 'Relief']], info: [['events', 'Termine'], ['music', 'Musik']] };
 const LEGACY = { bigclock: [['depth', 'Tiefe']], analog: [['numbers', 'Zahlen'], ['ticks', 'Striche'], ['minimal', 'Minimal']] };   // ohne Vorlage: nur sichtbar, wenn gespeichert
 // Uhr und Kalender gibt es je Display nur einmal; Design (digital/analog bzw. Monat/Datum) und Farbe stellt man am Face ein. Wert = "Typ:Stil"
@@ -310,7 +310,7 @@ const designs = f => DESIGN[GROUP[f.type]] ? DESIGN[GROUP[f.type]].concat((LEGAC
 const designCur = f => DESIGN[GROUP[f.type]] ? `${f.type}:${f.style || STYLES[f.type]?.[0][0] || ''}` : f.style || STYLES[f.type]?.[0][0];
 const withDesign = (f, v) => { if (!DESIGN[GROUP[f.type]]) return { ...f, style: v }; const [type, style] = v.split(':'); return { ...f, type, style: style || undefined, id: type === f.type ? f.id : faceId(cfg, type) }; };
 const WAKE = [['off', 'Aus'], ['hey_jarvis', 'Hey Jarvis'], ['alexa', 'Alexa']];
-const bgCss = bg => bg === 'auto' ? 'linear-gradient(135deg,#ffb36b,#5a6bb5)' : bg === 'black' ? '#1c1c1e' : bg === 'white' ? '#f2f2f7' : bg === 'metal' ? 'linear-gradient(135deg,#b5c4d6,#8795ad)' : typeof bg === 'number' ? `linear-gradient(135deg,hsl(${bg} 75% 66%),hsl(${bg + 25} 70% 52%))` : '#8e8e93';
+const bgCss = bg => bg === 'auto' ? 'linear-gradient(135deg,#ffb36b,#5a6bb5)' : bg === 'black' ? '#1c1c1e' : bg === 'white' ? '#f2f2f7' : bg === 'metal' ? 'linear-gradient(135deg,#b5c4d6,#8795ad)' : bg === 'prism' ? 'linear-gradient(135deg,#8483f3,#3c3cae)' : bg === 'teal' ? 'linear-gradient(135deg,#4fae9f,#1d5f56)' : typeof bg === 'number' ? `linear-gradient(135deg,hsl(${bg} 75% 66%),hsl(${bg + 25} 70% 52%))` : '#8e8e93';
 const bgName = bg => BG.find(b => String(b[0]) === String(bg))?.[1] || 'Foto';
 const bgVal = v => /^\d+$/.test(v) ? +v : v;
 
