@@ -1169,14 +1169,35 @@ const wpMetal = (blur = 0) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="
 <path d="M-10 80C25 60 60 70 110 40" stroke="hsl(210,35%,90%)" stroke-opacity=".35" stroke-width="9" fill="none"/></g></svg>`;
 const wallCache = {};
 // Kachelglas: Blur σ ≈ 2 % W (≈ 15 px bei 784 px; Website dashboard/installation: Wallpaper-Formen scheinen weich durch, vorher 5 % = zu stark)
-const wall = h => wallCache[h] ||= h === 'metal' ? [svgUrl(wpMetal()), svgUrl(wpMetal(2))] : [svgUrl(wp(h)), svgUrl(wp(h, 2))];
+// Hell-Modus (Config mode = light): gleiche Formen in Pastell, damit Glaskacheln hell darauf lesbar bleiben
+const wpL = (h, blur = 0) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="none">
+<defs>
+<linearGradient id="g" x2="1" y2="1"><stop stop-color="hsl(${h},80%,93%)"/><stop offset=".55" stop-color="hsl(${h - 6},70%,83%)"/><stop offset="1" stop-color="hsl(${h - 12},60%,72%)"/></linearGradient>
+<linearGradient id="r" x2="1"><stop stop-color="hsl(${h + 6},100%,98%)" stop-opacity=".7"/><stop offset="1" stop-color="hsl(${h},90%,90%)" stop-opacity="0"/></linearGradient>
+<filter id="b" x="0" y="0" width="1" height="1"><feGaussianBlur stdDeviation="${blur}" edgeMode="duplicate"/></filter>
+</defs>
+<g ${blur ? 'filter="url(#b)"' : ''}>
+<rect width="100" height="100" fill="url(#g)"/>
+<circle cx="110" cy="-20" r="80" fill="url(#r)"/>
+<circle cx="-30" cy="60" r="70" fill="url(#r)" opacity=".8"/>
+<circle cx="70" cy="140" r="75" fill="url(#r)" opacity=".4"/>
+<circle cx="-10" cy="108" r="48" fill="hsl(${h - 14},55%,68%)" opacity=".4"/>
+<path d="M40-10C30 40 60 70 110 80" stroke="hsl(${h + 8},100%,97%)" stroke-opacity=".5" stroke-width="10" fill="none"/>
+</g></svg>`;
+const lightMode = () => CONF.mode === 'light';
+const wall = h => wallCache[h + (lightMode() ? 'L' : '')] ||= h === 'metal' ? [svgUrl(wpMetal()), svgUrl(wpMetal(2))] : lightMode() ? [svgUrl(wpL(h)), svgUrl(wpL(h, 2))] : [svgUrl(wp(h)), svgUrl(wp(h, 2))];
 // Dynamische Faces:
 // Nacht = Sonne unter dem Horizont (sun.sun), ohne sun.sun nach Uhrzeit; ?tod=night|day erzwingt
 const TOD = new URLSearchParams(location.search).get('tod');
 const isNight = () => TOD ? TOD === 'night' : ents['sun.sun'] ? ents['sun.sun'].state === 'below_horizon' : (h => h < 6.5 || h >= 19.5)(new Date().getHours() + new Date().getMinutes() / 60);
 // bg 'auto': Tag/Nacht — Home orange/violett, Widget hell/dunkel (faces_enhanced/hero_endframe)
 const AUTO = { info: ['white', 'black'], calendar: ['white', 'black'], date: ['white', 'black'] };
-const bgOf = f => { const b = f.bg === 'auto' ? (AUTO[f.type] || [30, 240])[+isNight()] : f.bg; return (f.type === 'calendar' || f.type === 'date') && (typeof b === 'number' || b === 'metal') ? 'white' : b; };   // Kalender- und Datums-Face gibt es nur hell/dunkel (Vorlage faces_enhanced); Farbhintergründe → hell, sonst rote Zahl + blaue Ziffern auf Farbe unlesbar
+const bgOf = f => {
+  let b = f.bg === 'auto' ? (AUTO[f.type] || [30, 240])[+isNight()] : f.bg;
+  if (f.bg === 'auto' && CONF.mode) {   // Modus gewählt: Hell/Dunkel statt Tag/Nacht; Flat-Hell = Apples weißer Untergrund, Liquid-Hell = Pastell-Tapete (wall)
+    if (AUTO[f.type]) b = AUTO[f.type][CONF.mode === 'light' ? 0 : 1]; else if (CONF.mode === 'light' && CONF.theme === 'flat') b = 'white';
+  }
+  return (f.type === 'calendar' || f.type === 'date') && (typeof b === 'number' || b === 'metal') ? 'white' : b; };   // Kalender- und Datums-Face gibt es nur hell/dunkel (Vorlage faces_enhanced); Farbhintergründe → hell, sonst rote Zahl + blaue Ziffern auf Farbe unlesbar
 // bg: Farbton (Zahl) | 'metal' (helles Graublau) | 'black' | 'white' | { photo, blur }
 function applyBg(el, bg) {
   const hue = typeof bg === 'number' || bg === 'metal', h = bg === 'metal' ? 215 : bg;
@@ -1349,7 +1370,7 @@ function glassSlots(hm) {
   }
 }
 function depthHTML(f) {
-  const b = bgOf(f), src = b?.photo ? b.blur : typeof b === 'number' ? svgData(wp(b, 5)) : '';
+  const b = bgOf(f), src = b?.photo ? b.blur : typeof b === 'number' ? svgData((lightMode() ? wpL : wp)(b, 5)) : '';
   // Vorlage faces_endframe (per Pixel gemessen): Ziffern 6–94 % hoch, „0“ 16 % breit, Strich ≈ 5,6 % (monoline), Paare um 21/76 %;
   // Roboto Flex schmal + dünn (XOPQ/YOPQ) und per scale(K KY) auf diese Maße gezogen, proportionale Ziffern wie die Vorlage
   // Reveal: jede Ziffer eigene Ebene (die anderen visibility:hidden, Platz bleibt), links → rechts versetzt mit Feder
