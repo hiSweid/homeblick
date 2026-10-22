@@ -64,7 +64,8 @@ svg.i{width:1em;height:1em;flex:none;fill:none;stroke:currentColor;stroke-width:
 .pvlift{z-index:9!important;animation:none!important;transition:none!important;filter:drop-shadow(0 2cqw 3cqw #0007)}
 .pvedit #faces,.pvedit .face{touch-action:none}
 .pvsel{outline:.8cqw solid #0a84ff;outline-offset:.5cqw}   /* Vorschau: in der Einstellungsseite gewählte Kachel */
-.tile[data-arm] .sub{font-size:0}.tile[data-arm] .sub::after{content:"Nochmal tippen";font-size:3cqw}
+.tile[data-arm] .sub{font-size:0}.tile[data-arm] .sub::after{content:"Nochmal tippen";font-size:3cqw}.tile[data-arm=hold] .sub::after{content:"Halten zum Öffnen"}
+.hring{position:absolute;z-index:3;translate:-50% -50%;aspect-ratio:1;pointer-events:none;color:#fff;transition:scale .3s var(--spring),opacity .3s}.hring svg{display:block;width:100%;height:100%;rotate:-90deg;overflow:visible}.hring circle{fill:none;stroke:currentColor;stroke-width:5;stroke-linecap:round;stroke-dasharray:100;stroke-dashoffset:100}.hring.done{scale:1.18;opacity:0}   /* Halten zum Entriegeln: Ring füllt sich um das Schloss-Symbol */
 /* Helle Variante (Website highlights/homeview, Pixelproben): flach ohne Schatten; Aus = hellgrau 232, An = Lavendel (198,194,227), Icon/Titel lila */
 /* Themes (Config: theme liquid|flat, mode dark|light; Kachel: look überschreibt das Theme → data-lk). liquid+dark = Grundlook oben.
    flat+light = Apple-Dashboard (Website highlights/homeview): flach, an = Lavendel #C9C3E6, aus = Hellgrau #E9E9EB; die anderen zwei Kombinationen sind eigene Gegenstücke im selben Stil */
@@ -124,17 +125,6 @@ svg.i{width:1em;height:1em;flex:none;fill:none;stroke:currentColor;stroke-width:
 .tile[data-sv=cover] .pct{display:none!important}
 .tile[data-sv=cover][data-size="2x2"] .cvr{left:4cqw;right:4cqw;bottom:4cqw;height:10cqw}.tile[data-sv=cover][data-size="2x2"] .cvr button{font-size:5cqw}.tile[data-sv=cover][data-size="2x2"] .cvr .pp{font-size:5.8cqw}
 .tile[data-sv=cover][data-size="2x1"].art-on:not(.thermo){flex-direction:column;align-items:flex-start;justify-content:flex-end;gap:0;padding:3cqw}
-/* Schloss/Tor: großer Pastell-Knopf als einzige Bedienfläche (Galerie „Großer Riegel-Knopf“); Zustand = Pastellfarbe: Mint zu/verriegelt, Pfirsich offen, Gelb in Bewegung, Rosé blockiert */
-.tile[data-sv=knob]{--kb:#ffffff33;--kf:#fffc;padding:3.4cqw 1cqw 3cqw}.tile[data-sv=knob]::before{display:none}
-.tile[data-sv=knob][data-ks=ok]{--kb:#CDEBD8;--kf:#2F6B4A}.tile[data-sv=knob][data-ks=open]{--kb:#FFD9C2;--kf:#9A4B16}.tile[data-sv=knob][data-ks=mv]{--kb:#FFF1A8;--kf:#7A6200}.tile[data-sv=knob][data-ks=er]{--kb:#F8CACA;--kf:#9B2C2C}
-.tile[data-sv=knob] .kn{flex:none;display:grid;place-items:center;width:13.5cqw;height:13.5cqw;border-radius:50%;background:var(--kb);box-shadow:0 0 0 1.2cqw color-mix(in srgb,var(--kb) 45%,transparent);transition:scale .3s var(--spring),background-color .4s,box-shadow .4s}
-.tile[data-sv=knob]:active .kn{scale:.92;transition:scale .12s ease-out}
-.tile[data-sv=knob][data-ks=mv] .kn{animation:knp 1.1s ease-in-out infinite}@keyframes knp{50%{box-shadow:0 0 0 2.2cqw color-mix(in srgb,var(--kb) 30%,transparent)}}
-.tile[data-sv=knob] .ico{font-size:6.2cqw;color:var(--kf)!important}
-.tile[data-sv=knob] .ttl{line-height:1.3}.tile[data-sv=knob] .sub{color:var(--kb);font-weight:600;line-height:1.3}
-.light .tile[data-sv=knob] .sub,[data-mode=light] .tile[data-sv=knob] .sub{color:var(--kf)}
-.tile[data-sv=knob][data-size="2x1"] .kn{width:15cqw;height:15cqw}.tile[data-sv=knob][data-size="2x1"] .ico{font-size:7cqw}
-.tile[data-sv=knob][data-size="2x2"]{padding:7cqw 2cqw 5cqw}.tile[data-sv=knob][data-size="2x2"] .kn{width:27cqw;height:27cqw;box-shadow:0 0 0 2.4cqw color-mix(in srgb,var(--kb) 45%,transparent)}.tile[data-sv=knob][data-size="2x2"] .ico{font-size:13cqw}
 /* Kamera: Livebild füllt die Kachel (Galerie „Kamera-Livebild“): Verlauf unten, Titel/Raum weiß, rote Live-Pille oben links, Bewegungs-Chip oben rechts bei Bewegung; offline = abgedunkelt + graue Pille. Ohne Stream normale Kachel */
 .tile[data-sv=live] :is(.lvp,.mch){display:none;position:absolute;z-index:2;top:2.4cqw;font-size:2.3cqw;font-weight:600;line-height:1;padding:.8cqw 1.7cqw;border-radius:99px;color:#fff;white-space:nowrap}
 .tile[data-sv=live].live :is(.lvp){display:block}.tile[data-sv=live].mv .mch{display:block}
@@ -1323,7 +1313,7 @@ function tileEl(c) {
   else if (kind === 'thermo') { el.className = 'tile thermo'; el.innerHTML = `<div class="num" data-temp="${esc(t.e)}"></div><div class="foot">${chev('down')}${label}${chev('up')}</div>`; }
   else {
     el.className = 'tile';
-    el.innerHTML = (t.e?.startsWith('camera.') ? '<div class="feed"></div>' + (t.sv === 'live' ? '<div class="lvp"></div><div class="mch">Bewegung</div>' : '') : '') + (t.sv === 'fill' || t.sv === 'blind' ? '<div class="fill"></div><div class="pct"></div>' : t.sv === 'cover' ? `<div class="art"></div><div class="pill">${esc(t.title)}</div><div class="pct"></div><div class="cvr"><button data-act="tmp" aria-label="Zurück">${svg('prev')}</button><button class="pp" data-act="tmt" aria-label="Abspielen/Pause"></button><button data-act="tmn" aria-label="Weiter">${svg('next')}</button></div>` : '') + (t.sv === 'knob' ? `<div class="kn">${svg(iconOf(t), 'ico')}</div>` : svg(iconOf(t), 'ico')) + (t.sv === 'value' ? '<div class="big"></div>' : '') + label;
+    el.innerHTML = (t.e?.startsWith('camera.') ? '<div class="feed"></div>' + (t.sv === 'live' ? '<div class="lvp"></div><div class="mch">Bewegung</div>' : '') : '') + (t.sv === 'fill' || t.sv === 'blind' ? '<div class="fill"></div><div class="pct"></div>' : t.sv === 'cover' ? `<div class="art"></div><div class="pill">${esc(t.title)}</div><div class="pct"></div><div class="cvr"><button data-act="tmp" aria-label="Zurück">${svg('prev')}</button><button class="pp" data-act="tmt" aria-label="Abspielen/Pause"></button><button data-act="tmn" aria-label="Weiter">${svg('next')}</button></div>` : '') + svg(iconOf(t), 'ico') + (t.sv === 'value' ? '<div class="big"></div>' : '') + label;
   }   // Livebild: camTile in render()
   return el;
 }
@@ -1738,13 +1728,6 @@ function liveTile(t, s) {   // Kamera-Livebild: Pille (Live/Offline) + Bewegungs
   const mid = t._t.motion || t._mid;
   t.classList.toggle('mv', !!mid && ents[mid]?.state === 'on');
 }
-const KNS = { open: 'Offen', closed: 'Zu', opening: 'Öffnet …', closing: 'Schließt …' };
-function knobTile(t, s) {   // Schloss/Tor-Knopf: Zustand → Farbe + Statuszeile
-  const v = s.state, lock = t.dataset.e.startsWith('lock.');
-  t.dataset.ks = /^(locking|unlocking|opening|closing)$/.test(v) ? 'mv' : v === 'jammed' ? 'er' : /^(locked|closed)$/.test(v) ? 'ok' : v === 'unavailable' ? 'na' : 'open';
-  const sub = $('.sub', t), txt = v === 'unavailable' ? 'Nicht verfügbar' : (lock ? STATUS.lock(s) : KNS[v]) || '';
-  if (sub && sub.textContent !== txt) sub.textContent = txt;
-}
 function coverTile(t, s) {   // Medien-Kachel mit Cover-Vollbild
   const a = s.attributes, act = /^(playing|buffering|paused)$/.test(s.state) && !!(a.media_title || a.entity_picture), pic = a.entity_picture ? abs(a.entity_picture) : '';
   t.classList.toggle('art-on', act); t.classList.toggle('paused', s.state === 'paused');
@@ -1778,9 +1761,8 @@ function render() {
   for (const t of $$('[data-e]')) {
     const id = t.dataset.e, s = st(id), d = id.split('.')[0];
     t.classList.toggle('na', s.state === 'unavailable');
-    if (!held(id)) t.classList.toggle(FILL.test(t.dataset.sv) || /^(cover|knob)$/.test(t.dataset.sv) ? 'lit' : 'on', !!ON[d]?.(s));
+    if (!held(id)) t.classList.toggle(FILL.test(t.dataset.sv) || t.dataset.sv === 'cover' ? 'lit' : 'on', !!ON[d]?.(s));
     if (t.dataset.sv === 'cover') coverTile(t, s);
-    if (t.dataset.sv === 'knob') knobTile(t, s);
     if (t.dataset.sv === 'live') liveTile(t, s);
     if (FILL.test(t.dataset.sv) && !t._drag && !held(id)) {   // Füllhöhe = Helligkeit bzw. Schließgrad; in der Vorschau (nicht Bearbeiten) bei „aus“/offen eine Beispielhöhe zur Ansicht
       const blind = t.dataset.sv === 'blind', p0 = blind ? closedPct(s) : pct(s), demo = PREVIEW && !root.classList.contains('pvedit') && (blind ? !p0 : s.state !== 'on'), p = demo ? (blind ? 55 : 70) : p0;
@@ -2339,6 +2321,19 @@ function sendLight() {   // max. alle 200 ms während des Ziehens
   }, 200);
 }
 // Öffnen/Entriegeln (bzw. Löschen) braucht einen zweiten Tipp innerhalb von 3 s
+// Schloss entriegeln = Halten (Ring füllt sich in HOLD_MS), kurzer Tipp zeigt nur den Hinweis; Verriegeln bleibt ein Tipp
+const HOLD_MS = 700;
+let hl = null;
+function holdLock(t) {
+  const ico = $('.ico', t), r = ico.getBoundingClientRect(), b = t.getBoundingClientRect(), k = Math.max(r.width, r.height) * 1.5 / b.width * 100;
+  const ring = Object.assign(document.createElement('div'), { className: 'hring', innerHTML: '<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" pathLength="100"/></svg>' });
+  ring.style.cssText = `left:${(r.left + r.width / 2 - b.left) / b.width * 100}%;top:${(r.top + r.height / 2 - b.top) / b.height * 100}%;width:${k}%`;
+  t.append(ring);
+  const c = $('circle', ring), an = c.animate([{ strokeDashoffset: 100 }, { strokeDashoffset: 0 }], { duration: HOLD_MS, easing: 'linear', fill: 'forwards' });
+  hl = { t, ring, an };
+  an.onfinish = () => { if (hl?.ring !== ring) return; hl = null; suppress = true; ring.classList.add('done'); setTimeout(() => ring.remove(), 400); call('lock', 'unlock', { entity_id: t.dataset.e }); };
+}
+function holdCancel() { if (!hl) return; hl.an.onfinish = null; hl.ring.remove(); hl = null; }
 function armed(t) {
   if (t.dataset.arm) { delete t.dataset.arm; return true; }
   t.dataset.arm = 1; setTimeout(() => delete t.dataset.arm, 3000);
@@ -2353,7 +2348,11 @@ const TAP = {
   input_boolean: (t, id) => TAP.light(t, id),
   button: (t, id) => { hold[id] = Date.now() + 1200; t.classList.add('on'); setTimeout(() => t.classList.remove('on'), 1200); call(id.split('.')[0], 'press', { entity_id: id }); },
   input_button: (t, id) => TAP.button(t, id),
-  lock: (t, id) => st(id).state === 'locked' ? armed(t) && call('lock', 'unlock', { entity_id: id }) : call('lock', 'lock', { entity_id: id }),
+  lock: (t, id) => {
+    if (st(id).state !== 'locked') return call('lock', 'lock', { entity_id: id });
+    if (own(t._hold)) return armed(t) && call('lock', 'unlock', { entity_id: id });   // eigene Halten-Aktion belegt: Doppeltipp wie früher
+    t.dataset.arm = 'hold'; setTimeout(() => t.dataset.arm === 'hold' && delete t.dataset.arm, 2500);   // Hinweis „Halten zum Öffnen“
+  },
   cover: (t, id) => {
     const s = st(id), opening = s.state === 'closed';
     if (opening && s.attributes.device_class === 'garage' && !armed(t)) return;
@@ -2580,18 +2579,19 @@ document.addEventListener('pointerdown', e => {
   const pg = e.target.closest('.prog');
   if (pg) { if (npPos()[1]) { sk = pg; pg.classList.add('drag'); seekMove(e); } return; }
   const ht = e.target.closest('.tile[data-ti]'), light = e.target.closest('.tile[data-e^="light."],.tile[data-e^="cover."],.tile[data-sv=cover][data-e^="media_player."]');
+  if (ht?.dataset.e?.startsWith('lock.') && !own(ht._hold) && st(ht.dataset.e).state === 'locked') holdLock(ht);
   if (ht?.dataset.e && own(ht._hold)) lp = setTimeout(() => { suppress = true; tileAct(ht, ht.dataset.e, ht._hold); }, 450);
   else if (light && !(light.dataset.e.startsWith('cover.') && st(light.dataset.e).attributes.device_class === 'garage')) lp = setTimeout(() => { suppress = true; const id = light.dataset.e; if (id.startsWith('media_player.')) { const i = CONF.faces.findIndex(f => f.type === 'music'); if (i >= 0) { CONF.player = id; save(); render(); faces.go(i); } } else open(light, id.startsWith('cover.') ? 'shade' : 'dimmer'); }, 450);   // Medien: Langdruck → Musik-Face mit diesem Player
 });
 document.addEventListener('pointermove', e => {
-  if (Math.hypot(e.clientX - px, e.clientY - py) > 8) clearTimeout(lp);
+  if (Math.hypot(e.clientX - px, e.clientY - py) > 8) { clearTimeout(lp); holdCancel(); }
   if (sk) seekMove(e);
   if (ls && (ls.on || Math.abs(e.clientY - ls.y) > 8)) { ls.on = true; lyrScroll(ls.ll, ls.o + e.clientY - ls.y); }
   if (pull && e.clientY - py > 20) { pull = false; suppress = true; assistStart(); }
 });
 document.addEventListener('pointerdown', e => { if (e.target.closest('.mpill .vs')) { volDrag = true; clearTimeout(volClose); } });
 for (const ev of ['pointerup', 'pointercancel']) document.addEventListener(ev, () => {
-  clearTimeout(lp);
+  clearTimeout(lp); holdCancel();
   if (volDrag) { volDrag = false; volArm(); }
   if (ls?.on) suppress = true;   // Scrollen ist kein Tipp auf eine Zeile
   ls = null;
