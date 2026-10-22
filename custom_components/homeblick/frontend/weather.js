@@ -425,7 +425,7 @@ document.head.insertAdjacentHTML('beforeend', `<style>
    Fern: Text größer (Ort ×1,21, Temperatur ×1,66, Zustand/H-T ×1,45) und tiefer, ohne Uhr und Karte; Nah: Karte + Uhr kommen gestaffelt dazu. Auslöser (Präsenzmelder/Tipp) ist keine Vorlage, nur Annahme. */
 .wlist{display:none;position:absolute;left:4.2cqw;top:4.2cqw;width:8.6cqw;height:8.6cqw;padding:0;border:0;border-radius:50%;place-items:center;color:#fff;background:#ffffff38;-webkit-backdrop-filter:blur(2cqw);backdrop-filter:blur(2cqw);z-index:4;transition:opacity .4s .2s,scale .2s}.wlist:active{scale:.92}.wlist svg{width:4.6cqw;height:4.6cqw}
 .wcond[data-pl] .wlist{display:grid}.wcond[data-far] .wlist{opacity:0;pointer-events:none;transition-delay:0s}
-.wpl{position:absolute;left:4.2cqw;top:14.6cqw;min-width:44cqw;max-width:70cqw;padding:1.6cqw;border-radius:5cqw;background:rgb(11 78 149/.62);-webkit-backdrop-filter:blur(4cqw);backdrop-filter:blur(4cqw);z-index:4;transform-origin:0 0;scale:.6;opacity:0;pointer-events:none;transition:scale var(--sd,.64s) var(--spring,ease-out),opacity .25s}.wpl.open{scale:1;opacity:1;pointer-events:auto}.wcond[data-far] .wpl{display:none}
+.wpl{corner-shape:squircle;position:absolute;left:4.2cqw;top:14.6cqw;min-width:44cqw;max-width:70cqw;padding:1.6cqw;border-radius:5cqw;background:rgb(11 78 149/.62);-webkit-backdrop-filter:blur(4cqw);backdrop-filter:blur(4cqw);z-index:4;transform-origin:0 0;scale:.6;opacity:0;pointer-events:none;transition:scale var(--sd,.64s) var(--spring,ease-out),opacity .25s}.wpl.open{scale:1;opacity:1;pointer-events:auto}.wcond[data-far] .wpl{display:none}
 .wpl button{display:flex;justify-content:space-between;align-items:center;gap:4cqw;width:100%;padding:2.6cqw 3cqw;border:0;border-radius:3.6cqw;background:none;color:#fff;font-family:inherit;font-size:4.2cqw;font-weight:500;text-align:left}.wpl button.on{background:#ffffff26}.wpl i{font-style:normal;opacity:0}.wpl .on i{opacity:1}
 .wcond>time{right:8.8cqw;top:8.4cqw;font-size:3.93cqw;font-weight:400;transition:opacity .4s .2s}
 .wcond .wtop{left:0;right:0;top:0;height:60cqw;text-align:center}
@@ -440,7 +440,7 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 .wcond[data-far] .wtop span:nth-of-type(1){transform:translateY(18.5cqw) scale(1.46)}
 .wcond[data-far] .wtop span:nth-of-type(2){transform:translateY(20.7cqw) scale(1.44)}
 .wcond[data-far]>time{opacity:0;transition-delay:0s}
-.wcard{left:4.4cqw;right:4.3cqw;top:64.2cqw;bottom:-6cqw;border-radius:5.1cqw;background:rgb(11 78 149/.5);-webkit-backdrop-filter:blur(3cqw);backdrop-filter:blur(3cqw);text-shadow:none;overflow:hidden;transition:transform var(--sd,.64s) var(--spring,ease-out) .1s,opacity .4s .1s}
+.wcard{corner-shape:squircle;left:4.4cqw;right:4.3cqw;top:64.2cqw;bottom:-6cqw;border-radius:5.1cqw;background:rgb(11 78 149/.5);-webkit-backdrop-filter:blur(3cqw);backdrop-filter:blur(3cqw);text-shadow:none;overflow:hidden;transition:transform var(--sd,.64s) var(--spring,ease-out) .1s,opacity .4s .1s}
 .wcond[data-far] .wcard{transform:translateY(40cqw);opacity:0;pointer-events:none;transition-delay:0s}
 .wcard header{display:flex;justify-content:space-between;align-items:flex-start;padding:3.65cqw 4.6cqw 0 4.2cqw}
 .wcard header b{display:block;font-size:4.9cqw;font-weight:600;line-height:1.15;letter-spacing:-.03em}

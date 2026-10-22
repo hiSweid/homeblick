@@ -527,13 +527,13 @@ input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:tr
 .top time{position:absolute;right:5cqw}
 /* Klima + Licht Vollbild: Maße als % W aus dem Frontalbild des Apple-Videos (ref/t43.4.jpg, 2560-px-Frame 43,4 s, Display 328 px) und ref/vorlagen/_Tbq…/01260 (Beschriftung),
    y-MO ab 153 s (Modus-Menü, nur Handkamera); Schrift Inter statt SF (Breite abgeglichen), Zahl Medium */
-#climate,#dimmer,#shade{--ty:-86.35%}   /* Inter bei line-height 1: Grundlinie bei 86,35 % der Zeilenhöhe → `top` = Grundlinie, Maße direkt aus dem Frame */
-#climate .x,#dimmer .x,#edet .x,#shade .x{left:6cqw;top:5.8cqw;width:8.75cqw;height:8.75cqw;font-size:6.8cqw}   /* ⌀ 8,75, Mitte 10,4 / 10,2 */
+#climate,#dimmer,#shade,#pin{--ty:-86.35%}   /* Inter bei line-height 1: Grundlinie bei 86,35 % der Zeilenhöhe → `top` = Grundlinie, Maße direkt aus dem Frame */
+#climate .x,#dimmer .x,#edet .x,#shade .x,#pin .x{left:6cqw;top:5.8cqw;width:8.75cqw;height:8.75cqw;font-size:6.8cqw}   /* ⌀ 8,75, Mitte 10,4 / 10,2 */
 #climate .x{background:var(--cb)}
 #climate .x,#edet .x{transition:background-color .13s linear}
 #climate .x:active,#edet .x:active{background:#fff4;transition:none}
-#climate .top,#dimmer .top,#edet .top,#shade .top{top:10.6cqw;translate:0 -50%;line-height:1;font-size:3.8cqw;font-weight:400}   /* Titel mittig, Mitte y 10,3; Breite „Bedroom Air“ 22,3 % */
-#climate .top time,#dimmer .top time,#edet .top time,#shade .top time{right:8.6cqw}   /* Uhrzeit endet bei 91,4 %, gleiche Farbe wie der Titel */
+#climate .top,#dimmer .top,#edet .top,#shade .top,#pin .top{top:10.6cqw;translate:0 -50%;line-height:1;font-size:3.8cqw;font-weight:400}   /* Titel mittig, Mitte y 10,3; Breite „Bedroom Air“ 22,3 % */
+#climate .top time,#dimmer .top time,#edet .top time,#shade .top time,#pin .top time{right:8.6cqw}   /* Uhrzeit endet bei 91,4 %, gleiche Farbe wie der Titel */
 #climate{--cb:#fff3;--cm:color-mix(in srgb,var(--cc) 55%,#fff);--ct:#1c1c1e;background:var(--cc);transition:background-color .4s}
 #climate.cool{--cb:#08bdfc;--cm:#00c9fa;--ct:#003a73}   /* ✕ #0bc1fc, Knopf #05b9fc, Menü ≈ #00c9fa (Frame/Handkamera), Menütext #003a73 */
 #climate .mode{position:absolute;left:0;right:0;top:33.9cqw;translate:0 var(--ty);text-align:center;font-size:4.8cqw;font-weight:400;line-height:1}   /* „Cooling to“: Mitte 50,4, Grundlinie 33,9, Text ohne Pille */
@@ -779,6 +779,15 @@ input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:tr
 #kz .tile :is(.ttl,.sub){white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #kz .tile .ico{font-size:5.8cqw}
 #kz .tile[data-arm] .sub::after{font-size:2.6cqw}
+/* Squircle-Ecken (Apple: stetige Rundung statt Kreisbogen): Chromium ≥ 139 mit corner-shape, sonst bleibt der Kreisbogen. Nur große Flächen; Pillen/Kreise bleiben rund */
+@supports (corner-shape:squircle){.tile,.pop,#pvmenu,.asky,.acard,.ainfo,.nbc,.nbi,.kznp,.kzg,#cam,.hm{corner-shape:squircle}}
+/* PIN-Ziffernblock: Rautenlayout des HomeView-Türschlosses (home-collection/collection), dünne weiße Ziffern auf Schwarz, ↩ links, ✓ rechts */
+#pin{background:#000;color:#fff}
+#pin .pdots{position:absolute;left:0;right:0;top:27cqw;height:3cqw;display:flex;justify-content:center;gap:3.4cqw}
+#pin .pdots i{width:2.6cqw;height:2.6cqw;border-radius:50%;background:#ffffff40;transition:background .15s,scale .3s var(--spring)}#pin .pdots i.on{background:#fff;scale:1.15}
+#pin .pk button{position:absolute;left:calc(50cqw + var(--cx)*21cqw);top:calc(46cqw + var(--cy)*7.8cqw);width:15cqw;height:12cqw;translate:-50% -50%;padding:0;border:0;background:none;color:#fff;font-family:inherit;font-weight:300;font-size:8.4cqw;line-height:1;display:grid;place-items:center}
+#pin .pk button::before{content:"";position:absolute;inset:-.5cqw 1.5cqw;border-radius:50%;background:#fff;opacity:0;transition:opacity .35s}#pin .pk button:active::before{opacity:.22;transition:none}
+#pin .pk svg{width:7cqw;height:7cqw;fill:none;stroke:#fff;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
 </style>
 </head>
 <body>
@@ -866,6 +875,13 @@ input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:tr
     <div class="grip"></div>
     <button class="x" data-act="close" aria-label="Schließen"><svg class="i"><use href="#xt"/></svg></button>
     <div class="top"><span data-bind="vname"></span><time data-bind="time"></time></div>
+  </section>
+
+  <section id="pin" class="view" hidden>
+    <button class="x" data-act="close" aria-label="Schließen"><svg class="i"><use href="#xt"/></svg></button>
+    <div class="top"><span data-bind="vname"></span><time data-bind="time"></time></div>
+    <div class="pdots"></div>
+    <div class="pk"><button data-act="pk" data-k="2" style="--cx:0;--cy:0">2</button><button data-act="pk" data-k="1" style="--cx:-1;--cy:1">1</button><button data-act="pk" data-k="3" style="--cx:1;--cy:1">3</button><button data-act="pk" data-k="5" style="--cx:0;--cy:2">5</button><button data-act="pk" data-k="4" style="--cx:-1;--cy:3">4</button><button data-act="pk" data-k="6" style="--cx:1;--cy:3">6</button><button data-act="pk" data-k="8" style="--cx:0;--cy:4">8</button><button data-act="pk" data-k="7" style="--cx:-1;--cy:5">7</button><button data-act="pk" data-k="9" style="--cx:1;--cy:5">9</button><button data-act="pk" data-k="0" style="--cx:0;--cy:6">0</button><button data-act="pk" data-k="del" style="--cx:-2;--cy:3" aria-label="Löschen"><svg viewBox="0 0 24 24"><path d="M9 7L4.5 11.5 9 16M4.5 11.5H15a4.5 4.5 0 0 1 0 9h-3"/></svg></button><button data-act="pk" data-k="ok" style="--cx:2;--cy:3" aria-label="Bestätigen"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.6 4.6L19 7.5"/></svg></button></div>
   </section>
 
   <section id="shade" class="view" hidden>
@@ -2357,6 +2373,21 @@ function sendLight() {   // max. alle 200 ms während des Ziehens
 // Schloss entriegeln = Halten (Ring füllt sich in HOLD_MS), kurzer Tipp zeigt nur den Hinweis; Verriegeln bleibt ein Tipp
 const HOLD_MS = 700;
 let hl = null;
+// Schlösser mit code_format (HA) fragen den Code am Ziffernblock ab; Demo-Code 1234
+let pinV = '';
+const pinDots = () => { const n = Math.max(4, pinV.length); $('#pin .pdots').innerHTML = Array.from({ length: n }, (_, i) => `<i${i < pinV.length ? ' class="on"' : ''}></i>`).join(''); };
+function unlockLock(id, t) {
+  if (!st(id).attributes.code_format) return call('lock', 'unlock', { entity_id: id });
+  pinV = ''; open(t, 'pin'); pinDots();
+}
+async function pinGo() {
+  const id = cur?.e, code = pinV; if (!id || !code) return;
+  try {
+    if (LIVE) await conn.sendMessagePromise({ type: 'call_service', domain: 'lock', service: 'unlock', service_data: { entity_id: id, code } });
+    else if (code !== '1234') throw 0; else demoCall('lock', 'unlock', { entity_id: id });
+    close();
+  } catch { pinV = ''; shake($('#pin .pdots')); pinDots(); }
+}
 function holdLock(t) {
   const ico = $('.ico', t), r = ico.getBoundingClientRect(), b = t.getBoundingClientRect(), k = Math.max(r.width, r.height) * 1.5 / b.width * 100;
   const ring = Object.assign(document.createElement('div'), { className: 'hring', innerHTML: '<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" pathLength="100"/></svg>' });
@@ -2364,7 +2395,7 @@ function holdLock(t) {
   t.append(ring);
   const c = $('circle', ring), an = c.animate([{ strokeDashoffset: 100 }, { strokeDashoffset: 0 }], { duration: HOLD_MS, easing: 'linear', fill: 'forwards' });
   hl = { t, ring, an };
-  an.onfinish = () => { if (hl?.ring !== ring) return; hl = null; suppress = true; ring.classList.add('done'); setTimeout(() => ring.remove(), 400); call('lock', 'unlock', { entity_id: t.dataset.e }); };
+  an.onfinish = () => { if (hl?.ring !== ring) return; hl = null; suppress = true; ring.classList.add('done'); setTimeout(() => ring.remove(), 400); unlockLock(t.dataset.e, t); };
 }
 function holdCancel() { if (!hl) return; hl.an.onfinish = null; hl.ring.remove(); hl = null; }
 function armed(t) {
@@ -2383,7 +2414,7 @@ const TAP = {
   input_button: (t, id) => TAP.button(t, id),
   lock: (t, id) => {
     if (st(id).state !== 'locked') return call('lock', 'lock', { entity_id: id });
-    if (own(t._hold)) return armed(t) && call('lock', 'unlock', { entity_id: id });   // eigene Halten-Aktion belegt: Doppeltipp wie früher
+    if (own(t._hold)) return armed(t) && unlockLock(id, t);   // eigene Halten-Aktion belegt: Doppeltipp wie früher
     t.dataset.arm = 'hold'; setTimeout(() => t.dataset.arm === 'hold' && delete t.dataset.arm, 2500);   // Hinweis „Halten zum Öffnen“
   },
   cover: (t, id) => {
@@ -2655,6 +2686,7 @@ document.addEventListener('click', e => {
   if (e.target.closest('#assist')) { assistEnd(); if (act !== 'go') return; }   // Tipp schließt; Pille führt zusätzlich hin
   if (pop && !e.target.closest('.pop')) return pop.classList.remove('open');   // Tipp daneben schließt nur
   if (act === 'close') close();
+  else if (act === 'pk') { const k = b.dataset.k; k === 'ok' ? pinGo() : (pinV = k === 'del' ? pinV.slice(0, -1) : (pinV + k).slice(0, 12), pinDots()); }
   else if (act === 'cov') { hold[cur.e] = Date.now() + 1500; setTimeout(schedule, 1600); call('cover', b.dataset.v, { entity_id: cur.e }); }
   else if (/^tm[ptn]$/.test(act)) call('media_player', { tmp: 'media_previous_track', tmn: 'media_next_track', tmt: 'media_play_pause' }[act], { entity_id: b.closest('.tile').dataset.e });
   else if (act === 'hvac') modeMenu(true);
@@ -2880,7 +2912,7 @@ if (!LIVE) {
     'person.henryk': ['home', { friendly_name: 'Henryk' }],
     'person.mia': ['not_home', { friendly_name: 'Mia' }],
     'person.tom': ['home', { friendly_name: 'Tom' }],
-    'lock.eingangstur': ['locked', { friendly_name: 'Eingangstür' }],
+    'lock.eingangstur': ['locked', { friendly_name: 'Eingangstür', code_format: '^\\d{4}$' }],
     'lock.garagentur': ['locked', { friendly_name: 'Garagentür' }],
     'cover.garagentor': ['closed', { friendly_name: 'Garagentor', device_class: 'garage' }],
     'cover.kuche_rollladen': ['open', { friendly_name: 'Küche Rollladen', device_class: 'shutter' }],
