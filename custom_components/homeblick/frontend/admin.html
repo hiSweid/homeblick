@@ -8,10 +8,8 @@
 <style>
 /* Optik: iOS-Einstellungen (inset grouped, Large Title, Push-Navigation, Sheet/Alert), Federn und Press wie im Display.
    Maße nach iOS-Konventionen; HomeView liefert dafür keine Vorlage (nur Display-Screens). */
-:root{--bg:#f2f2f7;--grp:#ffffffc7;--fg:#000;--sec:#3c3c4399;--sep:#3c3c432e;--blue:#007aff;--green:#34c759;--red:#ff3b30;--fill:#78788029;--glass:#f2f2f7b8;
-  --wall:radial-gradient(60vmax 45vmax at 8% -8%,#b9dcff99,#0000),radial-gradient(50vmax 40vmax at 100% 6%,#ffd3e699,#0000),radial-gradient(60vmax 50vmax at 60% 110%,#d6f5dd99,#0000),#f2f2f7}
-@media(prefers-color-scheme:dark){:root{--bg:#000;--grp:#1c1c1ec7;--fg:#fff;--sec:#ebebf599;--sep:#54545899;--blue:#0a84ff;--green:#30d158;--red:#ff453a;--fill:#7878805c;--glass:#000000b8;
-  --wall:radial-gradient(60vmax 45vmax at 8% -8%,#1c3a5c99,#0000),radial-gradient(50vmax 40vmax at 100% 6%,#4a233a99,#0000),radial-gradient(60vmax 50vmax at 60% 110%,#1d3d2699,#0000),#000}}
+:root{color-scheme:dark;--bg:#000;--grp:#1c1c1ec7;--fg:#fff;--sec:#ebebf599;--sep:#54545899;--blue:#0a84ff;--green:#30d158;--red:#ff453a;--fill:#7878805c;--glass:#000000b8;
+  --wall:radial-gradient(60vmax 45vmax at 8% -8%,#1c3a5c99,#0000),radial-gradient(50vmax 40vmax at 100% 6%,#4a233a99,#0000),radial-gradient(60vmax 50vmax at 60% 110%,#1d3d2699,#0000),#000}   /* immer dunkel wie HomeView (schwarzer Grund, Glas-Gruppen), unabhängig von der Systemeinstellung */
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;margin:0}
 body{background:var(--wall) fixed;color:var(--fg);font:400 17px/1.3 -apple-system,BlinkMacSystemFont,"SF Pro Text",Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;-webkit-text-size-adjust:100%;overflow:hidden}
@@ -49,6 +47,7 @@ svg{display:block}
 #edside{flex:none;width:78px;max-height:100%;display:flex;flex-direction:column;gap:14px;align-items:center;justify-content:safe center;padding:7px 0;overflow-y:auto;scrollbar-width:none}#edside:empty{display:none}
 .edot{width:30px;height:30px;border-radius:50%;flex:none;box-shadow:inset 0 0 0 .5px #fff4;transition:box-shadow .25s,scale .25s var(--spring)}.edot:active{scale:.88}.edot.on{box-shadow:0 0 0 2.5px #000,0 0 0 4.5px #fff}
 .est{width:100%;padding:8px 4px;border-radius:12px;background:#ffffff1f;font-size:12px;font-weight:600;text-align:center;transition:background .25s,color .25s,scale .25s var(--spring)}.est:active{scale:.94}.est.on{background:#fff;color:#000}
+body:has(#ov) #ed .edb{opacity:0;pointer-events:none}.edb{transition:opacity .25s}
 .edb{flex:none;width:min(100%,640px);display:flex;justify-content:space-between;align-items:center;padding:4px 0}
 .edc{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;transition:scale .25s var(--spring)}.edc:active{scale:.9}.edc svg{width:24px;height:24px;stroke:#fff;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
 .edc.x{background:#3a3a3c}.edc.ok{background:var(--blue)}
