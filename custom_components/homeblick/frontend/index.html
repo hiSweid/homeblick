@@ -130,6 +130,18 @@ svg.i{width:1em;height:1em;flex:none;fill:none;stroke:currentColor;stroke-width:
 .light .tile[data-sv=knob] .sub,[data-mode=light] .tile[data-sv=knob] .sub{color:var(--kf)}
 .tile[data-sv=knob][data-size="2x1"] .kn{width:15cqw;height:15cqw}.tile[data-sv=knob][data-size="2x1"] .ico{font-size:7cqw}
 .tile[data-sv=knob][data-size="2x2"]{padding:7cqw 2cqw 5cqw}.tile[data-sv=knob][data-size="2x2"] .kn{width:27cqw;height:27cqw;box-shadow:0 0 0 2.4cqw color-mix(in srgb,var(--kb) 45%,transparent)}.tile[data-sv=knob][data-size="2x2"] .ico{font-size:13cqw}
+/* Kamera: Livebild füllt die Kachel (Galerie „Kamera-Livebild“): Verlauf unten, Titel/Raum weiß, rote Live-Pille oben links, Bewegungs-Chip oben rechts bei Bewegung; offline = abgedunkelt + graue Pille. Ohne Stream normale Kachel */
+.tile[data-sv=live] :is(.lvp,.mch){display:none;position:absolute;z-index:2;top:2.4cqw;font-size:2.3cqw;font-weight:600;line-height:1;padding:.8cqw 1.7cqw;border-radius:99px;color:#fff;white-space:nowrap}
+.tile[data-sv=live].live :is(.lvp){display:block}.tile[data-sv=live].mv .mch{display:block}
+.tile[data-sv=live] .lvp{left:2.4cqw;background:#ff3b30}.tile[data-sv=live].off .lvp{background:#8e8e93}
+.tile[data-sv=live] .lvp::before{content:"";display:inline-block;width:1.1cqw;height:1.1cqw;margin-right:.9cqw;border-radius:50%;background:#fff;vertical-align:.1cqw;animation:lvb 1.6s ease-in-out infinite}.tile[data-sv=live].off .lvp::before{animation:none;opacity:.6}@keyframes lvb{50%{opacity:.35}}
+.tile[data-sv=live] .mch{right:2.4cqw;background:#ffffff38;backdrop-filter:blur(1.5cqw);-webkit-backdrop-filter:blur(1.5cqw)}
+.tile[data-sv=live].live::after{content:"";position:absolute;inset:0;z-index:1;border-radius:inherit;background:linear-gradient(#0000 38%,#000b);pointer-events:none}.tile[data-sv=live].off .feed{filter:brightness(.45) grayscale(.5)}
+.tile[data-sv=live].live>:not(.feed){opacity:1}.tile[data-sv=live].live .ico{display:none}
+.tile[data-sv=live].live{color:#fff;padding:3cqw;align-items:flex-start;justify-content:flex-end;text-align:left}
+.tile[data-sv=live].live>div:last-child{position:relative;z-index:2;min-width:0;max-width:100%}.tile[data-sv=live].live :is(.ttl,.sub){color:#fff!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.tile[data-sv=live].live .sub{opacity:.78}
+.tile[data-sv=live][data-size="2x1"].live:not(.thermo){flex-direction:column;align-items:flex-start;justify-content:flex-end;gap:0;padding:3cqw}
+.tile[data-sv=live][data-size="2x2"].live{padding:5cqw}.tile[data-sv=live][data-size="2x2"] :is(.lvp,.mch){font-size:3.2cqw;top:4cqw}.tile[data-sv=live][data-size="2x2"] .lvp{left:4cqw}.tile[data-sv=live][data-size="2x2"] .mch{right:4cqw}
 .tile[data-sv=cover][data-size="2x2"].art-on{padding:5cqw}.tile[data-sv=cover][data-size="2x2"] .pill{font-size:3.2cqw;left:4cqw;top:4cqw}.tile[data-sv=cover][data-size="2x2"] .pct{right:4.5cqw;top:4.5cqw}.tile[data-sv=cover][data-size="2x2"] .pct .i{width:4.4cqw;height:4.4cqw}
 
 .num{display:grid;justify-items:center;font-weight:500;line-height:1;letter-spacing:-.02em}
@@ -1284,7 +1296,7 @@ function tileEl(c) {
   else if (kind === 'thermo') { el.className = 'tile thermo'; el.innerHTML = `<div class="num" data-temp="${esc(t.e)}"></div><div class="foot">${chev('down')}${label}${chev('up')}</div>`; }
   else {
     el.className = 'tile';
-    el.innerHTML = (t.e?.startsWith('camera.') ? '<div class="feed"></div>' : '') + (t.sv === 'fill' || t.sv === 'blind' ? '<div class="fill"></div><div class="pct"></div>' : t.sv === 'cover' ? `<div class="art"></div><div class="pill">${esc(t.title)}</div><div class="pct"></div>` : '') + (t.sv === 'knob' ? `<div class="kn">${svg(iconOf(t), 'ico')}</div>` : svg(iconOf(t), 'ico')) + (t.sv === 'value' ? '<div class="big"></div>' : '') + label;
+    el.innerHTML = (t.e?.startsWith('camera.') ? '<div class="feed"></div>' + (t.sv === 'live' ? '<div class="lvp"></div><div class="mch">Bewegung</div>' : '') : '') + (t.sv === 'fill' || t.sv === 'blind' ? '<div class="fill"></div><div class="pct"></div>' : t.sv === 'cover' ? `<div class="art"></div><div class="pill">${esc(t.title)}</div><div class="pct"></div>` : '') + (t.sv === 'knob' ? `<div class="kn">${svg(iconOf(t), 'ico')}</div>` : svg(iconOf(t), 'ico')) + (t.sv === 'value' ? '<div class="big"></div>' : '') + label;
   }   // Livebild: camTile in render()
   return el;
 }
@@ -1691,6 +1703,13 @@ const STATUS = {
   lock: s => ({ locking: 'Wird verriegelt …', unlocking: 'Wird entriegelt …', jammed: 'Blockiert', locked: 'Verriegelt', unlocked: 'Entriegelt', open: 'Geöffnet' })[s.state],
   fan: s => s.state === 'on' ? (s.attributes.percentage != null ? `${Math.round(s.attributes.percentage)} %` : 'An') : s.state === 'off' ? 'Aus' : '',
 };
+function liveTile(t, s) {   // Kamera-Livebild: Pille (Live/Offline) + Bewegungs-Chip (binary_sensor.<kamera>…motion|person|bewegung)
+  const na = s.state === 'unavailable', n = Object.keys(ents).length, slug = t.dataset.e.split('.')[1];
+  t.classList.toggle('off', na);
+  const pill = $('.lvp', t), txt = na ? 'Offline' : 'Live'; if (pill.textContent !== txt) pill.textContent = txt;
+  if (t._mn !== n) { t._mn = n; t._mid = Object.keys(ents).find(id => id.startsWith('binary_sensor.' + slug) && /motion|person|bewegung/.test(id)) || ''; }
+  t.classList.toggle('mv', !!t._mid && ents[t._mid].state === 'on');
+}
 const KNS = { open: 'Offen', closed: 'Zu', opening: 'Öffnet …', closing: 'Schließt …' };
 function knobTile(t, s) {   // Schloss/Tor-Knopf: Zustand → Farbe + Statuszeile
   const v = s.state, lock = t.dataset.e.startsWith('lock.');
@@ -1734,6 +1753,7 @@ function render() {
     if (!held(id)) t.classList.toggle(FILL.test(t.dataset.sv) || /^(cover|knob)$/.test(t.dataset.sv) ? 'lit' : 'on', !!ON[d]?.(s));
     if (t.dataset.sv === 'cover') coverTile(t, s);
     if (t.dataset.sv === 'knob') knobTile(t, s);
+    if (t.dataset.sv === 'live') liveTile(t, s);
     if (FILL.test(t.dataset.sv) && !t._drag && !held(id)) {   // Füllhöhe = Helligkeit bzw. Schließgrad; in der Vorschau (nicht Bearbeiten) bei „aus“/offen eine Beispielhöhe zur Ansicht
       const blind = t.dataset.sv === 'blind', p0 = blind ? closedPct(s) : pct(s), demo = PREVIEW && !root.classList.contains('pvedit') && (blind ? !p0 : s.state !== 'on'), p = demo ? (blind ? 55 : 70) : p0;
       if (p) t._p = p;
