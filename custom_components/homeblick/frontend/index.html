@@ -1155,6 +1155,23 @@ const wp = (h, blur = 0) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 
 <circle cx="-10" cy="108" r="48" fill="hsl(${h - 14},70%,14%)" opacity=".55"/>
 <path d="M40-10C30 40 60 70 110 80" stroke="hsl(${h + 8},95%,80%)" stroke-opacity=".3" stroke-width="10" fill="none"/>
 </g></svg>`;
+// Facettierte Wallpaper der Website (Vorlage installation = Violett „Prisma“, product-viewer wall_mount = Teal): harte Kanten, schräge Balken mit heller Fläche und dunkler Seite, darunter Kristallflächen; Teal zusätzlich mit Fächerblatt oben links.
+// Eigene Annäherung an das Website-Bild (Muster nicht exakt), Farbtöne per Pixelprobe: Violett ≈ #5a5acf (H 240), Teal ≈ #2a7f72 (H 172)
+const HUEOF = { metal: 215, prism: 245, teal: 172 };
+const hueOf = b => typeof b === 'number' ? b : HUEOF[b] ?? null;
+const wpPrism = (h, blur = 0, fan = false) => {
+  const c = (s, l, a = 1) => `hsl(${h} ${s}% ${l}% / ${a})`, poly = (pts, f) => `<polygon points="${pts}" fill="${f}"/>`;
+  const beams = [0, 1, 2].map(k => { const o = k * 17; return poly(`${8 + o},-10 ${22 + o},-10 ${80 + o},48 ${66 + o},48`, c(72, 62, .4)) + poly(`${22 + o},-10 ${27 + o},-10 ${85 + o},48 ${80 + o},48`, c(55, 20, .5)); }).join('');
+  const leaves = fan ? Array.from({ length: 14 }, (_, i) => { const a = i * 25.7 * Math.PI / 180, d = 11 * Math.PI / 180, P = (r, t) => `${(22 + r * Math.cos(t)).toFixed(1)},${(24 + r * Math.sin(t)).toFixed(1)}`; return poly(`22,24 ${P(34, a - d)} ${P(34, a + d)}`, i % 2 ? c(60, 60, .22) : c(55, 22, .3)); }).join('') : '';
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="none"><defs>
+<linearGradient id="g" x2="1" y2="1"><stop stop-color="${c(62, 39)}"/><stop offset="1" stop-color="${c(60, 24)}"/></linearGradient>
+<radialGradient id="r" cx=".3" cy="0" r=".9"><stop stop-color="#fff" stop-opacity=".12"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+<filter id="b" x="0" y="0" width="1" height="1"><feGaussianBlur stdDeviation="${blur}" edgeMode="duplicate"/></filter></defs>
+<g ${blur ? 'filter="url(#b)"' : ''}><rect width="100" height="100" fill="url(#g)"/>${leaves}${beams}
+${poly('100,-5 112,-5 38,70 26,70', c(80, 80, .26))}${poly('112,-5 116,-5 42,70 38,70', c(55, 18, .4))}
+${poly('0,48 24,40 60,76 36,84', c(75, 78, .2))}${poly('0,70 30,58 45,100 0,100', c(55, 16, .42))}${poly('55,100 75,62 100,75 100,100', c(52, 24, .5))}${poly('30,86 60,74 72,100 38,100', c(70, 68, .26))}${poly('78,40 100,30 100,62 86,66', c(60, 30, .35))}
+<rect width="100" height="100" fill="url(#r)"/></g></svg>`;
+};
 // Helle Glas-Variante 'metal' (Vorlage TGo1gI0QtfU 00475): entsättigtes Graublau H≈215°, S≈20-25 %, L≈60-75 %, dunkle Wellenformen, weißer Text auf Glas
 const wpMetal = (blur = 0) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="none">
 <defs><linearGradient id="g" x2="1" y2="1"><stop stop-color="hsl(212,42%,76%)"/><stop offset=".5" stop-color="hsl(213,40%,62%)"/><stop offset="1" stop-color="hsl(214,38%,52%)"/></linearGradient>
@@ -1182,7 +1199,7 @@ const wpL = (h, blur = 0) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0
 <path d="M40-10C30 40 60 70 110 80" stroke="hsl(${h + 8},100%,97%)" stroke-opacity=".5" stroke-width="10" fill="none"/>
 </g></svg>`;
 const lightMode = () => CONF.mode === 'light';
-const wall = h => wallCache[h + (lightMode() ? 'L' : '')] ||= h === 'metal' ? [svgUrl(wpMetal()), svgUrl(wpMetal(1))] : lightMode() ? [svgUrl(wpL(h)), svgUrl(wpL(h, 1))] : [svgUrl(wp(h)), svgUrl(wp(h, 1))];
+const wall = h => wallCache[h + (lightMode() ? 'L' : '')] ||= h === 'prism' || h === 'teal' ? [svgUrl(wpPrism(HUEOF[h], 0, h === 'teal')), svgUrl(wpPrism(HUEOF[h], 1, h === 'teal'))] : h === 'metal' ? [svgUrl(wpMetal()), svgUrl(wpMetal(1))] : lightMode() ? [svgUrl(wpL(h)), svgUrl(wpL(h, 1))] : [svgUrl(wp(h)), svgUrl(wp(h, 1))];
 // Dynamische Faces:
 // Nacht = Sonne unter dem Horizont (sun.sun), ohne sun.sun nach Uhrzeit; ?tod=night|day erzwingt
 const TOD = new URLSearchParams(location.search).get('tod');
@@ -1194,10 +1211,10 @@ const bgOf = f => {
   if (f.bg === 'auto' && CONF.mode) {   // Modus gewählt: Hell/Dunkel statt Tag/Nacht; Flat-Hell = Apples weißer Untergrund, Liquid-Hell = Pastell-Tapete (wall)
     if (AUTO[f.type]) b = AUTO[f.type][CONF.mode === 'light' ? 0 : 1]; else if (CONF.mode === 'light' && CONF.theme === 'flat') b = 'white';
   }
-  return (f.type === 'calendar' || f.type === 'date') && (typeof b === 'number' || b === 'metal') ? 'white' : b; };   // Kalender- und Datums-Face gibt es nur hell/dunkel (Vorlage faces_enhanced); Farbhintergründe → hell, sonst rote Zahl + blaue Ziffern auf Farbe unlesbar
+  return (f.type === 'calendar' || f.type === 'date') && hueOf(b) != null ? 'white' : b; };   // Kalender- und Datums-Face gibt es nur hell/dunkel (Vorlage faces_enhanced); Farbhintergründe → hell, sonst rote Zahl + blaue Ziffern auf Farbe unlesbar
 // bg: Farbton (Zahl) | 'metal' (helles Graublau) | 'black' | 'white' | { photo, blur }
 function applyBg(el, bg) {
-  const hue = typeof bg === 'number' || bg === 'metal', h = bg === 'metal' ? 215 : bg;
+  const hue = hueOf(bg) != null, h = hueOf(bg);
   el.classList.toggle('light', bg === 'white');
   el.classList.toggle('mono', !hue && bg !== 'white');
   for (const k of ['--ink', '--ink2', '--tint']) el.style.removeProperty(k);
@@ -1367,7 +1384,7 @@ function glassSlots(hm) {
   }
 }
 function depthHTML(f) {
-  const b = bgOf(f), src = b?.photo ? b.blur : typeof b === 'number' ? svgData((lightMode() ? wpL : wp)(b, 5)) : '';
+  const b = bgOf(f), src = b?.photo ? b.blur : typeof b === 'number' ? svgData((lightMode() ? wpL : wp)(b, 5)) : b === 'prism' || b === 'teal' ? svgData(wpPrism(HUEOF[b], 5, b === 'teal')) : '';
   // Vorlage faces_endframe (per Pixel gemessen): Ziffern 6–94 % hoch, „0“ 16 % breit, Strich ≈ 5,6 % (monoline), Paare um 21/76 %;
   // Roboto Flex schmal + dünn (XOPQ/YOPQ) und per scale(K KY) auf diese Maße gezogen, proportionale Ziffern wie die Vorlage
   // Reveal: jede Ziffer eigene Ebene (die anderen visibility:hidden, Platz bleibt), links → rechts versetzt mit Feder
@@ -1417,7 +1434,7 @@ const FACE = {
     if (!k) return el.classList.add('lg'), el.innerHTML = `<div class="dial ${{ ticks: '', minimal: 'minimal' }[s] ?? 'nums'}"></div>`;
     // flache Fläche aus dem Ton des Face (nicht der Wallpaper); Weiß = helles Relief mit kupfernem Sekundenzeiger
     el.style.backgroundColor = ''; el.classList.remove('light', 'mono');
-    const h = typeof f.bg === 'number' ? f.bg : f.bg === 'metal' ? 215 : null;
+    const h = hueOf(f.bg);
     el.classList.add('an-' + (k === 'relief' && f.bg === 'white' ? 'white' : k));
     el.classList.toggle('tq', h >= 165 && h <= 215);
     if (h != null) el.style.setProperty('--h', h);
