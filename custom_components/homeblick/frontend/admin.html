@@ -682,6 +682,7 @@ function edChrome(f) {   // Reiter oben und Auswahlspalte rechts wie bei Apple (
   $('#edtabs').innerHTML = tabs.length > 1 ? tabs.map(([k, n]) => `<button data-a="etab" data-v="${k}" class="${k === edTab ? 'on' : ''}">${n}</button>`).join('') : '';
   $('#edside').innerHTML = edTab === 'style' ? sty.map(([v, n]) => `<button class="est ${v === designCur(f) ? 'on' : ''}" data-a="esty" data-v="${v}">${esc(n)}</button>`).join('')
     : edTab === 'color' && !photo ? BG.filter(([v]) => !['calendar', 'date'].includes(f.type) || ['auto', 'black', 'white'].includes(v)).map(([v, n]) => `<button class="edot ${String(v) === String(f.bg) ? 'on' : ''}" data-a="ebg" data-v="${v}" style="background:${bgCss(v)}" aria-label="${esc(n)}" title="${esc(n)}"></button>`).join('') : '';
+  $('#edside .on')?.scrollIntoView({ block: 'nearest', inline: 'center' });   // Handy: gewählter Punkt/Stil sichtbar
 }
 function closeEd() {
   if (!edOpen) return;
