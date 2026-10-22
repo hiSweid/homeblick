@@ -8,13 +8,20 @@ export function faceId(conf, type) {
   return n > 1 ? type + n : type;
 }
 
-// Alte Konfiguration (ohne id/off) übernehmen, fehlende Standard-Faces als ausgeschaltet ergänzen; true = geändert
+// Uhr und Kalender gibt es je Display nur einmal; das Design (Typ + Stil) und die Farbe wählt man am Face.
+// Uhr: bigclock = digital, analog = analog. Kalender: calendar = Monat, date = Datum.
+export const GROUP = { bigclock: 'clock', analog: 'clock', calendar: 'cal', date: 'cal' };
+export const SIBLING = { bigclock: 'analog', analog: 'bigclock', calendar: 'date', date: 'calendar' };
+const dedupe = (list, seen) => { for (let i = 0; i < list.length; i++) { const g = GROUP[list[i].type]; if (!g) continue; if (seen.has(g)) list.splice(i--, 1); else seen.add(g); } };
+
+// Alte Konfiguration (ohne id/off) übernehmen, fehlende Standard-Faces als ausgeschaltet ergänzen, Uhr/Kalender nur einmal; true = geändert
 export function normFaces(conf, defs = []) {
   const before = JSON.stringify([conf.faces, conf.off]);
   ids(conf.faces);
   conf.off = (conf.off || []).filter(f => !conf.faces.some(a => a.id === f.id)); ids(conf.off);
+  const seen = new Set(); dedupe(conf.faces, seen); dedupe(conf.off, seen);
   const d = structuredClone(defs); ids(d);
-  for (const f of d) if (![...conf.faces, ...conf.off].some(x => x.id === f.id)) conf.off.push(f);
+  for (const f of d) if (![...conf.faces, ...conf.off].some(x => x.id === f.id) && !seen.has(GROUP[f.type])) { conf.off.push(f); if (GROUP[f.type]) seen.add(GROUP[f.type]); }
   return JSON.stringify([conf.faces, conf.off]) !== before;
 }
 
