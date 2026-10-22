@@ -34,15 +34,25 @@ svg{display:block}
 .dc b{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 4px}.dc small{color:var(--sec);font-size:13px;padding:0 4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.dc small.warn{color:var(--red)}
 
 /* Editor: das Display im Vollbild, Bearbeiten-Modus wie bei iOS (Pillen „+“ „Einstellungen“ „✓“, Seitenpunkte, Name der Seite) */
-#ed{position:fixed;inset:0;z-index:15;display:none;flex-direction:column;align-items:center;gap:6px;background:var(--wall) fixed;padding:max(env(safe-area-inset-top),14px) 16px max(env(safe-area-inset-bottom),14px)}
+#ed{--fg:#fff;--sec:#8e8e93;--fill:#ffffff26;color:#fff;position:fixed;inset:0;z-index:15;display:none;flex-direction:column;align-items:center;gap:6px;background:#000;padding:max(env(safe-area-inset-top),14px) 16px max(env(safe-area-inset-bottom),14px)}
 #ed.on{display:flex}
 .edh{flex:none;width:min(100%,640px);display:flex;align-items:center;gap:8px;min-height:34px}
 .edh b{flex:1;min-width:0;text-align:center;font-weight:600;font-size:15px;color:var(--sec);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .edh .pvp.ok{margin-left:0}
 .pvp{width:46px;height:30px;border-radius:15px;display:flex;flex:none;align-items:center;justify-content:center;background:var(--fill);color:var(--fg);transition:scale .25s var(--spring)}.pvp:active{scale:.9}.pvp svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
 .pvp.ok{background:var(--blue);color:#fff}
-#edm{flex:1;min-height:0;width:100%;display:flex;align-items:center;justify-content:center;touch-action:pan-y;filter:drop-shadow(0 10px 17px #0004)}
-#pvf{flex:none;width:min(100%,calc(100dvh - 170px));aspect-ratio:1;border:0;clip-path:inset(0 round 8%);background:#000}
+#edm{flex:1;min-height:0;width:100%;display:flex;align-items:center;justify-content:center;gap:22px;touch-action:pan-y}
+#pvw{flex:none;box-sizing:border-box;width:min(calc(100% - 100px),calc(100dvh - 270px));aspect-ratio:1;padding:5px;border:2.5px solid #fff;border-radius:10.2%;background:#000}   /* Anpassen-Ansicht von HomeView: schwarzer Grund, Karte mit weißem Rand (Vorlage Shorts fGwB 1:20, Nf6i 93,8 s) */
+#pvf{display:block;width:100%;height:100%;border:0;clip-path:inset(0 round 8.4%);background:#000}
+#edtabs{flex:none;display:flex;gap:28px;justify-content:center;min-height:24px;font-size:13px;font-weight:700;letter-spacing:.07em;text-transform:uppercase}
+#edtabs button{color:#8e8e93;transition:color .25s}#edtabs button.on{color:#fff}
+#edside{flex:none;width:78px;max-height:100%;display:flex;flex-direction:column;gap:14px;align-items:center;justify-content:safe center;padding:7px 0;overflow-y:auto;scrollbar-width:none}#edside:empty{display:none}
+.edot{width:30px;height:30px;border-radius:50%;flex:none;box-shadow:inset 0 0 0 .5px #fff4;transition:box-shadow .25s,scale .25s var(--spring)}.edot:active{scale:.88}.edot.on{box-shadow:0 0 0 2.5px #000,0 0 0 4.5px #fff}
+.est{width:100%;padding:8px 4px;border-radius:12px;background:#ffffff1f;font-size:12px;font-weight:600;text-align:center;transition:background .25s,color .25s,scale .25s var(--spring)}.est:active{scale:.94}.est.on{background:#fff;color:#000}
+.edb{flex:none;width:min(100%,640px);display:flex;justify-content:space-between;align-items:center;padding:4px 0}
+.edc{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;transition:scale .25s var(--spring)}.edc:active{scale:.9}.edc svg{width:24px;height:24px;stroke:#fff;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.edc.x{background:#3a3a3c}.edc.ok{background:var(--blue)}
+@media (max-width:700px){#edm{flex-direction:column;gap:12px}#pvw{width:min(100%,calc(100dvh - 330px))}#edside{width:100%;flex-direction:row;overflow-x:auto;overflow-y:hidden;justify-content:center}.est{width:auto;padding:8px 14px}}
 #eddots{flex:none;display:flex;gap:10px;align-items:center;justify-content:center;min-height:20px}
 #eddots button{position:relative;width:8px;height:8px;border-radius:50%;background:var(--sec);opacity:.35;transition:opacity .2s,scale .25s var(--spring)}
 #eddots button::after{content:"";position:absolute;inset:-9px}
@@ -257,9 +267,11 @@ textarea.r{text-align:right}
 
 <div id="side"></div>
 <section id="ed" aria-label="Display bearbeiten">
-  <div class="edh"><button class="pvp" data-a="gal" aria-label="Widget hinzufügen"><svg><use href="#i-plus"/></svg></button><button class="pvp" data-a="gear" aria-label="Einstellungen"><svg><use href="#i-sliders"/></svg></button><b id="edt"></b><button class="pvp ok" data-a="edone" aria-label="Fertig"><svg><use href="#i-check"/></svg></button></div>
-  <div id="edm"><iframe id="pvf" title="Display"></iframe></div>
+  <div class="edh"><button class="pvp" data-a="gal" aria-label="Widget hinzufügen"><svg><use href="#i-plus"/></svg></button><b id="edt"></b><button class="pvp" data-a="gear" aria-label="Einstellungen"><svg><use href="#i-sliders"/></svg></button></div>
+  <div id="edtabs"></div>
+  <div id="edm"><div id="pvw"><iframe id="pvf" title="Display"></iframe></div><div id="edside"></div></div>
   <div id="eddots"></div><button id="edname" data-a="fname"></button>
+  <div class="edb"><button class="edc x" data-a="ecancel" aria-label="Verwerfen"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button><button class="edc ok" data-a="edone" aria-label="Fertig"><svg><use href="#i-check"/></svg></button></div>
 </section>
 <div id="shp"><div class="shc"><section class="page" id="ins"><header class="nav"></header><div id="carslot" hidden></div><div class="body"></div></section></div></div>
 <div id="toast"></div>
@@ -309,7 +321,7 @@ const field = (label, key, v, extra = '', attr = 'data-s') => `<label class="row
 const shots = {};   // letztes Bildschirmfoto je Display
 let conn, displays = [], sel = null, cfg = null, pipelines = [], ttss = [];
 let camState = { cameras: { list: [], bell: null }, auto: true }, camEnts = [];   // Kameras und Klingel gelten für alle Displays
-let ins = null, fi = 0, edOpen = false;   // Sheet: { t: 'display', sec } | { t: 'face', i } | { t: 'tile', i, j } | null; fi = Face im Editor
+let ins = null, fi = 0, edOpen = false, edTab = '', edSnap = '';   // Sheet: { t: 'display', sec } | { t: 'face', i } | { t: 'tile', i, j } | null; fi = Face im Editor
 const call = (type, p = {}) => conn.sendMessagePromise({ type: 'homeblick/' + type, ...p });
 const cur = () => displays.find(d => d.id === sel);
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -643,13 +655,28 @@ const faceName = x => (FACE[x.type]?.[0] || x.type) + (x.id !== x.type ? ' ' + x
 async function openEd(id, from) {
   const c = await call('get_config', { display: id }).catch(() => null);
   if (!c?.config?.faces) return toast('Noch keine Konfiguration: öffne Homeblick einmal auf dem Gerät', true);
-  sel = id; cfg = c.config; normFaces(cfg); fi = 0; ins = null; edOpen = true;
+  sel = id; cfg = c.config; normFaces(cfg); fi = 0; ins = null; edOpen = true; edTab = ''; edKey = ''; edSnap = JSON.stringify(cfg);   // Stand beim Öffnen, für ✕
   pvConf = ''; pvFace = ''; pvSel = -2; pvEd = null;
   $('#edt').textContent = cur().name;
   pvLoad(); carInit(); ed.classList.add('on');
   if (from) { const r = from.getBoundingClientRect(); ed.style.transformOrigin = `${r.left + r.width / 2}px ${r.top + r.height / 2}px`; }
   ed.animate([{ opacity: 0, transform: 'scale(.35)' }, { opacity: 1, transform: 'none' }], { duration: SD, easing: SPRING });
   pvSend();
+}
+async function edCancel() {   // ✕: alles seit dem Öffnen verwerfen (die Anzeige hat die Änderungen schon live bekommen)
+  clearTimeout(st);
+  if (JSON.stringify(cfg) !== edSnap) { cfg = JSON.parse(edSnap); pvConf = ''; await guard(call('admin_config', { display: sel, config: cfg })).catch(() => toast('Verwerfen fehlgeschlagen', true)); }
+  closeEd();
+}
+const edTabs = f => f.type === 'grid' ? [['widgets', 'Widgets'], ['color', 'Farbe']] : [...(STYLES[f.type] ? [['style', 'Stil']] : []), ['color', 'Farbe']];
+let edKey = '';
+function edChrome(f) {   // Reiter oben und Auswahlspalte rechts wie bei Apple (Stil: Liste, Farbe: Punkte)
+  const tabs = edTabs(f); if (!tabs.some(([k]) => k === edTab)) edTab = tabs[0][0];
+  const photo = f.bg && typeof f.bg === 'object', sty = (STYLES[f.type] || []).concat((LEGACY[f.type] || []).filter(([v]) => v === f.style)), key = JSON.stringify([f.id, edTab, f.style || '', photo ? 'p' : f.bg]);
+  if (key === edKey) return; edKey = key;
+  $('#edtabs').innerHTML = tabs.length > 1 ? tabs.map(([k, n]) => `<button data-a="etab" data-v="${k}" class="${k === edTab ? 'on' : ''}">${n}</button>`).join('') : '';
+  $('#edside').innerHTML = edTab === 'style' ? sty.map(([v, n]) => `<button class="est ${v === (f.style || sty[0][0]) ? 'on' : ''}" data-a="esty" data-v="${v}">${esc(n)}</button>`).join('')
+    : edTab === 'color' && !photo ? BG.filter(([v]) => !['calendar', 'date'].includes(f.type) || ['auto', 'black', 'white'].includes(v)).map(([v, n]) => `<button class="edot ${String(v) === String(f.bg) ? 'on' : ''}" data-a="ebg" data-v="${v}" style="background:${bgCss(v)}" aria-label="${esc(n)}" title="${esc(n)}"></button>`).join('') : '';
 }
 function closeEd() {
   if (!edOpen) return;
@@ -689,12 +716,14 @@ function pvSend() {
     if (dots.dataset.n !== cfg.faces.map(x => x.id).join()) { dots.dataset.n = cfg.faces.map(x => x.id).join(); dots.innerHTML = cfg.faces.map((x, i) => `<button data-dot="${i}" aria-label="${esc(faceName(x))}"></button>`).join('') + '<button class="dp" data-a="faddsheet" aria-label="Neues Face"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>'; }
     dots.querySelectorAll('[data-dot]').forEach((b, i) => b.classList.toggle('on', i === fi));
     $('#edname').textContent = f ? faceName(f) : '';
+    if (f) edChrome(f);
   }
   if (!pvReady) return;
   const t = ins?.t === 'tile' && ins.i === fi ? ins.j : -1;
   const m = {}, j = JSON.stringify([cfg.faces, cfg.theme, cfg.mode]);
   if (j !== pvConf) { pvConf = j; m.conf = cfg; }
-  if (edOpen !== pvEd) { pvEd = edOpen; m.edit = edOpen; }
+  const want = edOpen && edTab === 'widgets';   // „−“ und Griffe nur im Reiter Widgets
+  if (want !== pvEd) { pvEd = want; m.edit = want; }
   if (f && f.id !== pvFace) { pvFace = f.id; m.face = f.id; if (pvAnim) m.anim = true; }
   pvAnim = false;
   if (m.conf) m.face = pvFace;
@@ -923,6 +952,9 @@ document.addEventListener('click', async e => {
   if (a === 'fname') return openFace(fi);
   if (a === 'setup') return setupWizard(displays.find(d => d.id === b.dataset.id));
   if (a === 'edone') return closeEd();
+  if (a === 'ecancel') return edCancel();
+  if (a === 'etab') { edTab = b.dataset.v; return pvSend(); }
+  if (a === 'ebg' || a === 'esty') { const f = cfg.faces[fi]; if (a === 'ebg') f.bg = bgVal(b.dataset.v); else f.style = b.dataset.v; return saveCfg(); }
   if (a === 'gal') return addFlow(fi);
   if (a === 'ctab') { carTab = b.dataset.v; return redraw(); }
   if (a === 'theme' || a === 'mode') { cfg[a] = b.dataset.v; saveCfg(); return redraw(); }
