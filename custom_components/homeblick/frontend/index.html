@@ -100,11 +100,13 @@ svg.i{width:1em;height:1em;flex:none;fill:none;stroke:currentColor;stroke-width:
 .tile:is([data-sv=fill],[data-sv=blind]).hi .ttl,.tile:is([data-sv=fill],[data-sv=blind]).hi .pct{color:var(--ink)!important}.tile:is([data-sv=fill],[data-sv=blind]).hi .sub{color:var(--ink2)!important}.tile:is([data-sv=fill],[data-sv=blind]).full .ico{color:var(--ink)!important}
 .tile:is([data-sv=fill],[data-sv=blind])[data-size="2x2"] .pct{font-size:4.4cqw;right:5cqw;top:5cqw}
 /* Rollo: Lamellenpanzer schiebt sich von oben nach unten (Höhe = Schließgrad); Symbol/Prozent oben werden dunkel, sobald die Fläche sie erreicht (.full), der Titel unten erst bei fast zu (.hi) */
-.tile[data-sv=blind] .fill{inset:0 0 auto;background:repeating-linear-gradient(#ffffffe6 0 2.4cqw,#ffffff99 2.4cqw 3cqw)}
-.tile[data-sv=blind] .fill::before{inset:auto 0 0;height:.9cqw;background:#fff}
+.tile[data-sv=blind] .fill{inset:0 0 auto;background:repeating-linear-gradient(#C9C3E6 0 1.9cqw,#B7AFDB 1.9cqw 2.25cqw);border-radius:0 0 1.7cqw 1.7cqw}   /* Galerie-Vorlage: Lavendel #C9C3E6, Lamellenlinie #B7AFDB, Griff unten */
+.tile[data-sv=blind] .fill::before{display:none}
+.tile[data-sv=blind] .fill::after{content:"";position:absolute;left:50%;bottom:1.9cqw;width:5.5cqw;height:.7cqw;translate:-50% 0;border-radius:.4cqw;background:#6F6699;opacity:.7}
+.tile[data-sv=blind] .pct{font-weight:700}
 .tile[data-sv=blind] .ttl,.tile[data-sv=blind] .sub{transition:color .3s}
-.tile[data-sv=blind].hi .ttl{color:var(--ink)!important}.tile[data-sv=blind].hi .sub{color:var(--ink2)!important}
-.tile[data-sv=blind].full .ico,.tile[data-sv=blind].full .pct{color:var(--ink)!important}
+.tile[data-sv=blind].hi .ttl{color:#3C3C3C!important}.tile[data-sv=blind].hi .sub{color:#7a7a7e!important}
+.tile[data-sv=blind].full .ico,.tile[data-sv=blind].full .pct{color:#6F6699!important}
 
 .num{display:grid;justify-items:center;font-weight:500;line-height:1;letter-spacing:-.02em}
 .num>span{grid-area:1/1}
