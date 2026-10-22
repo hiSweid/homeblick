@@ -2193,7 +2193,7 @@ const fillSet = (t, p) => { t.style.setProperty('--p', p); t.classList.toggle('h
   });
   for (const n of ['pointerup', 'pointercancel']) document.addEventListener(n, () => {
     if (!d) return;
-    if (d.on) { clearTimeout(tm); send(); d.t.classList.remove('drag'); setTimeout(() => d && (d.t._drag = false), 0); }
+    if (d.on) { clearTimeout(tm); send(); const t = d.t; t.classList.remove('drag'); setTimeout(() => t._drag = false, 0); }
     d = null;
   });
 }
