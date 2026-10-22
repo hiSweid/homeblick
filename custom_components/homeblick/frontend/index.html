@@ -788,6 +788,9 @@ input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:tr
 #pin .pk button{position:absolute;left:calc(50cqw + var(--cx)*21cqw);top:calc(46cqw + var(--cy)*7.8cqw);width:15cqw;height:12cqw;translate:-50% -50%;padding:0;border:0;background:none;color:#fff;font-family:inherit;font-weight:300;font-size:8.4cqw;line-height:1;display:grid;place-items:center}
 #pin .pk button::before{content:"";position:absolute;inset:-.5cqw 1.5cqw;border-radius:50%;background:#fff;opacity:0;transition:opacity .35s}#pin .pk button:active::before{opacity:.22;transition:none}
 #pin .pk svg{width:7cqw;height:7cqw;fill:none;stroke:#fff;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+/* Gastmodus: Face wird unscharf und dunkel überdeckt, Schloss mittig */
+.guestlock{position:absolute;inset:0;z-index:30;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.4cqw;background:#000d;-webkit-backdrop-filter:blur(6cqw);backdrop-filter:blur(6cqw);color:#fff;text-align:center}
+.guestlock .gl{width:17cqw;height:17cqw;margin-bottom:2cqw}.guestlock b{font-size:5.6cqw;font-weight:600}.guestlock span{font-size:3.8cqw;opacity:.6}
 </style>
 </head>
 <body>
@@ -1483,12 +1486,15 @@ ${svg('note', 'mn')}
 <div class="wx" data-act="go" data-v="weather"><div class="loc">${esc(CFG.place)} ${svg('arrow')}</div><div class="tmp" data-bind="wxt"></div><div class="wc"><i class="wi" data-wxi></i></div><div class="cond" data-bind="wxc"></div><div class="hl" data-bind="wxhl"></div></div>`;
   },
 };
+// Gastmodus (Einstellung „Gastmodus“, auch als HA-Schalter): persönliche Faces zeigen nur ein Schloss; Vorlage: Privacy-Schloss (overview/privacy), Text und Anordnung eigene Annahme
+const GUEST_HIDES = new Set(['calendar', 'info', 'cams']);
 function buildFace(f) {
   const el = document.createElement('div');
   el.className = `face f-${f.type}`;
   applyBg(el, bgOf(f));
   FACE[f.type](el, f);
   initDials(el);
+  if (CONF.kiosk?.guest && GUEST_HIDES.has(f.type) && !PREVIEW) el.insertAdjacentHTML('beforeend', `<div class="guestlock">${svg('lock', 'gl')}<b>Persönlich</b><span>Gastmodus</span></div>`);
   return el;
 }
 
@@ -3140,7 +3146,7 @@ if (LIVE) {
     let faceBack;
     // Befehle und geänderte Einstellungen aus HA (Entities des Displays)
     hello.then(() => conn.subscribeMessage(c => {
-      if (c.kiosk) { const w = [CFG.weather, CFG.place]; CONF.kiosk = c.kiosk; applyK(c.kiosk); if ([CFG.weather, CFG.place] + '' !== w + '') return location.reload(); wk(); }
+      if (c.kiosk) { const w = [CFG.weather, CFG.place], g = !!CONF.kiosk?.guest; CONF.kiosk = c.kiosk; applyK(c.kiosk); if ([CFG.weather, CFG.place] + '' !== w + '') return location.reload(); if (!!c.kiosk.guest !== g) renderAll(curIdx()); wk(); }
       else if (c.config?.faces?.length) { $('#setup')?.remove(); const i = curIdx(); CONF = { ...c.config, kiosk: CONF.kiosk }; normFaces(CONF, DEF.faces); try { localStorage.setItem(KEY, JSON.stringify(CONF)); } catch {} renderAll(Math.min(i, CONF.faces.length - 1)); }
       else if (c.timers) { if (voiceTimers(c.timers, c.finished)) kiosk.wake(); }   // Sprach-Timer: Display weckt bei Start und Ablauf
       else if (c.cameras !== undefined) { if (setCams(c.cameras)) cur ? camStale = true : renderAll(curIdx()); }   // offene Ansicht behält ihre Daten, die Faces ziehen nach dem Schließen nach

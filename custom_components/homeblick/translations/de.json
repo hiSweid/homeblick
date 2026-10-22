@@ -79,6 +79,9 @@
       "micmute": {
         "name": "Mikrofon stumm"
       },
+      "guest": {
+        "name": "Gastmodus"
+      },
       "hold": {
         "name": "Screensaver halten"
       },
