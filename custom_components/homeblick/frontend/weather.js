@@ -254,9 +254,10 @@ const setFar = (el, v) => { if (el.closest('.gallery,.custom')) return; el.toggl
 export function weatherNear(on) { far = !on; for (const e of $$('.wcond')) setFar(e, far); }
 function condFace(el, place) {
   el.classList.add('wcond'); el.dataset.m = 't'; setFar(el, far);
-  el.addEventListener('click', e => { if (!e.target.closest('.wcard')) setFar(el, !el.hasAttribute('data-far')); });
+  el.addEventListener('click', e => { if (!e.target.closest('.wcard,.wlist,.wpl')) setFar(el, !el.hasAttribute('data-far')); });
   el.innerHTML = `<div class="wsky"></div><time data-bind="time"></time>
 <div class="wtop"><b>${place.replace(/[&<>"]/g, c => `&#${c.charCodeAt(0)};`)}</b><div data-bind="wxt"></div><span data-bind="wxc"></span><span data-bind="wxhl"></span></div>
+<button class="wlist" aria-label="Orte"><svg viewBox="0 0 24 24"><path d="M4 7h1.6M9 7h11M4 12h1.6M9 12h11M4 17h1.6M9 17h11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button><div class="wpl"></div>
 <section class="wcard"><header><div><b>Bedingungen</b><span class="wsub">${MODES.t[0]}</span></div>
 <div class="wseg">${Object.entries(MODES).map(([k, [, ic]], i) => `<button data-m="${k}"${i ? '' : ' class="on"'}><i class="wi">${ic}</i></button>`).join('')}</div></header>
 <div class="whours"></div></section>`;
@@ -268,6 +269,21 @@ function condFace(el, place) {
     fillHours(el.querySelector('.whours'), true);
   });
   fillHours(el.querySelector('.whours'));
+  const pl = el.querySelector('.wpl');
+  el.querySelector('.wlist').addEventListener('click', () => { if (!el.closest('.gallery,.custom')) pl.classList.toggle('open'); });
+  pl.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; pl.classList.remove('open'); places?.pick(b.dataset.id); });
+  el.addEventListener('click', e => { if (!e.target.closest('.wlist,.wpl')) pl.classList.remove('open'); });
+  fillPlaces(el);
+}
+// Orte (Vorlage display_endframe: runder Glas-Listenknopf oben links): alle weather.*-Entities, Auswahl merkt index.html; erst ab zwei Orten sichtbar
+let places = null;
+function fillPlaces(el) {
+  el.toggleAttribute('data-pl', (places?.list.length || 0) > 1);
+  el.querySelector('.wpl').innerHTML = (places?.list || []).map(([id, n]) => `<button data-id="${id}"${id === places.cur ? ' class="on"' : ''}><span>${n.replace(/[&<>"]/g, c => `&#${c.charCodeAt(0)};`)}</span><i>✓</i></button>`).join('');
+}
+export function weatherPlaces(list, cur, pick) {
+  if (places && places.cur === cur && JSON.stringify(places.list) === JSON.stringify(list)) return;
+  places = { list, cur, pick }; for (const e of $$('.wcond')) fillPlaces(e);
 }
 // Nacht je Stunde aus sun.sun (nächster Unter-/Aufgang), sonst grob 20–6 Uhr
 function nightAt(t) {
@@ -407,6 +423,10 @@ document.head.insertAdjacentHTML('beforeend', `<style>
    Ort Kappenhöhe 40 px (7,0 cqw, 600, Laufweite −.045em wie SF Display), Temperatur 93 px Ziffernhöhe, Zustand/H-T Kappenhöhe 22 px (3,85 cqw, Regular), Uhr Kappenhöhe 22 px (3,93 cqw);
    Karte Titel 4,9 cqw, Untertitel 3,3 cqw, Segment 29 × 7,9 cqw (Schaltfläche 9,2 × 6,5), Stundenspalte 14,0 cqw (erste Mitte 12,3 cqw), Symbole 41 px (Sonne mit Strahlen), Gelb #ffcc00.
    Fern: Text größer (Ort ×1,21, Temperatur ×1,66, Zustand/H-T ×1,45) und tiefer, ohne Uhr und Karte; Nah: Karte + Uhr kommen gestaffelt dazu. Auslöser (Präsenzmelder/Tipp) ist keine Vorlage, nur Annahme. */
+.wlist{display:none;position:absolute;left:4.2cqw;top:4.2cqw;width:8.6cqw;height:8.6cqw;padding:0;border:0;border-radius:50%;place-items:center;color:#fff;background:#ffffff38;-webkit-backdrop-filter:blur(2cqw);backdrop-filter:blur(2cqw);z-index:4;transition:opacity .4s .2s,scale .2s}.wlist:active{scale:.92}.wlist svg{width:4.6cqw;height:4.6cqw}
+.wcond[data-pl] .wlist{display:grid}.wcond[data-far] .wlist{opacity:0;pointer-events:none;transition-delay:0s}
+.wpl{position:absolute;left:4.2cqw;top:14.6cqw;min-width:44cqw;max-width:70cqw;padding:1.6cqw;border-radius:5cqw;background:rgb(11 78 149/.62);-webkit-backdrop-filter:blur(4cqw);backdrop-filter:blur(4cqw);z-index:4;transform-origin:0 0;scale:.6;opacity:0;pointer-events:none;transition:scale var(--sd,.64s) var(--spring,ease-out),opacity .25s}.wpl.open{scale:1;opacity:1;pointer-events:auto}.wcond[data-far] .wpl{display:none}
+.wpl button{display:flex;justify-content:space-between;align-items:center;gap:4cqw;width:100%;padding:2.6cqw 3cqw;border:0;border-radius:3.6cqw;background:none;color:#fff;font-family:inherit;font-size:4.2cqw;font-weight:500;text-align:left}.wpl button.on{background:#ffffff26}.wpl i{font-style:normal;opacity:0}.wpl .on i{opacity:1}
 .wcond>time{right:8.8cqw;top:8.4cqw;font-size:3.93cqw;font-weight:400;transition:opacity .4s .2s}
 .wcond .wtop{left:0;right:0;top:0;height:60cqw;text-align:center}
 .wcond .wtop>*{position:absolute;left:0;right:0;line-height:1;transform-origin:50% 0;transition:transform var(--sd,.64s) var(--spring,ease-out)}

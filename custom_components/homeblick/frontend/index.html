@@ -931,7 +931,7 @@ input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:tr
 </div>
 
 <script type="module">
-import { weatherFace, weather, weatherHours, weatherNear, COND } from './weather.js';
+import { weatherFace, weather, weatherHours, weatherNear, weatherPlaces, COND } from './weather.js';
 import { energyFace, energy, energyDemo, energyInit, energyEnts, energyDetail } from './energy.js';
 import { kioskInit, KIOSK_DEF, luxLevel } from './kiosk.js';
 import { shot } from './shot.js';
@@ -947,7 +947,14 @@ const LIVE = new URLSearchParams(location.search).has('live');
 // ?preview: Vorschau in der Einstellungsseite – Konfiguration und Zustände kommen per postMessage, nichts wird gespeichert
 const PREVIEW = new URLSearchParams(location.search).has('preview');
 const CFG = { hass: '', weather: 'weather.home', place: 'Home', pipeline: '', mute: false, barge: false, listen: 15, volume: 100, music: true, chime: true, device: '' };   // Wetter, Ort, Assist-Pipeline: je Display in der Einstellungsseite (applyK); device = HA-Gerät (register)
-const applyK = k => { root.classList.toggle('perf', !!k?.perf); for (const x of ['weather', 'place', 'tts', 'pipeline', 'mute', 'barge', 'listen', 'volume', 'music', 'chime']) if (k?.[x] != null) CFG[x] = k[x]; };
+// Ort-Wahl am Wetter-Face (Listenknopf): nur dieses Gerät, bleibt über Neuladen; ohne Wahl gilt die Entity der Einstellungen
+let wxOver; try { wxOver = JSON.parse(localStorage.hbwx || 'null'); } catch { }
+const HOME = { weather: CFG.weather, place: CFG.place };
+let pickPlace = () => { };
+const applyK = k => {
+  root.classList.toggle('perf', !!k?.perf); for (const x of ['weather', 'place', 'tts', 'pipeline', 'mute', 'barge', 'listen', 'volume', 'music', 'chime']) if (k?.[x] != null) CFG[x] = k[x];
+  HOME.weather = CFG.weather; HOME.place = CFG.place; if (wxOver?.id) [CFG.weather, CFG.place] = [wxOver.id, wxOver.name];
+};
 const HASS = /^\/(local|homeblick)\//.test(location.pathname) ? location.origin : CFG.hass;   // unter /local/ ist die Seite selbst der HA-Origin
 
 const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -1832,6 +1839,7 @@ function render() {
   if (cur?.view.id === 'shade' && sy === null && !held(cur.e)) { setShade(closedPct(st(cur.e))); $('#shade .sb [data-v=stop_cover]').hidden = !(st(cur.e).attributes.supported_features & 8); }
 
   weather(st(CFG.weather), ents['sun.sun'], forecast);
+  weatherPlaces(Object.keys(ents).filter(id => id.startsWith('weather.')).sort().map(id => [id, id === HOME.weather ? HOME.place : ents[id].attributes.friendly_name || id]), CFG.weather, pickPlace);
   doorbell(ents);
   energy(ents, roll);
   if (timers(ents)) kiosk.wake();   // Timer abgelaufen → Display weckt
@@ -3136,8 +3144,20 @@ if (LIVE) {
       } }).catch(e => console.warn('Wake Word', e));
       INFO.wake = wkCtl ? m : null; kiosk.report();
     };
-    hello.then(() => conn.subscribeMessage(f => { forecast = f.forecast?.[0]; schedule(); }, { type: 'weather/subscribe_forecast', forecast_type: 'daily', entity_id: CFG.weather })).catch(console.warn);
-    hello.then(() => conn.subscribeMessage(f => weatherHours(f.forecast), { type: 'weather/subscribe_forecast', forecast_type: 'hourly', entity_id: CFG.weather })).catch(console.warn);   // Stundenleiste (Stil „Bedingungen“); Wetter ohne hourly → Fehler, Leiste bleibt leer
+    let wxUn = [];
+    const subWx = () => {
+      wxUn.forEach(u => u.then(f => f()).catch(() => 0)); const id = CFG.weather;
+      wxUn = [conn.subscribeMessage(f => { if (id === CFG.weather) { forecast = f.forecast?.[0]; schedule(); } }, { type: 'weather/subscribe_forecast', forecast_type: 'daily', entity_id: id }),
+        conn.subscribeMessage(f => { if (id === CFG.weather) weatherHours(f.forecast); }, { type: 'weather/subscribe_forecast', forecast_type: 'hourly', entity_id: id })];
+      wxUn.forEach(u => u.catch(console.warn));
+    };
+    pickPlace = id => {   // Ort-Wahl am Listenknopf: Entity + Name wechseln, Vorhersage neu abonnieren, Faces neu aufbauen
+      wxOver = id === HOME.weather ? null : { id, name: ents[id]?.attributes.friendly_name || id };
+      try { wxOver ? localStorage.hbwx = JSON.stringify(wxOver) : localStorage.removeItem('hbwx'); } catch { }
+      [CFG.weather, CFG.place] = wxOver ? [wxOver.id, wxOver.name] : [HOME.weather, HOME.place];
+      forecast = undefined; weatherHours([]); subWx(); renderAll(curIdx());
+    };
+    hello.then(subWx);   // Stundenleiste (Stil „Bedingungen“); Wetter ohne hourly → Fehler, Leiste bleibt leer
   } catch (err) {
     // In KS heißt ERR_INVALID_AUTH: Teilen aus / keine Custom Page. Kein Reload, sonst Endlosschleife.
     if (KS) console.error('KS: „Share Home Assistant connection“ einschalten bzw. Seite als Custom Page eintragen', err);
