@@ -91,14 +91,20 @@ svg.i{width:1em;height:1em;flex:none;fill:none;stroke:currentColor;stroke-width:
 .tile[data-sv=circle] .ico{box-sizing:content-box;font-size:6.2cqw;padding:2.4cqw;border-radius:50%;background:#ffffff26;transition:background .3s,color .3s}
 .tile[data-sv=circle].on .ico{background:var(--accent,var(--ink));color:#fff}
 .tile[data-sv=circle][data-size="2x2"] .ico{font-size:12cqw;padding:5cqw}.tile[data-sv=circle][data-size="2x1"]:not(.thermo) .ico{font-size:6.2cqw}
-.tile[data-sv=fill]{overflow:hidden;touch-action:none}
-.tile[data-sv=fill]::before{display:none}
-.tile[data-sv=fill] .fill{position:absolute;inset:auto 0 0;height:calc(var(--p,0)*1%);background:linear-gradient(#ffffffe6,#ffffffb8);z-index:-1;transition:height .5s var(--spring)}
-.tile[data-sv=fill] .fill::before{content:"";position:absolute;inset:0 0 auto;height:.25cqw;background:#fff}
-.tile[data-sv=fill].drag .fill{transition:none}
-.tile[data-sv=fill] .pct{position:absolute;right:2.6cqw;top:2.6cqw;font-size:2.6cqw;font-weight:600;transition:color .3s}
-.tile[data-sv=fill].hi .ttl,.tile[data-sv=fill].hi .pct{color:var(--ink)!important}.tile[data-sv=fill].hi .sub{color:var(--ink2)!important}.tile[data-sv=fill].full .ico{color:var(--ink)!important}
-.tile[data-sv=fill][data-size="2x2"] .pct{font-size:4.4cqw;right:5cqw;top:5cqw}
+.tile:is([data-sv=fill],[data-sv=blind]){overflow:hidden;touch-action:none}
+.tile:is([data-sv=fill],[data-sv=blind])::before{display:none}
+.tile:is([data-sv=fill],[data-sv=blind]) .fill{position:absolute;inset:auto 0 0;height:calc(var(--p,0)*1%);background:linear-gradient(#ffffffe6,#ffffffb8);z-index:-1;transition:height .5s var(--spring)}
+.tile:is([data-sv=fill],[data-sv=blind]) .fill::before{content:"";position:absolute;inset:0 0 auto;height:.25cqw;background:#fff}
+.tile:is([data-sv=fill],[data-sv=blind]).drag .fill{transition:none}
+.tile:is([data-sv=fill],[data-sv=blind]) .pct{position:absolute;right:2.6cqw;top:2.6cqw;font-size:2.6cqw;font-weight:600;transition:color .3s}
+.tile:is([data-sv=fill],[data-sv=blind]).hi .ttl,.tile:is([data-sv=fill],[data-sv=blind]).hi .pct{color:var(--ink)!important}.tile:is([data-sv=fill],[data-sv=blind]).hi .sub{color:var(--ink2)!important}.tile:is([data-sv=fill],[data-sv=blind]).full .ico{color:var(--ink)!important}
+.tile:is([data-sv=fill],[data-sv=blind])[data-size="2x2"] .pct{font-size:4.4cqw;right:5cqw;top:5cqw}
+/* Rollo: Lamellenpanzer schiebt sich von oben nach unten (Höhe = Schließgrad); Symbol/Prozent oben werden dunkel, sobald die Fläche sie erreicht (.full), der Titel unten erst bei fast zu (.hi) */
+.tile[data-sv=blind] .fill{inset:0 0 auto;background:repeating-linear-gradient(#ffffffe6 0 2.4cqw,#ffffff99 2.4cqw 3cqw)}
+.tile[data-sv=blind] .fill::before{inset:auto 0 0;height:.9cqw;background:#fff}
+.tile[data-sv=blind] .ttl,.tile[data-sv=blind] .sub{transition:color .3s}
+.tile[data-sv=blind].hi .ttl{color:var(--ink)!important}.tile[data-sv=blind].hi .sub{color:var(--ink2)!important}
+.tile[data-sv=blind].full .ico,.tile[data-sv=blind].full .pct{color:var(--ink)!important}
 
 .num{display:grid;justify-items:center;font-weight:500;line-height:1;letter-spacing:-.02em}
 .num>span{grid-area:1/1}
@@ -1226,7 +1232,7 @@ function tileEl(c) {
   else if (kind === 'thermo') { el.className = 'tile thermo'; el.innerHTML = `<div class="num" data-temp="${esc(t.e)}"></div><div class="foot">${chev('down')}${label}${chev('up')}</div>`; }
   else {
     el.className = 'tile';
-    el.innerHTML = (t.e?.startsWith('camera.') ? '<div class="feed"></div>' : '') + (t.sv === 'fill' ? '<div class="fill"></div><div class="pct"></div>' : '') + svg(iconOf(t), 'ico') + (t.sv === 'value' ? '<div class="big"></div>' : '') + label;
+    el.innerHTML = (t.e?.startsWith('camera.') ? '<div class="feed"></div>' : '') + (t.sv === 'fill' || t.sv === 'blind' ? '<div class="fill"></div><div class="pct"></div>' : '') + svg(iconOf(t), 'ico') + (t.sv === 'value' ? '<div class="big"></div>' : '') + label;
   }   // Livebild: camTile in render()
   return el;
 }
@@ -1449,6 +1455,7 @@ const st = id => ents[id] || { state: 'unavailable', attributes: {} };
 const abs = u => u && (u.startsWith('/') ? HASS + u : u);
 const hold = {}, held = id => hold[id] > Date.now();   // lokale Eingabe gewinnt kurz gegen HA-Echo
 const fmt = v => v == null ? '–' : (+v).toLocaleString('de-DE', { maximumFractionDigits: 1 });
+const FILL = /^(fill|blind)$/, closedPct = s => s.state === 'closed' ? 100 : s.attributes.current_position != null ? 100 - s.attributes.current_position : 0;   // Rollo: Schließgrad 0–100
 const pct = s => s.state === 'on' ? Math.round((s.attributes.brightness ?? 255) / 2.55) : 0;
 const mmss = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 const ON = { climate: s => /^(heating|cooling)$/.test(s.attributes.hvac_action), /* Ruhezustand = Glas, an nur bei aktivem Heizen/Kühlen oder kurz nach Bedienung */ light: s => s.state === 'on', fan: s => s.state === 'on', lock: s => s.state !== 'locked', cover: s => s.state !== 'closed', media_player: s => s.state === 'playing', timer: s => s.state === 'active', switch: s => s.state === 'on', input_boolean: s => s.state === 'on', binary_sensor: s => s.state === 'on' };
@@ -1656,11 +1663,11 @@ function render() {
   for (const t of $$('[data-e]')) {
     const id = t.dataset.e, s = st(id), d = id.split('.')[0];
     t.classList.toggle('na', s.state === 'unavailable');
-    if (!held(id)) t.classList.toggle(t.dataset.sv === 'fill' ? 'lit' : 'on', !!ON[d]?.(s));
-    if (t.dataset.sv === 'fill' && !t._drag && !held(id)) {   // Füllhöhe = Helligkeit; in der Vorschau (nicht Bearbeiten) bei „aus“ 70 % zur Ansicht
-      const demo = PREVIEW && !root.classList.contains('pvedit') && s.state !== 'on', p = demo ? 70 : pct(s);
+    if (!held(id)) t.classList.toggle(FILL.test(t.dataset.sv) ? 'lit' : 'on', !!ON[d]?.(s));
+    if (FILL.test(t.dataset.sv) && !t._drag && !held(id)) {   // Füllhöhe = Helligkeit bzw. Schließgrad; in der Vorschau (nicht Bearbeiten) bei „aus“/offen eine Beispielhöhe zur Ansicht
+      const blind = t.dataset.sv === 'blind', p0 = blind ? closedPct(s) : pct(s), demo = PREVIEW && !root.classList.contains('pvedit') && (blind ? !p0 : s.state !== 'on'), p = demo ? (blind ? 55 : 70) : p0;
       if (p) t._p = p;
-      t.classList.toggle('lit', demo || s.state === 'on'); fillSet(t, p);
+      t.classList.toggle('lit', demo || (blind ? s.state !== 'closed' : s.state === 'on')); fillSet(t, p);
     }
     const u = d === 'lock' && $('.ico use', t);
     if (u && /lock/.test(u.getAttribute('href'))) {
@@ -2171,15 +2178,22 @@ function sendTemp(id) {
   tempT = setTimeout(() => call('climate', 'set_temperature', { entity_id: id, temperature: T[id] }), 600);
 }
 // Symbol dunkel (full), sobald die weiße Fläche es erreicht
-const fillSet = (t, p) => { t.style.setProperty('--p', p); t.classList.toggle('hi', p >= 25); t.classList.toggle('full', p >= (t.dataset.size === '2x2' ? 85 : 55)); const x = $('.pct', t); if (x) x.textContent = p ? p + ' %' : ''; };
+const fillSet = (t, p) => {
+  t.style.setProperty('--p', p);
+  if (t.dataset.sv === 'blind') { t.classList.toggle('full', p >= 22); t.classList.toggle('hi', p >= (t.dataset.size === '2x2' ? 85 : 78)); }
+  else { t.classList.toggle('hi', p >= 25); t.classList.toggle('full', p >= (t.dataset.size === '2x2' ? 85 : 55)); }
+  const x = $('.pct', t); if (x) x.textContent = p ? (t.dataset.sv === 'blind' ? 100 - p : p) + ' %' : '';
+};
 // Licht „Füllstand“: senkrecht ziehen dimmt (relativ wie der Dimmer), die Füllung folgt dem Finger, HA bekommt höchstens alle 200 ms einen Wert; ein Tipp schaltet weiter
 {
   let d = null, tm = 0;
-  const send = () => { tm = 0; if (d) call('light', 'turn_on', { entity_id: d.id, brightness_pct: d.v }); };
+  const send = () => { tm = 0; if (!d) return; setTimeout(schedule, 1600); d.blind ? call('cover', 'set_cover_position', { entity_id: d.id, position: 100 - d.v }) : call('light', 'turn_on', { entity_id: d.id, brightness_pct: d.v }); };
   document.addEventListener('pointerdown', e => {
-    const t = e.target.closest('.tile[data-sv=fill]');
+    const t = e.target.closest('.tile[data-sv=fill],.tile[data-sv=blind]');
     if (!t || e.button || cur || root.classList.contains('pvedit') || !t.dataset.e) return;
-    d = { t, id: t.dataset.e, pid: e.pointerId, x: e.clientX, y: e.clientY, p: pct(st(t.dataset.e)), h: t.clientHeight, on: false };
+    const s = st(t.dataset.e), blind = t.dataset.sv === 'blind';
+    if (blind && s.attributes.current_position == null) return;   // Rollo ohne Positionswert: nur Tippen (auf/zu)
+    d = { t, id: t.dataset.e, blind, pid: e.pointerId, x: e.clientX, y: e.clientY, p: blind ? closedPct(s) : pct(s), h: t.clientHeight, on: false };
   });
   document.addEventListener('pointermove', e => {
     if (!d || e.pointerId !== d.pid) return;
@@ -2187,7 +2201,7 @@ const fillSet = (t, p) => { t.style.setProperty('--p', p); t.classList.toggle('h
       if (Math.abs(e.clientY - d.y) < 8 || Math.abs(e.clientY - d.y) < Math.abs(e.clientX - d.x)) return;
       d.on = true; suppress = true; d.t._drag = true; d.t.classList.add('drag', 'lit'); d.t.setPointerCapture(e.pointerId);
     }
-    d.v = Math.round(Math.min(100, Math.max(1, d.p + (d.y - e.clientY) / d.h * 100)));
+    d.v = d.blind ? Math.round(Math.min(100, Math.max(0, d.p + (e.clientY - d.y) / d.h * 100))) : Math.round(Math.min(100, Math.max(1, d.p + (d.y - e.clientY) / d.h * 100)));
     d.t._p = d.v; fillSet(d.t, d.v); hold[d.id] = Date.now() + 1500;
     if (!tm) tm = setTimeout(send, 200);
   });
@@ -2224,6 +2238,7 @@ const TAP = {
   cover: (t, id) => {
     const s = st(id), opening = s.state === 'closed';
     if (opening && s.attributes.device_class === 'garage' && !armed(t)) return;
+    if (t.dataset.sv === 'blind') { hold[id] = Date.now() + 1500; setTimeout(schedule, 1600); t.classList.toggle('lit', opening); fillSet(t, opening ? 0 : 100); }
     call('cover', opening ? 'open_cover' : 'close_cover', { entity_id: id });
   },
   scene: (t, id) => { hold[id] = Date.now() + 1200; t.classList.add('on'); setTimeout(() => t.classList.remove('on'), 1200); call('scene', 'turn_on', { entity_id: id }); },
