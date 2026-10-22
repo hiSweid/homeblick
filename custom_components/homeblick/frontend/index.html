@@ -105,6 +105,20 @@ svg.i{width:1em;height:1em;flex:none;fill:none;stroke:currentColor;stroke-width:
 .tile[data-sv=blind] .ttl,.tile[data-sv=blind] .sub{transition:color .3s}
 .tile[data-sv=blind].hi .ttl{color:var(--ink)!important}.tile[data-sv=blind].hi .sub{color:var(--ink2)!important}
 .tile[data-sv=blind].full .ico,.tile[data-sv=blind].full .pct{color:var(--ink)!important}
+/* Medien: Cover füllt die Kachel (Galerie „Cover-Vollbild“): dunkler Verlauf unten, Raum-Pille oben links, Titel/Interpret unten, Status-Symbol oben rechts; Pause = entsättigt + dunkler; ohne Cover Farbverlauf. Nicht aktiv = normale Kachel */
+.tile[data-sv=cover]{overflow:hidden}.tile[data-sv=cover]::before{display:none}
+.tile[data-sv=cover] .art{position:absolute;inset:0;z-index:-1;background:linear-gradient(145deg,#ff7a59,#c2185b 52%,#3b1c6e) center/cover;opacity:0;transition:opacity .4s,filter .4s}
+.tile[data-sv=cover] .art::after{content:"";position:absolute;inset:0;background:linear-gradient(#0000 30%,#000b)}
+.tile[data-sv=cover] .art[style*=url]{background-color:#3a3a3c}
+.tile[data-sv=cover].art-on .art{opacity:1}.tile[data-sv=cover].paused .art{filter:grayscale(.6) brightness(.65)}
+.tile[data-sv=cover] :is(.pill,.pct){display:none;position:absolute;color:#fff}
+.tile[data-sv=cover].art-on :is(.pill,.pct){display:block}
+.tile[data-sv=cover] .pill{left:2.4cqw;top:2.4cqw;max-width:60%;font-size:2.3cqw;font-weight:600;padding:.7cqw 1.7cqw;border-radius:99px;background:#ffffff38;backdrop-filter:blur(1.5cqw);-webkit-backdrop-filter:blur(1.5cqw);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tile[data-sv=cover] .pct{right:2.8cqw;top:2.8cqw}.tile[data-sv=cover] .pct .i{width:3cqw;height:3cqw}
+.tile[data-sv=cover].art-on{padding:3cqw;align-items:flex-start;justify-content:flex-end;text-align:left;color:#fff}
+.tile[data-sv=cover].art-on .ico{display:none}.tile[data-sv=cover].art-on :is(.ttl,.sub){color:#fff!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.tile[data-sv=cover].art-on .sub{opacity:.78}
+.tile[data-sv=cover]>div:last-child{min-width:0;max-width:100%}
+.tile[data-sv=cover][data-size="2x2"].art-on{padding:5cqw}.tile[data-sv=cover][data-size="2x2"] .pill{font-size:3.2cqw;left:4cqw;top:4cqw}.tile[data-sv=cover][data-size="2x2"] .pct{right:4.5cqw;top:4.5cqw}.tile[data-sv=cover][data-size="2x2"] .pct .i{width:4.4cqw;height:4.4cqw}
 
 .num{display:grid;justify-items:center;font-weight:500;line-height:1;letter-spacing:-.02em}
 .num>span{grid-area:1/1}
@@ -1232,7 +1246,7 @@ function tileEl(c) {
   else if (kind === 'thermo') { el.className = 'tile thermo'; el.innerHTML = `<div class="num" data-temp="${esc(t.e)}"></div><div class="foot">${chev('down')}${label}${chev('up')}</div>`; }
   else {
     el.className = 'tile';
-    el.innerHTML = (t.e?.startsWith('camera.') ? '<div class="feed"></div>' : '') + (t.sv === 'fill' || t.sv === 'blind' ? '<div class="fill"></div><div class="pct"></div>' : '') + svg(iconOf(t), 'ico') + (t.sv === 'value' ? '<div class="big"></div>' : '') + label;
+    el.innerHTML = (t.e?.startsWith('camera.') ? '<div class="feed"></div>' : '') + (t.sv === 'fill' || t.sv === 'blind' ? '<div class="fill"></div><div class="pct"></div>' : t.sv === 'cover' ? `<div class="art"></div><div class="pill">${esc(t.title)}</div><div class="pct"></div>` : '') + svg(iconOf(t), 'ico') + (t.sv === 'value' ? '<div class="big"></div>' : '') + label;
   }   // Livebild: camTile in render()
   return el;
 }
@@ -1638,6 +1652,14 @@ const STATUS = {
   lock: s => ({ locking: 'Wird verriegelt …', unlocking: 'Wird entriegelt …', jammed: 'Blockiert', locked: 'Verriegelt', unlocked: 'Entriegelt', open: 'Geöffnet' })[s.state],
   fan: s => s.state === 'on' ? (s.attributes.percentage != null ? `${Math.round(s.attributes.percentage)} %` : 'An') : s.state === 'off' ? 'Aus' : '',
 };
+function coverTile(t, s) {   // Medien-Kachel mit Cover-Vollbild
+  const a = s.attributes, act = /^(playing|buffering|paused)$/.test(s.state) && !!(a.media_title || a.entity_picture), pic = a.entity_picture ? abs(a.entity_picture) : '';
+  t.classList.toggle('art-on', act); t.classList.toggle('paused', s.state === 'paused');
+  const art = $('.art', t); if (t._pic !== pic) { t._pic = pic; art.style.backgroundImage = pic ? `url("${pic}")` : ''; }
+  const set = (sel, v) => { const n = $(sel, t); if (n && n.innerHTML !== v) n.innerHTML = v; };
+  set('.ttl', esc(act ? a.media_title || t._t.title : t._t.title)); set('.sub', esc(act ? a.media_artist || a.media_album_name || '' : t._sub || ''));
+  set('.pct', act ? svg(s.state === 'paused' ? 'play' : 'pause') : '');
+}
 function statusSub(t, d, s) {
   if (t._ls === s.state) return;
   if (t._ls && t._ls !== 'unavailable' && s.state !== 'unavailable') { t._flash = Date.now() + 2500; setTimeout(schedule, 2600); }
@@ -1663,7 +1685,8 @@ function render() {
   for (const t of $$('[data-e]')) {
     const id = t.dataset.e, s = st(id), d = id.split('.')[0];
     t.classList.toggle('na', s.state === 'unavailable');
-    if (!held(id)) t.classList.toggle(FILL.test(t.dataset.sv) ? 'lit' : 'on', !!ON[d]?.(s));
+    if (!held(id)) t.classList.toggle(FILL.test(t.dataset.sv) || t.dataset.sv === 'cover' ? 'lit' : 'on', !!ON[d]?.(s));
+    if (t.dataset.sv === 'cover') coverTile(t, s);
     if (FILL.test(t.dataset.sv) && !t._drag && !held(id)) {   // Füllhöhe = Helligkeit bzw. Schließgrad; in der Vorschau (nicht Bearbeiten) bei „aus“/offen eine Beispielhöhe zur Ansicht
       const blind = t.dataset.sv === 'blind', p0 = blind ? closedPct(s) : pct(s), demo = PREVIEW && !root.classList.contains('pvedit') && (blind ? !p0 : s.state !== 'on'), p = demo ? (blind ? 55 : 70) : p0;
       if (p) t._p = p;
