@@ -14,9 +14,17 @@ export const GROUP = { bigclock: 'clock', analog: 'clock', info: 'clock', calend
 export const siblings = t => Object.keys(GROUP).filter(k => GROUP[k] === GROUP[t] && k !== t);
 const dedupe = (list, seen) => { for (let i = 0; i < list.length; i++) { const g = GROUP[list[i].type]; if (!g) continue; if (seen.has(g)) list.splice(i--, 1); else seen.add(g); } };
 
+// Struktur prüfen: eine kaputte gespeicherte Konfig würde sonst bei jedem Start renderAll sprengen
+const FACE_TYPES = ['grid', 'music', 'bigclock', 'analog', 'calendar', 'date', 'weather', 'energy', 'cams', 'people', 'info'];   // = Schlüssel von FACE (index.html)
+// Kachelfelder mit falschem Typ verwerfen (kindOf/iconOf rufen String-Methoden); night rekursiv
+const cleanTile = t => { for (const k of ['e', 'title', 'sub', 'icon', 'kind', 'cs']) if (typeof t[k] !== 'string') delete t[k]; if (t.night && typeof t.night === 'object' && !Array.isArray(t.night)) cleanTile(t.night); else delete t.night; return t; };
+const cleanFaces = l => (Array.isArray(l) ? l : []).filter(f => f && FACE_TYPES.includes(f.type)).map(f => { if (f.type === 'grid') f.tiles = Array.isArray(f.tiles) ? f.tiles.filter(t => t && typeof t === 'object').map(cleanTile) : []; return f; });
+export function cleanConf(conf) { conf.faces = cleanFaces(conf.faces); if (conf.off) conf.off = cleanFaces(conf.off); return conf; }
+
 // Alte Konfiguration (ohne id/off) übernehmen, fehlende Standard-Faces als ausgeschaltet ergänzen, Uhr/Kalender nur einmal; true = geändert
 export function normFaces(conf, defs = []) {
   const before = JSON.stringify([conf.faces, conf.off]);
+  cleanConf(conf);
   ids(conf.faces);
   conf.off = (conf.off || []).filter(f => !conf.faces.some(a => a.id === f.id)); ids(conf.off);
   const seen = new Set(); dedupe(conf.faces, seen); dedupe(conf.off, seen);

@@ -11,9 +11,9 @@
 // Läuft dabei Musik, zeigt der Vollbild-Timer unten einen Mini-Player.
 // Sprach-Timer (Assist, am Display gestartet) sind keine Entities: der Server schickt sie (voiceTimers) und sie laufen wie ein timer.*-Helper; angezeigt wird der nächste fällige.
 const DEMO = !new URLSearchParams(location.search).has('live');
-const sec = s => String(s || 0).split(':').reduce((a, v) => a * 60 + +v, 0);
+const sec = s => String(s || 0).split(':').reduce((a, v) => a * 60 + +v, 0) || 0;   // NaN (kaputte Daten) → 0
 const pad = n => String(n).padStart(2, '0');
-const hms = t => { t = Math.max(0, Math.ceil(t)); const h = t / 3600 | 0; return (h ? h + ':' + pad(t / 60 % 60 | 0) : pad(t / 60 | 0)) + ':' + pad(t % 60); };   // Vorlage „09:55“ / „00:55“, ab 1 h „1:05:30“
+const hms = t => { t = Number.isFinite(t) ? Math.max(0, Math.ceil(t)) : 0; const h = t / 3600 | 0; return (h ? h + ':' + pad(t / 60 % 60 | 0) : pad(t / 60 | 0)) + ':' + pad(t % 60); };   // Vorlage „09:55“ / „00:55“, ab 1 h „1:05:30“
 const total = t => { t = Math.round(t); const h = t / 3600 | 0, m = t / 60 % 60 | 0, s = t % 60; return h ? `${h} STD${m ? ' ' + m + ' MIN' : ''}` : m ? `${m} MIN${s ? ' ' + s + ' SEK' : ''}` : t + ' SEK'; };
 const css = n => getComputedStyle(document.documentElement).getPropertyValue(n);
 const spring = () => ({ duration: +css('--sd').replace('ms', '') || 640, easing: css('--spring') || 'ease-out' });
@@ -179,7 +179,7 @@ function rollTxt(el, t) {
 }
 
 let skew = 0;   // HA-Uhr minus Display-Uhr (ms): Tablets ohne NTP gehen oft Sekunden falsch → Restzeit aus finishes_at stimmt sonst nicht; gemessen beim Start eines Timers (Zustandswechsel kommt sofort)
-const left = s => s.state === 'active' ? (Date.parse(s.attributes.finishes_at) - Date.now() - skew) / 1000 : sec(s.attributes.remaining ?? s.attributes.duration);
+const left = s => s.state === 'active' ? (Date.parse(s.attributes.finishes_at) - Date.now() - skew) / 1000 || 0 : sec(s.attributes.remaining ?? s.attributes.duration);
 // Strich i (ab 12 Uhr im Uhrzeigersinn) leuchtet, solange er im Rest-Anteil liegt
 const ticks = f => T.querySelectorAll('line').forEach((l, i) => l.classList.toggle('on', i < Math.ceil(f * N - .001)));
 const name = s => s.attributes.friendly_name || 'Timer';

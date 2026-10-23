@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>HomeView</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg">
@@ -11,10 +11,10 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@200..700&family=Patrick+Hand+SC&family=Roboto+Flex:opsz,wdth,wght,XOPQ,YOPQ,YTFI@144,25..151,400..500,27..175,25..135,560..788&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@200..700&family=Patrick+Hand+SC&family=Roboto+Flex:opsz,wdth,wght,XOPQ,YOPQ,YTFI@144,25..151,400..500,27..175,25..135,560..788&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
 <style>
 *{box-sizing:border-box;margin:0}
-html,body{height:100%;overflow:hidden;background:#000;color:#fff;font:400 16px Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;touch-action:pan-x pan-y;overflow:hidden;background:#000;color:#fff;font:400 16px Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
 body{display:grid;place-items:center}
 button,input{font:inherit;color:inherit;background:none;border:0;padding:0;outline:0}
 button{cursor:pointer}
@@ -24,7 +24,7 @@ svg.i{width:1em;height:1em;flex:none;fill:none;stroke:currentColor;stroke-width:
 [hidden]{display:none!important}
 
 /* Quadratischer Screen, alle Maße in cqw (1cqw = 1 % Breite) — Werte aus SPEC.md */
-#screen{position:relative;width:min(100vw,100dvh);aspect-ratio:1;container-type:size;overflow:hidden;border-radius:calc(min(100vw,100dvh)*.08);background:#000}
+#screen{position:relative;width:min(100vw,100dvh);aspect-ratio:1;container-type:size;overflow:clip;border-radius:calc(min(100vw,100dvh)*.08);background:#000}   /* clip: Fokus auf Verdecktes scrollt nicht */
 /* Face-Pager (STEUERUNG.md P1-1): Karten mit Spalt, Wischen/Auslauf in JS (Pager-Block unten), scrollLeft bleibt die API; Schritt = Breite + Spalt */
 #faces{position:absolute;inset:0;display:flex;gap:2.5cqw;overflow:hidden;touch-action:pan-y;transition:transform var(--sd) var(--spring)}
 #faces::-webkit-scrollbar{display:none}
@@ -64,7 +64,6 @@ svg.i{width:1em;height:1em;flex:none;fill:none;stroke:currentColor;stroke-width:
 .pvlift{z-index:9!important;animation:none!important;transition:none!important;filter:drop-shadow(0 2cqw 3cqw #0007)}
 .pvedit #faces,.pvedit .face{touch-action:none}
 .pvsel{outline:.8cqw solid #0a84ff;outline-offset:.5cqw}   /* Vorschau: in der Einstellungsseite gewählte Kachel */
-.tile[data-arm] .sub{font-size:0}.tile[data-arm] .sub::after{content:"Nochmal tippen";font-size:3cqw}.tile[data-arm=hold] .sub::after{content:"Halten zum Öffnen"}
 .hring{position:absolute;z-index:3;translate:-50% -50%;aspect-ratio:1;pointer-events:none;color:#fff;transition:scale .3s var(--spring),opacity .3s}.hring svg{display:block;width:100%;height:100%;rotate:-90deg;overflow:visible}.hring circle{fill:none;stroke:currentColor;stroke-width:5;stroke-linecap:round;stroke-dasharray:100;stroke-dashoffset:100}.hring.done{scale:1.18;opacity:0}   /* Halten zum Entriegeln: Ring füllt sich um das Schloss-Symbol */
 /* Helle Variante (Website highlights/homeview, Pixelproben): flach ohne Schatten; Aus = hellgrau 232, An = Lavendel (198,194,227), Icon/Titel lila */
 /* Themes (Config: theme liquid|flat, mode dark|light; Kachel: look überschreibt das Theme → data-lk). liquid+dark = Grundlook oben.
@@ -83,6 +82,8 @@ svg.i{width:1em;height:1em;flex:none;fill:none;stroke:currentColor;stroke-width:
 .tile[data-size="2x2"]{padding:9cqw 2cqw 6cqw}
 .tile[data-size="2x2"] .ico{font-size:20cqw}
 .tile[data-size="2x2"] :is(.ttl,.sub){font-size:4.4cqw}
+/* nach den Größenregeln: sonst überstimmt font-size der 2x2-Kachel die ausgeblendete Zeile */
+.tile[data-arm] .sub{font-size:0}.tile[data-arm] .sub::after{content:"Nochmal tippen";font-size:3cqw}.tile[data-arm=hold] .sub::after{content:"Halten zum Öffnen"}
 .tile[data-size="2x1"]:not(.thermo){flex-direction:row;justify-content:flex-start;gap:4cqw;padding:0 5cqw;text-align:left}
 /* Stil-Varianten (Ideen-Galerie), im Layout der Apple-Vorlage (Website highlights/dashboard): zentriert wie die Thermostat-Zahl 68 mit Titel/Untertitel darunter, Glas, weiße An-Fläche, Ring/Kreis nur als dünne weiße Linie.
    value = Messwert groß statt Symbol (Sensor), circle = Symbol im Kreis (Szene, Schalter, Ventilator …), fill = Licht als Dimmer (weiße Fläche steigt) */
@@ -424,9 +425,11 @@ svg.i{width:1em;height:1em;flex:none;fill:none;stroke:currentColor;stroke-width:
 /* --o = von Hand gescrollt; nach 3 s federt es zurück zur aktiven Zeile */
 .ll{padding:0 12cqw 0 9cqw;transform:translateY(var(--o,0px));transition:transform var(--sd) var(--spring)}
 .ll.scrub{transition:none}
+/* Lyrics zu: Zeilen springen direkt auf Position (unsichtbar) statt ~50 Transitions je Zeilenwechsel zu staffeln; beim Öffnen stehen sie schon richtig */
+.f-music:is(:not(.ly),.vo) :is(.ll,.ll p){transition:none}   /* .vo = Face nicht im Bild (offener Liedtext hinter anderem Face würde sonst bei jeder Zeile staffeln) */
 /* Zeilen unterhalb der aktiven folgen leicht verzögert → Welle wie bei  */
 /* ponytail: filter-Übergang malt je Zeile auf dem Main-Thread; ruckelt das auf dem Tablet → nur opacity */
-.ll p{font-size:6.6cqw;font-weight:700;line-height:1.2;margin-bottom:3.4cqw;opacity:.35;filter:blur(calc(var(--d,2)*.3cqw));transform:translateY(var(--y,0));
+.ll p{overflow-wrap:break-word;font-size:6.6cqw;font-weight:700;line-height:1.2;margin-bottom:3.4cqw;opacity:.35;filter:blur(calc(var(--d,2)*.3cqw));transform:translateY(var(--y,0));
   transition:opacity .5s,filter .5s,transform var(--sd) var(--spring) calc(var(--w,0)*40ms);cursor:pointer}
 .ll p.on,.ll.plain p{opacity:1}
 @property --lp{syntax:'<percentage>';inherits:false;initial-value:110%}
@@ -968,7 +971,7 @@ import { weatherFace, weather, weatherHours, weatherNear, weatherPlaces, COND } 
 import { energyFace, energy, energyDemo, energyInit, energyEnts, energyDetail } from './energy.js';
 import { kioskInit, KIOSK_DEF, luxLevel } from './kiosk.js';
 import { shot } from './shot.js';
-import { ICON, moveTo, normFaces, pack, rows } from './faces.js';
+import { ICON, cleanConf, moveTo, normFaces, pack, rows } from './faces.js';
 import { wakeInit } from './wake.js';
 import { parseLRC, findLyrics } from './lyrics.js';
 import { voiceOK, voiceRun } from './voice.js';
@@ -1244,7 +1247,7 @@ const wall = h => wallCache[h + (lightMode() ? 'L' : '')] ||= MOTIF(h) ? [svgUrl
 // Dynamische Faces:
 // Nacht = Sonne unter dem Horizont (sun.sun), ohne sun.sun nach Uhrzeit; ?tod=night|day erzwingt
 const TOD = new URLSearchParams(location.search).get('tod');
-const isNight = () => TOD ? TOD === 'night' : ents['sun.sun'] ? ents['sun.sun'].state === 'below_horizon' : (h => h < 6.5 || h >= 19.5)(new Date().getHours() + new Date().getMinutes() / 60);
+const isNight = () => TOD ? TOD === 'night' : ents['sun.sun']?.state === 'below_horizon' ? true : ents['sun.sun']?.state === 'above_horizon' ? false : (h => h < 6.5 || h >= 19.5)(new Date().getHours() + new Date().getMinutes() / 60);
 // bg 'auto': Tag/Nacht — Home orange/violett, Widget hell/dunkel (faces_enhanced/hero_endframe)
 const AUTO = { info: ['white', 'black'], calendar: ['white', 'black'], date: ['white', 'black'] };
 const bgOf = f => {
@@ -1308,6 +1311,7 @@ const DISPLAY = PREVIEW ? 'preview' : (() => {
 })();
 let CONF;
 if (!PREVIEW) try { CONF = JSON.parse(localStorage.getItem(KEY)); } catch {}
+if (Array.isArray(CONF?.faces)) cleanConf(CONF); else CONF = null;   // kaputte Struktur → Standard
 if (!CONF?.faces?.length) CONF = structuredClone(DEF);
 if (PREVIEW) CONF.kiosk = { idle: 0, kz: false };
 const normSave = () => { if (normFaces(CONF, DEF.faces)) save(); };
@@ -1352,14 +1356,14 @@ function place(el, f) {
 }
 
 // ---------- Ansichten bauen ----------
-const svg = (id, cls = '') => `<svg class="i ${cls}"><use href="#${id}"/></svg>`;
-const chev = d => `<button class="chev" data-act="${d}">${svg(d)}</button>`;
+const svg = (id, cls = '') => `<svg class="i ${cls}"><use href="#${esc(id)}"/></svg>`;
+const chev = d => `<button class="chev" data-act="${d}" aria-label="${d === 'up' ? 'Wärmer' : 'Kälter'}">${svg(d)}</button>`;
 const kindOf = t => t.kind || (t.e?.startsWith('climate.') ? 'thermo' : 'tile');
 const iconOf = t => { const d = t.e?.split('.')[0]; return t.icon || (d === 'cover' && st(t.e).attributes.device_class !== 'garage' ? 'blind' : ICON[d]) || 'house'; };
 function tileEl(c) {
   const t = c.night && isNight() ? { ...c, ...c.night } : c;
   const el = document.createElement('div'), kind = kindOf(t), label = `<div><div class="ttl">${esc(t.title)}</div><div class="sub">${esc(t.sub)}</div></div>`;
-  el._t = c; el._sub = el._base = t.sub; el._val = t.val; el._tap = t.tap; el._hold = t.hold; el.dataset.ti = '';
+  el._t = c; el._v = t; el._sub = el._base = t.sub; el._val = t.val; el._tap = t.tap; el._hold = t.hold; el.dataset.ti = '';
   if (t.color) el.style.setProperty('--accent', t.color); el.dataset.size = `${t.w || 1}x${t.h || 1}`;
   if (t.e) el.dataset.e = t.e;
   if (t.noop) el.dataset.noop = '';
@@ -1539,6 +1543,7 @@ function buildFace(f) {
   applyBg(el, bgOf(f));
   FACE[f.type](el, f);
   initDials(el);
+  if (f.type === 'music') musicIO.observe(el);
   if (CONF.kiosk?.guest && GUEST_HIDES.has(f.type) && !PREVIEW) el.insertAdjacentHTML('beforeend', `<div class="guestlock">${svg('lock', 'gl')}<b>Persönlich</b><span>Gastmodus</span></div>`);
   return el;
 }
@@ -1580,10 +1585,15 @@ let hands = [], lastDay;
 function initDials(scope) {
   for (const d of $$('.dial', scope)) {
     d.insertAdjacentHTML('afterbegin', (d.classList.contains('fl') ? '' : d.classList.contains('mt') ? mticksI : d.classList.contains('nums') ? nums : d.closest('.f-grid.light') ? mticks : d.closest('.f-grid') ? gticks : ticks) +'<i class="hand hh"></i><i class="hand mm"></i><i class="hand ss"></i><b class="pin"></b>');
-    for (const [c, per] of [['hh', 43200], ['mm', 3600], ['ss', 60]])
-      hands.push([per, $('.' + c, d).animate([{ transform: 'translateX(-50%) rotate(0)' }, { transform: 'translateX(-50%) rotate(1turn)' }], { duration: per * 1000, iterations: Infinity })]);
+    d._h = [['hh', 43200], ['mm', 3600], ['ss', 60]].map(([c, per]) =>
+      [per, $('.' + c, d).animate([{ transform: 'translateX(-50%) rotate(0)' }, { transform: 'translateX(-50%) rotate(1turn)' }], { duration: per * 1000, iterations: Infinity })]);
+    hands.push(...d._h); dialIO.observe(d);
   }
 }
+// Wanduhr-Sekunden (DST-Tage); weit entfernte Faces ticken sonst mit 60 Hz im Hauptthread → Zeiger ausserhalb pausieren, beim Sichtbarwerden auf die Uhrzeit setzen
+const wallS = (d = new Date()) => d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds() + d.getMilliseconds() / 1000;
+const musicIO = new IntersectionObserver(es => { for (const e of es) e.target.isConnected ? e.target.classList.toggle('vo', !e.isIntersecting) : musicIO.unobserve(e.target); }, { threshold: .01 });
+const dialIO = new IntersectionObserver(es => { for (const e of es) if (!e.target.isConnected) dialIO.unobserve(e.target); else for (const [per, a] of e.target._h || []) if (e.isIntersecting) { a.currentTime = (wallS() % per) * 1000; a.play(); } else a.pause(); }, { threshold: .01 });
 // Zahlen-Roll: alt raus, neu mit Feder rein (Richtung dir = ±1, 0 = ohne Animation)
 function roll(el, txt, dir = 0) {
   const old = el.lastElementChild, n = document.createElement('span');
@@ -1603,7 +1613,7 @@ function roll(el, txt, dir = 0) {
 const rollBind = (k, v) => { for (const el of $$(`[data-bind=${k}]`)) if (el.lastElementChild?.textContent !== v) roll(el, v, el.firstChild ? 1 : 0); };
 function tick() {
   phase(); infoEv();
-  const d = new Date(), s = (d - new Date(d).setHours(0, 0, 0, 0)) / 1000;
+  const d = new Date(), s = wallS(d);
   hands = hands.filter(([, a]) => a.effect.target.isConnected || a.cancel());
   for (const [per, a] of hands) a.currentTime = (s % per) * 1000;
   const hm = d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
@@ -1616,24 +1626,28 @@ function tick() {
   bind('wdd', `${d.toLocaleDateString('de-DE', { weekday: 'short' }).replace('.', '').toUpperCase()} ${d.getDate()}`);   // „DI 20“ (Vorlage „WED 1“, „TUE 13“)
   const h = d.getHours();
   bind('greet', h < 11 ? 'Guten Morgen,' : h < 18 ? 'Guten Tag,' : 'Guten Abend,');
-  if (lastDay !== d.getDate()) {
+  if (lastDay !== d.toDateString()) {
     const first = lastDay === undefined;
-    lastDay = d.getDate();
+    lastDay = d.toDateString();
     if (!first) CONF.faces.forEach((f, i) => f.type === 'calendar' && rerender(i));
   }
 }
 
 // ---------- Home Assistant (oder Demo) ----------
 let ents = {}, forecast = null, NP = null, npKey = '', netDown = false;   // netDown: HA-Verbindung weg → Musik zeigt „Keine Verbindung“ statt eines laufend weiterzählenden Standbilds
-const st = id => ents[id] || { state: 'unavailable', attributes: {} };
+const ent = id => Object.hasOwn(ents, id) ? ents[id] : undefined;   // plain object: 'constructor' u. Ä. dürfen nicht als Entity gelten
+const gone = id => !ent(id) || ent(id).state === 'unavailable';   // Entity verschwunden/nicht erreichbar: keine Calls
+const st = id => ent(id) || { state: 'unavailable', attributes: {} };
 const abs = u => u && (u.startsWith('/') ? HASS + u : u);
-const hold = {}, held = id => hold[id] > Date.now();   // lokale Eingabe gewinnt kurz gegen HA-Echo
+const hold = {}, holdT = {}, held = id => hold[id] > Date.now();   // lokale Eingabe gewinnt kurz gegen HA-Echo
+const holdFor = (id, ms) => { hold[id] = Date.now() + ms; clearTimeout(holdT[id]); holdT[id] = setTimeout(schedule, ms + 50); };   // nach Ablauf einmal abgleichen (render überspringt Gehaltenes)
 const fmt = v => v == null ? '–' : (+v).toLocaleString('de-DE', { maximumFractionDigits: 1 });
 const FILL = /^(fill|blind)$/, closedPct = s => s.state === 'closed' ? 100 : s.attributes.current_position != null ? 100 - s.attributes.current_position : 0;   // Rollo: Schließgrad 0–100
-const pct = s => s.state === 'on' ? Math.round((s.attributes.brightness ?? 255) / 2.55) : 0;
-const mmss = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+const pct = s => s.state === 'on' ? Math.max(1, Math.round((s.attributes.brightness ?? 255) / 2.55)) : 0;   // brightness 1 ist an, nicht 0 %
+const mmss = s => { s = Math.max(0, s); const z = n => String(n).padStart(2, '0'), h = Math.floor(s / 3600); return (h ? h + ':' + z(Math.floor(s / 60) % 60) : Math.floor(s / 60)) + ':' + z(Math.floor(s % 60)); };   // negativ → 0, ab 1 h h:mm:ss
+const cu = u => `url("${String(u).replace(/["\\()\n\r]/g, c => '%' + c.charCodeAt(0).toString(16).padStart(2, '0'))}")`;   // URL für CSS url("…"): Ausbruchszeichen prozent-kodieren
 const ON = { climate: s => /^(heating|cooling)$/.test(s.attributes.hvac_action), /* Ruhezustand = Glas, an nur bei aktivem Heizen/Kühlen oder kurz nach Bedienung */ light: s => s.state === 'on', fan: s => s.state === 'on', lock: s => s.state !== 'locked', cover: s => s.state !== 'closed', media_player: s => s.state === 'playing', timer: s => s.state === 'active', switch: s => s.state === 'on', input_boolean: s => s.state === 'on', binary_sensor: s => s.state === 'on' };
-const MODES = { heat: ['Heizen auf', '#ff9500'], cool: ['Kühlen auf', '#009efc'], heat_cool: ['Automatisch', '#30b0c7'], dry: ['Entfeuchten', '#5ac8fa'], fan_only: ['Lüften', '#34c759'], off: ['Aus', '#636366'] };
+const MODES = { heat: ['Heizen auf', '#ff9500'], cool: ['Kühlen auf', '#009efc'], heat_cool: ['Automatisch', '#30b0c7'], dry: ['Entfeuchten', '#5ac8fa'], fan_only: ['Lüften', '#34c759'], off: ['Aus', '#636366'], auto: ['Automatisch', '#30b0c7'], unavailable: ['Nicht verfügbar', '#636366'], unknown: ['Nicht verfügbar', '#636366'] };
 
 // ---------- Demo-Bibliothek (erfundene Titel, generierte Cover) ----------
 const coverArt = (h, k) => svgData(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><linearGradient id="a" x2="1" y2="1"><stop stop-color="hsl(${h},75%,62%)"/><stop offset="1" stop-color="hsl(${h + 40},70%,24%)"/></linearGradient></defs><rect width="100" height="100" fill="url(#a)"/>${[
@@ -1679,7 +1693,7 @@ const track = (q, i, pos = 0) => {
 
 // Demo: Service-Calls verändern den lokalen Zustand wie HA es täte
 function demoCall(domain, service, data) {
-  const id = data.entity_id, s = ents[id];
+  const id = data.entity_id, s = ent(id);
   if (!s) return;
   const set = (state, attrs) => { ents = { ...ents, [id]: { ...s, state, attributes: { ...s.attributes, ...attrs } } }; schedule(); };
   const a = s.attributes, q = a._q, now = () => ({ media_position: npPos(id)[0], media_position_updated_at: new Date().toISOString() });
@@ -1699,7 +1713,7 @@ function demoCall(domain, service, data) {
     media_stop: () => set('idle', { ...now(), media_position: 0 }),
     join: () => { const g = [...new Set([id, ...(a.group_members || []), ...data.group_members])]; for (const m of g) ents = { ...ents, [m]: { ...ents[m], attributes: { ...ents[m].attributes, group_members: g } } }; schedule(); },
     unjoin: () => { const g = (a.group_members || []).filter(m => m !== id); ents = { ...ents, [id]: { ...s, attributes: { ...a, group_members: [id] } } }; for (const m of g) ents[m] = { ...ents[m], attributes: { ...ents[m].attributes, group_members: g } }; schedule(); },
-    media_next_track: () => q && set(s.state, track(q, (a.shuffle ? Math.floor(Math.random() * q.length) : a._i + 1) % q.length)),
+    media_next_track: () => q && set(s.state, track(q, (a.shuffle && q.length > 1 ? a._i + 1 + Math.floor(Math.random() * (q.length - 1)) : a._i + 1) % q.length)),   // Shuffle: nie derselbe Titel
     media_previous_track: () => q && set(s.state, track(q, npPos(id)[0] > 3 || !a._i ? a._i : a._i - 1)),
     media_seek: () => set(s.state, { media_position: data.seek_position, media_position_updated_at: new Date().toISOString() }),
     play_media: () => {   // Demo: „trk:<Ordner>:<Nr>“ = Titel eines Albums (Warteschlange = Album ab diesem Titel), sonst der ganze Ordner; enqueue next/add hängt an die Warteschlange
@@ -1716,7 +1730,8 @@ function demoCall(domain, service, data) {
     volume_mute: () => set(s.state, { is_volume_muted: data.is_volume_muted }),
   })[service]?.();
 }
-const call = (domain, service, data) => LIVE ? conn.sendMessagePromise({ type: 'call_service', domain, service, service_data: data }).catch(e => console.warn('HA', service, e)) : demoCall(domain, service, data);
+// bei gescheitertem Call: Anzeige zurück auf echten HA-Zustand
+const call = (domain, service, data) => LIVE ? conn.sendMessagePromise({ type: 'call_service', domain, service, service_data: data }).catch(e => { console.warn('HA', service, e); const id = data?.entity_id; if (id) { hold[id] = 0; schedule(); $$(`[data-e="${id}"]`).forEach(shake); } }) : demoCall(domain, service, data);
 // Service mit Antwort (z. B. sonos.get_queue)
 const ask = (domain, service, data) => conn.sendMessagePromise({ type: 'call_service', domain, service, service_data: data, return_response: true }).then(r => r.response);
 // Energie-Tageskurven: HA-History per WebSocket (nur lesend); Demo simuliert selbst
@@ -1740,7 +1755,7 @@ function setLight(p) { S.light = p; $('#dimmer').style.setProperty('--f', p ? Ma
 function npPos(id = NP) {
   const s = st(id), a = s.attributes, dur = a.media_duration || 0;
   if (a.media_position == null) return [0, dur];
-  const pos = a.media_position + (s.state === 'playing' ? (Date.now() - Date.parse(a.media_position_updated_at)) / 1000 : 0);
+  const dt = s.state === 'playing' ? (Date.now() - Date.parse(a.media_position_updated_at)) / 1000 : 0, pos = Math.max(0, a.media_position + (isFinite(dt) ? dt : 0));   // fehlendes/zukünftiges updated_at: kein NaN, nie negativ
   return [dur ? Math.min(pos, dur) : pos, dur];
 }
 // Dominanter Farbton des Covers: 24×24-Raster, Farbwinkel nach Sättigung × Helligkeitsabstand gewichtet. Lesbar nur, wenn das Bild CORS-frei kommt
@@ -1826,7 +1841,7 @@ function coverTile(t, s) {   // Medien-Kachel mit Cover-Vollbild
   t.classList.toggle('art-on', act); t.classList.toggle('paused', s.state === 'paused');
   const art = $('.art', t); if (t._pic !== pic) { t._pic = pic; art.style.backgroundImage = pic ? `url("${pic}")` : ''; }
   const set = (sel, v) => { const n = $(sel, t); if (n && n.innerHTML !== v) n.innerHTML = v; };
-  set('.ttl', esc(act ? a.media_title || t._t.title : t._t.title)); set('.sub', esc(act ? a.media_artist || a.media_album_name || '' : t._sub || ''));
+  set('.ttl', esc(act ? a.media_title || (t._v || t._t).title : (t._v || t._t).title)); set('.sub', esc(act ? a.media_artist || a.media_album_name || '' : t._sub || ''));
   set('.cvr .pp', act ? svg(s.state === 'paused' ? 'play' : 'pause') : '');
 }
 function statusSub(t, d, s) {
@@ -1891,8 +1906,9 @@ function render() {
     const id = el.dataset.temp, v = st(id).attributes.temperature, th = el.closest('.thermo');
     // Untertitel „Wohnzimmer • 20,5°“; 1×1 zu schmal → nur Raum
     const c = st(id).attributes.current_temperature, sub = th && $('.sub', th);
-    if (sub) { const txt = [th._t.sub, c != null && th.dataset.size !== '1x1' && fmt(c) + '°'].filter(Boolean).join(' • '); if (sub.textContent !== txt) sub.textContent = txt; }
+    if (sub) { const txt = [(th._v || th._t).sub, c != null && th.dataset.size !== '1x1' && fmt(c) + '°'].filter(Boolean).join(' • '); if (sub.textContent !== txt) sub.textContent = txt; }
     if (!held(id) && v != null && v !== T[id]) setTemp(id, v, T[id] == null ? 0 : Math.sign(v - T[id]));
+    else if (v == null && !held(id)) { delete T[id]; el.replaceChildren(); }   // Sollwert weg (aus/unavailable): keine veraltete Zahl, Chevron sendet nichts
     else if (!el.firstChild && T[id] != null) roll(el, fmt(T[id]));
   }
   if (cur?.view.id === 'climate') {
@@ -1933,7 +1949,7 @@ function render() {
   bind('npb', busy ? 'Pause' : 'Abspielen');
   const icon = busy ? '#pause' : '#play';
   for (const u of $$('[data-act=play] use')) if (u.getAttribute('href') !== icon) u.setAttribute('href', icon);
-  const art = pic ? `url("${abs(pic)}")` : 'none';
+  const art = pic ? cu(abs(pic)) : 'none';
   if (screen.style.getPropertyValue('--art') !== art) { screen.style.setProperty('--art', art); tintOf(pic && abs(pic)); }
   $('#lib').classList.toggle('hasnp', !!title);
   volSync(); kz.classList.toggle('none', !title || netDown); kzSync();
@@ -1942,15 +1958,15 @@ function render() {
     npKey = key; $$('.prog i, .kzp i').forEach(progress); syncLyrics(); times();
     $$('.f-music.qm').forEach(fillQueue); $$('.menu.open').forEach(fillMenu);
   }
-  if (members(NP).join() !== grpKey) $$('.outs.open').forEach(fillOuts);   // Gruppe geändert (auch von außen) → offene Ausgabewahl neu zeichnen; nicht bei jedem Tick, sonst reißt es laufende Regler ab
+  if (!volT && !volDrag && volHold < Date.now()) $$('.outs.open').forEach(fillOuts);   // offene Ausgabewahl live halten (Gruppe/Zustand/Pegel auch von außen); nicht während Ziehen, sonst reißt es den Regler ab
   if (`${a.media_title}|${a.media_artist}` !== lyr.key) loadLyrics(a);
 }
 function times() {
   const [p, dur] = npPos(), f = curEl(), s = st(NP);
   if (!sk) { bind('npe', mmss(p)); bind('npr', dur ? '−' + mmss(dur - p) : s.attributes.media_title ? 'LIVE' : ''); }
   // Demo: am Songende weiter (bzw. Titel wiederholen)
-  if (!LIVE && dur && p >= dur && s.state === 'playing') demoCall('media_player', s.attributes.repeat === 'one' ? 'media_seek' : 'media_next_track', { entity_id: NP, seek_position: 0 });
-  if (f?.classList.contains('f-music') && s.attributes.media_title && !cur && !kzOn && !AS.className && Date.now() - touched > IDLE && !f.classList.contains('amb')) {
+  if (!LIVE && dur && p >= dur && s.state === 'playing') demoCall('media_player', s.attributes.repeat === 'one' ? 'media_seek' : s.attributes._i === s.attributes._q?.length - 1 && s.attributes.repeat !== 'all' && !s.attributes.shuffle ? 'media_stop' : 'media_next_track', { entity_id: NP, seek_position: 0 });
+  if (f?.classList.contains('f-music') && s.attributes.media_title && !cur && !kzOn && !AS.className && Date.now() - touched > IDLE && !sk && !f.classList.contains('amb')) {
     f.classList.add('amb'); volOpen(false); $$('.pop.open', f).forEach(x => x.classList.remove('open'));
   }
 }
@@ -1971,7 +1987,7 @@ async function loadLyrics(a) {
   if (lyr.lines) return;
   let lines = [], msg = '';
   try {
-    const h = await findLyrics(a, async u => { const r = await fetch(u); return r.ok ? r.json() : null; });
+    const h = await findLyrics(a, async u => { const r = await fetch(u, { signal: AbortSignal.timeout(8000) }); return r.ok ? r.json() : null; });   // hängender Dienst: nach 8 s aufgeben
     if (h?.syncedLyrics) lines = parseLRC(h.syncedLyrics);
     else if (h?.plainLyrics) lines = h.plainLyrics.split('\n').map(s => ({ t: null, s: s.trim() }));
     else if (h?.instrumental) msg = 'Instrumental';
@@ -2034,7 +2050,7 @@ function lyrScroll(ll, o) {
   const ps = ll.children, h = ll.parentElement.clientWidth * .28;
   o = Math.min(h - ps[0].offsetTop - ll._y, Math.max(h - ps[ps.length - 1].offsetTop - ll._y, o));
   ll.classList.add('scrub'); ll.style.setProperty('--o', `${o}px`); clearTimeout(lsT);
-  if (!ll.classList.contains('plain')) lsT = setTimeout(() => { ll.classList.remove('scrub'); ll.style.removeProperty('--o'); resync(); }, 3000);
+  if (!ll.classList.contains('plain')) lsT = setTimeout(() => { if (ls?.on) return; ll.classList.remove('scrub'); ll.style.removeProperty('--o'); resync(); }, 3000);
   return o;
 }
 const lyrOff = ll => parseFloat(ll.style.getPropertyValue('--o')) || 0;
@@ -2079,14 +2095,15 @@ function assistStart(k = '') {
 }
 async function assistAnswer() {
   if (asEv) {
-    const list = await asEv;
-    if (!AS.classList.contains('think')) return;   // inzwischen abgebrochen
+    const mine = asEv, all = await Promise.race([mine, new Promise(r => setTimeout(r, 8000, null))]), list = all?.filter(e => e.end > Date.now());   // nur Kommendes (ganztägig von heute endet erst um 0:00)
+    if (mine !== asEv || !AS.classList.contains('think')) return;   // inzwischen abgebrochen / neue Sitzung
     $('.atxt', AS).textContent = !list ? 'Ich erreiche deinen Kalender gerade nicht.' : list.length ? 'Das sind deine nächsten Termine:' : 'In deinem Kalender steht nichts an.';
     $('.acal', AS).innerHTML = list?.length ? eventsHTML(list, 4) : '';
   } else {
-    const w = st(CFG.weather), a = w.attributes;
-    $('.atxt', AS).innerHTML = rich(`Draußen sind es ${Math.round(a.temperature)} Grad, ${($('[data-bind=wxc]', AS).textContent || w.state).toLowerCase()}.`
-      + (forecast ? ` Heute wird es bis zu ${Math.round(forecast.temperature)} Grad warm.` : ''));
+    const w = st(CFG.weather), a = w.attributes, ok = a.temperature != null && !/^(unavailable|unknown)$/.test(w.state), c = $('[data-bind=wxc]', AS).textContent || w.state,
+      cond = /^(exceptional|fog|hail|lightning(-rainy)?|pouring|rainy|snowy(-rainy)?)$/.test(w.state) ? ' bei ' + c : ', ' + c.toLowerCase();   // Nomen („bei Regen“) bleiben groß, Adjektive klein
+    $('.atxt', AS).innerHTML = rich(!ok ? 'Wetterdaten sind gerade nicht verfügbar.' : `Draußen sind es ${Math.round(a.temperature)} Grad${cond}.`
+      + (ok && forecast?.temperature != null ? ` Heute wird es bis zu ${Math.round(forecast.temperature)} Grad warm.` : ''));
     $('.ainfo b', AS).textContent = CFG.place;
   }
   assistShow();
@@ -2177,19 +2194,20 @@ function assistEnd() {
   };
 }
 document.addEventListener('keydown', e => {
-  if (e.target.closest?.('input')) return;
+  if (e.target.closest?.('input') || e.ctrlKey || e.metaKey || e.altKey) return;   // Strg+S/K/T usw. sind Browser-/System-Kürzel
+  if ((root.classList.contains('pvedit') || cur) && (/^(Arrow(Left|Right)|Home|End|Page(Up|Down))$/.test(e.key) || e.key === ' ' && !e.target.closest?.('button,a'))) e.preventDefault();   // native Scroll-Tasten würden die Faces unter Anpassen/Vollbild-Ansicht wegscrollen
   if (e.key === 's' || e.key === 'S') assistStart();
   if (e.key === 'k' || e.key === 'K') assistStart('cal');
   if ((e.key === 't' || e.key === 'T') && !LIVE) call('timer', 'start', { entity_id: 'timer.kuche' });
   if ((e.key === 'e' || e.key === 'E') && !LIVE) call('timer', 'start', { entity_id: 'timer.eier' });   // Demo: zweiter Timer
   if (e.key === 'Escape') { assistEnd(); kzClose(); }
-  if ((e.key === 'c' || e.key === 'C') && !e.ctrlKey && !e.metaKey && !e.altKey) kzOn ? kzClose() : kzOpen();   // Tastatur: Kontrollzentrum
+  if (e.key === 'c' || e.key === 'C') kzOn ? kzClose() : kzOpen();   // Tastatur: Kontrollzentrum
 });
 
 // ---------- Musikauswahl, Ausgabe, Menü, Warteschlange ----------
 const STATE = { playing: 'Spielt', paused: 'Pausiert', idle: 'Bereit', off: 'Aus', on: 'An', unavailable: 'Nicht verfügbar' };
 const players = () => Object.values(ents).filter(e => e.entity_id.startsWith('media_player.') && e.attributes.device_class !== 'tv');
-const cssUrl = u => `url(&quot;${String(u).replace(/"/g, '%22')}&quot;)`;
+const cssUrl = u => cu(u).replace(/"/g, '&quot;');
 // HA: media_player/browse_media (Spotify, Sonos, Music Assistant …) – gleiche Form wie die Demo-Bibliothek. Favoriten, Playlists, „Zuletzt gespielt“ liefert die Integration selbst als Wurzelordner
 const MCLS = { album: 'Album', artist: 'Künstler', playlist: 'Playlist', track: 'Titel', podcast: 'Podcast', episode: 'Folge', genre: 'Genre', channel: 'Sender', radio: 'Radio' };
 const searchOK = () => !LIVE || !!(st(NP).attributes.supported_features & 4194304);   // SEARCH_MEDIA
@@ -2247,6 +2265,7 @@ function openLib(btn) {
   showLib(); open(btn, 'lib'); libLoad(libStack[0]);
 }
 function libGo(k) {
+  if (!cur) return;   // Ansicht schließt schon (Doppeltipp) → nicht nochmal abspielen
   const c = libStack.at(-1).children[k];
   if (c.can_expand) {   // Album/Playlist (spielbar + aufklappbar) → eigene Seite mit Play-Knopf, sonst Ordner
     const n = { title: c.title, sub: itemSub(c), thumb: c.thumbnail, item: c, detail: !!c.can_play, children: null };
@@ -2271,12 +2290,10 @@ function libSearch(q) {
 // (media_player.join/unjoin), die Zeile selbst wählt wie bisher den Player. Gruppenlautstärke = ein Regler, der alle Mitglieder mitzieht
 const JOIN = 524288, members = id => (st(id).attributes.group_members || []).filter(m => m !== id && ents[m]);
 const canGroup = id => !!(st(id).attributes.supported_features & JOIN);
-let grpKey = '';
 function fillOuts(p) {
   const xf = p.dataset.xfer === '1', mem = members(NP), grp = !xf && canGroup(NP);
-  grpKey = mem.join();
   const gv = !xf && mem.length ? Math.round([NP, ...mem].reduce((x, m) => x + (st(m).attributes.volume_level ?? 0), 0) / (mem.length + 1) * 100) : null;
-  p.innerHTML = `<h4>${xf ? 'Übertragen auf' : 'Wiedergabe auf'}</h4>`
+  const h = `<h4>${xf ? 'Übertragen auf' : 'Wiedergabe auf'}</h4>`
     + (gv == null ? '' : `<div class="orow"><small>Gruppe · ${mem.length + 1} Lautsprecher</small><input type="range" min="0" max="100" value="${gv}" data-gvol style="--v:${gv}%" aria-label="Gruppenlautstärke"></div>`)
     + players().map(e => {
       const v = Math.round((e.attributes.volume_level ?? 0) * 100), on = e.entity_id === NP, inG = mem.includes(e.entity_id), nm = esc(e.attributes.friendly_name || e.entity_id);
@@ -2284,6 +2301,7 @@ function fillOuts(p) {
       return `<div class="orow"><button data-act="pick" data-v="${e.entity_id}">${svg('vol')}<span>${nm}<small>${inG ? 'In der Gruppe · ' : ''}${STATE[e.state] || esc(e.state)}</small></span>${grp && !on ? `<i class="ck${inG ? ' on' : ''}" data-act="grp" data-v="${e.entity_id}" role="checkbox" aria-checked="${inG}" aria-label="Zur Gruppe">${inG ? svg('check') : ''}</i>` : `<i class="ck${on ? ' on' : ''}">${on ? svg('check') : ''}</i>`}</button>`
         + (e.attributes.volume_level == null ? '' : `<input type="range" min="0" max="100" value="${v}" data-vol="${e.entity_id}" style="--v:${v}%" aria-label="Lautstärke ${nm}">`) + '</div>';
     }).join('') + (xf && players().length < 2 ? '<p class="qnone">Kein weiterer Lautsprecher</p>' : '');
+  if (p._h !== h) { p._h = h; p.innerHTML = h; }   // nur bei Änderung neu bauen
 }
 // Lautstärke-Pille (oben rechts): Regler wächst nach links aus der Pille. Kein Überschwingen (ref/steuerung/medien/NOTIZEN.md 1–2): 140 ms auf, 125 ms zu, 2,25 s offen
 let volClose = 0, volDrag = false, volHold = 0;
@@ -2343,14 +2361,18 @@ async function platformOf(id) {
   return plat[id];
 }
 async function fillQueue(face) {
-  const box = $('.qlist', face), a = st(NP).attributes, id = NP;
-  let items = [], i = -1;
+  const box = $('.qlist', face), g = box._g = {}, id = NP;   // spätere Antwort einer älteren Anfrage verwerfen
+  let items = [], i = -1, a = st(NP).attributes;
   if (!LIVE) { items = a._q || []; i = a._i ?? -1; }
   else if (id) {
     const pf = await platformOf(id);
-    if (pf === 'sonos' || pf === '') try { items = (await ask('sonos', 'get_queue', { entity_id: id }))?.[id] || []; i = items.findIndex(x => x.title === a.media_title); } catch {}
+    if (pf === 'sonos' || pf === '') try {
+      items = ((await ask('sonos', 'get_queue', { entity_id: id }))?.[id] || []).map(x => ({ title: x.media_title, artist: x.media_artist }));   // HA-Form (sonos get_queue)
+      if (box._g !== g || id !== NP) return;
+      a = st(id).attributes; i = a.queue_position > 0 ? a.queue_position - 1 : items.findIndex(x => x.title === a.media_title);
+    } catch {}
   }
-  if (id !== NP) return;   // Player wechselte während der Abfrage
+  if (id !== NP || box._g !== g) return;   // Player wechselte während der Abfrage
   const art = x => x.art || x.album_art || x.album_art_uri || x.thumbnail, row = (x, k) => { const u = art(x); return `<button class="qi" data-act="qplay" data-v="${k}"><span class="cover" style="${u ? '--art:' + cssUrl(abs(u)) : ''}"></span><div><b>${esc(x.title)}</b><small>${esc(x.artist || x.creator)}</small></div></button>`; };
   const rest = items.map((x, k) => [x, k]).filter(([, k]) => k > i);
   box.innerHTML = `<div class="qhead"><span>Als Nächstes</span><button class="tg${a.shuffle ? ' on' : ''}" data-act="shuffle" aria-label="Zufallswiedergabe">${svg('shuffle')}</button>`
@@ -2372,12 +2394,12 @@ function seekMove(e) {
   bind('npe', mmss(sk.f * dur)); bind('npr', '−' + mmss(dur - sk.f * dur));
 }
 
-let tempT, lightT;
+const tempT = {}; let lightT;   // tempT je Entity: zwei Thermostate kurz nacheinander verlieren sich sonst
 function sendTemp(id) {
-  hold[id] = Date.now() + 3000;
-  $$(`[data-e="${id}"]`).forEach(t => t.classList.add('on')); setTimeout(render, 3100);
-  clearTimeout(tempT);
-  tempT = setTimeout(() => call('climate', 'set_temperature', { entity_id: id, temperature: T[id] }), 600);
+  holdFor(id, 3000);
+  $$(`[data-e="${id}"]`).forEach(t => t.classList.add('on'));
+  clearTimeout(tempT[id]);
+  tempT[id] = setTimeout(() => call('climate', 'set_temperature', { entity_id: id, temperature: T[id] }), 600);
 }
 // Symbol dunkel (full), sobald die weiße Fläche es erreicht
 const fillSet = (t, p) => {
@@ -2414,11 +2436,12 @@ const fillSet = (t, p) => {
   });
 }
 function sendLight() {   // max. alle 200 ms während des Ziehens
-  hold[cur.e] = Date.now() + 1500; setTimeout(schedule, 1600);   // Kachel nach Ablauf der Sperre neu zeichnen (HA-Echo kam währenddessen an)
+  const id = cur?.e; if (!id) return;   // Dimmer schon zu (Timer/pointermove nach dem Schließen)
+  holdFor(id, 1500);   // Kachel nach Ablauf der Sperre neu zeichnen (HA-Echo kam währenddessen an)
   if (lightT) return;
   lightT = setTimeout(() => {
     lightT = 0;
-    call('light', S.light ? 'turn_on' : 'turn_off', S.light ? { entity_id: cur.e, brightness_pct: S.light } : { entity_id: cur.e });
+    call('light', S.light ? 'turn_on' : 'turn_off', S.light ? { entity_id: id, brightness_pct: S.light } : { entity_id: id });
   }, 200);
 }
 // Öffnen/Entriegeln (bzw. Löschen) braucht einen zweiten Tipp innerhalb von 3 s
@@ -2451,18 +2474,19 @@ function holdLock(t) {
 }
 function holdCancel() { if (!hl) return; hl.an.onfinish = null; hl.ring.remove(); hl = null; }
 function armed(t) {
+  clearTimeout(t._armT);   // alter Timer löscht sonst ein neu gesetztes Fenster vorzeitig
   if (t.dataset.arm) { delete t.dataset.arm; return true; }
-  t.dataset.arm = 1; setTimeout(() => delete t.dataset.arm, 3000);
+  t.dataset.arm = 1; t._armT = setTimeout(() => delete t.dataset.arm, 3000);
   return false;
 }
 const TAP = {
   climate: t => open(t, 'climate'),
   camera: t => open(t, 'cam'),
-  light: (t, id) => { hold[id] = Date.now() + 1500; if (t.dataset.sv === 'fill') { const on = t.classList.toggle('lit'); fillSet(t, on ? t._p || 100 : 0); } else t.classList.toggle('on'); call(id.split('.')[0], 'toggle', { entity_id: id }); },
+  light: (t, id) => { holdFor(id, 1500); if (t.dataset.sv === 'fill') { const on = t.classList.toggle('lit'); fillSet(t, on ? t._p || 100 : 0); } else t.classList.toggle('on'); call(id.split('.')[0], 'toggle', { entity_id: id }); },
   fan: (t, id) => TAP.light(t, id),
   switch: (t, id) => TAP.light(t, id),
   input_boolean: (t, id) => TAP.light(t, id),
-  button: (t, id) => { hold[id] = Date.now() + 1200; t.classList.add('on'); setTimeout(() => t.classList.remove('on'), 1200); call(id.split('.')[0], 'press', { entity_id: id }); },
+  button: (t, id) => { holdFor(id, 1200); t.classList.add('on'); setTimeout(() => t.classList.remove('on'), 1200); call(id.split('.')[0], 'press', { entity_id: id }); },
   input_button: (t, id) => TAP.button(t, id),
   lock: (t, id) => {
     if (st(id).state !== 'locked') return call('lock', 'lock', { entity_id: id });
@@ -2475,7 +2499,7 @@ const TAP = {
     if (t.dataset.sv === 'blind') { hold[id] = Date.now() + 1500; setTimeout(schedule, 1600); t.classList.toggle('lit', opening); fillSet(t, opening ? 0 : 100); }
     call('cover', opening ? 'open_cover' : 'close_cover', { entity_id: id });
   },
-  scene: (t, id) => { hold[id] = Date.now() + 1200; t.classList.add('on'); setTimeout(() => t.classList.remove('on'), 1200); call('scene', 'turn_on', { entity_id: id }); },
+  scene: (t, id) => { holdFor(id, 1200); t.classList.add('on'); setTimeout(() => t.classList.remove('on'), 1200); call('scene', 'turn_on', { entity_id: id }); },
   script: (t, id) => call('script', 'turn_on', { entity_id: id }),
   media_player: (t, id) => call('media_player', 'media_play_pause', { entity_id: id }),
   timer: (t, id) => st(id).state === 'idle' ? call('timer', 'start', { entity_id: id }) : timerShow(id),
@@ -2522,8 +2546,9 @@ let cur = null, y0 = null, p0, sy = null, sp = 0, shT = 0, camStale = false;   /
 function open(tile, id) {
   kzClose(true);   // Kamera (Klingel), Musikauswahl … liegen unter dem Kontrollzentrum
   const view = $('#' + id), e = tile.dataset.e;
-  cur = { tile, view, e };
-  bind('vname', (tile._t ? tile._t.sub : $('.sub', tile)?.textContent) || st(e).attributes.friendly_name || '');   // Konfig-Wert: render() hängt beim Thermostat „• Ist°“ an
+  cur = { tile, view, e }; faces.inert = $('#pull').inert = id !== 'cam';   // dahinter nichts per Tab/Enter erreichbar (Kamera wischt wie ein Face aus dem Pager)
+  $$('.amb').forEach(x => x.classList.remove('amb')); $$('.pop.open').forEach(x => x.classList.remove('open'));   // Ruhemodus/Popup darunter würden sonst den 1. Tipp in der Ansicht schlucken
+  bind('vname', (tile._t ? (tile._v || tile._t).sub : $('.sub', tile)?.textContent) || st(e).attributes.friendly_name || '');   // Konfig-Wert: render() hängt beim Thermostat „• Ist°“ an
   if (id === 'dimmer') setLight(pct(st(e)));
   if (id === 'shade') { sy = null; setShade(closedPct(st(e))); $('#shade .sb [data-v=stop_cover]').hidden = !(st(e).attributes.supported_features & 8); }
   if (id === 'climate') { const n = $('.num', view); n.dataset.temp = e; n.replaceChildren(); modeMenu(false); }
@@ -2534,8 +2559,8 @@ function open(tile, id) {
 function close() {
   if (!cur) return;   // schon beim Schließen (z. B. Kamera-Timer)
   const { tile, view } = cur;
-  cur = null;
-  fly(tile, view, false, () => { camHide(); if (camStale && !cur) { camStale = false; renderAll(curIdx()); } });
+  cur = null; faces.inert = $('#pull').inert = false;
+  fly(tile, view, false, () => { if (view.id === 'cam') camHide(); if (camStale && !cur) { camStale = false; renderAll(curIdx()); } });
 }
 // Termine aller calendar.*-Entities (Demo: erfundene, relativ zu heute); null = kein Kalender erreichbar
 const calIds = () => { const f = CONF.faces.find(x => x.cals?.length); return Object.keys(ents).filter(id => id.startsWith('calendar.') && (!f || f.cals.includes(id))).sort(); };   // Auswahl am Kalender-/Info-Face (leer = alle)
@@ -2562,29 +2587,34 @@ const curIdx = () => Math.round(faces.scrollLeft / (faces.clientWidth * 1.025));
 const curEl = () => faces.children[curIdx()];
 const markCur = () => [...faces.children].forEach((f, i) => f.classList.toggle('cur', i === curIdx()));
 function refresh() { npKey = ''; tick(); render(); times(); fillLyrics(); }
+// Laufende Animationen (fill:forwards, Endlos-Punkte/Zeiger) halten ihr Target samt Teilbaum am Leben → vor dem Entfernen beenden; mit onfinish laufen zu Ende
+const drop = el => el.getAnimations({ subtree: true }).forEach(a => a.onfinish || a.cancel());
 const applyTheme = () => { const r = document.documentElement.dataset; r.theme = CONF.theme || 'liquid'; r.mode = CONF.mode || 'dark'; };
 function renderAll(idx = 0) {
   applyTheme();
-  faces.replaceChildren(...CONF.faces.map(f => buildFace(f)));
+  drop(faces); faces.replaceChildren(...CONF.faces.map(f => buildFace(f)));
   faces.scrollLeft = idx * faces.clientWidth * 1.025;
   markCur(); refresh();
 }
 // Tag ↔ Nacht: betroffene Faces neu aufbauen, Überblendung per View Transition (Compositor); nicht im Vollbild → nächster tick/render holt es nach
-let night;
+let night, sunSeen;
 function phase() {
-  const n = isNight();
-  if (night === undefined) return night = n;   // erster Aufbau lief schon mit n
-  if (n === night || cur || kzOn) return;
+  const n = isNight(), sun = !!ents['sun.sun'];
+  if (night === undefined) { sunSeen = sun; return night = n; }   // erster Aufbau lief schon mit n
+  if (n === night) { sunSeen = sun; return; }
+  if (cur || kzOn) return;
   night = n;
   const dyn = CONF.faces.map((f, i) => f.bg === 'auto' || f.tiles?.some(t => t.night) ? i : -1).filter(i => i >= 0);
-  const go = () => dyn.forEach(rerender);
-  document.startViewTransition ? document.startViewTransition(go) : go();
+  if (!dyn.length) { sunSeen = sun; return; }
+  const go = () => dyn.forEach(rerender), first = sun && !sunSeen; sunSeen = sun;   // erstes sun.sun-Eintreffen (Uhr-Fallback lag falsch): hart umschalten, keine Überblendung
+  if (!document.startViewTransition || first) return go();
+  document.startViewTransition(go).ready.catch(() => {});   // übersprungene Transition (schneller Wechsel) wirft AbortError
 }
 function rerender(i) {
   const old = faces.children[i], n = buildFace(CONF.faces[i]);
   n.classList.toggle('cur', old.classList.contains('cur'));
   if (cur?.tile === old) cur.tile = n;   // offene Terminliste: Schließen fliegt aufs neue Face (Tageswechsel)
-  old.replaceWith(n); refresh();
+  drop(old); old.replaceWith(n); refresh();
 }
 // Touch-Fallback für scrollbare Listen (Spielerauswahl, Warteschlange, Bibliothek, Termine …): übernimmt der Browser das Wischen nicht selbst (touch-action, Kiosk-/WebView-Eigenheiten),
 // scrollt die Liste mit dem Finger; übernimmt er es, kommt pointercancel und der Fallback ist sofort still
@@ -2616,7 +2646,7 @@ function rerender(i) {
     const away = Math.round(faces.scrollLeft / STEP()) !== Math.round(camL / STEP()), view = $('#cam');
     camL = null; view.style.transform = '';
     if (!away || cur?.view !== view) return;
-    cur = null; view.hidden = true; camHide();
+    cur = null; faces.inert = $('#pull').inert = false; view.hidden = true; camHide();
     if (camStale) { camStale = false; renderAll(curIdx()); }
   };
   const spin = (target, v0 = 0) => {   // v0 = Geschwindigkeit von scrollLeft in px/s
@@ -2667,7 +2697,7 @@ function rerender(i) {
 function bump(b) {
   const id = b.closest('[data-e]')?.dataset.e || cur?.e, a = st(id).attributes, d = b.dataset.act === 'up' ? 1 : -1, now = T[id] ?? a.temperature;
   if (now == null) return;
-  const v = Math.min(a.max_temp ?? 35, Math.max(a.min_temp ?? 5, now + d * (a.target_temp_step || .5)));
+  const sp = a.target_temp_step || .5, v = +Math.min(a.max_temp ?? 35, Math.max(a.min_temp ?? 5, Math.round((now + d * sp) / sp) * sp)).toFixed(2);   // auf Schrittweite runden (kein 22.70000000000001)
   if (v !== now) { setTemp(id, v, d); sendTemp(id); }
 }
 // Eigene Aktion einer Kachel (Einstellungsseite: tap/hold = { do: toggle | service | face | none, service, data, face }); default/fehlt = Standard
@@ -2680,6 +2710,7 @@ const own = a => a && a.do !== 'default';
 // Tippen = Aktion · Halten (450 ms): eigene Aktion, auf Licht sonst der Dimmer
 let lp, suppress = false, px = 0, py = 0, pull = false;
 document.addEventListener('pointerdown', e => {
+  if (!e.isPrimary || e.button) return;   // 2. Finger / rechte Taste: kein Halten, kein neuer Drag
   suppress = false; px = e.clientX; py = e.clientY; touched = Date.now(); pull = e.target.id === 'pull';
   const amb = $('.amb');
   if (amb) { amb.classList.remove('amb'); if (amb === curEl()) { suppress = true; return; } }   // erster Tipp weckt nur
@@ -2696,20 +2727,23 @@ document.addEventListener('pointerdown', e => {
   if (pg) { if (npPos()[1]) { sk = pg; pg.classList.add('drag'); seekMove(e); } return; }
   const ht = e.target.closest('.tile[data-ti]'), light = e.target.closest('.tile[data-e^="light."],.tile[data-e^="cover."],.tile[data-sv=cover][data-e^="media_player."]');
   if (ht?.dataset.e?.startsWith('lock.') && !own(ht._hold) && st(ht.dataset.e).state === 'locked') holdLock(ht);
-  if (ht?.dataset.e && own(ht._hold)) lp = setTimeout(() => { suppress = true; tileAct(ht, ht.dataset.e, ht._hold); }, 450);
-  else if (light && !(light.dataset.e.startsWith('cover.') && st(light.dataset.e).attributes.device_class === 'garage')) lp = setTimeout(() => { suppress = true; const id = light.dataset.e; if (id.startsWith('media_player.')) { const i = CONF.faces.findIndex(f => f.type === 'music'); if (i >= 0) { CONF.player = id; save(); render(); faces.go(i); } } else open(light, id.startsWith('cover.') ? 'shade' : 'dimmer'); }, 450);   // Medien: Langdruck → Musik-Face mit diesem Player
+  if (ht?.dataset.e && own(ht._hold)) lp = setTimeout(() => { if (cur) return; suppress = true; tileAct(ht, ht.dataset.e, ht._hold); }, 450);   // inzwischen Ansicht offen (z. B. Klingel)
+  else if (light && !(light.dataset.e.startsWith('cover.') && st(light.dataset.e).attributes.device_class === 'garage')) lp = setTimeout(() => { if (cur) return; suppress = true; const id = light.dataset.e; if (st(id).state === 'unavailable') return shake(light); if (id.startsWith('media_player.')) { const i = CONF.faces.findIndex(f => f.type === 'music'); if (i >= 0) { CONF.player = id; save(); render(); faces.go(i); } } else open(light, id.startsWith('cover.') ? 'shade' : 'dimmer'); }, 450);   // Medien: Langdruck → Musik-Face mit diesem Player
 });
 document.addEventListener('pointermove', e => {
+  if (!e.isPrimary) return;   // 2. Finger darf Drag/Seek/Lyrics/Pull nicht umlenken
   if (Math.hypot(e.clientX - px, e.clientY - py) > 8) { clearTimeout(lp); holdCancel(); }
+  if (e.buttons) touched = Date.now();   // gehaltenes Ziehen (Seek, Lautstärke) hält den Ruhe-Modus fern
   if (sk) seekMove(e);
   if (ls && (ls.on || Math.abs(e.clientY - ls.y) > 8)) { ls.on = true; lyrScroll(ls.ll, ls.o + e.clientY - ls.y); }
   if (pull && e.clientY - py > 20) { pull = false; suppress = true; assistStart(); }
 });
-document.addEventListener('pointerdown', e => { if (e.target.closest('.mpill .vs')) { volDrag = true; clearTimeout(volClose); } });
-for (const ev of ['pointerup', 'pointercancel']) document.addEventListener(ev, () => {
-  clearTimeout(lp); holdCancel();
+document.addEventListener('pointerdown', e => { if (e.target.closest('.mpill .vs, .outs input')) { volDrag = true; clearTimeout(volClose); } });
+for (const ev of ['pointerup', 'pointercancel']) document.addEventListener(ev, e => {
+  if (!e.isPrimary) return;   // Loslassen des 2. Fingers beendet die Geste des ersten nicht
+  clearTimeout(lp); holdCancel(); pull = false;
   if (volDrag) { volDrag = false; volArm(); }
-  if (ls?.on) suppress = true;   // Scrollen ist kein Tipp auf eine Zeile
+  if (ls?.on) { suppress = true; lyrScroll(ls.ll, lyrOff(ls.ll)); }   // Scrollen ist kein Tipp auf eine Zeile; 3 s Ruhe zählen ab Loslassen
   ls = null;
   if (sk) { call('media_player', 'media_seek', { entity_id: NP, seek_position: sk.f * npPos()[1] }); sk.classList.remove('drag'); sk = null; suppress = true; }
 });
@@ -2739,10 +2773,10 @@ document.addEventListener('click', e => {
   if (pop && !e.target.closest('.pop')) return pop.classList.remove('open');   // Tipp daneben schließt nur
   if (act === 'close') close();
   else if (act === 'pk') { const k = b.dataset.k; k === 'ok' ? pinGo() : (pinV = k === 'del' ? pinV.slice(0, -1) : (pinV + k).slice(0, 12), pinDots()); }
-  else if (act === 'cov') { hold[cur.e] = Date.now() + 1500; setTimeout(schedule, 1600); call('cover', b.dataset.v, { entity_id: cur.e }); }
+  else if (act === 'cov') { if (!cur) return; hold[cur.e] = Date.now() + 1500; setTimeout(schedule, 1600); call('cover', b.dataset.v, { entity_id: cur.e }); }
   else if (/^tm[ptn]$/.test(act)) call('media_player', { tmp: 'media_previous_track', tmn: 'media_next_track', tmt: 'media_play_pause' }[act], { entity_id: b.closest('.tile').dataset.e });
-  else if (act === 'hvac') modeMenu(true);
-  else if (act === 'hvacset') { call('climate', 'set_hvac_mode', { entity_id: cur.e, hvac_mode: b.dataset.v }); modeMenu(false); }
+  else if (act === 'hvac') cur && !gone(cur.e) && modeMenu(true);
+  else if (act === 'hvacset') { if (!cur || gone(cur.e)) return modeMenu(false); call('climate', 'set_hvac_mode', { entity_id: cur.e, hvac_mode: b.dataset.v }); modeMenu(false); }
   else if (act === 'lib') { pop?.classList.remove('open'); openLib($('.mb', b.closest('.face'))); }
   else if (act === 'libgo') libGo(+b.dataset.v);
   else if (act === 'libback') { if (!libRoot()) { libStack.pop(); if (libStack.length === 1) $('#lib .lsr input').value = ''; showLib(-1); } else close(); }
@@ -2768,7 +2802,7 @@ document.addEventListener('click', e => {
   else if (act === 'xferopen') { const f = b.closest('.face'); pop?.classList.remove('open'); openPop($('.more', f), '.outs', fillOuts, '1'); }
   else if (act === 'xfer') { pop?.classList.remove('open'); transfer(b.dataset.v); }
   else if (act === 'grp') { const id = b.dataset.v; call('media_player', members(NP).includes(id) ? 'unjoin' : 'join', members(NP).includes(id) ? { entity_id: id } : { entity_id: NP, group_members: [id] }); }
-  else if (act === 'pick') { CONF.player = b.dataset.v; save(); render(); fillOuts(b.closest('.pop')); }
+  else if (act === 'pick') { const po = b.closest('.pop'); CONF.player = b.dataset.v; save(); render(); fillOuts(po); }   // Popover vorher holen: render() ersetzt den Button
   else if (act === 'shuffle') NP && call('media_player', 'shuffle_set', { entity_id: NP, shuffle: !st(NP).attributes.shuffle });
   else if (act === 'repeat') NP && call('media_player', 'repeat_set', { entity_id: NP, repeat: { off: 'all', all: 'one', one: 'off' }[st(NP).attributes.repeat || 'off'] });
   else if (act === 'stop') { pop?.classList.remove('open'); NP && call('media_player', 'media_stop', { entity_id: NP }); }
@@ -2924,17 +2958,17 @@ for (const el of $$('.kzsl', kz)) {
 const shd = $('#shade');
 shd.addEventListener('pointerdown', e => { if (e.target.closest('[data-act]') || st(cur.e).attributes.current_position == null) return; sy = e.clientY; sp = 100 - S.shade; shd.classList.add('drag'); shd.setPointerCapture(e.pointerId); });
 shd.addEventListener('pointermove', e => {
-  if (sy === null) return;
+  const id = cur?.e; if (sy === null || !id) return;
   const c = Math.round(Math.min(100, Math.max(0, sp + (e.clientY - sy) / shd.clientHeight * 100)));
   if (100 - c === S.shade) return;
-  setShade(c); hold[cur.e] = Date.now() + 1500; setTimeout(schedule, 1600);
-  shT ||= setTimeout(() => { shT = 0; call('cover', 'set_cover_position', { entity_id: cur.e, position: S.shade }); }, 200);
+  setShade(c); holdFor(id, 1500);
+  shT ||= setTimeout(() => { shT = 0; call('cover', 'set_cover_position', { entity_id: id, position: S.shade }); }, 200);
 });
 for (const n of ['pointerup', 'pointercancel']) shd.addEventListener(n, () => { sy = null; shd.classList.remove('drag'); });
 const dim = $('#dimmer');
-dim.addEventListener('pointerdown', e => { if (e.target.closest('[data-act]')) return; y0 = e.clientY; p0 = S.light; dim.setPointerCapture(e.pointerId); });
+dim.addEventListener('pointerdown', e => { if (!e.isPrimary || e.target.closest('[data-act]')) return; y0 = e.clientY; p0 = S.light; dim.setPointerCapture(e.pointerId); });
 dim.addEventListener('pointermove', e => {
-  if (y0 === null) return;
+  if (y0 === null || !cur || !e.isPrimary) return;
   const p = Math.round(Math.min(100, Math.max(0, p0 + (y0 - e.clientY) / dim.clientHeight * 100)));
   if (p !== S.light) { setLight(p); sendLight(); }
 });
@@ -3132,6 +3166,13 @@ renderAll(0);
 setTimeout(() => { tick(); setInterval(tick, 60000); }, 60050 - Date.now() % 60000);
 setInterval(times, 1000);
 document.addEventListener('visibilitychange', tick);
+// Anderer Tab desselben Displays hat die Konfig geändert: sonst überschreibt unser veralteter CONF beim nächsten save() seine Änderung → neu laden, sobald nichts offen ist
+// ponytail: Reload statt Merge (Seitenposition geht verloren); gleicher Inhalt (HA-Push in beiden Tabs) löst nichts aus
+let cfgPoll;
+addEventListener('storage', e => {
+  if (PREVIEW || e.key !== KEY || cfgPoll || e.newValue === JSON.stringify(CONF)) return;
+  cfgPoll = setInterval(() => { if (!cur && !kzOn) location.reload(); }, 500);
+});
 
 // Verbindung: in Kiosk Satellite über dessen Socket (kein Token in der Seite), im HA-Panel (iframe) die des HA-Frontends,
 // sonst HA-Login (OAuth) einmalig, Tokens im localStorage
@@ -3157,7 +3198,7 @@ if (LIVE) {
         loadTokens: async () => JSON.parse(localStorage.hassTokens || 'null'),
       });
       if (location.search.includes('auth_callback')) history.replaceState(null, '', location.pathname + '?live');
-      conn = await ha.createConnection({ auth, setupRetry: -1 });
+      conn = await ha.createConnection({ auth, setupRetry: -1 }); try { delete sessionStorage.hbAuthRetry; } catch {}
     }
     // Display anmelden: eigene Konfiguration + Kiosk-Einstellungen aus HA; ohne gespeicherte Konfiguration bleibt die lokale und wird hochgeladen
     let camJ = '';   // Kamera-Konfiguration (Liste, Klingel) vom Server; true = hat sich geändert
@@ -3250,7 +3291,13 @@ if (LIVE) {
   } catch (err) {
     // In KS heißt ERR_INVALID_AUTH: Teilen aus / keine Custom Page. Kein Reload, sonst Endlosschleife.
     if (KS) console.error('KS: „Share Home Assistant connection“ einschalten bzw. Seite als Custom Page eintragen', err);
-    else if (err === ha.ERR_INVALID_AUTH) { localStorage.removeItem('hassTokens'); location.reload(); }
+    // Neustart ohne auth_callback/code/state in der URL, sonst Schleife; einmal pro Sitzung, danach nur Fehler
+    else if (err === ha.ERR_INVALID_AUTH && !(() => { try { return sessionStorage.hbAuthRetry; } catch { return 1; } })()) {
+      try { sessionStorage.hbAuthRetry = 1; } catch {}
+      localStorage.removeItem('hassTokens');
+      const u = new URLSearchParams(location.search); for (const k of ['auth_callback', 'code', 'state']) u.delete(k);
+      location.replace(location.pathname + '?' + u);
+    }
     else console.error('HA', err);
   }
 }

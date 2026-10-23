@@ -75,7 +75,9 @@ export const DRAW = {
 };
 
 if (typeof WorkerGlobalScope !== 'undefined') onmessage = async ({ data: { id, kind, w, h, args } }) => {
-  const c = new OffscreenCanvas(w, h);
-  DRAW[kind](c.getContext('2d'), w, h, ...args);
-  postMessage({ id, blob: await c.convertToBlob() });
+  try {
+    const c = new OffscreenCanvas(w, h);
+    DRAW[kind](c.getContext('2d'), w, h, ...args);
+    postMessage({ id, blob: await c.convertToBlob() });
+  } catch (e) { postMessage({ id, err: String(e) }); }   // sonst bleibt das Promise im Hauptthread ewig offen
 };

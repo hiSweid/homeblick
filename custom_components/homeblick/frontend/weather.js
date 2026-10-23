@@ -63,19 +63,27 @@ const SCENES = {
 const rng = a => () => { a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
 // Texturen entstehen im Worker (weather-tex.js); ohne OffscreenCanvas oder unter file:// (Tests) im Hauptthread
 const cache = new Map(), pend = new Map(), OFF = typeof OffscreenCanvas !== 'undefined' && location.protocol !== 'file:';
-const worker = OFF && new Worker(new URL('./weather-tex.js', import.meta.url), { type: 'module' });
+let worker = OFF && new Worker(new URL('./weather-tex.js', import.meta.url), { type: 'module' });
+// Hauptthread-Pfad (auch Rückfall, wenn der Worker nicht lädt/abstürzt)
+const draw = ({ kind, w, h, args }) => import('./weather-tex.js').then(({ DRAW }) => new Promise(res => {
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h; DRAW[kind](c.getContext('2d'), w, h, ...args);
+  c.toBlob(b => res(`url(${URL.createObjectURL(b)})`));
+}));
 if (worker) {
-  worker.onmessage = ({ data }) => { pend.get(data.id)(`url(${URL.createObjectURL(data.blob)})`); pend.delete(data.id); };
-  worker.onerror = e => console.warn('weather-tex', e.message);
+  worker.onmessage = ({ data }) => { const q = pend.get(data.id); data.err ? q.shift().rej(new Error(data.err)) : q.shift()(`url(${URL.createObjectURL(data.blob)})`); if (!q.length) pend.delete(data.id); };   // je Anfrage ein Resolver (gleicher Key kann nach cache.clear() doppelt laufen)
+  // Worker tot (Ladefehler, CSP, Absturz): offene Jobs im Hauptthread nachholen, neue gehen direkt dorthin
+  worker.onerror = e => {
+    console.warn('weather-tex Worker, Rückfall auf Hauptthread:', e.message); worker.terminate(); worker = null;
+    for (const q of pend.values()) for (const r of q) r(draw(r.m));
+    pend.clear();
+  };
 }
 function tex(kind, w, h, ...args) {
-  const key = `${kind}${w}x${h}${JSON.stringify(args)}`;
-  if (!cache.has(key)) cache.set(key, worker ? new Promise(res => { pend.set(key, res); worker.postMessage({ id: key, kind, w, h, args }); })
-    : import('./weather-tex.js').then(({ DRAW }) => new Promise(res => {
-      const c = document.createElement('canvas');
-      c.width = w; c.height = h; DRAW[kind](c.getContext('2d'), w, h, ...args);
-      c.toBlob(b => res(`url(${URL.createObjectURL(b)})`));
-    })));
+  const key = `${kind}${w}x${h}${JSON.stringify(args)}`, m = { id: key, kind, w, h, args };
+  if (!cache.has(key)) cache.set(key, (worker ? new Promise((res, rej) => { res.m = m; res.rej = rej; pend.set(key, [...pend.get(key) || [], res]); worker.postMessage(m); }) : draw(m))
+    // scheitert auch das: Ebene bleibt leer (statt Szene komplett zu verwerfen), nicht gecacht → nächster Aufbau versucht es erneut
+    .catch(e => { cache.delete(key); console.warn('weather-tex', e.message || e); return 'none'; }));
   return cache.get(key);
 }
 const cloudTex = (o, pal, px) => { const W = Math.min(1024, Math.round(px * 100)); return tex('cloud', W, Math.round(W * o.h / 100), o, pal); };
@@ -89,13 +97,13 @@ const reduced = matchMedia('(prefers-reduced-motion: reduce)');
 // Schwelle nötig: Nachbar-Faces berühren den Scrollport nur an der Kante und zählen ohne sie als sichtbar
 const io = new IntersectionObserver(es => es.forEach(e => e.target.classList.toggle('off', !e.isIntersecting)), { threshold: .01 });
 // deutlich größer geworden (Drehen, Vollbild) → Texturen neu in passender Auflösung
-const ro = new ResizeObserver(es => es.forEach(({ target: s }) => {
-  const n = Math.max(s.clientWidth, s.clientHeight);
-  if (last.length && n > (s._b || 0) * 1.4) {   // alte Auflösung freigeben, sobald die neue Szene eingeblendet ist
-    for (const p of cache.values()) p.then(u => setTimeout(() => URL.revokeObjectURL(u.slice(4, -1)), 5e3));
-    cache.clear(); s.dataset.k = ''; weather(...last);
-  }
-}));
+const ro = new ResizeObserver(es => {
+  if (!last.length || !es.some(({ target: s }) => Math.max(s.clientWidth, s.clientHeight) > (s._b || 0) * 1.4)) return;
+  // alte Auflösung einmal für alle Faces freigeben (nicht je Face, sonst sterben frische URLs), sobald die neue Szene eingeblendet ist
+  for (const p of cache.values()) p.then(u => setTimeout(() => URL.revokeObjectURL(u.slice(4, -1)), 5e3));
+  cache.clear(); for (const s of $$('.wsky')) s.dataset.k = '';
+  weather(...last);
+});
 let uid = 0;
 async function build(sky, cond, tod, wind, key) {
   // Himmel liegt in einer quadratischen Box über die längere Seite → jedes Seitenverhältnis, Texturen in Display-Auflösung
@@ -307,7 +315,7 @@ export function weatherHours(list) { hours = list || []; for (const r of $$('.wh
 const LIST = [...Object.keys(COND).filter(c => c !== 'clear-night').map(c => [c, 'day']), ['clear-night', 'night'],
   ['partlycloudy', 'night'], ['cloudy', 'night'], ['rainy', 'night'], ['snowy', 'night'], ['lightning-rainy', 'night'], ['sunny', 'dusk'], ['partlycloudy', 'dusk'], ['rainy', 'dusk']];
 let pick = null, last = [], now = [];
-if (Q.get('wx') in COND) {   // ?wx=&tod= erzwingt jede Kombination, auch außerhalb der Demo-Liste
+if (Object.hasOwn(COND, Q.get('wx'))) {   // ?wx=&tod= erzwingt jede Kombination, auch außerhalb der Demo-Liste
   const q = [Q.get('wx'), ['day', 'dusk', 'night'].includes(Q.get('tod')) ? Q.get('tod') : 'day'];
   pick = LIST.findIndex(([c, t]) => c === q[0] && t === q[1]);
   if (pick < 0) pick = LIST.push(q) - 1;
@@ -317,6 +325,7 @@ const $$ = s => document.querySelectorAll(s);
 const bind = (k, v) => { v = String(v); for (const e of $$(`[data-bind=${k}]`)) if (e.textContent !== v) e.textContent = v; };
 const hm = d => d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
 function tod(sun) {
+  if (['day', 'dusk', 'night'].includes(Q.get('tod'))) return Q.get('tod');   // Test-Parameter ?tod= gilt wie bei den Home-Faces überall
   const e = sun?.attributes?.elevation;
   if (e != null) return e > 6 ? 'day' : e > -5 ? 'dusk' : 'night';
   const h = new Date().getHours() + new Date().getMinutes() / 60;   // ponytail: ohne sun.sun grob nach Uhrzeit
@@ -336,21 +345,23 @@ function roll(el, txt, dir) {
 // Aus index.html bei jedem render(): HA-Wetter-Entity, sun.sun, Tagesvorhersage (erstes Element)
 export function weather(ws, sun, fc) {
   last = [ws, sun, fc];
-  const w = ws?.attributes || {}, up = sun?.state ? sun.state === 'above_horizon' : tod(sun) !== 'night';
-  let t = tod(sun), cond = ws?.state in COND ? ws.state : 'cloudy';
+  const w = ws?.attributes || {}, up = sun?.state === 'above_horizon' || sun?.state !== 'below_horizon' && tod(sun) !== 'night';   // unavailable o. Ä. → nach Elevation/Uhr
+  const known = Object.hasOwn(COND, ws?.state);
+  let t = tod(sun), cond = known ? ws.state : 'cloudy';
   if (pick != null) [cond, t] = LIST[pick];
   if (cond === 'sunny' && t === 'night') cond = 'clear-night';
   if (cond === 'clear-night' && t !== 'night') cond = 'sunny';
   now = [cond, t];
   const temp = w.temperature == null ? '–' : Math.round(w.temperature) + '°';
   bind('wxt', temp);
-  bind('wxc', pick != null || ws?.state in COND ? COND[cond] : ws?.state || '–');   // umgemappten Zustand beschriften (sunny nachts = Klar)
-  bind('wxhl', fc ? `H:${Math.round(fc.temperature)}° T:${Math.round(fc.templow)}°` : '');
+  bind('wxc', pick != null || known ? COND[cond] : '–');   // umgemappten Zustand beschriften (sunny nachts = Klar)
+  bind('wxhl', fc ? [['H', fc.temperature], ['T', fc.templow]].filter(([, v]) => v != null).map(([k, v]) => `${k}:${Math.round(v)}°`).join(' ') : '');
   bind('wxw', w.wind_speed == null ? '–' : `${Math.round(w.wind_speed)} ${w.wind_speed_unit || 'km/h'}`);
   bind('wxh', w.humidity == null ? '–' : Math.round(w.humidity) + ' %');
   bind('wxuv', w.uv_index == null ? '–' : Math.round(w.uv_index));
   const next = sun?.attributes?.[up ? 'next_setting' : 'next_rising'];
-  bind('wxsun', next ? hm(new Date(next)) : up ? '18:26' : '07:46');
+  const nd = next && new Date(next);   // Festzeit nur in der Demo (ohne sun.sun); echte Entity ohne gültige Zeit → –
+  bind('wxsun', nd && !isNaN(nd) ? hm(nd) : sun ? '–' : up ? '18:26' : '07:46');
   bind('wxsunl', up ? 'Untergang' : 'Aufgang');
   for (const e of $$('[data-wxsi]')) if (e.dataset.v !== String(up)) { e.dataset.v = up; e.outerHTML = FOOT.set(up).replace('<svg', `<svg data-wxsi data-v="${up}"`); }
   const ik = cond + (t === 'night');

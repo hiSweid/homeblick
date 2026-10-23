@@ -39,6 +39,12 @@ function demo(t0) {
   };
 }
 
+// Zeitspanne; über Mitternacht (Ende 00:00 exakt zählt noch zum Starttag) beide Enden mit Datum
+function when(e, d) {
+  const dm = x => x.toLocaleDateString('de-DE', { day: 'numeric', month: 'short' });
+  return ymd(e.start) === ymd(new Date(e.end - (e.end > e.start))) ? `${dm(d)}, ${hm(e.start)}–${hm(e.end)}` : `${dm(e.start)}, ${hm(e.start)} – ${dm(e.end)}, ${hm(e.end)}`;
+}
+
 // Liste als HTML; Termine, die vor heute begonnen haben, stehen unter heute
 export function eventsHTML(list, max = Infinity) {
   if (!list.length) return `<p class="evnone">Keine Termine in den nächsten ${DAYS} Tagen</p>`;
@@ -50,7 +56,7 @@ export function eventsHTML(list, max = Infinity) {
     last = day;
     html += e.allDay
       ? `<div class="ev ad" style="--c:${e.color};--i:${i++}"><svg class="i"><use href="#evcal"/></svg><b>${esc(e.title)}</b><span>ganztägig</span></div>`
-      : `<div class="ev" style="--c:${e.color};--i:${i++}"><b>${esc(e.title)}</b><span><svg class="i"><use href="#evclock"/></svg> ${d.toLocaleDateString('de-DE', { day: 'numeric', month: 'short' })}, ${hm(e.start)}–${hm(e.end)}</span></div>`;
+      : `<div class="ev" style="--c:${e.color};--i:${i++}"><b>${esc(e.title)}</b><span><svg class="i"><use href="#evclock"/></svg> ${when(e, d)}</span></div>`;
   }
   return html;
 }

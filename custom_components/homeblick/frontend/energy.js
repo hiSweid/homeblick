@@ -177,6 +177,7 @@ export function energy(ents, roll) {
   const v = k => { const s = st(k), u = s?.attributes.unit_of_measurement || '', x = parseFloat(s?.state); return !has(k) ? 0 : /^kW$/i.test(u) ? x * 1000 : /^Wh$/i.test(u) ? x / 1000 : x; };   // Leistung → W, Energie → kWh
   const ok = Object.fromEntries(Object.keys(E).map(k => [k, has(k)]));
   const x = Object.fromEntries(Object.keys(E).map(k => [k, v(k)]));
+  for (const k of ['pv', 'home', 'car']) x[k] = Math.max(0, x[k]);   // Erzeugung, Verbrauch und Ladeleistung sind nie negativ (Messrauschen/Offset würde sonst als Wert erscheinen und -0,0 kW/Verlauf verzerren)
   const { pv, home, grid, bat, soc, car, carSoc, range, today, todayFc, tomorrow } = x;
   const fa = st('todayFc')?.attributes, fl = fa?.detailedForecast || fa?.detailedHourly || [];
   const step = fl.length > 1 ? Date.parse(fl[1].period_start) - Date.parse(fl[0].period_start) : 0;
