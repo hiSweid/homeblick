@@ -10,9 +10,15 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="apple-touch-icon" href="icon-192.png">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@200..700&family=Patrick+Hand+SC&family=Roboto+Flex:opsz,wdth,wght,XOPQ,YOPQ,YTFI@144,25..151,400..500,27..175,25..135,560..788&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<link rel="preload" href="fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
 <style>
+/* Schriften lokal (fonts/, SIL OFL): Inter, Patrick Hand SC, Roboto Flex (variabel); latin + latin-ext */
+@font-face{font-family:'Inter';font-style:normal;font-weight:200 700;font-display:swap;src:url(fonts/inter-latin-ext.woff2) format('woff2');unicode-range:U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;}
+@font-face{font-family:'Inter';font-style:normal;font-weight:200 700;font-display:swap;src:url(fonts/inter-latin.woff2) format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;}
+@font-face{font-family:'Patrick Hand SC';font-style:normal;font-weight:400;font-display:swap;src:url(fonts/patrick-hand-sc-latin-ext.woff2) format('woff2');unicode-range:U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;}
+@font-face{font-family:'Patrick Hand SC';font-style:normal;font-weight:400;font-display:swap;src:url(fonts/patrick-hand-sc-latin.woff2) format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;}
+@font-face{font-family:'Roboto Flex';font-style:normal;font-weight:400 500;font-stretch:25% 151%;font-display:swap;src:url(fonts/roboto-flex-latin-ext.woff2) format('woff2');unicode-range:U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;}
+@font-face{font-family:'Roboto Flex';font-style:normal;font-weight:400 500;font-stretch:25% 151%;font-display:swap;src:url(fonts/roboto-flex-latin.woff2) format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;}
 *{box-sizing:border-box;margin:0}
 html,body{height:100%;touch-action:pan-x pan-y;overflow:hidden;background:#000;color:#fff;font:400 16px Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
 body{display:grid;place-items:center}
@@ -79,6 +85,8 @@ svg.i{width:1em;height:1em;flex:none;fill:none;stroke:currentColor;stroke-width:
 /* Beschriftung (Frontalbild Website highlights/dashboard, auf 784 px normiert, Inter statt SF): Schrift 3,0 % W, Zeilenabstand 34 px (1×1) bzw. 32 px (Thermostat) */
 .ttl{font-weight:600;font-size:3cqw;line-height:1.45}
 .sub{font-size:3cqw;line-height:1.45;color:#ffffff99;transition:color .3s}
+/* lange Namen: einzeilig mit „…“ statt über die Kachel hinaus; .lbl begrenzt den Label-Block auf die Kachelbreite (auch in der Zeilen-Kachel 2×1) */
+.lbl{max-width:100%;min-width:0}.tile[data-ti] :is(.ttl,.sub){overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tile[data-size="2x2"]{padding:9cqw 2cqw 6cqw}
 .tile[data-size="2x2"] .ico{font-size:20cqw}
 .tile[data-size="2x2"] :is(.ttl,.sub){font-size:4.4cqw}
@@ -171,7 +179,8 @@ svg.i{width:1em;height:1em;flex:none;fill:none;stroke:currentColor;stroke-width:
 .greet{grid-area:1/1/2/4;display:flex;justify-content:space-between;align-items:flex-start;padding:5cqw 3cqw;font-size:5cqw;font-weight:600;text-transform:uppercase;line-height:1.25}
 .greet>div>div:first-child{opacity:.7;font-weight:500}
 .greet .gw{font-size:8cqw;font-weight:500}
-.greet{position:relative;gap:3cqw}.greet .gw{margin-left:auto}
+.greet{position:relative;gap:3cqw}.greet .gw{margin-left:auto;flex:none}
+.greet>div:first-child{min-width:0}.greet>div:first-child>div{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}   /* langer Name: „…“ statt die Temperatur aus dem Face zu schieben */
 .av,.avf{width:10cqw;height:10cqw;border-radius:50%;flex:none;display:grid;place-items:center;font-size:4.5cqw;font-weight:600;color:#fff;background:var(--c) center/cover;border:0;padding:0;touch-action:manipulation}
 .avf{position:absolute;right:3cqw;top:5cqw;z-index:5;opacity:0;scale:.4;pointer-events:none;transition:translate var(--sd) var(--spring),opacity .25s,scale var(--sd) var(--spring);transition-delay:calc(var(--k)*40ms)}
 .fan .avf{opacity:1;scale:1;pointer-events:auto;translate:var(--x) var(--y)}
@@ -526,7 +535,7 @@ input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:tr
 .wv{position:absolute;inset:0;z-index:50;background:#fff;opacity:0;pointer-events:none}
 #cam{border-radius:8cqw}   /* Karte steigt von unten mit Display-Radius (v3wcg4Vi4u0 252,4–252,6 s); in Ruhe deckt der Screen-Radius ihn */
 .x{position:absolute;z-index:1;left:4cqw;top:4cqw;width:8.5cqw;height:8.5cqw;border-radius:50%;background:#fff3;display:grid;place-items:center;font-size:4cqw}
-.top{position:absolute;z-index:1;top:5.6cqw;inset-inline:0;text-align:center;font-weight:600;font-size:3.4cqw;pointer-events:none}
+.top{position:absolute;z-index:1;top:5.6cqw;inset-inline:0;padding-inline:16cqw;overflow-x:clip;overflow-y:visible;white-space:nowrap;text-overflow:ellipsis;text-align:center;font-weight:600;font-size:3.4cqw;pointer-events:none}
 .top time{position:absolute;right:5cqw}
 /* Klima + Licht Vollbild: Maße als % W aus dem Frontalbild des Apple-Videos (ref/t43.4.jpg, 2560-px-Frame 43,4 s, Display 328 px) und ref/vorlagen/_Tbq…/01260 (Beschriftung),
    y-MO ab 153 s (Modus-Menü, nur Handkamera); Schrift Inter statt SF (Breite abgeglichen), Zahl Medium */
@@ -535,7 +544,7 @@ input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:tr
 #climate .x{background:var(--cb)}
 #climate .x,#edet .x{transition:background-color .13s linear}
 #climate .x:active,#edet .x:active{background:#fff4;transition:none}
-#climate .top,#dimmer .top,#edet .top,#shade .top,#pin .top{top:10.6cqw;translate:0 -50%;line-height:1;font-size:3.8cqw;font-weight:400}   /* Titel mittig, Mitte y 10,3; Breite „Bedroom Air“ 22,3 % */
+#climate .top,#dimmer .top,#edet .top,#shade .top,#pin .top{top:10.6cqw;translate:0 -50%;padding-inline:20cqw;line-height:1;font-size:3.8cqw;font-weight:400}   /* Titel mittig, Mitte y 10,3; Breite „Bedroom Air“ 22,3 % */
 #climate .top time,#dimmer .top time,#edet .top time,#shade .top time,#pin .top time{right:8.6cqw}   /* Uhrzeit endet bei 91,4 %, gleiche Farbe wie der Titel */
 #climate{--cb:#fff3;--cm:color-mix(in srgb,var(--cc) 55%,#fff);--ct:#1c1c1e;background:var(--cc);transition:background-color .4s}
 #climate.cool{--cb:#08bdfc;--cm:#00c9fa;--ct:#003a73}   /* ✕ #0bc1fc, Knopf #05b9fc, Menü ≈ #00c9fa (Frame/Handkamera), Menütext #003a73 */
@@ -1365,7 +1374,7 @@ const kindOf = t => t.kind || (t.e?.startsWith('climate.') ? 'thermo' : 'tile');
 const iconOf = t => { const d = t.e?.split('.')[0]; return t.icon || (d === 'cover' && st(t.e).attributes.device_class !== 'garage' ? 'blind' : ICON[d]) || 'house'; };
 function tileEl(c) {
   const t = c.night && isNight() ? { ...c, ...c.night } : c;
-  const el = document.createElement('div'), kind = kindOf(t), label = `<div><div class="ttl">${esc(t.title)}</div><div class="sub">${esc(t.sub)}</div></div>`;
+  const el = document.createElement('div'), kind = kindOf(t), label = `<div class="lbl"><div class="ttl">${esc(t.title)}</div><div class="sub">${esc(t.sub)}</div></div>`;
   el._t = c; el._v = t; el._sub = el._base = t.sub; el._val = t.val; el._tap = t.tap; el._hold = t.hold; el.dataset.ti = '';
   if (t.color) el.style.setProperty('--accent', t.color); el.dataset.size = `${t.w || 1}x${t.h || 1}`;
   if (t.e) el.dataset.e = t.e;
