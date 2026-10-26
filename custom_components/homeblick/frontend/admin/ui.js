@@ -1,0 +1,105 @@
+// Kleine UI-Bausteine des Admins: Escape, Symbole, Toast, Rückfragen, Popover/Menü, Auswahl.
+export const $ = (s, r = document) => r.querySelector(s);
+export const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+export const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+export const fold = s => String(s ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ß/g, 'ss');
+export const sleep = ms => new Promise(r => setTimeout(r, ms));
+export const ic = (n, c = '') => `<svg class="i ${c}"><use href="#i-${n}"/></svg>`;
+export const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+
+// ---- Toast: nur einer, ersetzt den alten; 5 s, mit Aktion 8 s ----
+let tt;
+export function toast(text, o = {}) {
+  $('.toast')?.remove(); clearTimeout(tt);
+  const el = Object.assign(document.createElement('div'), { className: 'toast' + (o.bad ? ' bad' : ''), role: 'status' });
+  el.innerHTML = `<span>${esc(text)}</span>${o.action ? `<button>${esc(o.action)}</button>` : ''}`;
+  const off = () => { el.remove(); clearTimeout(tt); };
+  el.querySelector('button')?.addEventListener('click', () => { off(); o.run?.(); });
+  document.body.append(el); tt = setTimeout(off, o.action ? 8000 : 5000);
+}
+// Speichern mit Rückmeldung: Fehler als Toast, danach wieder werfen
+export const guard = (p, ok) => p.then(r => (ok && toast(ok), r), e => (toast(e?.message || 'Fehler', { bad: true }), Promise.reject(e)));
+
+// ---- Rückfragen: eigene Dialoge, erst Abbrechen im Fokus, Escape bricht ab, Klick daneben tut nichts ----
+const queue = [];
+let busy = false;
+function pump() {
+  if (busy || !queue.length) return;
+  busy = true;
+  const { text, o, res } = queue.shift(), prompt = o.value !== undefined;
+  const dim = Object.assign(document.createElement('div'), { className: 'dim' });
+  const dlg = Object.assign(document.createElement('div'), { className: 'dialog', role: 'alertdialog' });
+  dlg.innerHTML = `<p>${esc(text)}</p>${prompt ? `<input maxlength="${o.max || 60}" value="${esc(o.value)}">` : ''}<div class="acts"><button class="btn quiet" data-r="">Abbrechen</button><button class="btn ${o.danger ? 'danger fill' : 'primary'}" data-r="1">${esc(o.ok || 'OK')}</button></div>`;
+  const back = document.activeElement, inp = dlg.querySelector('input');
+  const done = v => { dim.remove(); dlg.remove(); document.removeEventListener('keydown', key, true); busy = false; back?.focus?.(); res(v); pump(); };
+  const key = e => { if (e.key === 'Escape') { e.stopPropagation(); done(prompt ? null : false); } else if (e.key === 'Enter' && prompt && e.target === inp) done(inp.value); };
+  dlg.addEventListener('click', e => { const b = e.target.closest('[data-r]'); if (b) done(b.dataset.r ? (prompt ? inp.value : true) : (prompt ? null : false)); });
+  document.addEventListener('keydown', key, true);
+  document.body.append(dim, dlg);
+  if (inp) { inp.focus(); inp.select(); } else dlg.querySelector('[data-r=""]').focus();
+}
+export const ask = (text, o = {}) => new Promise(res => { queue.push({ text, o, res }); pump(); });
+export const prompt = (text, value, o = {}) => ask(text, { ...o, value });
+
+// ---- Popover: hängt am Auslöser, schließt bei Klick daneben/Escape ----
+let openPop = null;
+export function closePop() { if (!openPop) return; const { el, anchor, off } = openPop; openPop = null; el.remove(); anchor?.setAttribute?.('aria-expanded', 'false'); document.removeEventListener('pointerdown', off, true); document.removeEventListener('keydown', off, true); }
+export function popover(anchor, html, { cls = '', side = 'bottom', align = 'start', width } = {}) {
+  closePop();
+  const el = Object.assign(document.createElement('div'), { className: `pop ${cls}`, innerHTML: html });
+  document.body.append(el);
+  anchor.setAttribute('aria-expanded', 'true');
+  const r = anchor.getBoundingClientRect(), pw = width || (cls.includes('same') ? r.width : 0);
+  if (pw) el.style.minWidth = el.style.width = pw + 'px';
+  const w = el.offsetWidth, h = el.offsetHeight;
+  let x = side === 'right' ? r.right + 6 : align === 'end' ? r.right - w : r.left, y = side === 'right' ? r.top : r.bottom + 4;
+  if (y + h > innerHeight - 8) y = Math.max(8, side === 'right' ? innerHeight - 8 - h : r.top - h - 4);
+  el.style.left = clamp(x, 8, innerWidth - w - 8) + 'px'; el.style.top = y + 'px';
+  const off = e => { if (e.type === 'keydown') { if (e.key === 'Escape') { e.stopPropagation(); closePop(); anchor.focus?.(); } } else if (!el.contains(e.target) && !anchor.contains(e.target)) closePop(); };
+  document.addEventListener('pointerdown', off, true); document.addEventListener('keydown', off, true);
+  openPop = { el, anchor, off };
+  return el;
+}
+// Menü: items = [{ label, icon, end, danger, disabled, title, run }] | { group } | '-'
+export function menu(anchor, items, o = {}) {
+  const acts = [];
+  const html = items.map(it => it === '-' ? '<div class="msep"></div>' : it.group ? `<div class="ml">${esc(it.group)}</div>`
+    : `<button class="mi ${it.danger ? 'danger' : ''}" data-m="${acts.push(it) - 1}" ${it.disabled ? 'disabled' : ''} ${it.title ? `title="${esc(it.title)}"` : ''}>${ic(it.icon || 'blank')}<span class="t">${esc(it.label)}</span>${it.end ? `<span class="end">${esc(it.end)}</span>` : ''}</button>`).join('');
+  const el = popover(anchor, html, { cls: 'menu', align: 'end', ...o });
+  el.addEventListener('click', e => { const b = e.target.closest('[data-m]'); if (!b) return; closePop(); acts[+b.dataset.m].run?.(); });
+  el.addEventListener('keydown', e => { if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return; const b = [...el.querySelectorAll('.mi:not(:disabled)')], i = b.indexOf(document.activeElement); b[(i + (e.key === 'ArrowDown' ? 1 : -1) + b.length) % b.length]?.focus(); e.preventDefault(); });
+  el.querySelector('.mi:not(:disabled)')?.focus();
+  return el;
+}
+// Auswahl wie ein Select: options = [[wert, text, hinweis?]] → Promise<wert|undefined>
+export function choose(anchor, options, current, { search = false, width } = {}) {
+  return new Promise(res => {
+    const draw = q => options.filter(([, t]) => !q || fold(t).includes(fold(q))).map(([v, t, s]) => `<button class="mi ${String(v) === String(current) ? 'hi' : ''}" data-v="${esc(v)}"><span class="t">${esc(t)}${s ? `<small>${esc(s)}</small>` : ''}</span>${String(v) === String(current) ? ic('check') : ''}</button>`).join('') || '<div class="hint" style="padding:8px 10px">Nichts gefunden</div>';
+    const el = popover(anchor, `${search ? '<input class="pq" placeholder="Suchen" style="margin-bottom:4px">' : ''}<div class="pl">${draw('')}</div>`, { cls: 'same', width });
+    const pl = el.querySelector('.pl');
+    let done = false;
+    const fin = v => { if (done) return; done = true; closePop(); res(v); };
+    el.querySelector('.pq')?.addEventListener('input', e => { pl.innerHTML = draw(e.target.value); });
+    el.addEventListener('click', e => { const b = e.target.closest('[data-v]'); if (b) fin(options.find(([v]) => String(v) === b.dataset.v)?.[0]); });
+    const obs = new MutationObserver(() => { if (!el.isConnected) { obs.disconnect(); fin(undefined); } }); obs.observe(document.body, { childList: true });
+    (el.querySelector('.pq') || el.querySelector('.mi.hi') || el.querySelector('.mi'))?.focus();
+    el.querySelector('.mi.hi')?.scrollIntoView({ block: 'nearest' });
+  });
+}
+
+// ---- Dialog mit eigenem Inhalt: Klick auf [data-r] schließt mit diesem Wert, Escape/Klick daneben mit null; init(dlg, done) darf Ereignisse anhängen ----
+export function modal(html, { cls = '', label = '', init, dismiss = true } = {}) {
+  return new Promise(res => {
+    const dim = Object.assign(document.createElement('div'), { className: 'dim' });
+    const dlg = Object.assign(document.createElement('div'), { className: `dialog ${cls}`, role: 'dialog', ariaLabel: label, innerHTML: html });
+    const back = document.activeElement;
+    const done = v => { dim.remove(); dlg.remove(); document.removeEventListener('keydown', key, true); back?.focus?.(); res(v); };
+    const key = e => { if (e.key === 'Escape' && !$('.pop') && !$('.picker')) { e.stopPropagation(); done(null); } };
+    dlg.addEventListener('click', e => { const b = e.target.closest('[data-r]'); if (b && !b.disabled) done(b.dataset.r); });
+    if (dismiss) dim.onclick = () => done(null);
+    document.addEventListener('keydown', key, true);
+    document.body.append(dim, dlg);
+    init?.(dlg, done);
+    (dlg.querySelector('[autofocus]') || dlg.querySelector('input'))?.focus({ preventScroll: true });
+  });
+}

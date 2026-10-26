@@ -1,0 +1,106 @@
+// Entities, Bereiche und Auswahl-Dialog. Daten aus get_states + Registries; fehlen die Registries, bleiben Bereich und Gerät leer.
+import { $, esc, fold, ic } from './ui.js';
+
+// domain: [Name, Farbe, Symbol]
+export const DOM = {
+  light: ['Licht', '#d9930f', 'bulb'], switch: ['Schalter', '#6b7280', 'switch'], lock: ['Schloss', '#1e9a5f', 'lock'],
+  cover: ['Tor', '#5e5ce6', 'cover'], climate: ['Thermostat', '#e0602b', 'thermo'], scene: ['Szene', '#d9822b', 'sun'],
+  script: ['Skript', '#6b7280', 'script'], media_player: ['Medien', '#d6336c', 'play'], fan: ['Ventilator', '#1096b0', 'fan'],
+  timer: ['Timer', '#d9930f', 'timer'], camera: ['Kamera', '#5856d6', 'cam'], sensor: ['Sensor', '#266df0', 'pulse'],
+  binary_sensor: ['Binärsensor', '#266df0', 'pulse'], weather: ['Wetter', '#1d8fd0', 'cloud'], calendar: ['Kalender', '#d93f3f', 'cal'],
+  event: ['Ereignis', '#9b51e0', 'bolt'], input_boolean: ['Schalter', '#6b7280', 'switch'], button: ['Taster', '#6b7280', 'switch'], input_button: ['Taster', '#6b7280', 'switch'],
+};
+const STATE = { on: 'an', off: 'aus', locked: 'verriegelt', unlocked: 'entsperrt', open: 'offen', closed: 'zu', opening: 'öffnet', closing: 'schließt',
+  playing: 'spielt', paused: 'pausiert', idle: 'bereit', active: 'läuft', unavailable: 'nicht verfügbar', unknown: 'unbekannt', home: 'zuhause', not_home: 'abwesend',
+  heat: 'Heizen', cool: 'Kühlen', heat_cool: 'Auto', auto: 'Auto', dry: 'Trocknen', fan_only: 'Lüften', standby: 'Standby', detected: 'erkannt', clear: 'frei' };
+const NOSTATE = ['scene', 'button', 'event', 'script'];   // Zustand ist ein Zeitstempel oder nichtssagend
+const SKIP = new Set(['friendly_name', 'icon', 'entity_picture', 'supported_features', 'device_class', 'unit_of_measurement', 'state_class', 'attribution', 'editable', 'id', 'restored', 'entity_id']);
+let EN = [], BY = new Map();
+export const entOf = id => BY.get(id);
+export const areasOf = () => [...new Set(EN.map(e => e.area).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'de'));
+export const entsIn = area => EN.filter(e => e.area === area && !e.hide);
+export const entsFor = domains => EN.filter(e => domains.includes(e.domain) && !e.hide).sort((a, b) => a.name.localeCompare(b.name, 'de'));
+export const entsOf = domain => EN.filter(e => e.domain === domain).sort((a, b) => a.name.localeCompare(b.name, 'de'));
+export const allEnts = () => EN;
+export function findEnts(q, domains) {   // Suche über Name, Bereich, Gerät, ID, nur passende Domains
+  const w = fold(q).split(/\s+/).filter(Boolean);
+  return EN.filter(e => domains.includes(e.domain) && !e.hide).map(e => [rank(e, w), e]).filter(x => x[0] >= 0).sort((a, b) => b[0] - a[0] || a[1].name.localeCompare(b[1].name, 'de')).map(x => x[1]);
+}
+export async function loadEntities(conn, states) {
+  const q = type => conn.sendMessagePromise({ type }).catch(() => []);
+  const [er, dr, ar] = await Promise.all([q('config/entity_registry/list'), q('config/device_registry/list'), q('config/area_registry/list')]);
+  const area = Object.fromEntries(ar.map(a => [a.area_id, a.name])), dev = Object.fromEntries(dr.map(d => [d.id, d])), reg = Object.fromEntries(er.map(e => [e.entity_id, e]));
+  EN = states.map(s => {
+    const id = s.entity_id, r = reg[id] || {}, d = dev[r.device_id], a = s.attributes;
+    return { id, domain: id.split('.')[0], name: a.friendly_name || id, area: area[r.area_id || d?.area_id] || '', device: d ? d.name_by_user || d.name || '' : '',
+      state: s.state, unit: a.unit_of_measurement, dc: a.device_class, attrs: Object.keys(a).filter(k => !SKIP.has(k) && ['number', 'string'].includes(typeof a[k])),
+      hide: !!(r.disabled_by || r.hidden_by || r.entity_category || r.platform === 'homeblick') };   // eigene Entities der Displays (Bildschirmschoner, Helligkeit …) sind keine Kacheln
+  });
+  BY = new Map(EN.map(e => [e.id, e]));
+}
+export const stateText = e => {
+  if (NOSTATE.includes(e.domain)) return '';
+  const s = STATE[e.state] ?? (/^-?\d+(\.\d+)?$/.test(e.state) ? (+e.state).toLocaleString('de-DE') + (e.unit ? ' ' + e.unit : '') : e.state);
+  return s.length > 22 ? s.slice(0, 21) + '…' : s;
+};
+// alle Suchwörter müssen vorkommen; Treffer im Namen zählen mehr als in Bereich/Gerät/ID
+function rank(e, words) {
+  const n = e._n ||= fold(e.name), h = e._h ||= fold(`${e.name} ${DOM[e.domain]?.[0] || ''} ${e.area} ${e.device} ${e.id}`);
+  let s = 0;
+  for (const w of words) { if (!h.includes(w)) return -1; s += n.startsWith(w) ? 3 : n.includes(' ' + w) ? 2 : n.includes(w) ? 1 : 0; }
+  return s;
+}
+export const avatar = (domain, cls = '') => { const [, c, i] = DOM[domain] || ['', '#6b7280', 'dot']; return `<span class="av ${cls}" style="--c:${c}">${ic(i)}</span>`; };
+
+// → gewählte Entity ({ id, name, area, domain, … }) oder null; dcs: nur diese device_class; none: Text der Zeile „keine Auswahl“ (liefert { id: '' })
+export function pickEntity({ title = 'Entity wählen', domains, dcs, none, current = '' } = {}) {
+  return new Promise(res => {
+    let dom = '', all = !domains, hi = 0, items = [];
+    const dim = Object.assign(document.createElement('div'), { className: 'dim' });
+    const dlg = Object.assign(document.createElement('div'), { className: 'dialog picker', role: 'dialog', ariaLabel: title });
+    dlg.innerHTML = `<div class="pk-head"><h3>${esc(title)}</h3><button class="icon-btn" data-x aria-label="Schließen">${ic('x')}</button></div>
+      <label class="search-field">${ic('search')}<input type="search" placeholder="Name, Bereich oder ID suchen" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"></label>
+      <div class="pk-chips"></div><div class="pk-list"></div>${domains ? '<button class="btn link pk-any"></button>' : ''}`;
+    const q = dlg.querySelector('input'), chips = dlg.querySelector('.pk-chips'), list = dlg.querySelector('.pk-list'), foot = dlg.querySelector('.pk-any');
+    const pool = () => EN.filter(e => all ? true : domains.includes(e.domain) && (!dcs || dcs.includes(e.dc)) && (!e.hide || e.id === current));
+    const done = v => { dim.remove(); dlg.remove(); document.removeEventListener('keydown', key, true); res(v); };
+    const mark = () => list.querySelectorAll('.pk-item').forEach((b, i) => b.classList.toggle('hi', i === hi));
+    function draw() {
+      const base = pool(), n = {};
+      for (const e of base) n[e.domain] = (n[e.domain] || 0) + 1;
+      if (dom && !n[dom]) dom = '';
+      const doms = Object.keys(n).sort((a, b) => n[b] - n[a]);
+      chips.innerHTML = doms.length > 1 ? `<div class="seg wrap">${[['', 'Alle', base.length], ...doms.map(d => [d, DOM[d]?.[0] || d, n[d]])].map(([d, t, c]) => `<button data-dm="${d}" aria-pressed="${d === dom}">${esc(t)} <small style="display:inline;margin-left:3px">${c}</small></button>`).join('')}</div>` : '';
+      const words = fold(q.value).split(/\s+/).filter(Boolean);
+      const hits = base.filter(e => !dom || e.domain === dom).map(e => [rank(e, words), e]).filter(x => x[0] >= 0).sort((a, b) => b[0] - a[0] || a[1].name.localeCompare(b[1].name, 'de'));
+      items = hits.slice(0, 150).map(x => x[1]);
+      if (none && !words.length && !dom) items.unshift({ id: '', name: none });
+      hi = Math.min(hi, Math.max(items.length - 1, 0));
+      list.innerHTML = items.map((e, i) => {
+        if (!e.id) return `<button class="pk-item" data-i="${i}"><span class="av" style="--c:#6b7280">${ic('x')}</span><span class="t"><b>${esc(e.name)}</b></span>${!current ? ic('check', 'ok') : ''}</button>`;
+        const ctx = [DOM[e.domain]?.[0] || e.domain, e.area, e.device !== e.name && e.device].filter(Boolean).join(' · '), s = stateText(e);
+        return `<button class="pk-item" data-i="${i}">${avatar(e.domain)}<span class="t"><b>${esc(e.name)}</b><small>${esc(ctx)}</small></span><span class="r"><small>${esc(s)}</small><small class="id">${esc(e.id)}</small></span>${e.id === current ? ic('check', 'ok') : ''}</button>`;
+      }).join('') + (hits.length > 150 ? `<div class="hint" style="padding:10px">${hits.length - 150} weitere – Suche eingrenzen</div>` : '')
+        || `<div class="hint" style="padding:18px;text-align:center">${base.length ? 'Nichts gefunden' : 'Keine passenden Entities'}</div>`;
+      if (foot) foot.textContent = all ? 'Nur passende Entities zeigen' : 'Alle Entities zeigen';
+      mark();
+    }
+    dim.onclick = () => done(null);
+    dlg.onclick = e => {
+      if (e.target.closest('[data-x]')) return done(null);
+      const d = e.target.closest('[data-dm]'), b = e.target.closest('.pk-item');
+      if (d) { dom = d.dataset.dm; hi = 0; draw(); list.scrollTop = 0; }
+      else if (b) done(items[+b.dataset.i]);
+      else if (e.target.closest('.pk-any')) { all = !all; dom = ''; hi = 0; draw(); }
+    };
+    q.oninput = () => { hi = 0; draw(); list.scrollTop = 0; };
+    const key = e => {
+      if (e.key === 'Escape') { e.stopPropagation(); done(null); }
+      else if (e.key === 'Enter' && items[hi]) done(items[hi]);
+      else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); hi = Math.max(0, Math.min(items.length - 1, hi + (e.key === 'ArrowDown' ? 1 : -1))); mark(); list.children[hi]?.scrollIntoView({ block: 'nearest' }); }
+    };
+    document.addEventListener('keydown', key, true);
+    draw(); hi = Math.max(0, items.findIndex(e => e.id === current)); mark(); document.body.append(dim, dlg);
+    q.focus({ preventScroll: true }); list.querySelector('.pk-item.hi')?.scrollIntoView({ block: 'nearest' });
+  });
+}
