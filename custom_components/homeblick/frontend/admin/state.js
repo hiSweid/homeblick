@@ -7,11 +7,11 @@ export const S = {
   conn: null, displays: [], shots: {}, states: {}, pipelines: [], ttss: [],
   cams: { cameras: { list: [], bell: null }, auto: true }, camEnts: [],
   sel: null, cfg: null, saved: '', undo: [], redo: [], busy: false, justSaved: false,
-  ui: { sel: null, insert: null },   // Auswahl im Editor: { k: 'page', f } | { k: 'tile', f, j } | null; insert = markierte leere Zelle { f, cell }
+  ui: { sel: null, insert: null, page: null },   // Auswahl im Editor: { k: 'page', f } | { k: 'tile', f, j } | { k: 'tiles', f, js } | null; insert = markierte leere Zelle { f, cell }; page = Seite im Vordergrund
 };
 export const call = (type, p = {}) => S.conn.sendMessagePromise({ type: 'homeblick/' + type, ...p });
 /** Auswahl im Editor setzen (Seite oder Kachel); insert merkt eine markierte leere Zelle. */
-export function select(sel, insert = null) { S.ui.sel = sel; S.ui.insert = insert; emit('sel'); }
+export function select(sel, insert = null) { S.ui.sel = sel; S.ui.insert = insert; if (sel?.f) S.ui.page = sel.f; else if (insert?.f) S.ui.page = insert.f; emit('sel'); }
 export const cur = () => S.displays.find(d => d.id === S.sel);
 export const byId = id => S.displays.find(d => d.id === id);
 
@@ -84,10 +84,10 @@ export const dirty = () => !!S.cfg && snapOf(S.cfg) !== S.saved;
 export async function openDoc(id) {
   const c = await call('get_config', { display: id }).catch(() => null);
   if (!c?.config?.faces) { S.sel = id; S.cfg = null; S.saved = ''; S.undo = []; S.redo = []; emit('doc'); return false; }
-  S.sel = id; S.cfg = c.config; normFaces(S.cfg); S.saved = snapOf(S.cfg); S.undo = []; S.redo = []; S.justSaved = false; S.ui = { sel: null, insert: null };
+  S.sel = id; S.cfg = c.config; normFaces(S.cfg); S.saved = snapOf(S.cfg); S.undo = []; S.redo = []; S.justSaved = false; S.ui = { sel: null, insert: null, page: null };
   emit('doc'); return true;
 }
-export function closeDoc() { S.sel = null; S.cfg = null; S.saved = ''; S.undo = []; S.redo = []; S.ui = { sel: null, insert: null }; emit('doc'); }
+export function closeDoc() { S.sel = null; S.cfg = null; S.saved = ''; S.undo = []; S.redo = []; S.ui = { sel: null, insert: null, page: null }; emit('doc'); }
 let lastKey = '', lastAt = 0;
 /** Ändert den Entwurf: fn(cfg) verändert ihn; label benennt den Schritt; merge fasst schnelle gleiche Änderungen (Tippen) zusammen. */
 export function mutate(label, fn, merge) {

@@ -1128,7 +1128,7 @@ if (PREVIEW) {
         if (up && g.cell && g.key) post({ hb: 'move', face: g.f.id, j: g.j, cell: g.cell });
         else flip(g.face, g.f, g.t);
       }
-      else if (up) post({ hb: 'tile', face: g.f.id, j: g.j });
+      else if (up) post({ hb: 'tile', face: g.f.id, j: g.j, mod: e.shiftKey || e.metaKey || e.ctrlKey });
       g = null;
     }
   };
@@ -1154,8 +1154,10 @@ if (PREVIEW) {
     }
     if (m.sel !== undefined) {   // gewählte Kachel umranden
       $$('.pvsel').forEach(x => x.classList.remove('pvsel'));
-      const t = CONF.faces[idx()]?.tiles?.[m.sel];
-      if (t) [...faces.children[idx()].querySelectorAll('[data-ti]')].find(x => x._t === t)?.classList.add('pvsel');
+      for (const j of [].concat(m.sel)) {   // eine Zahl oder mehrere (Mehrfachauswahl im Admin)
+        const t = CONF.faces[idx()]?.tiles?.[j];
+        if (t) [...faces.children[idx()].querySelectorAll('[data-ti]')].find(x => x._t === t)?.classList.add('pvsel');
+      }
     }
   });
   addEventListener('load', () => parent.postMessage({ hb: 'preview-ready' }, location.origin));

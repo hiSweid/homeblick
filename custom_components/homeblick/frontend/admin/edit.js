@@ -13,9 +13,9 @@ export const used = f => tilesOf(f).reduce((n, t) => n + (t.w || 1) * (t.h || 1)
 export const cells = f => rows(f) * 3;
 const NO_ROOM = 'Kein Platz mehr auf dieser Seite: erst eine Kachel verkleinern oder entfernen';
 
-/** Seite, auf die neue Kacheln kommen: die gewählte (wenn Smart Home), sonst die erste Smart-Home-Seite. */
+/** Seite, auf die neue Kacheln kommen: die gewählte bzw. vordere (wenn Smart Home), sonst die erste Smart-Home-Seite. */
 export function targetFace() {
-  const sel = S.ui.sel, f = sel && faceBy(sel.f);
+  const f = faceBy(S.ui.sel?.f || S.ui.insert?.f || S.ui.page);
   return f?.type === 'grid' ? f : S.cfg.faces.find(x => x.type === 'grid') || null;
 }
 
@@ -76,6 +76,20 @@ export function resizeTile(fid, j, w, h) {
     const x = faceBy(fid).tiles[j];
     w > 1 ? x.w = w : delete x.w; h > 1 ? x.h = h : delete x.h;
     if (lost(faceBy(fid)) > n) { was[0] ? x.w = was[0] : delete x.w; was[1] ? x.h = was[1] : delete x.h; ok = false; }
+  });
+  if (!ok) toast('Kein Platz für diese Größe', { bad: true });
+  return ok;
+}
+
+/** Mehrere Kacheln auf einmal in eine Größe bringen (ein Schritt); passt eine dann nicht, bleibt alles wie es war. */
+export function resizeTiles(fid, js, w, h) {
+  const f = faceBy(fid); if (!f) return false;
+  const was = js.map(j => [f.tiles[j].w, f.tiles[j].h]), n = lost(f);
+  let ok = true;
+  mutate(`${js.length} Kacheln: Größe geändert`, () => {
+    const g = faceBy(fid);
+    js.forEach(j => { const x = g.tiles[j]; w > 1 ? x.w = w : delete x.w; h > 1 ? x.h = h : delete x.h; });
+    if (lost(g) > n) { js.forEach((j, i) => { const x = g.tiles[j]; was[i][0] ? x.w = was[i][0] : delete x.w; was[i][1] ? x.h = was[i][1] : delete x.h; }); ok = false; }
   });
   if (!ok) toast('Kein Platz für diese Größe', { bad: true });
   return ok;

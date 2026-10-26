@@ -1,5 +1,5 @@
 // Entities, Bereiche und Auswahl-Dialog. Daten aus get_states + Registries; fehlen die Registries, bleiben Bereich und Gerät leer.
-import { $, esc, fold, ic } from './ui.js';
+import { esc, fold, ic, modal } from './ui.js';
 
 // domain: [Name, Farbe, Symbol]
 export const DOM = {
@@ -52,18 +52,14 @@ function rank(e, words) {
 }
 export const avatar = (domain, cls = '') => { const [, c, i] = DOM[domain] || ['', '#6b7280', 'dot']; return `<span class="av ${cls}" style="--c:${c}">${ic(i)}</span>`; };
 
-// → gewählte Entity ({ id, name, area, domain, … }) oder null; dcs: nur diese device_class; none: Text der Zeile „keine Auswahl“ (liefert { id: '' })
-export function pickEntity({ title = 'Entity wählen', domains, dcs, none, current = '' } = {}) {
-  return new Promise(res => {
-    let dom = '', all = !domains, hi = 0, items = [];
-    const dim = Object.assign(document.createElement('div'), { className: 'dim' });
-    const dlg = Object.assign(document.createElement('div'), { className: 'dialog picker', role: 'dialog', ariaLabel: title });
-    dlg.innerHTML = `<div class="pk-head"><h3>${esc(title)}</h3><button class="icon-btn" data-x aria-label="Schließen">${ic('x')}</button></div>
-      <label class="search-field">${ic('search')}<input type="search" placeholder="Name, Bereich oder ID suchen" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"></label>
-      <div class="pk-chips"></div><div class="pk-list"></div>${domains ? '<button class="btn link pk-any"></button>' : ''}`;
+// → gewählte Entität ({ id, name, area, domain, … }) oder null; dcs: nur diese device_class; none: Text der Zeile „keine Auswahl“ (liefert { id: '' })
+export function pickEntity({ title = 'Entität wählen', domains, dcs, none, current = '' } = {}) {
+  let dom = '', all = !domains, hi = 0, items = [], key;
+  const p = modal(`<div class="sheet-bar"><span class="l"><button class="done" data-r="">Abbrechen</button></span><h2>${esc(title)}</h2></div>
+    <div class="pk-search"><label class="search-field">${ic('search')}<input type="search" placeholder="Name, Bereich oder ID suchen" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="Suchen"></label></div>
+    <div class="pk-chips"></div><div class="pk-list"></div>${domains ? '<div class="pk-foot"><button class="btn link pk-any"></button></div>' : ''}`, { cls: 'picker', label: title, init: (dlg, done) => {
     const q = dlg.querySelector('input'), chips = dlg.querySelector('.pk-chips'), list = dlg.querySelector('.pk-list'), foot = dlg.querySelector('.pk-any');
     const pool = () => EN.filter(e => all ? true : domains.includes(e.domain) && (!dcs || dcs.includes(e.dc)) && (!e.hide || e.id === current));
-    const done = v => { dim.remove(); dlg.remove(); document.removeEventListener('keydown', key, true); res(v); };
     const mark = () => list.querySelectorAll('.pk-item').forEach((b, i) => b.classList.toggle('hi', i === hi));
     function draw() {
       const base = pool(), n = {};
@@ -76,31 +72,32 @@ export function pickEntity({ title = 'Entity wählen', domains, dcs, none, curre
       items = hits.slice(0, 150).map(x => x[1]);
       if (none && !words.length && !dom) items.unshift({ id: '', name: none });
       hi = Math.min(hi, Math.max(items.length - 1, 0));
-      list.innerHTML = items.map((e, i) => {
-        if (!e.id) return `<button class="pk-item" data-i="${i}"><span class="av" style="--c:#6b7280">${ic('x')}</span><span class="t"><b>${esc(e.name)}</b></span>${!current ? ic('check', 'ok') : ''}</button>`;
+      const rows = items.map((e, i) => {
+        if (!e.id) return `<button class="pk-item" data-i="${i}"><span class="av" style="--c:#8e8e93">${ic('x')}</span><span class="t"><b>${esc(e.name)}</b></span>${!current ? ic('check', 'ok') : ''}</button>`;
         const ctx = [DOM[e.domain]?.[0] || e.domain, e.area, e.device !== e.name && e.device].filter(Boolean).join(' · '), s = stateText(e);
         return `<button class="pk-item" data-i="${i}">${avatar(e.domain)}<span class="t"><b>${esc(e.name)}</b><small>${esc(ctx)}</small></span><span class="r"><small>${esc(s)}</small><small class="id">${esc(e.id)}</small></span>${e.id === current ? ic('check', 'ok') : ''}</button>`;
-      }).join('') + (hits.length > 150 ? `<div class="hint" style="padding:10px">${hits.length - 150} weitere – Suche eingrenzen</div>` : '')
-        || `<div class="hint" style="padding:18px;text-align:center">${base.length ? 'Nichts gefunden' : 'Keine passenden Entities'}</div>`;
-      if (foot) foot.textContent = all ? 'Nur passende Entities zeigen' : 'Alle Entities zeigen';
+      }).join('');
+      list.innerHTML = (rows ? `<div class="group">${rows}</div>` : `<div class="hint" style="padding:28px;text-align:center">${base.length ? 'Nichts gefunden' : 'Keine passenden Entitäten'}</div>`)
+        + (hits.length > 150 ? `<div class="hint" style="padding:10px;text-align:center">${hits.length - 150} weitere – Suche eingrenzen</div>` : '');
+      if (foot) foot.textContent = all ? 'Nur passende Entitäten zeigen' : 'Alle Entitäten zeigen';
       mark();
     }
-    dim.onclick = () => done(null);
-    dlg.onclick = e => {
-      if (e.target.closest('[data-x]')) return done(null);
+    dlg.addEventListener('click', e => {
       const d = e.target.closest('[data-dm]'), b = e.target.closest('.pk-item');
       if (d) { dom = d.dataset.dm; hi = 0; draw(); list.scrollTop = 0; }
       else if (b) done(items[+b.dataset.i]);
       else if (e.target.closest('.pk-any')) { all = !all; dom = ''; hi = 0; draw(); }
-    };
-    q.oninput = () => { hi = 0; draw(); list.scrollTop = 0; };
-    const key = e => {
+    });
+    q.addEventListener('input', () => { hi = 0; draw(); list.scrollTop = 0; });
+    key = e => {   // das Blatt selbst ignoriert Escape, solange eine Auswahl offen ist (sie liegt über anderen Blättern)
       if (e.key === 'Escape') { e.stopPropagation(); done(null); }
       else if (e.key === 'Enter' && items[hi]) done(items[hi]);
-      else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); hi = Math.max(0, Math.min(items.length - 1, hi + (e.key === 'ArrowDown' ? 1 : -1))); mark(); list.children[hi]?.scrollIntoView({ block: 'nearest' }); }
+      else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); hi = Math.max(0, Math.min(items.length - 1, hi + (e.key === 'ArrowDown' ? 1 : -1))); mark(); list.querySelectorAll('.pk-item')[hi]?.scrollIntoView({ block: 'nearest' }); }
     };
     document.addEventListener('keydown', key, true);
-    draw(); hi = Math.max(0, items.findIndex(e => e.id === current)); mark(); document.body.append(dim, dlg);
-    q.focus({ preventScroll: true }); list.querySelector('.pk-item.hi')?.scrollIntoView({ block: 'nearest' });
-  });
+    draw(); hi = Math.max(0, items.findIndex(e => e.id === current)); mark();
+    list.querySelector('.pk-item.hi')?.scrollIntoView({ block: 'nearest' });
+  } });
+  p.then(() => document.removeEventListener('keydown', key, true));
+  return p;
 }
