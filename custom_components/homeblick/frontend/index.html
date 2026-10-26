@@ -791,8 +791,8 @@ input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:tr
 #kz .tile :is(.ttl,.sub){white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #kz .tile .ico{font-size:5.8cqw}
 #kz .tile[data-arm] .sub::after{font-size:2.6cqw}
-/* Squircle-Ecken (Apple: stetige Rundung statt Kreisbogen): Chromium ≥ 139 mit corner-shape, sonst bleibt der Kreisbogen. Nur große Flächen; Pillen/Kreise bleiben rund */
-@supports (corner-shape:squircle){.tile,.pop,#pvmenu,.asky,.acard,.ainfo,.nbc,.nbi,.kznp,.kzg,#cam,.hm{corner-shape:squircle}}
+/* Squircle-Ecken (Apple: stetige Rundung statt Kreisbogen): Chromium ≥ 139 mit corner-shape, sonst bleibt der Kreisbogen. Nur große Flächen; Pillen/Kreise bleiben rund. corner-shape erbt nicht: Füllung (.tile::before) und Verlauf (.live::after) brauchen es selbst, sonst ragt der Rand an den Ecken aus der gefüllten Kachel */
+@supports (corner-shape:squircle){.tile,.tile::before,.tile.live::after,.pop,#pvmenu,.asky,.acard,.ainfo,.nbc,.nbi,.kznp,.kzg,#cam,.hm{corner-shape:squircle}}
 /* PIN-Ziffernblock: Rautenlayout des HomeView-Türschlosses (home-collection/collection), dünne weiße Ziffern auf Schwarz, ↩ links, ✓ rechts */
 #pin{background:#000;color:#fff}
 #pin .pdots{position:absolute;left:0;right:0;top:27cqw;height:3cqw;display:flex;justify-content:center;gap:3.4cqw}
