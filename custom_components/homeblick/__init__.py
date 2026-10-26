@@ -330,7 +330,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.services.async_register(DOMAIN, "hide_camera", hide_camera, HIDE)
 
     if not hass.data.get(f"{DOMAIN}_static"):   # Pfad lässt sich nach Reload nicht erneut registrieren
-        hass.http.register_view(HomeView())   # vor dem Static-Pfad: /homeblick (ohne Datei) liefert sonst 403
+        hass.http.register_view(HomeblickView())   # vor dem Static-Pfad: /homeblick (ohne Datei) liefert sonst 403
         await hass.http.async_register_static_paths(
             [StaticPathConfig(URL, str(Path(__file__).parent / "frontend"), cache_headers=False)]
         )
@@ -356,7 +356,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     return True
 
 
-class HomeView(HomeAssistantView):
+class HomeblickView(HomeAssistantView):
     """Direktaufruf von /homeblick (Lesezeichen, Seite neu laden im Panel): das Display öffnen. Das Panel selbst hat denselben Pfad wie das Static-Verzeichnis."""
 
     url = URL

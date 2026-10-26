@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>HomeView</title>
+<title>Homeblick</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg">
 <meta name="theme-color" content="#000000">
@@ -1302,7 +1302,8 @@ const DEF = { cams: 1, energy: 1, dyn: 2, faces: [   // Flags: Migrationen unten
   { type: 'people', bg: 'auto' },
 ] };
 let conn;   // vor save(): die Migrationen unten rufen save() schon vor der Verbindung
-const KEY = 'homeview.v1';
+const KEY = 'homeblick.v1';
+try { const o = localStorage.getItem('homeview.v1'); if (o != null) { if (localStorage.getItem(KEY) == null) localStorage.setItem(KEY, o); localStorage.removeItem('homeview.v1'); } } catch {}   // Altschlüssel aus der HomeView-Zeit übernehmen
 // Jedes Display hat seine Kennung (pro Gerät/Browser); in HA: eigenes Gerät mit Entities, eigene Faces und Einstellungen
 // ?display=kueche (einmal pro Gerät öffnen) legt die Kennung fest und merkt sie sich
 const DISPLAY = PREVIEW ? 'preview' : (() => {
