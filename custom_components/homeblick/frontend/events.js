@@ -45,6 +45,8 @@ function when(e, d) {
   return ymd(e.start) === ymd(new Date(e.end - (e.end > e.start))) ? `${dm(d)}, ${hm(e.start)}–${hm(e.end)}` : `${dm(e.start)}, ${hm(e.start)} – ${dm(e.end)}, ${hm(e.end)}`;
 }
 
+const st = n => n < 10 ? n : 0;   // Stagger nur für die ersten 10 Zeilen (35 ms je Zeile); lange Listen sollen nicht Sekunden brauchen
+
 // Liste als HTML; Termine, die vor heute begonnen haben, stehen unter heute
 export function eventsHTML(list, max = Infinity) {
   if (!list.length) return `<p class="evnone">Keine Termine in den nächsten ${DAYS} Tagen</p>`;
@@ -52,11 +54,11 @@ export function eventsHTML(list, max = Infinity) {
   let last = '', i = 0, html = '';
   for (const e of list.slice(0, max)) {
     const d = e.start < t0 ? t0 : e.start, day = d.toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' });
-    if (day !== last) html += `<h4 style="--i:${i++}">${day}</h4>`;
+    if (day !== last) html += `<h4 style="--i:${st(i++)}">${day}</h4>`;
     last = day;
     html += e.allDay
-      ? `<div class="ev ad" style="--c:${e.color};--i:${i++}"><svg class="i"><use href="#evcal"/></svg><b>${esc(e.title)}</b><span>ganztägig</span></div>`
-      : `<div class="ev" style="--c:${e.color};--i:${i++}"><b>${esc(e.title)}</b><span><svg class="i"><use href="#evclock"/></svg> ${when(e, d)}</span></div>`;
+      ? `<div class="ev ad" style="--c:${e.color};--i:${st(i++)}"><svg class="i"><use href="#evcal"/></svg><b>${esc(e.title)}</b><span>ganztägig</span></div>`
+      : `<div class="ev" style="--c:${e.color};--i:${st(i++)}"><b>${esc(e.title)}</b><span><svg class="i"><use href="#evclock"/></svg> ${when(e, d)}</span></div>`;
   }
   return html;
 }

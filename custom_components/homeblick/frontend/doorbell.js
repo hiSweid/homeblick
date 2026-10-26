@@ -179,7 +179,7 @@ export function ring() {
     if (V._e === DOOR) { V.classList.add('ring', 'bell'); pan(0, Z); showStat(); } else camShow(notch, DOOR, ents[DOOR] || { attributes: {} });
     return;
   }
-  if (open || $('#screen').matches('.gallery,.custom')) return;
+  if (open) api.close();   // Klingeln hat Vorrang: Dimmer, Klima, Bibliothek, Termine … über den idempotenten close() weg, dann die Klingel-Kamera
   notch.dataset.e = DOOR; api.open(notch, 'cam');
 }
 

@@ -194,7 +194,8 @@ export function energy(ents, roll) {
   const n = (k, t) => rb('e_' + k, ok[k] ? t : '–');
   n('pv', kw(pv)); n('home', kw(home)); n('soc', String(Math.round(soc))); n('carSoc', String(Math.round(carSoc))); n('today', de(today)); n('tomorrow', de(tomorrow));
   const imp = grid > 50, exp = grid < -50;   // |Netz| ≤ 50 W = Regelrauschen → 0 (Text, Balken und Autarkie gleich)
-  const aut = ok.home && ok.grid ? (home > 0 ? Math.round(100 * (1 - Math.min(1, (imp ? grid : 0) / home))) : 100) : null;   // Autarkie = 1 − Netzbezug / Verbrauch
+  const all = home + car;   // evcc-Hausverbrauch schließt die Ladepunkte nicht ein (Demo: Netz = Haus + Auto − PV − Akku) → Auto addieren, sonst 0 % obwohl das Haus aus PV läuft
+  const aut = ok.home && ok.grid ? (all > 0 ? Math.round(100 * (1 - Math.min(1, (imp ? grid : 0) / all))) : 100) : null;   // Autarkie = 1 − Netzbezug / Verbrauch (Haus + Auto)
   rb('e_aut', aut == null ? '–' : String(aut));
   // „Bezug“ statt „aus dem Netz“: passt auch bei ≥ 10 kW (Wallbox) in die 1×1-Kachel (3 cqw), sonst abgeschnitten
   bd('e_gl', !ok.grid ? '' : imp ? `↓ ${kw(grid)} kW Bezug` : exp ? `↑ ${kw(grid)} kW ins Netz` : '0,0 kW Netz');
@@ -241,7 +242,7 @@ function body(k, g) {
   const lt = '<div class="t"><span>Ladelimit</span><b data-bind="d_lim"></b></div>';
   return hero + {
     pv: () => card('Tagesverlauf', chart(g, '<path class="bd"/>' + area + '<path class="fc"/>') + strip()),
-    aut: () => card('Hausverbrauch jetzt', `<div class="sb"><i class="so"></i><i class="ak"></i><i class="nz"></i></div>${strip('ecol')}`),
+    aut: () => card('Verbrauch jetzt', `<div class="sb"><i class="so"></i><i class="ak"></i><i class="nz"></i></div>${strip('ecol')}`),
     use: () => card('Tagesverlauf', chart(g, `<g class="hh">${area}</g><clipPath id="${g}a"><rect class="ka" width="100"/></clipPath><clipPath id="${g}b"><rect class="kb" width="100"/></clipPath>`
       + `<g class="gg ex" clip-path="url(#${g}a)"><path class="ar"/><path class="ln"/></g><g class="gg im" clip-path="url(#${g}b)"><path class="ar"/><path class="ln"/></g><path class="gg z"/>`),
       `<div class="wseg">${[['home', SYM.home], ['grid', BOLT]].map(([s, p]) => `<button data-sg="${s}" aria-label="${s === 'home' ? 'Haus' : 'Netz'}"><i class="wi"><svg viewBox="0 0 24 24">${p}</svg></i></button>`).join('')}</div>`),
@@ -374,11 +375,11 @@ function detail(force) {
     const nd = l.findIndex(([t]) => t >= day0() + 864e5);   // erste Stunde von morgen mit Wochentag (Spalte 14 cqw fasst nur „Do 7 Uhr“)
     setH($('[data-h]', view), l.map(([t, w], i) => col(t <= now ? 'Jetzt' : (i === nd ? new Date(t).toLocaleDateString('de-DE', { weekday: 'short' }).slice(0, 2) + ' ' : '') + hx(hr(t), 'Uhr'), hx(t <= now && ok.pv ? kw(x.pv) : de(w / 1000), 'kW'), i)).join(''));   // „Jetzt“ = Live-Wert wie die große Zahl
   } else if (k === 'aut') {
-    const H0 = Math.max(0, x.home), net = ok.grid && x.grid > 50 ? Math.min(H0, x.grid) : 0, akku = ok.bat && x.bat > 50 ? Math.min(H0 - net, x.bat) : 0, sol = Math.max(0, H0 - net - akku);
-    const aut = ok.home && ok.grid ? (H0 > 0 ? Math.round(100 * (1 - net / H0)) : 100) : null;   // wie die Kachel: 1 − Netzbezug / Verbrauch
+    const H0 = Math.max(0, x.home) + x.car, net = ok.grid && x.grid > 50 ? Math.min(H0, x.grid) : 0, akku = ok.bat && x.bat > 50 ? Math.min(H0 - net, x.bat) : 0, sol = Math.max(0, H0 - net - akku);
+    const aut = ok.home && ok.grid ? (H0 > 0 ? Math.round(100 * (1 - net / H0)) : 100) : null;   // wie die Kachel: 1 − Netzbezug / (Haus + Auto)
     n(String(aut), aut != null); bd('d_l', 'Autarkie jetzt');
     m(ok.solarPct ? `Solaranteil gesamt ${Math.round(x.solarPct)} %` : '');
-    sub(ok.home ? `Anteile an ${kw(H0)} kW Hausverbrauch` : '');
+    sub(ok.home ? `Anteile an ${kw(H0)} kW Verbrauch` : '');
     const sh = [['so', 'Solar', sol], ['ak', 'Akku', akku], ['nz', 'Netz', net]], f = v => H0 > 0 ? v / H0 : 0;
     let acc = 0;
     for (const [c, , v] of sh) { const e = $('.sb .' + c, view); e.style.setProperty('--x', acc); e.style.setProperty('--w', f(v)); acc += f(v); }

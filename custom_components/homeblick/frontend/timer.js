@@ -168,6 +168,7 @@ export function timerMusic(s, base) {
 function rollTxt(el, t) {
   while (el.children.length > t.length) el.firstElementChild.remove();
   while (el.children.length < t.length) el.prepend(Object.assign(document.createElement('span'), { className: 'ch' }));
+  el.style.setProperty('--n', t.length);   // für die Schrift: ab 10 h (> 7 Zeichen) schrumpft sie, damit nichts den Strichkranz berührt
   [...el.children].forEach((c, i) => {
     const old = c.lastElementChild;
     if (old?.textContent === t[i]) return;
@@ -285,7 +286,7 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 #tmr line.on{opacity:1}
 #tmr .tn{font-size:3.7cqw;font-weight:500;line-height:1;padding-bottom:.9cqw;margin-bottom:-.9cqw;color:#ffffffd9;max-width:50cqw;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 #tmr .tt{display:flex;font-size:16.5cqw;font-weight:500;letter-spacing:-.01em;line-height:1}
-#tmr.tlong .tt{font-size:13cqw}
+#tmr.tlong .tt{font-size:calc(13cqw*min(1,7/var(--n,7)))}
 #tmr .ch{display:inline-grid;overflow:hidden}#tmr .ch>i{grid-area:1/1;font-style:normal}
 #tmr .tl{color:var(--to);font-size:3.5cqw;font-weight:600;line-height:1}
 #tmr :is(.tn,.tt,.tl){transition:translate var(--sd) var(--spring)}

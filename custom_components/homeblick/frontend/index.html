@@ -642,7 +642,7 @@ input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:tr
    Tropfen: schwarzer Kreis + Kamerarand im Goo-Filter (Blur + Alpha-Schwelle) → Metaball-Hals, reißt ab (~0,2 s);
    dann übernimmt die Glaskugel (20 % W, Mitte 50 %/17 %). Antwort: weiße Karte, Kugel klein oben (9,5 % W, y 9 %). */
 #assist{position:absolute;inset:0;z-index:20;pointer-events:none}
-#assist:is(.listen,.think,.answer){pointer-events:auto}
+#assist:is(.drop,.listen,.think,.answer){pointer-events:auto}   /* auch im Tropfen (0,2 s): Tipp trifft nicht die Kachel darunter */
 #assist .goo{position:absolute;left:35cqw;top:-16cqw;width:30cqw;height:46cqw;overflow:visible;visibility:hidden}
 #assist.drop .goo{visibility:visible}
 #assist circle{transform-box:fill-box;transform-origin:center}
@@ -1626,7 +1626,7 @@ function tick() {
   bind('kzd', d.toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'short' }).toUpperCase());   // „DIENSTAG, 13. OKT.“ (Vorlage „TUESDAY, OCT 13“)
   bind('wdd', `${d.toLocaleDateString('de-DE', { weekday: 'short' }).replace('.', '').toUpperCase()} ${d.getDate()}`);   // „DI 20“ (Vorlage „WED 1“, „TUE 13“)
   const h = d.getHours();
-  bind('greet', h < 11 ? 'Guten Morgen,' : h < 18 ? 'Guten Tag,' : 'Guten Abend,');
+  bind('greet', h < 5 ? 'Hallo,' : h < 11 ? 'Guten Morgen,' : h < 18 ? 'Guten Tag,' : 'Guten Abend,');
   if (lastDay !== d.toDateString()) {
     const first = lastDay === undefined;
     lastDay = d.toDateString();
@@ -1909,7 +1909,7 @@ function render() {
     const c = st(id).attributes.current_temperature, sub = th && $('.sub', th);
     if (sub) { const txt = [(th._v || th._t).sub, c != null && th.dataset.size !== '1x1' && fmt(c) + '°'].filter(Boolean).join(' • '); if (sub.textContent !== txt) sub.textContent = txt; }
     if (!held(id) && v != null && v !== T[id]) setTemp(id, v, T[id] == null ? 0 : Math.sign(v - T[id]));
-    else if (v == null && !held(id)) { delete T[id]; el.replaceChildren(); }   // Sollwert weg (aus/unavailable): keine veraltete Zahl, Chevron sendet nichts
+    else if (v == null && !held(id)) { delete T[id]; if (el.textContent !== '–') { el.replaceChildren(); roll(el, '–'); } }   // Sollwert weg (aus/unavailable): keine veraltete Zahl, „–“ statt leerem Feld, Chevron sendet nichts
     else if (!el.firstChild && T[id] != null) roll(el, fmt(T[id]));
   }
   if (cur?.view.id === 'climate') {
@@ -2077,17 +2077,19 @@ const asSim = () => ({ socket: { send() {} }, subscribeMessage: async cb => {
   return () => {};
 } });
 // k = 'cal' → Kalender-Antwort (Taste K), sonst Wetter (Taste S / Zug von oben)
+let asEsc = false;   // Escape im Tropfen vorgemerkt, wirkt nach dessen Ende
 function assistStart(k = '') {
   if (AS.className) return;
   kzClose(true);
   touched = Date.now(); $$('.amb').forEach(x => x.classList.remove('amb'));
-  AS.className = 'drop'; AS.dataset.k = k;
+  AS.className = 'drop'; AS.dataset.k = k; asEsc = false;
   asEv = k === 'cal' ? events() : null;
   // Wölbung am Rand → Hals → reißt ab als Ei (y in cqw ab Oberkante, Skala zu r = 10)
   goo([[-7, .45], [0, .5, .55], [7, .46, .62], [11, .55, .72]], 200, 'cubic-bezier(.4,0,.7,.7)').onfinish = () => {
     AS.className = 'listen';
     ORB.animate([{ transform: 'translateY(-6cqw) scale(.55,.72)' }, { transform: 'none' }], { duration: SD, easing: SPRING });
     INK.animate([{ opacity: 1 }, { opacity: 1, offset: .2 }, { opacity: 0 }], { duration: 420, easing: 'ease-out' });
+    if (asEsc) return assistEnd();
     // Live nie die Demo-Antwort: ohne Mikrofon (http) bzw. Verbindung nur ein Hinweis
     if (!LIVE && ASIM) return assistVoice();
     if (LIVE) return conn && voiceOK() ? assistVoice() : assistHint(conn ? isSecureContext ? 'Kein Mikrofon verfügbar.' : 'Sprachsteuerung braucht https.' : 'Keine Verbindung zu Home Assistant.');
@@ -2201,7 +2203,7 @@ document.addEventListener('keydown', e => {
   if (e.key === 'k' || e.key === 'K') assistStart('cal');
   if ((e.key === 't' || e.key === 'T') && !LIVE) call('timer', 'start', { entity_id: 'timer.kuche' });
   if ((e.key === 'e' || e.key === 'E') && !LIVE) call('timer', 'start', { entity_id: 'timer.eier' });   // Demo: zweiter Timer
-  if (e.key === 'Escape') { assistEnd(); kzClose(); }
+  if (e.key === 'Escape') { asEsc = AS.className === 'drop'; assistEnd(); kzClose(); }
   if (e.key === 'c' || e.key === 'C') kzOn ? kzClose() : kzOpen();   // Tastatur: Kontrollzentrum
 });
 
