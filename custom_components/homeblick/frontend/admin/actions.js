@@ -19,7 +19,7 @@ export async function copyLayoutFrom(id) {
   const { config } = await call('get_config', { display: id }).catch(() => ({}));
   if (!config?.faces) return toast('Quelle hat noch keine Konfiguration', { bad: true });
   replaceDraft(`Layout von ${src.name} kopiert`, config);
-  toast(`Layout von „${src.name}“ kopiert. Mit „Speichern & senden“ geht es ans Display.`);
+  toast(`Layout von „${src.name}“ kopiert. Mit „Senden“ geht es ans Display.`);
 }
 export const exportLayout = () => dl(`homeblick-${S.sel}.json`, { format: FORMAT, name: cur().name, area: cur().area, config: S.cfg });
 export const exportEsp = () => dl(`homeblick-esp-${S.sel}.json`, espExport(cur(), S.cfg, { en: entOf, icon: tileIcon }));
@@ -31,7 +31,7 @@ export function importLayout() {
     if (j?.format !== FORMAT || !Array.isArray(j.config?.faces) || !j.config.faces.length) return toast('Das ist keine Homeblick-Sicherung', { bad: true });
     if (S.saved !== sameCfg(S.cfg) && !await ask('Der nicht gesendete Entwurf wird durch das importierte Layout ersetzt.', { ok: 'Layout ersetzen', danger: true })) return;
     replaceDraft('Layout importiert', j.config);
-    toast('Layout importiert. Mit „Speichern & senden“ geht es ans Display.');
+    toast('Layout importiert. Mit „Senden“ geht es ans Display.');
   };
   inp.click();
 }
@@ -53,7 +53,7 @@ export async function applyToOthers() {
     ${areas.length ? `<div class="chips">${areas.map(a => `<button class="btn quiet mini" data-area="${esc(a)}">Alle in ${esc(a)}</button>`).join('')}</div>` : ''}
     <div class="rows">${others.map(x => `<label class="srow"><span><span class="s-label">${esc(x.name)}</span><small>${esc(x.area || 'ohne Bereich')}</small></span><input type="checkbox" data-id="${esc(x.id)}" style="width:auto"></label>`).join('')}</div>
     <label class="srow"><span><span class="s-label">Entities an den Bereich anpassen</span><small>Jede Kachel wird gegen die Entity gleicher Art im Bereich des Ziels getauscht; ohne Gegenstück fällt sie weg.</small></span><input type="checkbox" id="fit" checked style="width:auto"></label>
-    <p class="hint">Ersetzt Seiten, Kacheln und Einstellungen der gewählten Displays sofort. Wetter-Ort, Assist-Pipeline, Lichtsensor und Präsenzmelder bleiben. Es gilt der Stand, den du gerade siehst, auch ungesendete Änderungen.</p>
+    <p class="hint">Ersetzt Ansichten, Kacheln und Einstellungen der gewählten Displays sofort. Wetter-Ort, Assist-Pipeline, Lichtsensor und Präsenzmelder bleiben. Es gilt der Stand, den du gerade siehst, auch ungesendete Änderungen.</p>
     <div class="acts"><button class="btn quiet" data-r="">Abbrechen</button><button class="btn primary" data-r="go">Anwenden</button></div>`, { cls: 'wide', label: 'Auf andere Displays anwenden', init: dlg => { box = dlg; dlg.addEventListener('click', e => { const a = e.target.closest('[data-area]'); if (!a) return; const on = a.classList.toggle('on'); dlg.querySelectorAll('[data-id]').forEach(c => { if (others.find(x => x.id === c.dataset.id).area === a.dataset.area) c.checked = on; }); }); } });
   if (r !== 'go') return;
   const ids = [...box.querySelectorAll('[data-id]:checked')].map(c => c.dataset.id), fit = box.querySelector('#fit').checked;   // das entfernte Fenster behält seine Eingaben
@@ -76,10 +76,10 @@ export async function renameDisplay() {
 }
 export async function removeDisplay() {
   const d = cur();
-  if (!await ask(`„${d.name}“ entfernen? Seiten und Einstellungen gehen verloren. Das Gerät in Home Assistant bitte danach unter Geräte löschen.`, { ok: 'Entfernen', danger: true })) return false;
+  if (!await ask(`„${d.name}“ entfernen? Ansichten und Einstellungen gehen verloren. Das Gerät in Home Assistant bitte danach unter Geräte löschen.`, { ok: 'Entfernen', danger: true })) return false;
   await guard(call('remove', { display: d.id })).catch(() => { throw 0; });
   S.sel && (S.sel = null, S.cfg = null, S.saved = '');
-  location.hash = '#/'; await reload(); return true;
+  location.hash = '#/'; await reload(); toast('Display entfernt'); return true;
 }
 /** Bildschirmfoto aufnehmen und als Bild der Karte merken. */
 export async function screenshot(btn) {

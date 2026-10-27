@@ -32,7 +32,7 @@ export function settings(el) {
       ${x.go2rtc ? sroww('go2rtc-Stream', '', inp('cam:stream', x.stream || '', x.entity.split('.')[1] || '', 80)) : ''}</div>`;
     const bellCams = [['', 'Keine'], ...c.list.map(x => [x.entity, camName(x)])];
     return `<div class="sect"><div class="group-h">Kameras</div><div class="gaps">${c.list.map(row).join('')}<div class="group"><button class="row accent" data-cam="add">${ic('plus')}Kamera hinzufügen</button>${auto ? '' : `<button class="row accent" data-cam="reset">${ic('refresh')}Automatisch erkennen</button>`}</div></div>
-      <div class="group-f">${auto ? 'Automatisch erkannt: alle Kameras von Home Assistant. Jede Änderung hier legt die Liste fest.' : 'Die Seite „Kameras“ zeigt bis zu vier Kameras als 2×2-Raster, die Klingelkamera (sonst die erste) zuerst.'} Das Bild läuft über Home Assistant (WebRTC, sonst HLS oder Standbilder).</div></div>`
+      <div class="group-f">${auto ? 'Automatisch erkannt: alle Kameras von Home Assistant. Jede Änderung hier legt die Liste fest.' : 'Die Ansicht „Kameras“ zeigt bis zu vier Kameras als 2×2-Raster, die Klingelkamera (sonst die erste) zuerst.'} Das Bild läuft über Home Assistant (WebRTC, sonst HLS oder Standbilder).</div></div>`
       + G('Türklingel', sroww('Klingel-Ereignis', '', entityBtn('bell:event', c.bell?.event || '', { domains: ['event'], none: 'Keine', title: 'Klingel-Ereignis' }, 'Keine'))
         + sroww('Kamera der Klingel', '', selectBtn('bell:camera', bellCams, c.bell?.camera || '')) + sroww('Schloss zum Öffnen', '', entityBtn('bell:lock', c.bell?.lock || '', { domains: ['lock'], none: 'Keins', title: 'Schloss' }, 'Keins'))
         + sroww('Bild vorhalten', 'Hält eine Videoverbindung offen', sw(!!c.bell?.warm, 'bell:warm')),
@@ -40,20 +40,20 @@ export function settings(el) {
   };
   const html = () => {
     const areas = [...new Set(S.displays.map(x => x.area).filter(Boolean))].sort(), on_ = inArea().filter(x => x.connected).length, ready = S.displays.filter(x => !x.new);
-    return G('Displays', tool('#/new', 'plus', '#007aff', 'Neues Display', 'Name, Bereich und Vorlage wählen') + tool('#/alerts', 'bell', '#ff3b30', 'Benachrichtigungen', 'Karten, Kamerabilder und Ansagen aus Automationen'))
+    return G('Displays', tool('#/new', 'plus', '#007aff', 'Neues Display', 'Name, Bereich und Vorlage wählen') + tool('#/alerts', 'bell', '#ff3b30', 'Mitteilungen', 'Karten, Kamerabilder und Ansagen aus Automationen'))
       + (ready.length > 1 || areas.length ? G(`${area ? esc(area) : 'Alle Displays'} · ${on_} online`,
         (areas.length ? sroww('Bereich', '', `<button class="choice" data-area><span>${esc(area || 'Alle')}</span>${ic('chev-ud')}</button>`) : '')
         + `<div class="quick">${[['reload', 'Neu laden', 'refresh'], ['assist', 'Assist', 'mic'], ['stop', 'Abbrechen', 'x'], ['screensaver', 'Ruhemodus', 'moon'], ['wake', 'Aufwecken', 'sun']].map(([c, n, i]) => `<button class="btn quiet" data-all="${c}" ${on_ ? '' : 'disabled'}>${ic(i)}${n}</button>`).join('')}</div>`
         + sroww('Zurück nach (s, leer = bleibt)', '', `<input type="number" data-k="dur" min="1" max="3600" value="${esc(dur)}" placeholder="bleibt">`)
-        + sroww('Seite anzeigen', '', selectBtn('allface', [['', 'Wählen …'], ...TYPES], ''))
+        + sroww('Ansicht anzeigen', '', selectBtn('allface', [['', 'Wählen …'], ...TYPES], ''))
         + sroww('Nachtmodus', '', `<span class="seg"><button data-night="1">An</button><button data-night="0">Aus</button></span>`),
         `Befehle gehen an alle Displays${area ? ` im Bereich „${esc(area)}“` : ''}, die gerade geöffnet sind.${areas.length ? '' : ' Bekommen die Display-Geräte in Home Assistant einen Bereich, lassen sie sich auf einen Bereich beschränken.'}`, 'group') : '')
       + `<div id="camhost">${camsHTML()}</div>`;
   };
   const render = () => frame(el, 'Einstellungen', 'Alles rund um deine Displays.', html());
   render();
-  let cst;
-  const saveCams = () => { clearTimeout(cst); S.cams.auto = false; const { list, bell } = S.cams.cameras; cst = setTimeout(() => guard(call('set_cameras', { cameras: { list, bell: bell?.event ? bell : null } }), 'Gespeichert').catch(() => {}), 500); };
+  let cst, was;
+  const saveCams = quiet => { clearTimeout(cst); S.cams.auto = false; const { list, bell } = S.cams.cameras; cst = setTimeout(() => guard(call('set_cameras', { cameras: { list, bell: bell?.event ? bell : null } }), !quiet && 'Gespeichert').catch(() => {}), 500); };
   const redrawCams = () => { const h = $('#camhost', el); if (h) h.innerHTML = camsHTML(); };
   bind(el, {
     on: async (k, v, b, en, phase) => {
@@ -81,6 +81,7 @@ export function settings(el) {
     const cb = q('[data-cam]');
     if (cb) {
       const c = S.cams.cameras, act = cb.dataset.cam, i = +cb.closest('[data-ci]')?.dataset.ci;
+      if (act === 'del' && !$('.toast:not(.out) button')) was = { list: structuredClone(c.list), bell: c.bell?.camera };   // bei Doppeltipp (die nächste rückt an dieselbe Stelle) gilt weiter der Stand vor dem ersten Löschen
       if (act === 'reset') { clearTimeout(cst); await guard(call('set_cameras', { cameras: null }), 'Automatisch erkannt'); S.cams = await call('cameras'); return redrawCams(); }
       if (act === 'add') {
         const en = (S.camEnts.find(k => !c.list.some(x => x.entity === k[0])) || [])[0];
@@ -89,7 +90,8 @@ export function settings(el) {
         c.list.push({ entity: en, name: '', light: '' });
       } else if (act === 'up' || act === 'down') swap(c.list, i, i + (act === 'up' ? -1 : 1));
       else if (act === 'del') { const [x] = c.list.splice(i, 1); if (c.bell?.camera === x.entity) c.bell.camera = ''; }
-      saveCams(); redrawCams();
+      saveCams(act === 'del'); redrawCams();   // beim Löschen bleibt der Rückgängig-Hinweis stehen (kein „Gespeichert“ darüber)
+      if (act === 'del') toast('Kamera entfernt', { action: 'Rückgängig', run: () => { c.list = was.list; if (was.bell) c.bell.camera = was.bell; saveCams(); redrawCams(); } });
     }
   });
   return () => clearTimeout(cst);
@@ -98,7 +100,7 @@ export function settings(el) {
 // ================= Benachrichtigungen =================
 export function alerts(el) {
   const yaml = (action, data) => `action: ${action}\ndata:\n${Object.entries(data).map(([k, v]) => `  ${k}: ${typeof v === 'number' ? v : /^[a-z0-9_.]+$/.test(v) && !/^\d/.test(v) ? v : JSON.stringify(v)}`).join('\n')}\n`;
-  const FIELDS = [['display', 'Gerät', 'Gerät(e)', 'Die Displays, die die Karte zeigen. Mehrere sind möglich.', 'Küche'], ['message', 'Text', 'Text', 'Pflicht. Bis 300 Zeichen.', 'Zeit für das Training.'], ['title', 'Titel', 'Text', 'Optionale Überschrift, bis 80 Zeichen.', 'Erinnerung'], ['image', 'Bild', 'Entität oder Adresse', 'Eine Kamera, ein Bild oder eine Adresse (https://… oder /local/…). Die Karte zeigt es groß.', 'camera.haustuer'], ['button', 'Button', 'Text', 'Beschriftung des Buttons, bis 30 Zeichen. Ohne Angabe gibt es keinen.', 'Okay'], ['entity', 'Entität', 'Entität', 'Der Button schaltet diese Szene, dieses Skript oder diesen Schalter. Nicht zusammen mit „face“.', 'scene.film'], ['face', 'Seite', 'Auswahl', 'Der Button öffnet diese Seite des Displays. Nicht zusammen mit „entity“.', 'weather'], ['duration', 'Dauer', 'Zahl (s)', 'Wie lange die Karte bleibt; 0 wartet auf den Button oder ein Tippen daneben. Standard 10.', '30']];
+  const FIELDS = [['display', 'Gerät', 'Gerät(e)', 'Die Displays, die die Karte zeigen. Mehrere sind möglich.', 'Küche'], ['message', 'Text', 'Text', 'Pflicht. Bis 300 Zeichen.', 'Zeit für das Training.'], ['title', 'Titel', 'Text', 'Optionale Überschrift, bis 80 Zeichen.', 'Erinnerung'], ['image', 'Bild', 'Entität oder Adresse', 'Eine Kamera, ein Bild oder eine Adresse (https://… oder /local/…). Die Karte zeigt es groß.', 'camera.haustuer'], ['button', 'Button', 'Text', 'Beschriftung des Buttons, bis 30 Zeichen. Ohne Angabe gibt es keinen.', 'Okay'], ['entity', 'Entität', 'Entität', 'Der Button schaltet diese Szene, dieses Skript oder diesen Schalter. Nicht zusammen mit „face“.', 'scene.film'], ['face', 'Ansicht', 'Auswahl', 'Der Button öffnet diese Ansicht des Displays. Nicht zusammen mit „entity“.', 'weather'], ['duration', 'Dauer', 'Zahl (s)', 'Wie lange die Karte bleibt; 0 wartet auf den Button oder ein Tippen daneben. Standard 10.', '30']];
   const ex1 = yaml('homeblick.notify', { display: 'Küche', title: 'Erinnerung', message: 'Zeit für das Training.', duration: 30 });
   const ex2 = yaml('homeblick.notify', { display: 'Küche', title: 'Jemand an der Tür', message: 'Haustür', image: 'camera.haustuer', button: 'Öffnen', entity: 'lock.haustuer', duration: 0 }).replace('entity: lock.haustuer', 'entity: scene.tuer_auf');
   const ex3 = yaml('homeblick.show_camera', { display: 'Küche', camera: 'camera.haustuer', duration: 60 }), ex4 = yaml('homeblick.hide_camera', { display: 'Küche' });
@@ -107,7 +109,7 @@ export function alerts(el) {
   const pre = (id, t) => `<div class="copy-line"><pre id="${id}">${esc(t)}</pre><button class="btn quiet mini" data-copy="${id}">${ic('copy')}Kopieren</button></div>`;
   const ready = S.displays.filter(x => !x.new && x.connected);
   const nav = [['try', 'Ausprobieren'], ['howto', 'In einer Automation'], ['fields', 'Felder'], ['camera', 'Kamerabild'], ['say', 'Ansagen'], ['behave', 'Verhalten'], ['tips', 'Tipps']];
-  frame(el, 'Benachrichtigungen', 'Mit <code>homeblick.notify</code> erscheint eine Karte über dem ganzen Display, optional mit Bild und Button, auf einem oder mehreren Displays. Hier steht, wie es geht, und du kannst eine Karte gleich ausprobieren.', `
+  frame(el, 'Mitteilungen', 'Mit <code>homeblick.notify</code> erscheint eine Karte über dem ganzen Display, optional mit Bild und Button, auf einem oder mehreren Displays. Hier steht, wie es geht, und du kannst eine Karte gleich ausprobieren.', `
     <div class="alert-hero"><div class="alert-mock"><div class="alert-mock-card">${ic('bell', 'big')}<strong>Jemand an der Tür</strong><span>Haustür</span><i class="fake">Öffnen</i></div></div><nav class="alerts-nav">${nav.map(([k, n]) => `<button data-jump="${k}">${n}</button>`).join('')}</nav></div>
     ${sec('try', 'Ausprobieren', `<p class="panel-p">Schickt jetzt eine Karte mit den Feldern, die auch eine Automation nutzt (ohne Bild und Button).</p>
       <form class="try-grid" id="try"><label class="field"><span class="f-label">Display</span><button type="button" class="choice" id="try-d" data-v=""><span>Alle offenen (${ready.length})</span>${ic('chev-ud')}</button></label>
@@ -118,7 +120,7 @@ export function alerts(el) {
     ${sec('fields', 'Die Felder', `<div class="table-scroll"><table class="tbl"><thead><tr><th>Feld</th><th>Art</th><th>Was es tut</th><th>Beispiel</th></tr></thead><tbody>${FIELDS.map(([k, n, t, d, x]) => `<tr><td><code>${k}</code><small>${n}</small></td><td>${t}</td><td>${d}</td><td><code>${esc(x)}</code></td></tr>`).join('')}</tbody></table></div><p class="panel-p"><small>Mehrere Karten laufen nacheinander. Auf geschlossenen Displays passiert nichts.</small></p>`)}
     ${sec('camera', 'Kamerabild im Vollbild', `<p class="panel-p">Zeigt eine Kamera auf dem ganzen Display, zum Beispiel bei Bewegung. <code>duration: 0</code> bleibt, bis jemand schließt.</p>${pre('ex3', ex3)}<p class="panel-sub">Wieder schließen</p>${pre('ex4', ex4)}`)}
     ${sec('say', 'Durchsagen', `<p class="panel-p">Gesprochener Text läuft getrennt: Aktion „Benachrichtigung senden“ an die Durchsage-Entität des Displays. Er erscheint auch als Text, außer bei „Antworten stumm“.</p>${pre('ex5', ex5)}`)}
-    ${sec('behave', 'Verhalten', `<ul class="list"><li><b>Weckt das Display.</b> Ein schlafendes Display geht an.</li><li><b>Bleibt bis zum Button.</b> Mit <code>duration: 0</code> bis zum Tippen auf Button oder daneben.</li><li><b>Wartet nicht.</b> Eine Karte nach der anderen, die nächste kommt, wenn die erste weg ist.</li><li><b>Button schaltet.</b> Mit <code>entity</code> wird die Szene oder das Skript gestartet, mit <code>face</code> die Seite geöffnet.</li></ul>`)}
+    ${sec('behave', 'Verhalten', `<ul class="list"><li><b>Weckt das Display.</b> Ein schlafendes Display geht an.</li><li><b>Bleibt bis zum Button.</b> Mit <code>duration: 0</code> bis zum Tippen auf Button oder daneben.</li><li><b>Wartet nicht.</b> Eine Karte nach der anderen, die nächste kommt, wenn die erste weg ist.</li><li><b>Button schaltet.</b> Mit <code>entity</code> wird die Szene oder das Skript gestartet, mit <code>face</code> die Ansicht geöffnet.</li></ul>`)}
     ${sec('tips', 'Tipps', `<ul class="list"><li>Kurzer Titel, höchstens etwa 20 Zeichen, bleibt lesbar.</li><li>Ein eigener Button-Text („Kommt“, „Okay“) ist klarer als der Standard.</li><li>Für alle Displays einer Etage: Bereich in Home Assistant setzen und die Geräte des Bereichs wählen.</li><li>Wiederkehrende Texte lassen sich am besten als Skript mit Feldern bauen.</li></ul>`)}`, 'mid');
   el.addEventListener('click', async e => {
     const j = e.target.closest('[data-jump]'); if (j) return $('#alerts-' + j.dataset.jump, el)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -129,7 +131,7 @@ export function alerts(el) {
       e.preventDefault();
       const to = d_ => (d_ ? [S.displays.find(x => x.id === d_)] : ready).filter(x => x?.connected), list = to($('#try-d', el).dataset.v), res = $('#try-res', el);
       if (!list.length) { res.textContent = 'Dieses Display ist nicht geöffnet.'; return; }
-      const title = $('#try-title', el).value.trim(), message = $('#try-msg', el).value.trim() || 'Die Benachrichtigungskarte funktioniert.', dur = Math.max(0, Math.min(3600, +$('#try-dur', el).value || 0));
+      const title = $('#try-title', el).value.trim(), message = $('#try-msg', el).value.trim() || 'Die Mitteilung funktioniert.', dur = Math.max(0, Math.min(3600, +$('#try-dur', el).value || 0));
       res.textContent = 'Sende …';
       try { await Promise.all(list.map(x => call('command', { display: x.id, action: 'notify', ...(title && { title }), message, ...(dur >= 1 && { duration: dur }) }))); res.textContent = `Gesendet an ${list.length} Display${list.length > 1 ? 's' : ''}.`; }
       catch (er) { res.textContent = er?.message || 'Fehler'; }

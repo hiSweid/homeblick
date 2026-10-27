@@ -134,7 +134,7 @@ input[type=range]:active::-webkit-slider-thumb{transform:scale(1.12)}input[type=
 /* ---- Menü / Popover (Kontextmenü wie iOS: Glas, Symbol rechts) ---- */
 .pop{position:fixed;z-index:80;background:var(--glass);-webkit-backdrop-filter:blur(30px) saturate(190%);backdrop-filter:blur(30px) saturate(190%);box-shadow:var(--shadow-pop),inset 0 0 0 .5px var(--glass-edge);border-radius:18px;padding:6px;font-size:.97em;animation:pop-in .4s var(--spring);transform-origin:var(--ox,50%) var(--oy,0);max-height:min(460px,calc(100vh - 16px));overflow-y:auto}
 @keyframes pop-in{from{opacity:0;transform:scale(.86)}}
-.menu{min-width:240px;max-width:min(340px,calc(100vw - 16px))}
+.menu{min-width:240px;max-width:min(340px,calc(100vw - 16px));max-height:calc(100vh - 16px)}
 .mi{display:flex;align-items:center;gap:10px;width:100%;min-height:42px;padding:0 12px;border-radius:12px;cursor:default;justify-content:space-between}.mi:hover,.mi.hi,.mi:focus-visible{background:var(--fill);outline:0}.mi:active{background:var(--fill-2)}
 .mi .t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:grid}.mi .end{color:var(--label-2);font-size:.88em}.mi svg.i{width:19px;height:19px;color:var(--label);order:3}.mi .end+svg.i{order:3}
 .mi.danger,.mi.danger svg.i{color:var(--red)}.mi.hi svg.i.ok{color:var(--tint)}.mi small{display:block}
@@ -185,6 +185,7 @@ input[type=range]:active::-webkit-slider-thumb{transform:scale(1.12)}input[type=
   .sheet,.sheet.wide,.picker{left:0;right:0;top:auto;bottom:0;transform:none;width:100%;max-height:92vh;border-radius:34px 34px 0 0;animation:sheet-up .55s var(--spring);padding-bottom:var(--sb)}
   .picker{height:90vh}.sheet.out{animation:sheet-down .26s var(--ease) forwards}
   @keyframes sheet-up{from{transform:translateY(100%)}}@keyframes sheet-down{to{transform:translateY(100%)}}
-  .grabber{display:block}.toast{top:max(10px,env(safe-area-inset-top))}
+  .grabber{display:block}.toast{top:calc(58px + env(safe-area-inset-top))}
   .pop{max-width:calc(100vw - 16px)}.palette-bg{padding-top:7vh}
 }
+@media (pointer:coarse){kbd,.palette .foot{display:none}}   /* Tastaturhinweise nur mit Maus */

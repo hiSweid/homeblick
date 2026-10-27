@@ -31,7 +31,7 @@ export function openGallery() {
 
   function where() {
     const f = targetFace(), cell = f && S.ui.insert?.f === f.id;
-    if (!f) return `<div class="gal-where">${ic('info')}<span>Kacheln gibt es auf Smart-Home-Seiten.</span><button class="btn mini quiet" data-newpage style="margin-left:auto">Seite anlegen</button></div>`;
+    if (!f) return `<div class="gal-where">${ic('info')}<span>Kacheln gibt es auf Smart-Home-Ansichten.</span><button class="btn mini quiet" data-newpage style="margin-left:auto">Ansicht anlegen</button></div>`;
     return `<div class="gal-where">${ic('layout')}<span>Kommt auf „${esc(faceName(f))}“${cell ? ' · auf den markierten Platz' : ''}</span></div>`;
   }
   function draw(dir = '') {

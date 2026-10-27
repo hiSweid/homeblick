@@ -6,8 +6,11 @@
 .ed-title{display:grid;justify-items:center;gap:0;padding:2px 14px 4px;border-radius:18px;text-align:center;max-width:46vw}.ed-title:hover{background:var(--fill)}.ed-title b{font-size:1.1em;font-weight:650;letter-spacing:-.02em;display:flex;align-items:center;gap:4px;max-width:100%}.ed-title b span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ed-title b svg.i{width:14px;height:14px;color:var(--label-2)}
 .ed-title .st{display:flex;align-items:center;gap:6px;font-size:.78em;color:var(--label-2);font-weight:500}
 .saved-note{display:inline-flex;align-items:center;gap:5px;color:var(--label-2);font-size:.88em;padding:0 6px}.saved-note svg.i{color:var(--green);width:16px;height:16px}.saved-note.sent{color:var(--green)}
+.ed-main:not(.pages){touch-action:pan-y}
+.ed-main{-webkit-user-select:none;user-select:none}   /* sonst startet ein Maus-Wisch eine Textauswahl, der nächste ein natives Ziehen (pointercancel) */
 .ed-main{position:absolute;inset:0;padding:calc(74px + var(--nt,0px) + env(safe-area-inset-top)) var(--ri) 112px 0;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:padding .55s var(--spring);overflow:hidden}
 .ed-main.pages{justify-content:flex-start;overflow-y:auto;padding-bottom:140px}
+.toast{width:max-content}   /* mit left:50% bekäme der Hinweis sonst nur die halbe Breite: bis zu 6 Zeilen und er verdeckt das Raster */
 .notices{position:absolute;z-index:15;left:50%;top:calc(66px + env(safe-area-inset-top));transform:translateX(-50%);width:min(560px,calc(100% - 32px - var(--ri)));display:grid;gap:8px;pointer-events:none;transition:width .55s var(--spring)}.notices>*{pointer-events:auto}.notices:empty{display:none}
 .ed.has-insp .notices{left:calc((100% - var(--ri))/2)}
 
@@ -20,8 +23,8 @@
 .slot.dragging .dev{transition:none;box-shadow:0 0 0 .5px #0000004d,0 40px 80px #0000006b}
 .slot.active .dev{box-shadow:0 0 0 .5px #0000004d,0 30px 64px #00000047,0 8px 20px #00000029}
 .slot iframe{display:block;width:100%;height:100%;border:0;border-radius:9.6%;background:#000}
-.slot .veil{position:absolute;inset:0;border-radius:10.2%;z-index:2;display:none;cursor:pointer}
-.slot.side .veil,.deck.grid .slot .veil{display:block}.slot.side .dev{cursor:pointer}.slot.far{pointer-events:none}.slot.far .dev{pointer-events:none}
+.slot .veil{position:absolute;inset:0;border-radius:10.2%;z-index:2;display:none;cursor:pointer;pointer-events:auto;transform:scale(var(--s,1));transition:transform .65s var(--spring)}
+.slot.side .veil,.deck.grid .slot .veil{display:block}.deck.grid .slot .veil{touch-action:pan-y}.slot.side .dev{cursor:pointer}.slot.far{pointer-events:none}.slot.far .dev{pointer-events:none}
 .deck.grid .slot .dev{cursor:grab}.deck.grid .slot.dragging .dev{cursor:grabbing}
 .slot.plain-off .dev{background:#000}
 .cap{position:absolute;left:50%;top:calc(var(--S)/2 + var(--S)*var(--s,1)/2 + 10px);width:max(var(--cw,120px),100px);transform:translateX(-50%);display:none;justify-items:center;gap:8px;pointer-events:none;text-align:center}
@@ -29,7 +32,8 @@
 .cap .chk{pointer-events:auto;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--tint);color:#fff;box-shadow:0 2px 8px #0000003d;transition:transform .45s var(--spring),background .2s}.cap .chk svg.i{width:15px;height:15px;stroke-width:2.6}.cap .chk:active{transform:scale(.85)}
 .cap .chk.off{background:var(--fill-3);color:transparent;box-shadow:inset 0 0 0 2px var(--label-3)}
 .slot .more{position:absolute;right:calc(50% - var(--S)*var(--s,1)/2 + 8px);top:calc(50% - var(--S)*var(--s,1)/2 + 8px);display:none;pointer-events:auto;z-index:3}
-.deck.grid .slot .more{display:inline-flex}
+.slot .del{position:absolute;left:calc(50% - var(--S)*var(--s,1)/2 + 8px);top:calc(50% - var(--S)*var(--s,1)/2 + 8px);display:none;pointer-events:auto;z-index:3}
+.deck.grid .slot .more,.deck.grid .slot .del{display:inline-flex}.slot .more::after,.slot .del::after{content:"";position:absolute;inset:-7px}
 .slot.hidden-pg .dev{background:var(--fill);box-shadow:none;border:2px dashed var(--sep-strong);padding:0;display:grid;place-content:center;justify-items:center;gap:6px;color:var(--label-2);opacity:.85}.slot.hidden-pg .dev svg.i{width:34px;height:34px}.slot.hidden-pg iframe{display:none}
 .slot.addpg .dev{background:transparent;box-shadow:none;border:2px dashed var(--sep-strong);padding:0;display:grid;place-content:center;justify-items:center;gap:6px;color:var(--label-2);cursor:pointer}.slot.addpg .dev svg.i{width:40px;height:40px}.slot.addpg:hover .dev{color:var(--tint);border-color:var(--tint)}
 .pager{display:flex;align-items:center;gap:10px}
@@ -38,7 +42,8 @@
 .page-title{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:999px;font-size:1.28em;font-weight:650;letter-spacing:-.025em}.page-title svg.i{width:16px;height:16px;color:var(--label-3);transition:transform .4s var(--spring)}.page-title:hover{background:var(--fill)}.page-title:hover svg.i{transform:translateX(3px)}
 .deck-meta small{margin-top:-8px}
 .dots{display:inline-flex;align-items:center;gap:9px;padding:9px 13px;border-radius:999px;background:var(--glass);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);box-shadow:var(--glass-shadow),inset 0 0 0 .5px var(--glass-edge)}
-.dots button{width:8px;height:8px;border-radius:50%;background:var(--label-3);padding:0;transition:transform .45s var(--spring),background .2s,width .45s var(--spring)}.dots button.on{background:var(--label);transform:scale(1.15)}.dots button:hover{background:var(--label-2)}.dots button.add{background:none;width:auto;height:auto;border-radius:0;color:var(--label-2);display:grid;place-items:center}.dots button.add svg.i{width:12px;height:12px;stroke-width:2.4}
+.dots button{position:relative;width:8px;height:8px;border-radius:50%;background:var(--label-3);padding:0;transition:transform .45s var(--spring),background .2s,width .45s var(--spring)}.dots button.on{background:var(--label);transform:scale(1.15)}.dots button:hover{background:var(--label-2)}.dots button.add{background:none;width:auto;height:auto;border-radius:0;color:var(--label-2);display:grid;place-items:center}.dots button.add svg.i{width:12px;height:12px;stroke-width:2.4}
+.dots button::after{content:"";position:absolute;inset:-18px -5px}
 .pages-bar{display:none}
 
 /* ---- Dock (schwebend) ---- */
@@ -50,7 +55,7 @@
 /* ---- Inspector (schwebende Karte) ---- */
 .inspector{position:absolute;z-index:25;right:14px;top:calc(64px + env(safe-area-inset-top));bottom:14px;width:372px;display:flex;flex-direction:column;background:var(--bg);border-radius:30px;box-shadow:var(--shadow-pop),0 0 0 .5px #00000026;overflow:hidden;transform:translateX(calc(100% + 30px));opacity:0;pointer-events:none;transition:transform .6s var(--spring),opacity .25s}
 .inspector.open{transform:none;opacity:1;pointer-events:auto}
-.insp-bar{position:relative;display:grid;grid-template-columns:72px 1fr 72px;align-items:center;gap:6px;padding:12px 14px 10px;flex:none;min-height:60px}
+.insp-bar{position:relative;display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:6px;padding:12px 14px 10px;flex:none;min-height:60px}
 .insp-bar .tx{display:grid;justify-items:center;text-align:center;min-width:0}.insp-bar .tx b{font-size:1.05em;font-weight:650;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:-.02em}.insp-bar .tx small{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .insp-bar .l{justify-self:start}.insp-bar .r{justify-self:end;display:flex;gap:4px;align-items:center}
 .insp-bar .done{color:var(--tint);font-weight:600;padding:6px 8px;border-radius:999px}.insp-bar .done:hover{background:var(--tint-soft)}
@@ -113,10 +118,11 @@
   .dock{transition:opacity .25s,transform .5s var(--spring)}
 }
 @media (max-width:640px){
-  .ed-bar{padding-left:10px;padding-right:10px}.ed-title{max-width:34vw}.back span{display:none}.back{padding:0 10px 0 6px}
-  .gpill.tinted span{display:none}.gpill.tinted{padding:0 14px}.saved-note{display:none}
+  .ed-bar{grid-template-columns:auto minmax(0,1fr) auto;padding-left:10px;padding-right:10px}.ed-title{max-width:none;min-width:0;overflow:hidden;padding:2px 4px}.ed-bar .back span{display:none}.back{padding:0 10px 0 6px}
+  .gpill.tinted span{display:none}.gpill.tinted{padding:0 14px}.saved-note,.chip.dirty{display:none}
   .dock-i{min-width:70px;padding:8px 8px 6px}.pager .gbtn{display:none}
   .ed-main{padding-top:calc(70px + var(--nt,0px) + env(safe-area-inset-top))}
+  .ed-main.pages{padding-top:calc(134px + var(--nt,0px) + env(safe-area-inset-top))}   /* Raster beginnt unter dem Hinweis (top 58px), sonst trifft der Tipp aufs Minus „Rückgängig“ */
   .gal{left:0;right:0;top:auto;bottom:0;transform:none;width:100%;height:92vh;border-radius:34px 34px 0 0;animation:sheet-up .55s var(--spring)}
   .size-pick .gl{width:40px;height:40px}
 }

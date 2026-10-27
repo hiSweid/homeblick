@@ -18,7 +18,7 @@ const dots = (k, list, cur, css) => `<div class="swatches">${list.map(([v, n]) =
 const glyph = v => { const [w, h] = v.split('x').map(Number); return `<span class="gl">${[0, 1, 2, 3].map(i => `<i class="${i % 2 < w && Math.floor(i / 2) < h ? 'on' : ''}"></i>`).join('')}</span>`; };
 const sizePick = (k, cur) => `<div class="size-pick">${SIZES.map(([v, n]) => `<button type="button" data-k="${k}" data-v="${v}" aria-pressed="${v === cur}">${glyph(v)}${n}</button>`).join('')}</div>`;
 const SUB_VALS = en => [['', 'Keine'], ['state', 'Zustand'], ...(en?.attrs || []).map(a => [a, a])];
-const ACTS = en => [['default', 'Standard'], ...(TOGGLE_DOM.includes(en?.domain) ? [['toggle', 'Umschalten']] : []), ['service', 'Dienst aufrufen'], ['face', 'Seite öffnen'], ['none', 'Nichts']];
+const ACTS = en => [['default', 'Standard'], ...(TOGGLE_DOM.includes(en?.domain) ? [['toggle', 'Umschalten']] : []), ['service', 'Dienst aufrufen'], ['face', 'Ansicht öffnen'], ['none', 'Nichts']];
 const SKIP_ATTR = new Set(['icon', 'entity_picture', 'supported_features', 'entity_id']);
 
 export function mount(ed) {
@@ -51,9 +51,9 @@ export function mount(ed) {
       if (t.kind !== 'thermo') h += grp('Aktionen', navRow('Tippen', esc(act('tap')), 'tap') + navRow('Halten', esc(act('hold')), 'hold'), 'Standard: Licht schaltet, Halten öffnet den Dimmer; Schloss, Tor, Szene … wie bisher.');
       if (t.e) h += grp('', navRow('Aktuelle Daten', esc(en ? [en.state, en.unit].filter(Boolean).join(' ') : ''), 'data'));
     }
-    if (!(f.bg && typeof f.bg === 'object')) h += grp('Hintergrund der Seite', `<div class="stack">${dots('f.bg', BG, f.bg, bgCss)}</div>`, 'Gilt für die ganze Seite, nicht nur für diese Kachel.');
+    if (!(f.bg && typeof f.bg === 'object')) h += grp('Hintergrund der Ansicht', `<div class="stack">${dots('f.bg', BG, f.bg, bgCss)}</div>`, 'Gilt für die ganze Ansicht, nicht nur für diese Kachel.');
     h += grp('', `<button class="row danger" data-act="rm">Kachel entfernen</button>`);
-    return { title: tileTitle(t), sub: faceName(f), more: true, body: h };
+    return { title: tileTitle(t), sub: faceName(f), more: true, del: ['rm', 'Kachel entfernen'], body: h };
   }
   function tileSub(f, t, view) {
     const en = entOf(t.e), back = 'Kachel';
@@ -62,7 +62,7 @@ export function mount(ed) {
       const a = t[view] || {}, faceList = S.cfg.faces.map(x => [x.id, faceName(x)]);
       return { title: view === 'tap' ? 'Tippen' : 'Halten', back, body: grp('', sroww('Aktion', '', selectBtn(view + '.do', ACTS(en), a.do || 'default'))
         + (a.do === 'service' ? sroww('Dienst', '', `<input data-k="${view}.service" value="${esc(a.service || '')}" placeholder="light.turn_on" autocapitalize="off" autocorrect="off" spellcheck="false">`) + sroww('Daten (JSON)', '', `<input data-k="${view}.data" value="${esc(a.data ? JSON.stringify(a.data) : '')}" placeholder='{"brightness_pct":50}' autocapitalize="off" autocorrect="off" spellcheck="false">`) : '')
-        + (a.do === 'face' ? sroww('Seite', '', selectBtn(view + '.face', faceList, a.face || faceList[0]?.[0])) : ''),
+        + (a.do === 'face' ? sroww('Ansicht', '', selectBtn(view + '.face', faceList, a.face || faceList[0]?.[0])) : ''),
         view === 'tap' ? 'Standard: Licht schaltet um, Schloss und Tor wie bisher.' : 'Standard: Licht öffnet den Dimmer, Thermostat die Klimasteuerung.') };
     }
     if (view === 'data') {
@@ -78,14 +78,14 @@ export function mount(ed) {
   function multi(f) {
     const js = S.ui.sel.js, ts = js.map(j => f.tiles[j]), s0 = `${ts[0].w || 1}x${ts[0].h || 1}`, sz = ts.every(t => `${t.w || 1}x${t.h || 1}` === s0) ? s0 : '';
     const others = S.cfg.faces.filter(x => x.type === 'grid' && x.id !== f.id), row = (act, label, icon) => `<button class="row tap" data-act="${act}">${ic(icon)}<span class="t"><b>${label}</b></span></button>`;
-    return { title: `${js.length} Kacheln`, sub: faceName(f), body: grp('Größe', sizePick('m.size', sz), 'Alle gewählten Kacheln bekommen dieselbe Größe.')
-      + grp('', (others.length ? row('mmove', 'Auf andere Seite verschieben …', 'layout') : '') + row('mcopy', 'Kopieren', 'copy') + row('mcut', 'Ausschneiden', 'cut'))
-      + grp('', `<button class="row danger" data-act="mrm">${js.length} Kacheln entfernen</button>`, '⇧ oder ⌘ plus Klick wählt weitere Kacheln, ⌘A alle der Seite.') };
+    return { title: `${js.length} Kacheln`, sub: faceName(f), del: ['mrm', `${js.length} Kacheln entfernen`], body: grp('Größe', sizePick('m.size', sz), 'Alle gewählten Kacheln bekommen dieselbe Größe.')
+      + grp('', (others.length ? row('mmove', 'Auf andere Ansicht verschieben …', 'layout') : '') + row('mcopy', 'Kopieren', 'copy') + row('mcut', 'Ausschneiden', 'cut'))
+      + grp('', `<button class="row danger" data-act="mrm">${js.length} Kacheln entfernen</button>`, '⇧ oder ⌘ plus Klick wählt weitere Kacheln, ⌘A alle der Ansicht.') };
   }
 
   // ---- Seite ----
   function pageRoot(f, i) {
-    const d = dev(), s = d?.settings || {}, meta = FACE[f.type] || [f.type, '#8e8e93', 'grid'], photo = f.bg && typeof f.bg === 'object', sty = designs(f), n = lost(f), one = S.cfg.faces.length < 2;
+    const d = dev(), s = d?.settings || {}, meta = FACE[f.type] || [f.type, '#8e8e93', 'grid'], photo = f.bg && typeof f.bg === 'object', sty = designs(f), n = lost(f);
     const bgList = BG.filter(([v]) => !['calendar', 'date'].includes(f.type) || ['auto', 'black', 'white'].includes(v));
     const tile = (t, j) => { const en = entOf(t.e), sz = `${t.w || 1}×${t.h || 1}`; return `<button class="trow" data-tile="${j}"><span class="av" style="--c:${colorOf(t)}">${xi(tileIcon(t))}</span><span class="t"><b>${esc(tileTitle(t))}</b><small>${esc([t.sub, t.kind ? '' : en?.name || t.e, sz !== '1×1' && sz].filter(Boolean).join(' · '))}</small></span>${ic('right')}</button>`; };
     let h = `<div class="insp-id"><span class="av" style="--c:${meta[1]}">${ic(meta[2])}</span></div>`;
@@ -93,16 +93,16 @@ export function mount(ed) {
     if (sty?.length) h += grp('Stil', sty.length <= 3 && sty.every(x => x[1].length < 12) ? stack('Design', segB('f.design', sty, designCur(f))) : navRow('Design', esc(sty.find(x => x[0] === designCur(f))?.[1] || ''), 'design'));
     if (f.type === 'grid') h += grp(`Kacheln · ${tilesOf(f).length}`, (tilesOf(f).map(tile).join('') || '<div class="srow"><span class="s-label muted">Noch keine Kacheln</span></div>') + `<button class="row accent" data-lib>${ic('plus')}Kachel hinzufügen</button>`, n ? `<span class="warn">${n} Kachel${n > 1 ? 'n passen' : ' passt'} nicht mehr ins Raster und ${n > 1 ? 'werden' : 'wird'} nicht angezeigt.</span>` : '');
     if (f.type === 'weather') h += grp('Wetter', sroww('Wetter-Entität', '', entityBtn('s.weather', s.weather, { domains: ['weather'], title: 'Wetter-Entität' })) + sroww('Ortsname', '', `<input data-k="s.place" value="${esc(s.place || '')}" maxlength="40" autocomplete="off">`), 'Gilt sofort für alle Wetter-Anzeigen dieses Displays.');
-    if (f.type === 'energy') h += grp('', navRow('Entitäten', `${Object.keys(f.ents || {}).filter(k => k !== 'carName').length || 'Standard'}`, 'energy', `<span class="av" style="--c:${meta[1]}">${ic('bolt')}</span>`), 'Ohne Auswahl liest die Seite die Standard-Entitäten (evcc, Kostal, Solcast).');
+    if (f.type === 'energy') h += grp('', navRow('Entitäten', `${Object.keys(f.ents || {}).filter(k => k !== 'carName').length || 'Standard'}`, 'energy', `<span class="av" style="--c:${meta[1]}">${ic('bolt')}</span>`), 'Ohne Auswahl liest die Ansicht die Standard-Entitäten (evcc, Kostal, Solcast).');
     if (f.type === 'calendar' || f.type === 'info') { const cs = entsOf('calendar'); h += grp('Kalender', cs.map(e => sroww(esc(e.name), '', sw(!f.cals || f.cals.includes(e.id), 'cal:' + e.id))).join('') || '<div class="srow"><span class="s-label muted">Keine Kalender in Home Assistant</span></div>'); }
     if (f.type === 'cams') h += grp('Kameras', `<button class="row tap" data-goto="#/settings"><span class="av" style="--c:#8e8e93">${ic('cam')}</span><span class="t"><b>Kameras und Türklingel</b><small>gelten für alle Displays</small></span>${ic('right')}</button>`);
-    h += grp('', `<button class="row tap" data-act="show" ${d?.connected ? '' : 'disabled'}>${ic('monitor-eye')}<span class="t"><b>Auf dem Display zeigen</b></span></button><button class="row tap" data-act="hide" ${one ? 'disabled' : ''}>${ic('eye-off')}<span class="t"><b>Seite ausblenden</b></span></button>`);
-    h += grp('', `<button class="row danger" data-act="del" ${one ? 'disabled' : ''}>Seite löschen</button>`);
-    return { title: faceName(f), sub: `Seite ${i + 1} · ${meta[0]}`, more: true, body: h };
+    h += grp('', `<button class="row tap" data-act="show" ${d?.connected ? '' : 'disabled'}>${ic('monitor-eye')}<span class="t"><b>Auf dem Display zeigen</b></span></button><button class="row tap" data-act="hide">${ic('eye-off')}<span class="t"><b>Ansicht ausblenden</b></span></button>`);
+    h += grp('', `<button class="row danger" data-act="del">Ansicht löschen</button>`);
+    return { title: faceName(f), sub: `Ansicht ${i + 1} · ${meta[0]}`, more: true, del: ['del', 'Ansicht löschen'], body: h };
   }
   function pageSub(f, view) {
     if (view === 'design') return { title: 'Design', sub: faceName(f), back: faceName(f), body: (f.bg && typeof f.bg === 'object' ? '' : grp('Hintergrund', `<div class="stack">${dots('f.bg', BG, f.bg, bgCss)}</div>`)) + grp('Live-Vorschau', '<iframe class="dz" title="Designs" src="index.html?preview&designs"></iframe>', 'Tippe ein Design an. Die Farbe oben gilt sofort für alle Vorschauen.') };
-    if (view === 'energy') return { title: 'Entitäten', sub: faceName(f), back: faceName(f), body: grp('', `<button class="row accent" data-energy-auto>${ic('refresh')}Fehlende automatisch erkennen</button>`, 'Sucht Solar, Netz, Haus, Akku, Auto und Prognose in Home Assistant: Energie-Dashboard, Einheiten und Namen. Was du schon gewählt hast, bleibt.') + grp('', textRow('Bezeichnung Auto', 'e.carName', f.ents?.carName || '', { ph: 'e-Golf', max: 20 }), 'Name der Auto-Kachel.') + grp('', ENERGY.map(([k, n, dm = ['sensor']]) => sroww(esc(n), '', entityBtn('e.' + k, f.ents?.[k] || '', { domains: dm, none: 'Standard', title: n }, 'Standard'))).join(''), 'Ohne Auswahl liest die Seite die Standard-Entitäten.') };
+    if (view === 'energy') return { title: 'Entitäten', sub: faceName(f), back: faceName(f), body: grp('', `<button class="row accent" data-energy-auto>${ic('refresh')}Fehlende automatisch erkennen</button>`, 'Sucht Solar, Netz, Haus, Akku, Auto und Prognose in Home Assistant: Energie-Dashboard, Einheiten und Namen. Was du schon gewählt hast, bleibt.') + grp('', textRow('Bezeichnung Auto', 'e.carName', f.ents?.carName || '', { ph: 'e-Golf', max: 20 }), 'Name der Auto-Kachel.') + grp('', ENERGY.map(([k, n, dm = ['sensor']]) => sroww(esc(n), '', entityBtn('e.' + k, f.ents?.[k] || '', { domains: dm, none: 'Standard', title: n }, 'Standard'))).join(''), 'Ohne Auswahl liest die Ansicht die Standard-Entitäten.') };
   }
 
   // ---- Zeichnen ----
@@ -119,7 +119,7 @@ export function mount(ed) {
     else if (sel.k === 'tiles') v = multi(f);
     else { const top = path.at(-1); v = (top && pageSub(f, top)) || (path = [], pageRoot(f, faceIx(f.id))); }
     const sc = o.keep ? $('.insp-body', el)?.scrollTop : 0;
-    el.innerHTML = `<div class="insp-bar"><span class="l">${v.back ? `<button class="bk" data-back aria-label="Zurück">${ic('left')}<span>${esc(v.back)}</span></button>` : ''}</span><div class="tx"><b>${esc(v.title)}</b>${v.sub ? `<small>${esc(v.sub)}</small>` : ''}</div><span class="r">${v.more ? `<button class="icon-btn" id="in-more" aria-label="Mehr">${ic('dots')}</button>` : ''}<button class="done" id="in-x">Fertig</button></span></div><div class="insp-body"><div class="insp-view ${o.anim || ''}" ${o.anim ? '' : 'style="animation:none"'}>${v.body}</div></div>`;
+    el.innerHTML = `<div class="insp-bar"><span class="l">${v.back ? `<button class="bk" data-back aria-label="Zurück">${ic('left')}<span>${esc(v.back)}</span></button>` : ''}</span><div class="tx"><b>${esc(v.title)}</b>${v.sub ? `<small>${esc(v.sub)}</small>` : ''}</div><span class="r">${v.del ? `<button class="icon-btn" data-act="${v.del[0]}" aria-label="${esc(v.del[1])}" title="${esc(v.del[1])}">${ic('trash')}</button>` : ''}${v.more ? `<button class="icon-btn" id="in-more" aria-label="Mehr">${ic('dots')}</button>` : ''}<button class="done" id="in-x">Fertig</button></span></div><div class="insp-body"><div class="insp-view ${o.anim || ''}" ${o.anim ? '' : 'style="animation:none"'}>${v.body}</div></div>`;
     if (sc) $('.insp-body', el).scrollTop = sc;
     if (sel.k === 'tile' && sel.focus) { delete sel.focus; $('#tile-name', el)?.focus(); $('#tile-name', el)?.select(); }
   }
@@ -241,7 +241,7 @@ export function mount(ed) {
       return menu(q('#in-more'), [
         { label: 'Umbenennen', icon: 'pencil', run: () => { $('#tile-name', el)?.focus(); $('#tile-name', el)?.select(); } },
         ...(t.kind ? [] : [{ label: 'Andere Entität zeigen', icon: 'swap', run: () => $('[data-pick-ent]', el)?.click() }]),
-        '-', { group: 'Auf Seite verschieben' }, ...(others.length ? others.map(x => ({ label: faceName(x), icon: 'layout', run: () => moveTile(f.id, sel.j, x.id) })) : [{ label: 'Keine andere Smart-Home-Seite', icon: 'blank', disabled: true }]),
+        '-', { group: 'Auf Ansicht verschieben' }, ...(others.length ? others.map(x => ({ label: faceName(x), icon: 'layout', run: () => moveTile(f.id, sel.j, x.id) })) : [{ label: 'Keine andere Smart-Home-Ansicht', icon: 'blank', disabled: true }]),
         '-', { label: 'Kopieren', icon: 'copy', end: '⌘C', run: () => copyTiles(f.id, [sel.j]) }, { label: 'Ausschneiden', icon: 'cut', end: '⌘X', run: () => copyTiles(f.id, [sel.j], true) },
         '-', { label: 'Kachel entfernen', icon: 'trash', danger: true, end: '⌫', run: () => removeTiles(f.id, [sel.j]) },
       ], { width: 250 });

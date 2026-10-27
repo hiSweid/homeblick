@@ -5,8 +5,9 @@ import { INDEX, spot } from './settings.js';
 import { faceName } from './meta.js';
 import { TILE_DOM } from './meta.js';
 import { findEnts, avatar } from './entities.js';
-import { addEntity } from './edit.js';
+import { addEntity, removePage } from './edit.js';
 import { addPageFlow, openPreview } from './layout.js';
+import { removeDisplay, renameDisplay } from './actions.js';
 
 export function openPalette() {
   if ($('.palette-bg')) return;
@@ -16,12 +17,13 @@ export function openPalette() {
   const add = (group, label, icon, run, sub = '') => all.push({ group, label, icon, run, sub, k: fold(label + ' ' + sub) });
   for (const d of S.displays.filter(x => !x.new)) add('Displays', d.name, 'monitor', go(`#/d/${encodeURIComponent(d.id)}`), d.area || '');
   if (onScreen) {
-    S.cfg.faces.forEach((f, i) => add('Seiten', faceName(f), 'pages', () => { if (!layout) location.hash = `#/d/${encodeURIComponent(S.sel)}`; setTimeout(() => select({ k: 'page', f: f.id }), 60); }, `Seite ${i + 1}`));
+    S.cfg.faces.forEach((f, i) => add('Ansichten', faceName(f), 'pages', () => { if (!layout) location.hash = `#/d/${encodeURIComponent(S.sel)}`; setTimeout(() => select({ k: 'page', f: f.id }), 60); }, `Ansicht ${i + 1}`));
     for (const [k, n, sec] of INDEX) add('Einstellungen', n, 'sliders', () => { spot.key = k; spot.section = sec; const h = `#/d/${encodeURIComponent(S.sel)}/settings/${sec}`; if (location.hash === h) { location.hash = '#/'; setTimeout(() => (location.hash = h), 0); } else location.hash = h; }, 'Einstellung');
-    if (layout) { add('Aktionen', 'Seite hinzufügen', 'page-add', addPageFlow); add('Aktionen', 'Vorschau', 'play', () => openPreview(0)); add('Aktionen', 'Rückgängig', 'undo', undo); add('Aktionen', 'Wiederholen', 'redo', redo); }
+    if (layout) { add('Aktionen', 'Ansicht hinzufügen', 'page-add', addPageFlow); add('Aktionen', 'Vorschau', 'play', () => openPreview(0)); add('Aktionen', 'Rückgängig', 'undo', undo); add('Aktionen', 'Wiederholen', 'redo', redo); add('Aktionen', 'Ansicht löschen', 'trash', () => removePage(S.ui.page || S.cfg.faces[0]?.id)); }
+    add('Aktionen', 'Display umbenennen', 'pencil', renameDisplay); add('Aktionen', 'Display entfernen', 'trash', removeDisplay);
   }
-  add('Aktionen', 'Neues Display einrichten', 'plus', go('#/new')); add('Aktionen', 'Einstellungen: Kameras und Türklingel', 'cog', go('#/settings')); add('Aktionen', 'Benachrichtigungen', 'bell', go('#/alerts'));
-  const bg = Object.assign(document.createElement('div'), { className: 'palette-bg', innerHTML: `<div class="palette" role="dialog" aria-label="Suchen"><div class="pq">${ic('search')}<input type="search" placeholder="Display, Seite, Einstellung oder Entität suchen" autocomplete="off" spellcheck="false" aria-label="Suchen"></div><div class="list" role="listbox"></div><div class="foot"><span>↑↓ wählen</span><span>↵ öffnen</span><span>esc schließen</span></div></div>` });
+  add('Aktionen', 'Neues Display einrichten', 'plus', go('#/new')); add('Aktionen', 'Einstellungen: Kameras und Türklingel', 'cog', go('#/settings')); add('Aktionen', 'Mitteilungen', 'bell', go('#/alerts'));
+  const bg = Object.assign(document.createElement('div'), { className: 'palette-bg', innerHTML: `<div class="palette" role="dialog" aria-label="Suchen"><div class="pq">${ic('search')}<input type="search" placeholder="Display, Ansicht, Einstellung oder Entität suchen" autocomplete="off" spellcheck="false" aria-label="Suchen"></div><div class="list" role="listbox"></div><div class="foot"><span>↑↓ wählen</span><span>↵ öffnen</span><span>esc schließen</span></div></div>` });
   const q = $('input', bg), list = $('.list', bg);
   let items = [], hi = 0;
   const draw = () => {

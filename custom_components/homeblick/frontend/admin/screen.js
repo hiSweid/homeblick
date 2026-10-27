@@ -22,7 +22,7 @@ export async function mount(el, route) {
   if (S.sel !== id) await openDoc(id);
   if (route.tab === 'settings') return settings.mount(el, route);
   if (!S.cfg) {
-    el.innerHTML = page({ title: cur().name, left: backBtn('#/', 'Displays'), right: gbtn(`data-goto="#/d/${encodeURIComponent(id)}/settings"`, 'cog', 'Einstellungen') }, `<div class="empty"><div class="ico48">${ic('monitor')}</div><h2>Noch keine Konfiguration</h2><p>Öffne Homeblick einmal auf dem Gerät, dann erscheinen hier seine Seiten.</p></div>`);
+    el.innerHTML = page({ title: cur().name, left: backBtn('#/', 'Displays'), right: gbtn(`data-goto="#/d/${encodeURIComponent(id)}/settings"`, 'cog', 'Einstellungen') }, `<div class="empty"><div class="ico48">${ic('monitor')}</div><h2>Noch keine Konfiguration</h2><p>Öffne Homeblick einmal auf dem Gerät, dann erscheinen hier seine Ansichten.</p></div>`);
     return;
   }
 
@@ -82,14 +82,14 @@ export async function mount(el, route) {
       { label: 'Bildschirmfoto', icon: 'image', disabled: !d.connected, run: async () => { const img = await screenshot(); img && toast('Bildschirmfoto aktualisiert'); } },
       { label: 'Änderungen verwerfen', icon: 'undo', disabled: !dirty(), run: () => { discard(); toast('Änderungen verworfen'); } },
       '-', { group: 'Layout' },
-      { label: 'Layout kopieren von …', icon: 'copy', end: others.length ? `${others.length} Display${others.length > 1 ? 's' : ''}` : 'kein weiteres', disabled: !others.length, run: async () => { const v = await choose(a, others.map(x => [x.id, x.name, x.area]), '', { width: 260 }); if (v) copyLayoutFrom(v); } },
+      { label: 'Layout kopieren von …', icon: 'copy', end: String(others.length), disabled: !others.length, run: async () => { const v = await choose(a, others.map(x => [x.id, x.name, x.area]), '', { width: 260 }); if (v) copyLayoutFrom(v); } },
       { label: 'Layout exportieren', icon: 'download', end: 'JSON', run: exportLayout },
       { label: 'Layout importieren …', icon: 'upload', end: 'JSON', run: importLayout },
-      { label: 'Auf andere Displays anwenden …', icon: 'send', disabled: !others.length, run: applyToOthers },
+      { label: 'Auf andere anwenden …', icon: 'send', disabled: !others.length, run: applyToOthers },
       { label: 'Für ESP-Display exportieren', icon: 'download', run: exportEsp },
       '-', { label: 'So funktioniert es', icon: 'help', run: layout.openHelp },
       { label: 'Display entfernen', icon: 'trash', danger: true, run: removeDisplay },
-    ], { width: 290 });
+    ], { width: 330 });
   }
 
   // ---- Tastatur ----

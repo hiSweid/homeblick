@@ -11,7 +11,7 @@ export const fits = f => pack(tilesOf(f), rows(f)).every(Boolean);   // alle Kac
 export const lost = f => pack(tilesOf(f), rows(f)).filter(p => !p).length;
 export const used = f => tilesOf(f).reduce((n, t) => n + (t.w || 1) * (t.h || 1), 0);
 export const cells = f => rows(f) * 3;
-const NO_ROOM = 'Kein Platz mehr auf dieser Seite: erst eine Kachel verkleinern oder entfernen';
+const NO_ROOM = 'Kein Platz mehr auf dieser Ansicht: erst eine Kachel verkleinern oder entfernen';
 
 /** Seite, auf die neue Kacheln kommen: die gewählte bzw. vordere (wenn Smart Home), sonst die erste Smart-Home-Seite. */
 export function targetFace() {
@@ -24,7 +24,7 @@ export const widgetTile = kind => kind === 'wx' ? { kind: 'wx', w: 2 } : kind ==
 
 /** Kachel(n) am Ende bzw. auf der markierten Zelle einer Seite einfügen; liefert die neuen Kacheln oder null (kein Platz). */
 export function addTiles(list, label, { face = targetFace(), pickIt = true } = {}) {
-  if (!face) { toast('Kacheln gibt es auf Smart-Home-Seiten: lege über „Seite hinzufügen“ eine an', { bad: true }); return null; }
+  if (!face) { toast('Kacheln gibt es auf Smart-Home-Ansichten: lege über „Ansicht hinzufügen“ eine an', { bad: true }); return null; }
   const cell = S.ui.insert?.f === face.id ? S.ui.insert.cell : null;
   let added = null;
   mutate(label, () => {
@@ -52,14 +52,14 @@ export function removeTiles(fid, js) {
   const f = faceBy(fid); if (!f) return;
   const names = js.map(j => tileTitle(f.tiles[j]));
   mutate(js.length > 1 ? `${js.length} Kacheln entfernt` : `${names[0]} entfernt`, () => { [...js].sort((a, b) => b - a).forEach(j => faceBy(fid).tiles.splice(j, 1)); });
-  select({ k: 'page', f: fid });
+  select(null);
   toast(js.length > 1 ? `${js.length} Kacheln entfernt` : `„${names[0]}“ entfernt`, { action: 'Rückgängig', run: undo });
 }
 export function moveTile(fid, j, to) {
   const from = faceBy(fid), dest = faceBy(to);
   if (!from || !dest || dest.type !== 'grid' || from === dest) return;
   let ok = true;
-  mutate(`${tileTitle(from.tiles[j])} auf eine andere Seite verschoben`, () => {
+  mutate(`${tileTitle(from.tiles[j])} auf eine andere Ansicht verschoben`, () => {
     const a = faceBy(fid), b = faceBy(to), [t] = a.tiles.splice(j, 1), n0 = lost(b);
     (b.tiles ||= []).push(t);
     if (!pack(b.tiles, rows(b)).at(-1) || lost(b) > n0) { b.tiles.pop(); a.tiles.splice(j, 0, t); ok = false; }
@@ -104,7 +104,7 @@ export function copyTiles(fid, js, cut) {
   try { localStorage.setItem(CLIP, JSON.stringify(js.map(j => f.tiles[j]))); } catch { return toast('Der Browser erlaubt kein Zwischenspeichern', { bad: true }); }
   const n = js.length;
   if (cut) removeTiles(fid, js), toast(`${n} Kachel${n > 1 ? 'n' : ''} ausgeschnitten`, { action: 'Rückgängig', run: undo });
-  else toast(`${n} Kachel${n > 1 ? 'n' : ''} kopiert. Mit ⌘V auf jeder Seite oder jedem Display einfügen`);
+  else toast(`${n} Kachel${n > 1 ? 'n' : ''} kopiert. Mit ⌘V auf jeder Ansicht oder jedem Display einfügen`);
 }
 export function pasteTiles() {
   const list = clipGet();
@@ -120,37 +120,39 @@ export const pageTypes = () => {   // Typen, die man neu anlegen kann (Uhr, Kale
 };
 export function addPage(type) {
   const id = faceId(S.cfg, type);
-  mutate(`Seite „${faceName({ type, id })}“ hinzugefügt`, c => { c.faces.push({ type, id, bg: FACE_BG[type] ?? 'black', ...(type === 'grid' && { tiles: [] }) }); });
+  mutate(`Ansicht „${faceName({ type, id })}“ hinzugefügt`, c => { c.faces.push({ type, id, bg: FACE_BG[type] ?? 'black', ...(type === 'grid' && { tiles: [] }) }); });
   select({ k: 'page', f: id });
   return id;
 }
 export function showPage(id) {
-  mutate('Seite eingeblendet', c => { const i = (c.off || []).findIndex(f => f.id === id); if (i >= 0) c.faces.push(...c.off.splice(i, 1)); });
+  mutate('Ansicht eingeblendet', c => { const i = (c.off || []).findIndex(f => f.id === id); if (i >= 0) c.faces.push(...c.off.splice(i, 1)); });
   select({ k: 'page', f: id });
 }
 export function hidePage(id) {
-  if (S.cfg.faces.length < 2) return toast('Mindestens eine Seite muss bleiben', { bad: true });
-  mutate(`Seite „${faceName(faceBy(id))}“ ausgeblendet`, c => { const i = c.faces.findIndex(f => f.id === id); (c.off ||= []).push(...c.faces.splice(i, 1)); });
+  if (S.cfg.faces.length < 2) return toast('Mindestens eine Ansicht muss bleiben', { bad: true });
+  const name = faceName(faceBy(id));
+  mutate(`Ansicht „${name}“ ausgeblendet`, c => { const i = c.faces.findIndex(f => f.id === id); (c.off ||= []).push(...c.faces.splice(i, 1)); });
   select(null);
+  toast(`Ansicht „${name}“ ausgeblendet`, { action: 'Rückgängig', run: undo });
 }
 export function removePage(id) {
-  if (S.cfg.faces.length < 2) return toast('Mindestens eine Seite muss bleiben', { bad: true });
+  if (S.cfg.faces.length < 2) return toast('Mindestens eine Ansicht muss bleiben', { bad: true });
   const f = faceBy(id), n = tilesOf(f).length, name = faceName(f);
-  mutate(`Seite „${name}“ gelöscht`, c => { c.faces.splice(c.faces.findIndex(x => x.id === id), 1); });
+  mutate(`Ansicht „${name}“ gelöscht`, c => { c.faces.splice(c.faces.findIndex(x => x.id === id), 1); });
   select(null);
-  toast(n ? `Seite „${name}“ und ${n} Kachel${n > 1 ? 'n' : ''} gelöscht` : `Seite „${name}“ gelöscht`, { action: 'Rückgängig', run: undo });
+  toast(n ? `Ansicht „${name}“ und ${n} Kachel${n > 1 ? 'n' : ''} gelöscht` : `Ansicht „${name}“ gelöscht`, { action: 'Rückgängig', run: undo });
 }
 export function duplicatePage(id) {
   const f = faceBy(id);
   if (GROUP[f.type]) return toast('Uhr, Kalender und Datum gibt es je Display nur einmal', { bad: true });
   const nid = faceId(S.cfg, f.type);
-  mutate(`Seite „${faceName(f)}“ dupliziert`, c => { const i = c.faces.findIndex(x => x.id === id); c.faces.splice(i + 1, 0, { ...structuredClone(f), id: nid }); });
+  mutate(`Ansicht „${faceName(f)}“ dupliziert`, c => { const i = c.faces.findIndex(x => x.id === id); c.faces.splice(i + 1, 0, { ...structuredClone(f), id: nid }); });
   select({ k: 'page', f: nid });
 }
 export function movePage(from, to) {
   const n = S.cfg.faces.length;
   if (from === to || to < 0 || to >= n) return;
-  mutate(`Seite „${faceName(S.cfg.faces[from])}“ auf Platz ${to + 1} verschoben`, c => { const [f] = c.faces.splice(from, 1); c.faces.splice(to, 0, f); });
+  mutate(`Ansicht „${faceName(S.cfg.faces[from])}“ auf Platz ${to + 1} verschoben`, c => { const [f] = c.faces.splice(from, 1); c.faces.splice(to, 0, f); });
 }
 /** Hintergrund / Design einer Seite (Wert aus data-Attributen). */
 export const setBg = (id, v) => mutate('Hintergrund geändert', () => { faceBy(id).bg = bgVal(v); });

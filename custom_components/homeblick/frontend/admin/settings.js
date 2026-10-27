@@ -16,7 +16,7 @@ const SECTIONS = [   // [Schlüssel, Name, Symbol, Farbe]; Gruppen wie in den iO
   [['status', 'Status und Bildschirmfoto', 'info', '#34c759'], ['manage', 'Vorlagen und Sicherung', 'copy', '#30b0c7']],
 ];
 // Zeile, die ⌘K beim Öffnen hervorheben soll: [Schlüssel, Name, Abschnitt]
-export const INDEX = [['bright', 'Helligkeit', 'brightness'], ['lux', 'Lichtsensor (Lux)', 'brightness'], ['perf', 'Leistungsmodus', 'brightness'], ['idle', 'Bildschirmschoner nach Inaktivität', 'saver'], ['saver', 'Bildschirmschoner: Seite', 'saver'], ['music', 'Musik statt Schoner', 'saver'], ['black', 'Ganz schwarz statt Seite', 'saver'], ['sched', 'Schoner-Zeitplan', 'saver'], ['hold', 'Schoner halten', 'saver'],
+export const INDEX = [['bright', 'Helligkeit', 'brightness'], ['lux', 'Lichtsensor (Lux)', 'brightness'], ['perf', 'Leistungsmodus', 'brightness'], ['idle', 'Bildschirmschoner nach Inaktivität', 'saver'], ['saver', 'Bildschirmschoner: Ansicht', 'saver'], ['music', 'Musik statt Schoner', 'saver'], ['black', 'Ganz schwarz statt Ansicht', 'saver'], ['sched', 'Schoner-Zeitplan', 'saver'], ['hold', 'Schoner halten', 'saver'],
   ['dim', 'Nachts abdunkeln', 'night'], ['dim_level', 'Nachtmodus Stärke', 'night'], ['wake', 'Wake Word', 'voice'], ['wake_sens', 'Wake-Word-Empfindlichkeit', 'voice'], ['mute', 'Antworten stumm', 'voice'], ['volume', 'Lautstärke der Antworten', 'voice'], ['tts', 'Stimme für Ansagen', 'voice'], ['pipeline', 'Assist-Pipeline', 'voice'], ['micmute', 'Mikrofon stumm', 'voice'], ['guest', 'Gastmodus', 'voice'], ['dnd', 'Nicht stören', 'voice'], ['chime', 'Gong beim Klingeln', 'voice'],
   ['presence', 'Bewegungs- und Präsenzmelder', 'wake'], ['kz', 'Kontrollzentrum', 'wake'], ['name', 'Name des Displays', 'general']];
 const DEPS = { dim_from: s => s.dim, dim_to: s => s.dim, dim_level: s => s.dim, sched_from: s => s.sched, sched_to: s => s.sched, wake_sens: s => s.wake !== 'off', barge: s => s.wake !== 'off' };
@@ -53,11 +53,11 @@ export function mount(el, route) {
     control: x => {
       const dis = cur().connected ? '' : 'disabled';
       return G('Befehle', `<div class="quick">${[['reload', 'Neu laden', 'refresh'], ['assist', 'Assist', 'mic'], ['stop', 'Abbrechen', 'x'], ['screensaver', 'Ruhemodus', 'moon'], ['wake', 'Aufwecken', 'sun']].map(([c, n, i]) => `<button class="btn quiet" data-cmd="${c}" ${dis}>${ic(i)}${n}</button>`).join('')}</div>`, 'Steuerung geht, solange das Display geöffnet ist.')
-        + G('Seite anzeigen', sroww('Zurück nach (s, leer = bleibt)', '', `<input type="number" data-k="dur" min="1" max="3600" value="${esc(dur)}" placeholder="bleibt" inputmode="numeric">`) + selectRow('Seite', 'show', [['', 'Wählen …'], ...TYPES], '', '', 'show'))
+        + G('Ansicht anzeigen', sroww('Zurück nach (s, leer = bleibt)', '', `<input type="number" data-k="dur" min="1" max="3600" value="${esc(dur)}" placeholder="bleibt" inputmode="numeric">`) + selectRow('Ansicht', 'show', [['', 'Wählen …'], ...TYPES], '', '', 'show'))
         + G('Ansage', textRow('Text', 'say', '', { ph: 'Das Essen ist fertig', max: 300 }, '', 'say') + `<div class="s-actions"><button class="btn quiet" data-cmd="say" ${dis}>Ansagen</button><button class="btn quiet" data-cmd="testnb" ${dis}>Testbenachrichtigung</button></div>`, 'Die Ansage erscheint als Text und wird gesprochen (außer bei „Antworten stumm“).');
     },
     brightness: x => G('', sliderRow('Helligkeit', 'bright', 10, 100, 5, x.bright, '', ' %', 'bright') + entityRow('Lichtsensor (Lux)', 'lux', x.lux, { domains: ['sensor'], dcs: ['illuminance'], none: 'Keiner', title: 'Lichtsensor' }, 'Dunkler Raum dimmt bis auf 30 %', 'lux') + switchRow('Leistungsmodus', 'perf', x.perf, 'Keine Animationen, für schwache Tablets', 'perf'), 'Software-Abdunklung, keine Hardware-Helligkeit.'),
-    saver: x => G('', numberRow('Nach Inaktivität', 'idle', x.idle, { min: 0, max: 3600, step: 10, unit: ' s' }, '0 schaltet ihn aus', 'idle') + selectRow('Seite', 'saver', saverTypes(), x.saver, '', 'saver') + switchRow('Musik statt Schoner', 'music', x.music, '', 'music') + switchRow('Ganz schwarz', 'black', x.black, 'Statt der Seite', 'black') + switchRow('Schoner halten', 'hold', x.hold, 'Er startet nicht (Kochen, Präsentieren)', 'hold'))
+    saver: x => G('', numberRow('Nach Inaktivität', 'idle', x.idle, { min: 0, max: 3600, step: 10, unit: ' s' }, '0 schaltet ihn aus', 'idle') + selectRow('Ansicht', 'saver', saverTypes(), x.saver, '', 'saver') + switchRow('Musik statt Schoner', 'music', x.music, '', 'music') + switchRow('Ganz schwarz', 'black', x.black, 'Statt der Ansicht', 'black') + switchRow('Schoner halten', 'hold', x.hold, 'Er startet nicht (Kochen, Präsentieren)', 'hold'))
       + G('Zeitplan', switchRow('Zeitplan', 'sched', x.sched, 'Startet nach 30 s Ruhe', 'sched') + timeRow('Von', 'sched_from', x.sched_from, '', 'sched_from') + timeRow('Bis', 'sched_to', x.sched_to, '', 'sched_to')),
     night: x => G('', switchRow('Nachts abdunkeln', 'dim', x.dim, 'Ein Tipp hellt für 30 Sekunden auf', 'dim') + timeRow('Von', 'dim_from', x.dim_from, '', 'dim_from') + timeRow('Bis', 'dim_to', x.dim_to, '', 'dim_to') + sliderRow('Stärke', 'dim_level', 10, 95, 5, x.dim_level, '', ' %', 'dim_level')),
     voice: x => G('Wake Word', selectRow('Wake Word', 'wake', WAKE, x.wake, '', 'wake') + sliderRow('Empfindlichkeit', 'wake_sens', 10, 95, 5, x.wake_sens, '', ' %', 'wake_sens') + switchRow('Wake Word unterbricht', 'barge', x.barge, 'Antwort wird abgebrochen', 'barge'), 'Ein Wake Word hält das Mikrofon offen und braucht https.')
@@ -65,13 +65,13 @@ export function mount(el, route) {
       + G('Modi', switchRow('Mikrofon stumm', 'micmute', x.micmute, 'Assist per Tippen geht weiter', 'micmute') + switchRow('Gastmodus', 'guest', x.guest, 'Kalender, Info und Kameras zeigen ein Schloss', 'guest') + switchRow('Nicht stören', 'dnd', x.dnd, 'Kein Wake Word, keine Sprache, kein Gong', 'dnd') + switchRow('Gong beim Klingeln', 'chime', x.chime, 'Ton erst nach der ersten Berührung', 'chime')),
     wake: x => G('', entityRow('Bewegungs-/Präsenzmelder', 'presence', x.presence, { domains: ['binary_sensor'], dcs: ['motion', 'occupancy', 'presence'], none: 'Keiner', title: 'Melder' }, 'Solange „an“, bleibt das Display wach', 'presence') + switchRow('Kontrollzentrum', 'kz', x.kz, 'Wisch von oben rechts: Helligkeit, Lautstärke, Schalter', 'kz')),
     look: () => G('Look', `<div class="stack">${seg2('look', THEMES, S.cfg.theme || 'liquid')}</div>`) + G('Modus', `<div class="stack">${seg2('mode', MODES, S.cfg.mode || 'dark')}</div>`)
-      + G('Theme', `<div class="theme-grid">${THEME_SET.map(t => `<button data-theme="${t[0]}" aria-pressed="${themeCur(S.cfg) === t[0]}" title="${esc(t[1])}"><i style="background:${bgCss(t[2])}"></i><span>${esc(t[1])}</span></button>`).join('')}</div>`, 'Gehört zum Entwurf: „Senden“ schickt es ans Display. Ein Theme setzt Look, Hell/Dunkel und den Hintergrund aller Farb-Seiten.'),
+      + G('Theme', `<div class="theme-grid">${THEME_SET.map(t => `<button data-theme="${t[0]}" aria-pressed="${themeCur(S.cfg) === t[0]}" title="${esc(t[1])}"><i style="background:${bgCss(t[2])}"></i><span>${esc(t[1])}</span></button>`).join('')}</div>`, 'Gehört zum Entwurf: „Senden“ schickt es ans Display. Ein Theme setzt Look, Hell/Dunkel und den Hintergrund aller Farb-Ansichten.'),
     status: () => `<div id="set-live">${liveRows(cur())}</div>` + G('Bildschirmfoto', `<div class="s-actions"><button class="btn quiet" data-cmd="shot" ${cur().connected ? '' : 'disabled'}>${ic('image')}Aufnehmen</button></div>${S.shots[S.sel] ? `<img class="shot" id="set-shot" src="${S.shots[S.sel]}" alt="">` : ''}`, 'Bilder von fremden Servern, Kamera-Video und WebGL fehlen im Foto.'),
     manage: () => {
       const b = (k, i, n, ok = S.cfg) => `<button class="row tap" data-m="${k}" ${ok ? '' : 'disabled'}>${ic(i)}<span class="t"><b>${n}</b></span>${ic('right')}</button>`;
       return G('Kopieren', b('copyl', 'copy', 'Layout kopieren von …') + b('copys', 'sliders', 'Einstellungen übernehmen von …', true) + b('apply', 'send', 'Auf andere Displays anwenden …'), 'Kopieren und Importieren legen nur den Entwurf an; „Senden“ schickt ihn.')
         + G('Sichern', b('xjson', 'download', 'Layout exportieren (JSON)') + b('ximport', 'upload', 'Layout importieren …') + b('xesp', 'download', 'Für ESP-Display exportieren'), 'Die ESP-Datei enthält nur, was ein LVGL-Panel (480×480) darstellen kann; Fehlendes steht unter „skipped“.')
-        + G('', `<button class="row danger" data-m="remove">Display entfernen</button>`, 'Seiten und Einstellungen gehen verloren. Das Gerät in Home Assistant danach unter Geräte löschen.');
+        + G('', `<button class="row danger" data-m="remove">Display entfernen</button>`, 'Ansichten und Einstellungen gehen verloren. Das Gerät in Home Assistant danach unter Geräte löschen.');
     },
   };
 
@@ -85,7 +85,7 @@ export function mount(el, route) {
     return hero()
       + SECTIONS.map(g => `<div class="sect"><div class="group side-list">${g.filter(x => avail(x[0])).map(([k, n, i, c]) => `<button class="row tap ${k === section ? 'on' : ''}" data-sec="${k}"><span class="av" style="--c:${c}">${ic(i)}</span><span class="t"><b>${n}</b></span>${ic('right')}</button>`).join('')}</div></div>`).join('');
   };
-  const paintSide = () => { const h = $('#ss', el); if (!h) return; const sc = $('.scroller', h)?.scrollTop || 0; h.innerHTML = pane({ title: 'Einstellungen', left: backBtn(edHash(), 'Layout'), right: `<span class="save-slot">${saveBtn()}</span>` }, sideBody()); collapse(h); const n = $('.scroller', h); if (n) { n.style.scrollBehavior = 'auto'; n.scrollTop = sc; n.style.scrollBehavior = ''; } };
+  const paintSide = () => { const h = $('#ss', el); if (!h) return; const sc = $('.scroller', h)?.scrollTop || 0; h.innerHTML = pane({ title: 'Einstellungen', left: backBtn(edHash(), cur().name), right: `<span class="save-slot">${saveBtn()}</span>` }, sideBody()); collapse(h); const n = $('.scroller', h); if (n) { n.style.scrollBehavior = 'auto'; n.scrollTop = sc; n.style.scrollBehavior = ''; } };
   const paintMain = () => {
     const h = $('#sm', el); if (!h) return;
     $('.split', el).dataset.pane = section ? 'main' : 'side';
@@ -105,7 +105,7 @@ export function mount(el, route) {
     const x = s();
     for (const [k, fn] of Object.entries(DEPS)) $(`[data-row=${k}]`, el)?.classList.toggle('inactive', !fn(x));
     const st = $('#set-status', el), c = cur();
-    if (st) { st.textContent = c.connected ? 'Änderungen wirken sofort am Display.' : 'Das Display ist offline. Einstellungen gelten, sobald es wieder da ist.'; st.classList.toggle('warn', !c.connected); }
+    if (st) { st.textContent = c.connected ? section === 'look' ? 'Look, Modus und Theme gehören zum Entwurf. „Senden“ schickt sie ans Display.' : 'Änderungen wirken sofort am Display.' : 'Das Display ist offline. Einstellungen gelten, sobald es wieder da ist.'; st.classList.toggle('warn', !c.connected); }
   }
   const lists = { show: () => [['', 'Wählen …'], ...TYPES], saver: saverTypes, wake: () => WAKE, tts: () => [['', 'Browser-Stimme'], ...S.ttss], pipeline: () => [['', 'Standard von Home Assistant'], ...S.pipelines] };
   const setK = async (k, v, b, en, phase) => {
@@ -153,6 +153,7 @@ export function mount(el, route) {
     const l = $('#set-live', el); if (l) l.innerHTML = liveRows(cur());
     $$('[data-cmd]', el).forEach(b => { if (b.dataset.cmd) b.disabled = !cur().connected; });
     deps(); const h = $('.set-hero', el); if (h) h.outerHTML = hero();
+    const bk = $('#ss .back span', el); if (bk) bk.textContent = cur().name;
   }), on('doc', () => {
     themes(); $$('.save-slot', el).forEach(x => { x.innerHTML = saveBtn(); });
     const row = (k, v) => el.querySelectorAll(`[data-k=${k}]`).forEach(b => b.setAttribute('aria-pressed', b.dataset.v === v)); if (S.cfg) { row('look', S.cfg.theme || 'liquid'); row('mode', S.cfg.mode || 'dark'); }
