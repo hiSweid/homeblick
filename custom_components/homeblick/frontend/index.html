@@ -238,7 +238,7 @@ html.dg,html.dg body{background:transparent;overflow:auto;display:block;height:a
 #dgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px 12px;padding:6px 4px 4px}
 .dcell{cursor:pointer;text-align:center;font:600 12px/1.2 Inter,system-ui,sans-serif;color:#8e8e93;-webkit-tap-highlight-color:transparent}.dcell span{display:block;margin-top:6px}
 .dbox{container-type:inline-size;aspect-ratio:1;border-radius:8%;overflow:hidden;position:relative;transition:transform .35s cubic-bezier(.3,1.4,.5,1),box-shadow .2s}.dcell:active .dbox{transform:scale(.96)}
-.dcell.on .dbox{box-shadow:0 0 0 2.5px #fff,0 0 0 5px #0a84ff}.dcell.on span{color:#0a84ff}
+.dcell.on .dbox{box-shadow:0 0 0 2.5px var(--dgap,#fff),0 0 0 5px #0a84ff}@media (prefers-color-scheme:dark){html.dg{--dgap:#1c1c1e}}.dcell.on span{color:#0a84ff}
 @media (prefers-reduced-motion:reduce){.lv i{animation:none}}
 .perf *,.perf *::before,.perf *::after{animation:none!important;transition:none!important}   /* Leistungsmodus (je Display): keine CSS-Animationen/-Übergänge, Wetter-Blitze aus */
 
@@ -1581,8 +1581,12 @@ function buildFace(f) {
 }
 
 // Design-Auswahl: jedes Design als lebendes Face in der gewählten Hintergrundfarbe; Antippen meldet es der Einstellungsseite
+let dgKey = '';
 function dgrid({ list, bg, cur }) {
   let g = $('#dgrid'); if (!g) { g = document.createElement('div'); g.id = 'dgrid'; document.body.append(g); }
+  const key = JSON.stringify([list, bg]);
+  if (key === dgKey) { [...g.children].forEach((c, i) => c.classList.toggle('on', list[i][0] === cur)); return; }   // nur die Auswahl wechselt: nichts neu bauen (kein Flackern)
+  dgKey = key;
   g.replaceChildren(...list.map(([v, n]) => {
     const [type, style] = v.split(':'), c = document.createElement('div'), b = document.createElement('div');
     c.className = 'dcell' + (v === cur ? ' on' : ''); b.className = 'dbox'; b.append(buildFace({ type, style: style || undefined, bg, id: 'dg' }));
