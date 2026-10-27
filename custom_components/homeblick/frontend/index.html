@@ -65,6 +65,7 @@ svg.i{width:1em;height:1em;flex:none;fill:none;stroke:currentColor;stroke-width:
 .hbm,.hbr{position:absolute;z-index:3;pointer-events:auto}
 .hbm{left:1.1cqw;top:1.1cqw;width:5.8cqw;height:5.8cqw;border-radius:50%;background:#58585ccc;box-shadow:0 .3cqw 1cqw #0003;backdrop-filter:blur(2cqw)}.hbm::before{content:"";position:absolute;left:1.5cqw;top:2.6cqw;width:2.8cqw;height:.6cqw;border-radius:.3cqw;background:#fff}
 .hbr{right:1.1cqw;bottom:1.1cqw;width:3.6cqw;height:3.6cqw;border-radius:50%;background:#fff;box-shadow:0 .3cqw 1cqw #0005}
+.hbm::after,.hbr::after{content:"";position:absolute;inset:-4cqw;border-radius:50%}   /* größere Trefferfläche für Finger, sichtbar bleibt der kleine Knopf */
 #pvmenu{position:absolute;z-index:98;width:46cqw;padding:1.2cqw;border-radius:4.5cqw;background:#5c6e9a59;backdrop-filter:blur(5cqw) saturate(1.6);box-shadow:inset 0 0 0 .25cqw #ffffff33,0 2cqw 6cqw #0005;color:#fff;font-size:3.7cqw;animation:pvm .22s var(--spring)}
 @keyframes pvm{from{opacity:0;scale:.85}}
 #pvmenu button{display:flex;align-items:center;justify-content:space-between;width:100%;padding:2.6cqw 3cqw;color:inherit;border-radius:3.2cqw;text-align:left}#pvmenu button:active{background:#ffffff26}#pvmenu button+button{border-top:.2cqw solid #ffffff1f;border-radius:0}
@@ -1155,7 +1156,8 @@ if (PREVIEW) {
       g = null;
     }
   };
-  if (!DESIGNS) for (const n of ['pointerdown', 'pointermove', 'pointerup', 'pointercancel', 'click', 'contextmenu', 'keydown', 'wheel', 'touchstart', 'touchmove']) addEventListener(n, n.startsWith('pointer') ? gesture : e => { e.stopImmediatePropagation(); e.preventDefault(); }, { capture: true, passive: false });
+  const wheel = e => { e.stopImmediatePropagation(); e.preventDefault(); if (Math.abs(e.deltaX) >= 28 && Math.abs(e.deltaX) >= Math.abs(e.deltaY)) parent.postMessage({ hb: 'swipe', dir: e.deltaX > 0 ? 1 : -1, wheel: true }, location.origin); };   // waagerechtes Mausrad/Trackpad: der Admin entprellt (eine Geste = ein Schritt)
+  if (!DESIGNS) for (const n of ['pointerdown', 'pointermove', 'pointerup', 'pointercancel', 'click', 'contextmenu', 'keydown', 'wheel', 'touchstart', 'touchmove']) addEventListener(n, n.startsWith('pointer') ? gesture : n === 'wheel' ? wheel : e => { e.stopImmediatePropagation(); e.preventDefault(); }, { capture: true, passive: false });
   addEventListener('message', e => {
     const m = e.data;
     if (e.source !== parent || e.origin !== location.origin || m?.hb !== 'preview') return;

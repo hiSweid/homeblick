@@ -139,7 +139,7 @@ export function mount(ed) {
     window.focus();   // Tastaturfokus aus dem Vorschau-Rahmen zurückholen (Entf, ⌘Z/C/X/V, Esc, Pfeile, ⌘S)
     const f = faceBy(s.id);
     if (m.hb === 'preview-ready') { s.ready = true; s.sent = ''; s.edit = undefined; post(s, { states: S.states }); return sync(); }
-    if (m.hb === 'swipe') return mode === 'deck' && s.id === S.ui.page && step(m.dir);   // Wischen auf der aktiven Seite meldet der Rahmen
+    if (m.hb === 'swipe') return mode === 'deck' && s.id === S.ui.page && (m.wheel ? wheelStep : step)(m.dir);   // Wischen auf der aktiven Seite meldet der Rahmen
     if (!f || m.face !== f.id || mode !== 'deck' || f.id !== S.ui.page) return;
     if (m.hb === 'tile') {
       const x = S.ui.sel, base = x?.f !== f.id ? [] : x.k === 'tile' ? [x.j] : x.k === 'tiles' ? x.js : [];
@@ -215,8 +215,9 @@ export function mount(ed) {
     const up = () => { removeEventListener('pointermove', mv); removeEventListener('pointerup', up); removeEventListener('pointercancel', up); };
     addEventListener('pointermove', mv); addEventListener('pointerup', up); addEventListener('pointercancel', up);
   });
-  main.addEventListener('wheel', e => { if (mode !== 'deck' || Math.abs(e.deltaX) < Math.abs(e.deltaY) || Math.abs(e.deltaX) < 28 || e.target.closest('iframe')) return; e.preventDefault(); if (Date.now() - wheelAt > 420) { wheelAt = Date.now(); step(e.deltaX > 0 ? 1 : -1); } }, { passive: false });
-  let wheelAt = 0;
+  main.addEventListener('wheel', e => { if (mode !== 'deck' || Math.abs(e.deltaX) < Math.abs(e.deltaY) || Math.abs(e.deltaX) < 28 || e.target.closest('iframe')) return; e.preventDefault(); wheelStep(e.deltaX > 0 ? 1 : -1); }, { passive: false });
+  let wheelAt = 0;   // eine Wischgeste = ein Schritt: erst eine Pause > 250 ms ohne Radereignis gibt den nächsten frei (Trackpad-Nachlauf)
+  const wheelStep = d => { const t = Date.now(), ok = t - wheelAt > 250; wheelAt = t; if (ok) step(d); };
   function startDrag(e, el) {
     const id = el.dataset.f, from = faceIx(id), x0 = e.clientX, y0 = e.clientY, dev_ = $('.dev', el), v = e.target;
     let began = false; v.setPointerCapture(e.pointerId);
