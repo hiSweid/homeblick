@@ -1073,6 +1073,7 @@ if (PREVIEW) {
     }
   };
   let dq; new MutationObserver(() => { cancelAnimationFrame(dq); dq = requestAnimationFrame(deco); }).observe(faces, { childList: true, subtree: true });
+  let lastHm = -1e9;   // Doppeltipp auf „−“: der zweite Tipp träfe die nachgerückte Kachel
   const swipe = e => {   // waagerechtes Wischen: die Einstellungsseite wechselt das Face (Seitenpunkte)
     const dx = e.clientX - g.x, dy = e.clientY - g.y;
     if (Math.abs(dx) < 50 || Math.abs(dx) < 2 * Math.abs(dy)) return false;
@@ -1135,11 +1136,12 @@ if (PREVIEW) {
         else flip(g.face, g.f);
       }
       else if (g.hm) {
-        if (up && !moved) {   // Kachel schrumpft weg, die anderen rücken mit Feder nach; danach erst die Konfiguration ändern
+        if (up && !moved && e.timeStamp - lastHm > 500) {   // Kachel schrumpft weg, die anderen rücken mit Feder nach; danach erst die Konfiguration ändern
+          lastHm = e.timeStamp; const at = performance.timeOrigin + e.timeStamp;
           const t = g.t, area = t.style.gridArea, fid = g.f.id, j = g.j;
           flip(g.face, { ...g.f, tiles: g.f.tiles.filter(x => x !== t._t) }, t);
           t.hidden = false; t.style.gridArea = area; t.style.pointerEvents = 'none';
-          t.animate([{ scale: 1, opacity: 1, rotate: '0deg' }, { scale: .3, opacity: 0, rotate: '-8deg' }], { duration: 260, easing: 'cubic-bezier(.4,0,.8,.4)', fill: 'forwards' }).finished.then(() => post({ hb: 'remove', face: fid, j }), () => {});   // abgebrochene Animation (Doppeltipp): nichts senden
+          t.animate([{ scale: 1, opacity: 1, rotate: '0deg' }, { scale: .3, opacity: 0, rotate: '-8deg' }], { duration: 260, easing: 'cubic-bezier(.4,0,.8,.4)', fill: 'forwards' }).finished.then(() => post({ hb: 'remove', face: fid, j, at }), () => {});   // abgebrochene Animation (Doppeltipp): nichts senden
         }
       }
       else if (!edit) { /* außerhalb des Bearbeiten-Modus tut ein Tippen nichts; langes Drücken öffnet das Menü */ }

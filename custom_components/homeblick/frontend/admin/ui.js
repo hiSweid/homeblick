@@ -7,6 +7,10 @@ export const sleep = ms => new Promise(r => setTimeout(r, ms));
 export const ic = (n, c = '') => `<svg class="i ${c}"><use href="#i-${n}"/></svg>`;
 export const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 
+// Doppeltipp auf einen Löschknopf: das zweite Tippen träfe, was gerade an die Stelle gerutscht ist. Gemessen wird die Zeit des Tippens, nicht der Verarbeitung (Ruckler)
+let lastRm = -1e9;   // absolute Zeit (ms), damit auch Tipps im Vorschau-Rahmen vergleichbar sind
+export const rapidAt = at => { const r = at - lastRm < 500; if (!r) lastRm = at; return r; };
+export const rapidTap = e => rapidAt(performance.timeOrigin + e.timeStamp);
 // ---- Hinweis: schwarze Pille oben (wie die Dynamic Island), nur eine, ersetzt die alte; 5 s, mit Aktion 8 s ----
 let tt;
 export function toast(text, o = {}) {
@@ -14,7 +18,8 @@ export function toast(text, o = {}) {
   const el = Object.assign(document.createElement('div'), { className: 'toast' + (o.bad ? ' bad' : ''), role: 'status' });
   el.innerHTML = `<span>${esc(text)}</span>${o.action ? `<button>${esc(o.action)}</button>` : ''}`;
   const off = () => { clearTimeout(tt); el.classList.add('out'); setTimeout(() => el.remove(), 240); };
-  el.querySelector('button')?.addEventListener('click', () => { off(); o.run?.(); });
+  const t0 = performance.now();   // Doppeltipp auf „Rückgängig“ träfe sonst gleich das nachfolgende „Wiederholen“
+  el.querySelector('button')?.addEventListener('click', e => { if (e.timeStamp - t0 < 350) return; off(); o.run?.(); });
   document.body.append(el); tt = setTimeout(off, o.action ? 8000 : 5000);
 }
 // Speichern mit Rückmeldung: Fehler als Hinweis, danach wieder werfen

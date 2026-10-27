@@ -1,6 +1,6 @@
 // Inspector: schwebende Karte mit den Einstellungen der Auswahl (Seite, Kachel oder mehrere Kacheln), gruppiert wie die iOS-Einstellungen, tiefere Ebenen schieben sich herein.
 // Jede Änderung geht sofort in den Entwurf (ein Rückgängig-Schritt, die Vorschau zeigt sie gleich).
-import { $, esc, ic, menu, toast } from './ui.js';
+import { $, esc, ic, menu, rapidTap, toast } from './ui.js';
 import { DOM, entOf, entsOf, pickEntity } from './entities.js';
 import { S, byId, call, mutate, on, select, setSetting } from './state.js';
 import { BG, COLORS, ENERGY, FACE, energyGuess, ICONS, LOOKS, SIZES, TILE_DOM, TOGGLE_DOM, autoTitle, bgCss, bgVal, designCur, designs, faceName, svOf, tileIcon, tileTitle, withDesign, xi } from './meta.js';
@@ -222,11 +222,11 @@ export function mount(ed) {
     const a = q('[data-act]');
     if (a && !a.disabled) {
       const f = cfgFace(), id = f.id, sel = S.ui.sel, act = a.dataset.act;
-      if (act === 'rm') return removeTiles(id, [sel.j]);
+      if (act === 'rm') return rapidTap(e) || removeTiles(id, [sel.j]);
       if (act === 'hide') return hidePage(id);
-      if (act === 'del') return removePage(id);
+      if (act === 'del') return rapidTap(e) || removePage(id);
       if (act === 'show') return call('command', { display: S.sel, action: 'face', face: f.type }).then(() => toast('Gesendet')).catch(er => toast(er?.message || 'Fehler', { bad: true }));
-      if (act === 'mrm') return removeTiles(id, sel.js);
+      if (act === 'mrm') return rapidTap(e) || removeTiles(id, sel.js);
       if (act === 'mcopy') return copyTiles(id, sel.js);
       if (act === 'mcut') return copyTiles(id, sel.js, true);
       if (act === 'mmove') {

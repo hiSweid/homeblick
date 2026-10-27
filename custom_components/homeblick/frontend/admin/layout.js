@@ -2,7 +2,7 @@
 // „Seiten“ zeigt dieselben Frames als Raster zum Umsortieren und Ausblenden (wie „Seiten bearbeiten“ auf dem iPhone); die Frames wandern nie im DOM, nur ihre Position ändert sich.
 // Jede Seite ist ein ?preview-Frame der echten App; Konfiguration und Zustände gehen per postMessage hin, Antippen/Ziehen/Größe kommen zurück.
 import { moveTo, rows } from '../faces.js';
-import { $, $$, clamp, esc, ic, menu, modal, toast } from './ui.js';
+import { $, $$, clamp, esc, ic, menu, modal, rapidAt, rapidTap, toast } from './ui.js';
 import { S, byId, call, emit, mutate, on, select } from './state.js';
 import { FACE, GROUP, faceName } from './meta.js';
 import { ago } from './util.js';
@@ -154,7 +154,7 @@ export function mount(ed) {
       select({ k: 'tile', f: f.id, j: faceBy(f.id).tiles.indexOf(t) });
     }
     else if (m.hb === 'resize') { if (!resizeTile(f.id, m.j, m.w, m.h)) { s.sent = ''; syncSlot(s, f, activeIx(), activeIx()); } }
-    else if (m.hb === 'remove') removeTiles(f.id, [m.j]);
+    else if (m.hb === 'remove') { if (rapidAt(m.at)) { s.sent = ''; syncSlot(s, f, activeIx(), activeIx()); } else removeTiles(f.id, [m.j]); }   // Doppeltipp: Kachel kommt zurück, weil nichts gelöscht wurde
   };
   addEventListener('message', onMessage);
   function validate() {   // Auswahl, die es nicht mehr gibt, schließen
@@ -195,7 +195,7 @@ export function mount(ed) {
     const mo = q('[data-more]'); if (mo) { const id = mo.closest('.slot').dataset.f; return pageMenu(mo, faceIx(id)); }
     const gh = q('.slot.addpg .dev'); if (gh) return addPageFlow();
     const gp = q('.slot.hidden-pg .dev'); if (gp) return showPage(gp.closest('.slot').dataset.ghost.slice(4));
-    const dl = q('[data-del]'); if (dl) return removePage(dl.closest('.slot').dataset.f);
+    const dl = q('[data-del]'); if (dl) return rapidTap(e) || removePage(dl.closest('.slot').dataset.f);
     const veil = q('.slot .veil');
     if (veil) { const id = veil.closest('.slot').dataset.f, i = faces().findIndex(f => f.id === id); if (mode === 'pages') { S.ui.page = id; return setMode('deck'); } return setPage(i); }
     // Klick auf die freie Fläche schließt die Auswahl
