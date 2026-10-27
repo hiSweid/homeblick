@@ -2,7 +2,8 @@
 import { $, $$, choose, esc, guard, ic, toast } from './ui.js';
 import { S, call, reload } from './state.js';
 import { areasOf, entsOf } from './entities.js';
-import { SETUP, TYPES, setupConfig } from './meta.js';
+import { FACE, SETUP, TYPES, setupConfig } from './meta.js';
+import { openHelp } from './layout.js';
 import { swap } from './util.js';
 import { bind, entityBtn, selectBtn, sroww, sw } from './controls.js';
 import { backBtn, collapse, page } from './nav.js';
@@ -10,7 +11,7 @@ import { backBtn, collapse, page } from './nav.js';
 const G = (title, body, foot = '', id = '') => `<div class="sect" ${id ? `id="${id}"` : ''}>${title ? `<div class="group-h">${title}</div>` : ''}<div class="group">${body}</div>${foot ? `<div class="group-f">${foot}</div>` : ''}</div>`;
 const frame = (el, title, sub, body, wrap = 'narrow') => { el.innerHTML = page({ title, left: backBtn('#/', 'Displays'), sub, wrap }, body); collapse(el); };
 const tool = (go, icon, color, title, sub) => `<button class="row tap" data-goto="${go}"><span class="av" style="--c:${color}">${ic(icon)}</span><span class="t"><b>${title}</b><small>${sub}</small></span>${ic('right')}</button>`;
-const copy = async (text, what = 'Text') => { try { await navigator.clipboard.writeText(text); toast(`${what} kopiert`); } catch { const t = Object.assign(document.createElement('textarea'), { value: text }); document.body.append(t); t.select(); const ok = document.execCommand?.('copy'); t.remove(); toast(ok ? `${what} kopiert` : 'Bitte von Hand kopieren', { bad: !ok }); } };
+export const copy = async (text, what = 'Text') => { try { await navigator.clipboard.writeText(text); toast(`${what} kopiert`); } catch { const t = Object.assign(document.createElement('textarea'), { value: text }); document.body.append(t); t.select(); const ok = document.execCommand?.('copy'); t.remove(); toast(ok ? `${what} kopiert` : 'Bitte von Hand kopieren', { bad: !ok }); } };
 
 // ================= App-Einstellungen =================
 export function settings(el) {
@@ -140,7 +141,8 @@ export function alerts(el) {
 // ================= Neues Display =================
 export function newDisplay(el, route) {
   const pending = () => S.displays.filter(x => x.new);
-  let id = route.id || pending()[0]?.id || '', area = '', tpl = 'room';
+  let id = route.id || pending()[0]?.id || '', area = '', tpl = 'std';
+  const note = () => { const c = setupConfig(tpl, area); return `Du bekommst: ${c.faces.map(f => FACE[f.type][0] + (f.type === 'grid' ? (f.tiles.length ? ` (${f.tiles.length} Kacheln)` : ' (leer, Kacheln fügst du gleich hinzu)') : '')).join(' · ')}.${c.off.length ? ` Bereit, aber versteckt, weil dein Haus dafür nichts hat: ${c.off.map(f => FACE[f.type][0]).join(', ')}.` : ''}`; };
   const chip = (attr, on_, text) => `<button class="chip pick ${on_ ? 'on' : ''}" ${attr}>${esc(text)}</button>`;
   const draw = () => {
     const d = S.displays.find(x => x.id === id && x.new), list = pending();
@@ -150,20 +152,22 @@ export function newDisplay(el, route) {
     frame(el, 'Neues Display', 'Name, Bereich und Vorlage wählen, fertig.', `${list.length > 1 ? G('Display', `<div class="quick">${list.map(x => chip(`data-d="${esc(x.id)}"`, x.id === id, x.name + (x.connected ? '' : ' · nicht verbunden'))).join('')}</div>`) : ''}
       ${G('1 · Name', `<div class="srow"><input id="wn" class="wide" value="${esc(cur_.name)}" maxlength="60" autocomplete="off"></div>`)}
       ${G('2 · Bereich', `<div class="quick">${[['', 'Keiner'], ...areasOf().map(a => [a, a])].map(([a, t]) => chip(`data-a="${esc(a)}"`, a === area, t)).join('')}</div>`)}
-      ${G('3 · Vorlage', `<div class="tpls">${SETUP.map(([k, n, t]) => `<button class="tpl ${k === tpl ? 'on' : ''}" data-t="${k}"><span class="t"><b>${n}</b><small>${t}</small></span>${ic('check', 'ck')}</button>`).join('')}</div>`)}
+      ${G('3 · Vorlage', `<div class="tpls">${SETUP.map(([k, n, t]) => `<button class="tpl ${k === tpl ? 'on' : ''}" data-t="${k}"><span class="t"><b>${n}</b><small>${t}</small></span>${ic('check', 'ck')}</button>`).join('')}</div>`, '<span id="tpl-note"></span>')}
       <div class="actions"><button class="btn big" id="go">${ic('check')}Einrichten</button><button class="btn quiet big" data-goto="#/">Später</button></div>`);
   };
-  draw();
+  const paintNote = () => { const n = $('#tpl-note', el); if (n) n.textContent = note(); };
+  draw(); paintNote();
   el.addEventListener('click', async e => {
     const x = e.target.closest('[data-d]'), a = e.target.closest('[data-a]'), t = e.target.closest('[data-t]');
-    if (x) { id = x.dataset.d; return draw(); }
-    if (a) { area = a.dataset.a; return $$('[data-a]', el).forEach(b => b.classList.toggle('on', b === a)); }
-    if (t) { tpl = t.dataset.t; return $$('[data-t]', el).forEach(b => b.classList.toggle('on', b === t)); }
+    if (x) { id = x.dataset.d; draw(); return paintNote(); }
+    if (a) { area = a.dataset.a; $$('[data-a]', el).forEach(b => b.classList.toggle('on', b === a)); return paintNote(); }
+    if (t) { tpl = t.dataset.t; $$('[data-t]', el).forEach(b => b.classList.toggle('on', b === t)); return paintNote(); }
     if (!e.target.closest('#go')) return;
     const d = S.displays.find(v => v.id === id), name = $('#wn', el).value.trim() || d.name;
     const config = setupConfig(tpl, area), wx = entsOf('weather'), w = wx.find(v => v.id === 'weather.home') || wx[0];
     try { await guard(call('setup', { display: id, name, ...(area && { area }), config, settings: config.faces.some(f => f.type === 'weather') && w ? { weather: w.id } : {} })); } catch { return; }
     await reload(); location.hash = `#/d/${encodeURIComponent(id)}`;
+    try { if (!localStorage.getItem('hb-admin.tour')) { localStorage.setItem('hb-admin.tour', '1'); setTimeout(openHelp, 700); } else toast('Display eingerichtet', { action: 'So funktioniert es', run: openHelp }); } catch { /* Speicher gesperrt */ }
   });
   return () => {};
 }

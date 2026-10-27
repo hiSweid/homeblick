@@ -2,7 +2,7 @@
 import { GROUP, ICON, faceId, normFaces, pack, rows } from '../faces.js';
 import { entsIn } from './entities.js';
 export { GROUP };
-import { entOf, DOM } from './entities.js';
+import { entOf, DOM, allEnts } from './entities.js';
 export const FACE = {
   grid: ['Smart Home', '#ff9500', 'grid'], music: ['Musik', '#ff2d55', 'music'], bigclock: ['Uhr digital', '#636366', 'clock'], analog: ['Uhr analog', '#5856d6', 'clock'],
   calendar: ['Kalender', '#ff3b30', 'cal'], date: ['Datum', '#8e8e93', 'cal'], weather: ['Wetter', '#32ade6', 'sun'], energy: ['Energie', '#34c759', 'bolt'], info: ['Info', '#30b0c7', 'info'], cams: ['Kameras', '#8e8e93', 'cam'], people: ['Personen', '#5ac8fa', 'person'],
@@ -27,7 +27,11 @@ export const stripArea = (en, area) => area ? en.name.replace(new RegExp('^' + a
 export const tileOf = (en, area = en.area) => ({ e: en.id, title: stripArea(en, area) || autoTitle(en), sub: area, ...(['sensor', 'binary_sensor'].includes(en.domain) && { val: 'state' }) });
 
 export const FACE_BG = { grid: 'auto', music: 'black', bigclock: 150, weather: 212, energy: 'auto', calendar: 'white', date: 'auto', analog: 150, info: 'auto', cams: 'black', people: 'auto' };
+// Standard: alle wichtigen Ansichten. Was das Haus nicht hergibt (kein Player, kein Wetter, keine Kamera, kein evcc …), liegt versteckt bereit statt leer zu laufen.
+const HAS = { music: e => e.domain === 'media_player', weather: e => e.domain === 'weather', cams: e => e.domain === 'camera', people: e => e.domain === 'person', energy: e => e.id.startsWith('sensor.evcc_') };
+const stdHas = type => !HAS[type] || allEnts().some(HAS[type]);
 export const SETUP = [   // [Schlüssel, Name, Beschreibung, Faces]
+  ['std', 'Standard', 'Alle wichtigen Ansichten, passend zu deinem Haus', ['grid', 'music', 'bigclock', 'weather', 'calendar', 'energy', 'cams', 'people']],
   ['room', 'Raum-Panel', 'Kacheln aus dem Bereich, Musik, Wetter, Kalender und Uhr', ['grid', 'music', 'weather', 'calendar', 'bigclock']],
   ['clock', 'Uhr & Wetter', 'Uhr, Wetter, Kalender und Datum – ganz ohne Entities', ['bigclock', 'weather', 'calendar', 'date']],
   ['all', 'Alle Faces', 'Jedes Face einmal; was nicht passt, blendest du später aus', Object.keys(FACE).filter(t => !['analog', 'info'].includes(t))],
@@ -35,7 +39,7 @@ export const SETUP = [   // [Schlüssel, Name, Beschreibung, Faces]
 export const ROOM_DOM = ['climate', 'light', 'cover', 'lock', 'scene', 'switch', 'fan', 'media_player', 'script'];   // Reihenfolge = Wichtigkeit
 // Kacheln aus den Entities eines Bereichs: Thermostat groß, je Art höchstens 3, insgesamt 9 Zellen
 export function roomTiles(area) {
-  const pool = entsIn(area).filter(e => ROOM_DOM.includes(e.domain)).sort((a, b) => ROOM_DOM.indexOf(a.domain) - ROOM_DOM.indexOf(b.domain) || a.name.localeCompare(b.name, 'de'));
+  const pool = (area ? entsIn(area) : allEnts().filter(e => !e.hide)).filter(e => ROOM_DOM.includes(e.domain)).sort((a, b) => ROOM_DOM.indexOf(a.domain) - ROOM_DOM.indexOf(b.domain) || a.name.localeCompare(b.name, 'de'));
   const tiles = [], n = {};
   let cells = 9;
   for (const en of pool) {
@@ -47,7 +51,8 @@ export function roomTiles(area) {
   return tiles;
 }
 export function setupConfig(key, area) {
-  const c = { cams: 1, energy: 1, dyn: 2, off: [], faces: SETUP.find(x => x[0] === key)[3].map(type => ({ type, bg: FACE_BG[type], ...(type === 'grid' && { tiles: area ? roomTiles(area) : [] }) })) };
+  const types = SETUP.find(x => x[0] === key)[3], std = key === 'std', mk = type => ({ type, bg: FACE_BG[type], ...(type === 'grid' && { tiles: roomTiles(area) }) });
+  const c = { cams: 1, energy: 1, dyn: 2, off: std ? types.filter(t => !stdHas(t)).map(mk) : [], faces: types.filter(t => !std || stdHas(t)).map(mk) };
   normFaces(c);
   return c;
 }

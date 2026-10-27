@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Homeblick",
-        "description": "Fügt das Wandpanel Homeblick zur Seitenleiste hinzu."
+        "description": "Fügt das Wandpanel Homeblick zur Seitenleiste hinzu.\n\nDanach: Öffne **Homeblick** auf dem Tablet (Seitenleiste oder `/homeblick/index.html?live` im Browser des Tablets). Es meldet sich selbst, und **Homeblick Einstellungen** (Administratoren) führt dich durch Name, Bereich und Vorlage."
       }
     },
     "abort": {

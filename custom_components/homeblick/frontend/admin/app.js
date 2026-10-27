@@ -32,19 +32,34 @@ app.addEventListener('click', e => {
   const g = e.target.closest('[data-goto],[data-go]');
   if (g) { e.preventDefault(); return go(g.dataset.goto || g.dataset.go); }
   if (e.target.closest('#open-palette')) return openPalette();
+  const c = e.target.closest('[data-copy]'); if (c) return panels.copy(c.dataset.copy, 'Adresse');
 });
 
 // ---- Übersicht ----
+const LIVE = new URL('index.html?live', location.href).href;   // Adresse des Displays (Tablet-Browser, auch ohne HA-Seitenleiste)
 function home(el) {
+  let last = '';
+  const seen = new Set(S.displays.map(d => d.id)), first = !S.displays.some(d => !d.new);   // noch nichts eingerichtet: Willkommen; meldet sich jetzt ein Display, geht es direkt in die Einrichtung
   const draw = () => {
     const list = S.displays.filter(d => !d.new), fresh = S.displays.filter(d => d.new), on_ = list.filter(d => d.connected).length;
+    const found = first && fresh.find(d => !seen.has(d.id));
+    if (found) { toast(`„${found.name}“ hat sich gemeldet`); return go({ name: 'new', id: found.id }); }
     const card = d => {
       const w = issues(d)[0], sub = w ? w : [[d.area, d.connected ? 'Online' : `Offline · ${ago(d.seen)}`].filter(Boolean).join(' · '), ''];
       return `<button class="home-card ${d.connected ? '' : 'off'}" data-goto="${esc(href({ name: 'screen', id: d.id, tab: 'layout' }))}"><span class="home-shot">${S.shots[d.id] ? `<img src="${S.shots[d.id]}" alt="">` : `<span class="none">${ic('layout')}<span>Noch kein Bild</span></span>`}</span><span class="home-meta"><strong>${esc(d.name)}</strong><small class="${sub[1] === 'down' ? 'd' : sub[1] ? 'w' : ''}"><i class="led ${ledOf(d)}"></i>${esc(sub[0])}</small></span></button>`;
     };
     const newCard = d => `<button class="home-card fresh" data-goto="${esc(href({ name: 'new', id: d.id }))}"><span class="home-shot">${ic('plus')}</span><span class="home-meta"><strong>${esc(d.name)}</strong><small>${d.connected ? 'Wartet auf die Einrichtung' : 'Nicht verbunden'}</small></span></button>`;
     const sc = $('.scroller', el)?.scrollTop || 0;
-    el.innerHTML = page({ title: 'Displays', right: gbtn('data-goto="#/new"', 'plus', 'Neues Display'), sub: list.length ? `${on_} von ${list.length} online` : 'Noch kein Display eingerichtet.' },
+    if (!list.length) {
+      const w = page({ title: 'Displays', sub: 'Willkommen bei Homeblick' }, `<div class="empty" style="padding-bottom:8px"><div class="ico48">${ic('monitor')}</div><h2>Dein erstes Display</h2><p>Das Wandpanel für Home Assistant steht in drei Schritten.</p></div>
+        <div class="sect"><div class="group"><ol class="steps"><li><b>Display öffnen.</b> Auf dem Tablet: Seitenleiste → Homeblick, oder diese Adresse im Browser (mit https, sonst gibt es kein Mikrofon):<br><code>${esc(LIVE)}</code></li><li><b>Einrichten.</b> Name, Bereich und Vorlage wählen. „Standard“ bringt alle wichtigen Ansichten mit.</li><li><b>Feinschliff.</b> Kacheln und Seiten im Editor anordnen, dann ist es fertig.</li></ol></div></div>
+        ${fresh.length ? `<div class="home-grid">${fresh.map(newCard).join('')}</div>` : `<p class="hint" style="display:flex;align-items:center;justify-content:center;gap:8px;margin:6px 0 14px"><span class="spin small"></span>Warte auf das erste Display …</p>`}
+        <div class="actions"><a class="btn big" href="${esc(LIVE)}" target="_blank" rel="noopener">${ic('monitor')}Hier öffnen</a><button class="btn quiet big" data-copy="${esc(LIVE)}">${ic('copy')}Adresse kopieren</button></div>`);
+      if (w === last) return;   // alle 5 s kommt 'list': unverändert lassen, sonst springt der Spinner und die Markierung der Adresse geht verloren
+      last = w; el.innerHTML = w; return collapse(el);
+    }
+    last = '';
+    el.innerHTML = page({ title: 'Displays', right: gbtn('data-goto="#/new"', 'plus', 'Neues Display'), sub: `${on_} von ${list.length} online` },
       `<button class="search-pill" id="open-palette">${ic('search')}<span>Suchen</span><kbd>⌘K</kbd></button>
        <div class="home-grid">${fresh.map(newCard).join('')}${list.map(card).join('')}<button class="home-card home-new" data-goto="#/new"><span class="home-shot">${ic('plus')}</span><span class="home-meta"><strong>Neues Display</strong><small>Name, Bereich und Vorlage wählen</small></span></button></div>`);
     collapse(el); const s = $('.scroller', el); if (s) { s.style.scrollBehavior = 'auto'; s.scrollTop = sc; s.style.scrollBehavior = ''; }
