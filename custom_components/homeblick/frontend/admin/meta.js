@@ -36,7 +36,7 @@ export const SETUP = [   // [Schlüssel, Name, Beschreibung, Faces]
   ['std', 'Standard', 'Alle wichtigen Ansichten, passend zu deinem Haus', ['grid', 'music', 'bigclock', 'weather', 'calendar', 'energy', 'cams', 'people']],
   ['room', 'Raum-Panel', 'Kacheln aus dem Bereich, Musik, Wetter, Kalender und Uhr', ['grid', 'music', 'weather', 'calendar', 'bigclock']],
   ['clock', 'Uhr & Wetter', 'Uhr, Wetter, Kalender und Datum – ganz ohne Entities', ['bigclock', 'weather', 'calendar', 'date']],
-  ['all', 'Alle Faces', 'Jedes Face einmal; was nicht passt, blendest du später aus', Object.keys(FACE).filter(t => !['analog', 'info'].includes(t))],
+  ['all', 'Alle Ansichten', 'Jede Ansicht einmal; was nicht passt, blendest du später aus', Object.keys(FACE).filter(t => !['analog', 'info'].includes(t))],
 ];
 export const ROOM_DOM = ['climate', 'light', 'cover', 'lock', 'scene', 'switch', 'fan', 'media_player', 'script'];   // Reihenfolge = Wichtigkeit
 // Kacheln aus den Entities eines Bereichs: Thermostat groß, je Art höchstens 3, insgesamt 9 Zellen

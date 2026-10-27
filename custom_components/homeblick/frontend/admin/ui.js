@@ -34,11 +34,11 @@ function pump() {
   const { text, o, res } = queue.shift(), prompt = o.value !== undefined;
   const dim = Object.assign(document.createElement('div'), { className: 'dim' });
   const dlg = Object.assign(document.createElement('div'), { className: 'alert', role: 'alertdialog' });
-  dlg.innerHTML = `<p>${esc(text)}</p>${prompt ? `<input maxlength="${o.max || 60}" value="${esc(o.value)}">` : ''}<div class="acts"><button data-r="">Abbrechen</button><button class="${o.danger ? 'bad' : ''}" data-r="1">${esc(o.ok || 'OK')}</button></div>`;
+  dlg.innerHTML = `<p>${esc(text)}</p>${prompt ? `<input maxlength="${o.max || 60}" value="${esc(o.value)}">` : ''}${o.alt ? `<div class="acts three"><button class="pri" data-r="alt">${esc(o.alt)}</button><button class="${o.danger ? 'bad' : ''}" data-r="1">${esc(o.ok || 'OK')}</button><button data-r="">Abbrechen</button></div>` : `<div class="acts"><button data-r="">Abbrechen</button><button class="${o.danger ? 'bad' : ''}" data-r="1">${esc(o.ok || 'OK')}</button></div>`}`;
   const back = document.activeElement, inp = dlg.querySelector('input');
   const done = v => { dim.remove(); dlg.remove(); document.removeEventListener('keydown', key, true); busy = false; back?.focus?.(); res(v); pump(); };
   const key = e => { if (e.key === 'Escape') { e.stopPropagation(); done(prompt ? null : false); } else if (e.key === 'Enter' && prompt && e.target === inp) done(inp.value); };
-  dlg.addEventListener('click', e => { const b = e.target.closest('[data-r]'); if (b) done(b.dataset.r ? (prompt ? inp.value : true) : (prompt ? null : false)); });
+  dlg.addEventListener('click', e => { const b = e.target.closest('[data-r]'); if (b) done(b.dataset.r ? (prompt ? inp.value : b.dataset.r === 'alt' ? 'alt' : true) : (prompt ? null : false)); });   // 'alt' = dritter Knopf (o.alt)
   document.addEventListener('keydown', key, true);
   document.body.append(dim, dlg);
   if (inp) { inp.focus(); inp.select(); } else dlg.querySelector('[data-r=""]').focus();

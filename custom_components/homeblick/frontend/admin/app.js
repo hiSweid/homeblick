@@ -1,6 +1,6 @@
 // Homeblick-Admin: Gerüst (Adresse, Tab-Leiste, Übersicht). Die Ansichten liegen in screen.js und panels.js.
 import { $, ask, enhance, esc, ic, toast } from './ui.js';
-import { S, call, dirty, discard, closeDoc, emit, on, reload, start } from './state.js';
+import { S, call, dirty, discard, closeDoc, emit, on, reload, save, start } from './state.js';
 import { ago, issues, ledOf } from './util.js';
 import { openPalette } from './palette.js';
 import * as screen from './screen.js';
@@ -74,8 +74,11 @@ const VIEWS = { home, screen: screen.mount, settings: panels.settings, alerts: p
 async function navigate() {
   const next = parse(), leaving = route.name === 'screen' && (next.name !== 'screen' || next.id !== route.id);
   if (leaving && dirty()) {
-    if (!await ask('Es gibt Änderungen, die noch nicht an das Display gesendet sind. Verwerfen?', { ok: 'Verwerfen', danger: true })) { history.replaceState(null, '', lastHash || '#/'); return; }
-    discard();
+    const stay = () => history.replaceState(null, '', lastHash || '#/'), online = S.displays.find(d => d.id === S.sel)?.connected;
+    const r = await ask('Es gibt Änderungen, die noch nicht an das Display gesendet sind.', { ok: 'Verwerfen', danger: true, alt: 'Senden' });
+    if (!r) return stay();
+    if (r === 'alt') { await save(); if (dirty()) return stay(); toast(online ? 'Gesendet. Dein Display wird aktualisiert.' : 'Gespeichert. Das Display übernimmt es beim nächsten Öffnen.'); }   // Senden fehlgeschlagen: bleiben, guard zeigt den Fehler
+    else discard();
   }
   unmount?.(); unmount = null;   // erst die Ansicht abbauen, dann den Entwurf schließen (sonst zeichnet sie auf leerem Stand)
   if (leaving) closeDoc();

@@ -156,6 +156,7 @@ input[type=range]:active::-webkit-slider-thumb{transform:scale(1.12)}input[type=
 @keyframes alert-in{from{opacity:0;transform:translate(-50%,-50%) scale(1.12)}}
 .alert p{padding:22px 20px 18px;font-size:1em;font-weight:500;line-height:1.35}.alert input{margin:0 16px 16px;width:calc(100% - 32px);background:var(--fill)}
 .alert .acts{display:flex;border-top:.5px solid var(--sep-strong)}.alert .acts button{flex:1;height:48px;border-radius:0;font-size:1.02em;color:var(--tint)}.alert .acts button+button{border-left:.5px solid var(--sep-strong);font-weight:600}.alert .acts button:active{background:var(--fill)}.alert .acts .bad{color:var(--red)}
+.alert .acts.three{flex-direction:column}.alert .acts.three button{flex:none}.alert .acts.three button+button{border-left:0;border-top:.5px solid var(--sep-strong);font-weight:400}.alert .acts.three .pri{font-weight:600}
 
 /* ---- Hinweis (Dynamic-Island-Pille) ---- */
 .toast{position:fixed;z-index:120;left:50%;top:14px;display:flex;align-items:center;gap:16px;padding:12px 20px;background:#000;color:#fff;border-radius:999px;box-shadow:0 10px 36px #00000047;max-width:min(92vw,560px);font-size:.95em;font-weight:500;transform:translateX(-50%);animation:toast-in .6s var(--spring)}
