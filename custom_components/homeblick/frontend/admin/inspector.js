@@ -89,7 +89,7 @@ export function mount(ed) {
     const tile = (t, j) => { const en = entOf(t.e), sz = `${t.w || 1}×${t.h || 1}`; return `<button class="trow" data-tile="${j}"><span class="av" style="--c:${colorOf(t)}">${xi(tileIcon(t))}</span><span class="t"><b>${esc(tileTitle(t))}</b><small>${esc([t.sub, t.kind ? '' : en?.name || t.e, sz !== '1×1' && sz].filter(Boolean).join(' · '))}</small></span>${ic('right')}</button>`; };
     let h = `<div class="insp-id"><span class="av" style="--c:${meta[1]}">${ic(meta[2])}</span></div>`;
     if (!photo) h += grp('Hintergrund', `<div class="stack">${dots('f.bg', bgList, f.bg, bgCss)}</div>`, esc(bgList.find(([v]) => String(v) === String(f.bg))?.[1] || ''));
-    if (sty?.length) h += grp('Stil', sty.length <= 3 && sty.every(x => x[1].length < 12) ? stack('Design', segB('f.design', sty, designCur(f))) : sroww('Design', '', selectBtn('f.design', sty, designCur(f))));
+    if (sty?.length) h += grp('Stil', sty.length <= 3 && sty.every(x => x[1].length < 12) ? stack('Design', segB('f.design', sty, designCur(f))) : navRow('Design', esc(sty.find(x => x[0] === designCur(f))?.[1] || ''), 'design'));
     if (f.type === 'grid') h += grp(`Kacheln · ${tilesOf(f).length}`, (tilesOf(f).map(tile).join('') || '<div class="srow"><span class="s-label muted">Noch keine Kacheln</span></div>') + `<button class="row accent" data-lib>${ic('plus')}Kachel hinzufügen</button>`, n ? `<span class="warn">${n} Kachel${n > 1 ? 'n passen' : ' passt'} nicht mehr ins Raster und ${n > 1 ? 'werden' : 'wird'} nicht angezeigt.</span>` : '');
     if (f.type === 'weather') h += grp('Wetter', sroww('Wetter-Entität', '', entityBtn('s.weather', s.weather, { domains: ['weather'], title: 'Wetter-Entität' })) + sroww('Ortsname', '', `<input data-k="s.place" value="${esc(s.place || '')}" maxlength="40" autocomplete="off">`), 'Gilt sofort für alle Wetter-Anzeigen dieses Displays.');
     if (f.type === 'energy') h += grp('', navRow('Entitäten', `${Object.keys(f.ents || {}).filter(k => k !== 'carName').length || 'Standard'}`, 'energy', `<span class="av" style="--c:${meta[1]}">${ic('bolt')}</span>`), 'Ohne Auswahl liest die Seite die Standard-Entitäten (evcc, Kostal, Solcast).');
@@ -100,6 +100,7 @@ export function mount(ed) {
     return { title: faceName(f), sub: `Seite ${i + 1} · ${meta[0]}`, more: true, body: h };
   }
   function pageSub(f, view) {
+    if (view === 'design') return { title: 'Design', sub: faceName(f), back: faceName(f), body: (f.bg && typeof f.bg === 'object' ? '' : grp('Hintergrund', `<div class="stack">${dots('f.bg', BG, f.bg, bgCss)}</div>`)) + grp('Live-Vorschau', '<iframe class="dz" title="Designs" src="index.html?preview&designs"></iframe>', 'Tippe ein Design an. Die Farbe oben gilt sofort für alle Vorschauen.') };
     if (view === 'energy') return { title: 'Entitäten', sub: faceName(f), back: faceName(f), body: grp('', `<button class="row accent" data-energy-auto>${ic('refresh')}Fehlende automatisch erkennen</button>`, 'Sucht Solar, Netz, Haus, Akku, Auto und Prognose in Home Assistant: Energie-Dashboard, Einheiten und Namen. Was du schon gewählt hast, bleibt.') + grp('', textRow('Bezeichnung Auto', 'e.carName', f.ents?.carName || '', { ph: 'e-Golf', max: 20 }), 'Name der Auto-Kachel.') + grp('', ENERGY.map(([k, n, dm = ['sensor']]) => sroww(esc(n), '', entityBtn('e.' + k, f.ents?.[k] || '', { domains: dm, none: 'Standard', title: n }, 'Standard'))).join(''), 'Ohne Auswahl liest die Seite die Standard-Entitäten.') };
   }
 
@@ -111,6 +112,7 @@ export function mount(ed) {
     const f = faceBy(sel.f), key = JSON.stringify(sel);
     if (!f) return select(null);
     if (key !== lastSel) { if (!o.keep) path = []; lastSel = key; }
+    if (sel.k === 'page' && path.at(-1) === 'design' && $('.dz', el)) return designSync(f);   // Live-Vorschau bleibt stehen (kein Neuladen des Frames)
     let v;
     if (sel.k === 'tile') { const t = f.tiles?.[sel.j]; if (!t) return select({ k: 'page', f: f.id }); const top = path.at(-1); v = (top && tileSub(f, t, top)) || (path = [], tileRoot(f, t)); }
     else if (sel.k === 'tiles') v = multi(f);
@@ -120,6 +122,16 @@ export function mount(ed) {
     if (sc) $('.insp-body', el).scrollTop = sc;
     if (sel.k === 'tile' && sel.focus) { delete sel.focus; $('#tile-name', el)?.focus(); $('#tile-name', el)?.select(); }
   }
+  // Design-Auswahl: der Frame (index.html?preview&designs) zeichnet alle Designs live in der gewählten Hintergrundfarbe
+  const designSync = f => {
+    const fr = $('.dz', el); if (!fr) return;
+    for (const b of el.querySelectorAll('[data-k="f.bg"]')) b.setAttribute('aria-pressed', String(b.dataset.v === String(f.bg)));
+    fr.contentWindow?.postMessage({ hb: 'preview', states: S.states, designs: { list: designs(f), bg: f.bg, cur: designCur(f) } }, location.origin);
+  };
+  addEventListener('message', e => {
+    const fr = $('.dz', el), m = e.data; if (!fr || e.source !== fr.contentWindow || e.origin !== location.origin) return;
+    if (m?.hb === 'preview-ready') designSync(cfgFace()); else if (m?.hb === 'design-h') fr.style.height = m.h + 'px'; else if (m?.hb === 'design') mt('Stil geändert', g => { Object.assign(g, withDesign(S.cfg, g, m.v)); });
+  });
   const push = view => { path.push(view); draw({ anim: 'fwd', keep: true }); };
   const back = () => { if (!path.length) return false; path.pop(); draw({ anim: 'back', keep: true }); return true; };
 
