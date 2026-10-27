@@ -3253,7 +3253,10 @@ if (LIVE) {
     const waiting = async name => {
       const admin = await conn.sendMessagePromise({ type: 'auth/current_user' }).then(u => u.is_admin, () => false), to = `#/new/${encodeURIComponent(DISPLAY)}`;
       $('#screen').insertAdjacentHTML('beforeend', `<div id="setup"><small>Willkommen bei Homeblick</small><b>${esc(name)}</b><span>Dieses Display hat sich angemeldet. Es fehlt nur noch die Einrichtung: Name, Bereich und Vorlage.</span>${admin ? '<button id="setup-go">Jetzt einrichten</button>' : `<span>Ein Administrator richtet es in den Homeblick-Einstellungen ein:<br>${esc(location.origin)}/homeblick-settings</span>`}</div>`);
-      $('#setup-go')?.addEventListener('click', () => { try { if (top !== window) return top.location.assign('/homeblick-settings' + to); } catch {} location.assign('admin.html' + to); });
+      $('#setup-go')?.addEventListener('click', () => {
+        if (parent !== window) try { parent.history.pushState(null, '', '/homeblick-settings' + to); parent.dispatchEvent(new CustomEvent('location-changed', { detail: { replace: false } })); return; } catch {}   // HA-Panel: der iframe darf nicht selbst nach oben navigieren, also die HA-Oberfläche umschalten (gleicher Origin)
+        location.assign('admin.html' + to);
+      });
     };
     let version;
     const hello = register().then(c => {
