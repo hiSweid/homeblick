@@ -983,6 +983,8 @@ import { kioskInit, KIOSK_DEF, luxLevel } from './kiosk.js';
 import { shot } from './shot.js';
 import { ICON, cleanConf, moveTo, normFaces, pack, rows } from './faces.js';
 import { wakeInit } from './wake.js';
+import { WF, wfHTML, wfAnimate, wfTick, WF_CSS } from './watchfaces.js';
+document.head.insertAdjacentHTML('beforeend', `<style>${WF_CSS}</style>`);
 import { parseLRC, findLyrics } from './lyrics.js';
 import { voiceOK, voiceRun } from './voice.js';
 import { timerInit, timers, timerDemo, timerShow, timerOn, timerMusic, voiceTimers, ping } from './timer.js';
@@ -1473,6 +1475,11 @@ function depthHTML(f) {
   };
   return [0, 1, 2, 3].map(layer).join('') + (f.bg?.fg ? `<div class="dfg" style="background-image:url(${f.bg.fg})"></div>` : '');
 }
+// Watchfaces (watchfaces.js): Farbe/Modus aus dem Hintergrund des Face; „auto“ nachts = dunkel
+function wfFace(el, f) {
+  const b = bgOf(f); el.style.backgroundColor = ''; el.classList.remove('light', 'mono');
+  el.innerHTML = wfHTML(f.style, hueOf(b), b, f.bg === 'auto' && isNight());
+}
 const FACE = {
   grid: (el, f) => {
     if (f.greet) el.insertAdjacentHTML('beforeend', `<div class="greet"><div><div data-bind="greet"></div><div data-bind="who">${esc(f.greet)}</div></div><div class="gw" data-act="go" data-v="weather" data-bind="wxt"></div><button class="av" data-act="avatars" hidden></button></div>`);
@@ -1496,6 +1503,7 @@ const FACE = {
 <button class="c queue" data-act="queue" aria-label="Warteschlange">${svg('queue')}</button>
 <div class="pop outs"></div><div class="pop menu"></div>`,
   bigclock: (el, f) => {
+    if (WF[f.style] === 'bigclock') return wfFace(el, f);
     if (f.style === 'depth') return el.innerHTML = depthHTML(f);
     if (f.style === 'flow') { el.classList.add('flow'); el.style.backgroundColor = ''; el.classList.remove('light', 'mono'); return el.innerHTML = flowHTML(); }
     const line = f.style === 'line';
@@ -1505,6 +1513,7 @@ const FACE = {
       : `<div class="bt"><b data-bind="wdd"></b><span><i class="wi" data-wxi></i><span data-bind="wxt"></span></span></div>${glassHTML('stack')}<div class="bs"><i data-wxsi></i><span data-bind="wxsun"></span></div>`;
   },
   analog: (el, f) => {
+    if (WF[f.style] === 'analog') return wfFace(el, f);
     const s = f.style, k = !s || s === 'big' ? 'big' : s === 'relief' ? 'relief' : '';
     if (!k) return el.classList.add('lg'), el.innerHTML = `<div class="dial ${{ ticks: '', minimal: 'minimal' }[s] ?? 'nums'}"></div>`;
     // flache Fläche aus dem Ton des Face (nicht der Wallpaper); Weiß = helles Relief mit kupfernem Sekundenzeiger
@@ -1596,6 +1605,7 @@ const reliefNums = () => {
 let mpPrev = {};
 let hands = [], lastDay;
 function initDials(scope) {
+  for (const r of $$('.wfr', scope)) { r._h = wfAnimate(r); hands.push(...r._h); dialIO.observe(r); }
   for (const d of $$('.dial', scope)) {
     d.insertAdjacentHTML('afterbegin', (d.classList.contains('fl') ? '' : d.classList.contains('mt') ? mticksI : d.classList.contains('nums') ? nums : d.closest('.f-grid.light') ? mticks : d.closest('.f-grid') ? gticks : ticks) +'<i class="hand hh"></i><i class="hand mm"></i><i class="hand ss"></i><b class="pin"></b>');
     d._h = [['hh', 43200], ['mm', 3600], ['ss', 60]].map(([c, per]) =>
@@ -1630,7 +1640,7 @@ function tick() {
   hands = hands.filter(([, a]) => a.effect.target.isConnected || a.cancel());
   for (const [per, a] of hands) a.currentTime = (s % per) * 1000;
   const hm = d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
-  bind('time', hm); glassSlots(hm); flowSlots(hm); [...hm.slice(0, 2)].forEach((c, i) => bind('dh' + i, !i && c === '0' ? '\u2007' : c)); [...hm.slice(3, 5)].forEach((c, i) => bind('dm' + i, c));
+  bind('time', hm); bind('hm', `${d.getHours()}:${hm.slice(3)}`); bind('th', d.getHours()); bind('tmn', hm.slice(3)); bind('dsh', `${d.toLocaleDateString('de-DE', { weekday: 'short' }).replace('.', '')} ${d.getDate()}. ${d.toLocaleDateString('de-DE', { month: 'short' }).replace('.', '')}`); wfTick(d); glassSlots(hm); flowSlots(hm); [...hm.slice(0, 2)].forEach((c, i) => bind('dh' + i, !i && c === '0' ? '\u2007' : c)); [...hm.slice(3, 5)].forEach((c, i) => bind('dm' + i, c));
   bind('wd', d.toLocaleDateString('de-DE', { weekday: 'short' }));
   bind('mo', d.toLocaleDateString('de-DE', { month: 'short' }));
   bind('day', d.getDate());
