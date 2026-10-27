@@ -234,14 +234,19 @@ svg.i{width:1em;height:1em;flex:none;fill:none;stroke:currentColor;stroke-width:
   background:radial-gradient(circle closest-side,hsl(var(--h,228) 96% 49%) 0 80%,hsl(calc(var(--h,228) - 12) 100% 55%) 90%,hsl(calc(var(--h,228) - 24) 100% 58%) 95%,#0000 100%)}
 .lv i:first-child{left:27cqw;top:17cqw;width:80cqw;background:radial-gradient(circle closest-side,hsl(calc(var(--h,228) + 66) 75% 55%) 0 48%,hsl(calc(var(--h,228) + 66) 75% 55% / 0) 100%)}
 @keyframes lava{to{transform:translate(-5cqw,3cqw) scale(1.1,.92) rotate(24deg)}}
+html.dg,html.dg body{background:transparent;overflow:auto;display:block;height:auto}html.dg body>:not(#dgrid){display:none!important}
+#dgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px 12px;padding:6px 4px 4px}
+.dcell{cursor:pointer;text-align:center;font:600 12px/1.2 Inter,system-ui,sans-serif;color:#8e8e93;-webkit-tap-highlight-color:transparent}.dcell span{display:block;margin-top:6px}
+.dbox{container-type:inline-size;aspect-ratio:1;border-radius:8%;overflow:hidden;position:relative;transition:transform .35s cubic-bezier(.3,1.4,.5,1),box-shadow .2s}.dcell:active .dbox{transform:scale(.96)}
+.dcell.on .dbox{box-shadow:0 0 0 2.5px #fff,0 0 0 5px #0a84ff}.dcell.on span{color:#0a84ff}
 @media (prefers-reduced-motion:reduce){.lv i{animation:none}}
 .perf *,.perf *::before,.perf *::after{animation:none!important;transition:none!important}   /* Leistungsmodus (je Display): keine CSS-Animationen/-Übergänge, Wetter-Blitze aus */
 
 /* Analog-Face. Vorlagen (frontal Website faces_enhanced „Analog grün“ und „Relief rosé“, Pixelmaße auf 350 px Face; Video y-MO 01167/07100/08250/07950, TGo 00370/00485):
    Zeiger = dünner Stiel (1 %) + rundes Blatt (3,4 %, ab 7,8 % Länge), Stunde 25,5 %, Minute 43,5 %; Sekunde 0,7 % dünn, Länge 45 %, Gegengewicht 7,4 %; Ring 4 % */
-.f-analog.an-big{--g:hsl(calc(var(--h,150) - 9) 41% 40%);background:var(--g);--hand:#fff;--sec:#ffffffeb;--pinc:var(--g)}   /* Website-Grün #3E935C = Ton 141 (Swatch Grün 150) */
+.f-analog.an-big{--ag:hsl(calc(var(--h,150) - 9) 41% 40%);background:var(--ag);--hand:#fff;--sec:#ffffffeb;--pinc:var(--ag)}   /* Website-Grün #3E935C = Ton 141 (Swatch Grün 150) */
 .f-analog.an-relief{background:linear-gradient(135deg,hsl(var(--h,5) 38% 82%),hsl(var(--h,5) 16% 66%));--hand:hsl(var(--h,5) 35% 29%);--sec:#fb72d0;--pinc:hsl(var(--h,5) 28% 74%)}
-.f-analog.an-big.tq{--g:hsl(calc(var(--h) - 14) 74% 71%);--hand:hsl(calc(var(--h) - 12) 95% 92%)}   /* Türkis/Cyan: y-MO 07950 hellcyan hsl(191 74 71) mit grünen Ziffern hsl(162 68 45), Zeiger weiß-cyan (Swatch 205 → -14) */
+.f-analog.an-big.tq{--ag:hsl(calc(var(--h) - 14) 74% 71%);--hand:hsl(calc(var(--h) - 12) 95% 92%)}   /* Türkis/Cyan: y-MO 07950 hellcyan hsl(191 74 71) mit grünen Ziffern hsl(162 68 45), Zeiger weiß-cyan (Swatch 205 → -14) */
 .f-analog.an-relief.tq{background:linear-gradient(135deg,hsl(calc(var(--h) - 25) 52% 70%),hsl(calc(var(--h) - 25) 48% 62%));--hand:hsl(calc(var(--h) - 32) 47% 29%);--pinc:hsl(calc(var(--h) - 25) 48% 66%)}   /* y-MO 07100 Mint: hsl(180 52 68), Zeiger hsl(173 47 29) */
 .f-analog.an-white{background:linear-gradient(135deg,#f4f4f4,#c9c9c9);--hand:#2a2a2c;--sec:#c8742f;--pinc:#d9d9d9}
 .fnum{position:absolute;inset:0;width:100%;height:100%}
@@ -994,6 +999,8 @@ import { loadEvents, eventsHTML, infoHTML } from './events.js';
 const LIVE = new URLSearchParams(location.search).has('live');
 // ?preview: Vorschau in der Einstellungsseite – Konfiguration und Zustände kommen per postMessage, nichts wird gespeichert
 const PREVIEW = new URLSearchParams(location.search).has('preview');
+const DESIGNS = PREVIEW && new URLSearchParams(location.search).has('designs');   // Design-Auswahl der Einstellungsseite: alle Stile als Live-Raster (dgrid)
+if (DESIGNS) document.documentElement.classList.add('dg');
 const CFG = { hass: '', weather: 'weather.home', place: 'Home', pipeline: '', mute: false, barge: false, listen: 15, volume: 100, music: true, chime: true, device: '' };   // Wetter, Ort, Assist-Pipeline: je Display in der Einstellungsseite (applyK); device = HA-Gerät (register)
 // Ort-Wahl am Wetter-Face (Listenknopf): nur dieses Gerät, bleibt über Neuladen; ohne Wahl gilt die Entity der Einstellungen
 let wxOver; try { wxOver = JSON.parse(localStorage.hbwx || 'null'); } catch { }
@@ -1144,11 +1151,12 @@ if (PREVIEW) {
       g = null;
     }
   };
-  for (const n of ['pointerdown', 'pointermove', 'pointerup', 'pointercancel', 'click', 'contextmenu', 'keydown', 'wheel', 'touchstart', 'touchmove']) addEventListener(n, n.startsWith('pointer') ? gesture : e => { e.stopImmediatePropagation(); e.preventDefault(); }, { capture: true, passive: false });
+  if (!DESIGNS) for (const n of ['pointerdown', 'pointermove', 'pointerup', 'pointercancel', 'click', 'contextmenu', 'keydown', 'wheel', 'touchstart', 'touchmove']) addEventListener(n, n.startsWith('pointer') ? gesture : e => { e.stopImmediatePropagation(); e.preventDefault(); }, { capture: true, passive: false });
   addEventListener('message', e => {
     const m = e.data;
     if (e.source !== parent || e.origin !== location.origin || m?.hb !== 'preview') return;
     if (m.states) { ents = m.states; schedule(); }
+    if (m.designs) dgrid(m.designs);
     if (m.edit !== undefined && m.edit !== edit) { edit = m.edit; closeMenu(); deco(); }
     if (m.conf) {
       const old = CONF.faces, k = { idle: 0, kz: false };
@@ -1568,6 +1576,18 @@ function buildFace(f) {
   if (f.type === 'music') musicIO.observe(el);
   if (CONF.kiosk?.guest && GUEST_HIDES.has(f.type) && !PREVIEW) el.insertAdjacentHTML('beforeend', `<div class="guestlock">${svg('lock', 'gl')}<b>Persönlich</b><span>Gastmodus</span></div>`);
   return el;
+}
+
+// Design-Auswahl: jedes Design als lebendes Face in der gewählten Hintergrundfarbe; Antippen meldet es der Einstellungsseite
+function dgrid({ list, bg, cur }) {
+  let g = $('#dgrid'); if (!g) { g = document.createElement('div'); g.id = 'dgrid'; document.body.append(g); }
+  g.replaceChildren(...list.map(([v, n]) => {
+    const [type, style] = v.split(':'), c = document.createElement('div'), b = document.createElement('div');
+    c.className = 'dcell' + (v === cur ? ' on' : ''); b.className = 'dbox'; b.append(buildFace({ type, style: style || undefined, bg, id: 'dg' }));
+    c.append(b); c.insertAdjacentHTML('beforeend', `<span>${esc(n)}</span>`); c.onclick = () => parent.postMessage({ hb: 'design', v }, location.origin);
+    return c;
+  }));
+  parent.postMessage({ hb: 'design-h', h: g.offsetHeight + 8 }, location.origin);
 }
 
 // Uhren: Zeiger per WAAPI (Compositor, volle Bildrate), Zeit wird minütlich nachgestellt

@@ -49,12 +49,10 @@ export const loadStates = () => S.conn.sendMessagePromise({ type: 'get_states' }
 // ---- Displays ----
 export async function reload() {
   S.displays = await call('displays');
+  const todo = S.displays.filter(d => !d.new && !S.shots[d.id]);   // letztes Bild vom Server (auch offline) vor dem ersten Zeichnen holen, sonst blitzt erst der Platzhalter
+  await Promise.all(todo.map(async d => { const { image } = await call('get_shot', { display: d.id }).catch(() => ({})); if (image) S.shots[d.id] = image; }));
   emit('list');
-  S.displays.filter(d => !d.new && !S.shots[d.id]).forEach(async d => {   // letztes Bild vom Server (auch offline), sonst neu aufnehmen
-    const { image } = await call('get_shot', { display: d.id }).catch(() => ({}));
-    if (image) { S.shots[d.id] = image; emit('list'); }
-    if (d.connected) snap(d.id);
-  });
+  todo.filter(d => d.connected).forEach(d => snap(d.id));   // neues Bild im Hintergrund
 }
 export async function poll() {   // Status nachführen, ohne Formulare neu zu zeichnen
   const n = await call('displays').catch(() => null);
