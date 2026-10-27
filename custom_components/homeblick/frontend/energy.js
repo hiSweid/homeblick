@@ -22,7 +22,8 @@ export const E = {
   sesE: 'sensor.evcc_garage_session_energy', sesSol: 'sensor.evcc_garage_session_solar_percentage', sesPrice: 'sensor.evcc_garage_session_price',
 };
 const E0 = { ...E };
-export const energyEnts = (m = {}) => { for (const k in E) E[k] = m[k] || E0[k]; };
+let CAR = 'e-Golf';   // Name der Auto-Kachel; erkannte Konfigurationen sagen „Auto“ (ents.carName), im Editor änderbar
+export const energyEnts = (m = {}) => { for (const k in E) E[k] = m[k] || E0[k]; CAR = m.carName || 'e-Golf'; };
 
 // Symbole aus dem Entwurf (m5.html)
 const SYM = {
@@ -61,7 +62,7 @@ export function energyFace(el) {
 <div class="tile et aut" data-act="edet" data-v="aut" style="${cell(0, 2)}"><svg class="rg" viewBox="-50 -50 100 100"><circle r="44"/><circle class="on" r="44" pathLength="100" transform="rotate(-90)"/></svg>${val('aut', '%')}<div class="sub">autark</div></div>
 <div class="tile et use" data-act="edet" data-v="use" style="${cell(1, 0)}">${ttl('home', 'Verbrauch')}${val('home', ' kW')}<div class="bar g mid"><div class="cl l"><i></i></div><div class="cl r"><i></i></div></div><div class="sub gl" data-bind="e_gl"></div></div>
 <div class="tile et on bat" data-act="edet" data-v="bat" style="${cell(1, 1)}">${ttl('bat', 'Akku', 'gr')}${val('soc', '%')}${bar('soc')}<div class="sub" data-bind="e_batl"></div></div>
-<div class="tile et on car" data-act="edet" data-v="car" style="${cell(1, 2)}">${ttl('car', 'e-Golf', 'bl')}${val('carSoc', '%')}${bar('carSoc')}<div class="sub" data-bind="e_carl"></div></div>
+<div class="tile et on car" data-act="edet" data-v="car" style="${cell(1, 2)}">${ttl('car', CAR, 'bl')}${val('carSoc', '%')}${bar('carSoc')}<div class="sub" data-bind="e_carl"></div></div>
 <div class="tile et day" data-act="edet" data-v="day" style="${cell(2, 0)}">${ttl('sun', 'Heute', 'y')}${val('today')}<div class="sub dim" data-bind="e_todayl"></div>${bar('today')}</div>
 <div class="tile et tmr" data-act="edet" data-v="tmr" style="${cell(2, 1)}">${ttl('sun', 'Morgen')}${val('tomorrow')}<div class="sub dim">kWh Prognose</div><div class="sub pk" data-bind="e_peak"></div></div>
 <div class="dial glass" style="grid-area:3/3;--r:2;--c:2"></div>`);
@@ -212,6 +213,7 @@ export function energy(ents, roll) {
     set('.bar.soc', '--v', c01(soc / 100), ok.soc);
     set('.bar.carSoc', '--v', c01(carSoc / 100), ok.carSoc);
     set('.bar.today', '--v', c01(today / todayFc), ok.today && ok.todayFc && todayFc > 0);
+    for (const [t, has] of [['bat', ok.soc || ok.bat], ['car', ok.carSoc || ok.car], ['day', ok.today], ['tmr', ok.tomorrow]]) f.querySelector('.tile.' + t)?.classList.toggle('na', !has);   // ohne passende Entity abgeblendet
     const gl = f.querySelector('.gl'); gl.classList.toggle('imp', imp); gl.classList.toggle('z', !imp && !exp);
     paint(f);
   }
@@ -222,7 +224,7 @@ export function energy(ents, roll) {
 // Vorlagen: Kopf (✕, Titel, Uhr) und Zahl Medium = Vollbild Klima/Licht (_Tbq 01260, y-MO 00005, Maße wie #climate/#dimmer);
 // Aufbau „Werte mittig, darunter Glaskarte mit Titel, Untertitel, Segment und Stundenleiste“ = Wetter-Detail y-MO 08900 (Klassen .wcard/.wsub/.wseg/.whours aus weather.js, gleiche Maße).
 // Hintergrund = Wallpaper-Blur des Face, also das Kachelglas im Großen. Ohne Vorlage (Annahme): Karteninhalte (Kurven, Stundenbalken, Anteile, Ladesteuerung), Wisch runter / Escape.
-const DT = { pv: 'Solar', aut: 'Autarkie', use: 'Verbrauch', bat: 'Akku', car: 'e-Golf', day: 'Heute', tmr: 'Morgen' };
+const DT = { pv: 'Solar', aut: 'Autarkie', use: 'Verbrauch', bat: 'Akku', get car() { return CAR; }, day: 'Heute', tmr: 'Morgen' };
 const MODE = { off: 'Aus', now: 'Sofort', minpv: 'Min+PV', pv: 'PV' };
 const WD = { Monday: 'Mo', Tuesday: 'Di', Wednesday: 'Mi', Thursday: 'Do', Friday: 'Fr', Saturday: 'Sa', Sunday: 'So' };   // Solcast dayname (englisch)
 const BOLT = '<path d="M13.5 2.5 5.5 13.5h5.8l-1.3 8 8-11h-5.8z" fill="currentColor" stroke="none"/>';

@@ -142,7 +142,7 @@ export function alerts(el) {
 export function newDisplay(el, route) {
   const pending = () => S.displays.filter(x => x.new);
   let id = route.id || pending()[0]?.id || '', area = '', tpl = 'std';
-  const note = () => { const c = setupConfig(tpl, area); return `Du bekommst: ${c.faces.map(f => FACE[f.type][0] + (f.type === 'grid' ? (f.tiles.length ? ` (${f.tiles.length} Kacheln)` : ' (leer, Kacheln fügst du gleich hinzu)') : '')).join(' · ')}.${c.off.length ? ` Bereit, aber versteckt, weil dein Haus dafür nichts hat: ${c.off.map(f => FACE[f.type][0]).join(', ')}.` : ''}`; };
+  const note = () => { const c = setupConfig(tpl, area); return `Du bekommst: ${c.faces.map(f => FACE[f.type][0] + (f.type === 'grid' ? (f.tiles.length ? ` (${f.tiles.length} Kacheln)` : ' (leer, Kacheln fügst du gleich hinzu)') : f.type === 'energy' ? (f.ents ? ` (${Object.keys(f.ents).length - 1} Werte erkannt)` : ' (nichts erkannt, Werte wählst du im Editor)') : '')).join(' · ')}.${c.off.length ? ` Bereit, aber versteckt, weil dein Haus dafür nichts hat: ${c.off.map(f => FACE[f.type][0]).join(', ')}.` : ''}`; };
   const chip = (attr, on_, text) => `<button class="chip pick ${on_ ? 'on' : ''}" ${attr}>${esc(text)}</button>`;
   const draw = () => {
     const d = S.displays.find(x => x.id === id && x.new), list = pending();

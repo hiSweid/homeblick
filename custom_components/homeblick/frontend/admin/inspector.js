@@ -3,9 +3,9 @@
 import { $, esc, ic, menu, toast } from './ui.js';
 import { DOM, entOf, entsOf, pickEntity } from './entities.js';
 import { S, byId, call, mutate, on, select, setSetting } from './state.js';
-import { BG, COLORS, ENERGY, FACE, ICONS, LOOKS, SIZES, TILE_DOM, TOGGLE_DOM, autoTitle, bgCss, bgVal, designCur, designs, faceName, svOf, tileIcon, tileTitle, withDesign, xi } from './meta.js';
+import { BG, COLORS, ENERGY, FACE, energyGuess, ICONS, LOOKS, SIZES, TILE_DOM, TOGGLE_DOM, autoTitle, bgCss, bgVal, designCur, designs, faceName, svOf, tileIcon, tileTitle, withDesign, xi } from './meta.js';
 import { copyTiles, faceBy, faceIx, hidePage, lost, moveTile, removePage, removeTiles, resizeTile, resizeTiles, tilesOf } from './edit.js';
-import { bind, entityBtn, selectBtn, sroww, sw } from './controls.js';
+import { bind, entityBtn, selectBtn, sroww, sw, textRow } from './controls.js';
 import { pageMenu } from './layout.js';
 import { openGallery } from './gallery.js';
 import { ago, setPath } from './util.js';
@@ -92,7 +92,7 @@ export function mount(ed) {
     if (sty?.length) h += grp('Stil', sty.length <= 3 && sty.every(x => x[1].length < 12) ? stack('Design', segB('f.design', sty, designCur(f))) : sroww('Design', '', selectBtn('f.design', sty, designCur(f))));
     if (f.type === 'grid') h += grp(`Kacheln · ${tilesOf(f).length}`, (tilesOf(f).map(tile).join('') || '<div class="srow"><span class="s-label muted">Noch keine Kacheln</span></div>') + `<button class="row accent" data-lib>${ic('plus')}Kachel hinzufügen</button>`, n ? `<span class="warn">${n} Kachel${n > 1 ? 'n passen' : ' passt'} nicht mehr ins Raster und ${n > 1 ? 'werden' : 'wird'} nicht angezeigt.</span>` : '');
     if (f.type === 'weather') h += grp('Wetter', sroww('Wetter-Entität', '', entityBtn('s.weather', s.weather, { domains: ['weather'], title: 'Wetter-Entität' })) + sroww('Ortsname', '', `<input data-k="s.place" value="${esc(s.place || '')}" maxlength="40" autocomplete="off">`), 'Gilt sofort für alle Wetter-Anzeigen dieses Displays.');
-    if (f.type === 'energy') h += grp('', navRow('Entitäten', `${Object.keys(f.ents || {}).length || 'Standard'}`, 'energy', `<span class="av" style="--c:${meta[1]}">${ic('bolt')}</span>`), 'Ohne Auswahl liest die Seite die Standard-Entitäten (evcc, Kostal, Solcast).');
+    if (f.type === 'energy') h += grp('', navRow('Entitäten', `${Object.keys(f.ents || {}).filter(k => k !== 'carName').length || 'Standard'}`, 'energy', `<span class="av" style="--c:${meta[1]}">${ic('bolt')}</span>`), 'Ohne Auswahl liest die Seite die Standard-Entitäten (evcc, Kostal, Solcast).');
     if (f.type === 'calendar' || f.type === 'info') { const cs = entsOf('calendar'); h += grp('Kalender', cs.map(e => sroww(esc(e.name), '', sw(!f.cals || f.cals.includes(e.id), 'cal:' + e.id))).join('') || '<div class="srow"><span class="s-label muted">Keine Kalender in Home Assistant</span></div>'); }
     if (f.type === 'cams') h += grp('Kameras', `<button class="row tap" data-goto="#/settings"><span class="av" style="--c:#8e8e93">${ic('cam')}</span><span class="t"><b>Kameras und Türklingel</b><small>gelten für alle Displays</small></span>${ic('right')}</button>`);
     h += grp('', `<button class="row tap" data-act="show" ${d?.connected ? '' : 'disabled'}>${ic('monitor-eye')}<span class="t"><b>Auf dem Display zeigen</b></span></button><button class="row tap" data-act="hide" ${one ? 'disabled' : ''}>${ic('eye-off')}<span class="t"><b>Seite ausblenden</b></span></button>`);
@@ -100,7 +100,7 @@ export function mount(ed) {
     return { title: faceName(f), sub: `Seite ${i + 1} · ${meta[0]}`, more: true, body: h };
   }
   function pageSub(f, view) {
-    if (view === 'energy') return { title: 'Entitäten', sub: faceName(f), back: faceName(f), body: grp('', ENERGY.map(([k, n, dm = ['sensor']]) => sroww(esc(n), '', entityBtn('e.' + k, f.ents?.[k] || '', { domains: dm, none: 'Standard', title: n }, 'Standard'))).join(''), 'Ohne Auswahl liest die Seite die Standard-Entitäten.') };
+    if (view === 'energy') return { title: 'Entitäten', sub: faceName(f), back: faceName(f), body: grp('', `<button class="row accent" data-energy-auto>${ic('refresh')}Fehlende automatisch erkennen</button>`, 'Sucht Solar, Netz, Haus, Akku, Auto und Prognose in Home Assistant: Energie-Dashboard, Einheiten und Namen. Was du schon gewählt hast, bleibt.') + grp('', textRow('Bezeichnung Auto', 'e.carName', f.ents?.carName || '', { ph: 'e-Golf', max: 20 }), 'Name der Auto-Kachel.') + grp('', ENERGY.map(([k, n, dm = ['sensor']]) => sroww(esc(n), '', entityBtn('e.' + k, f.ents?.[k] || '', { domains: dm, none: 'Standard', title: n }, 'Standard'))).join(''), 'Ohne Auswahl liest die Seite die Standard-Entitäten.') };
   }
 
   // ---- Zeichnen ----
@@ -140,6 +140,7 @@ export function mount(ed) {
       if (p === 'design') return mt('Stil geändert', g => { Object.assign(g, withDesign(S.cfg, g, v)); });
       return;
     }
+    if (ns === 'e' && p === 'carName' && phase === 'input') return;
     if (ns === 'e') return mt('Entität geändert', g => { setPath(g, 'ents.' + p, v || undefined); if (g.ents && !Object.keys(g.ents).length) delete g.ents; });
     if (ns === 't' || ns === 'tap' || ns === 'hold') {
       const t = curTile(); if (!t) return;
@@ -184,6 +185,11 @@ export function mount(ed) {
     if (q('[data-back]')) return back();
     const ps = q('[data-push]'); if (ps) return push(ps.dataset.push);
     if (q('[data-lib]')) return openGallery();
+    if (q('[data-energy-auto]')) {
+      const g = energyGuess(), f = cfgFace(), fresh = Object.keys(g).filter(k => !f.ents?.[k]);
+      if (!fresh.length) return toast(Object.keys(g).length ? 'Alles Erkennbare ist schon gewählt' : 'Nichts erkannt. Wähle die Entitäten selbst.', { bad: !Object.keys(g).length });
+      mt('Energie erkannt', x => { x.ents = { ...g, ...(x.ents || {}) }; }); return toast(`${fresh.length} Wert${fresh.length > 1 ? 'e' : ''} erkannt`);
+    }
     const tr = q('[data-tile]'); if (tr) return select({ k: 'tile', f: S.ui.sel.f, j: +tr.dataset.tile });
     const pe = q('[data-pick-ent]');
     if (pe) {

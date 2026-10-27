@@ -2,7 +2,8 @@
 import { GROUP, ICON, faceId, normFaces, pack, rows } from '../faces.js';
 import { entsIn } from './entities.js';
 export { GROUP };
-import { entOf, DOM, allEnts } from './entities.js';
+import { entOf, DOM, allEnts, energyPrefs } from './entities.js';
+import { detect, ready } from './detect.js';
 export const FACE = {
   grid: ['Smart Home', '#ff9500', 'grid'], music: ['Musik', '#ff2d55', 'music'], bigclock: ['Uhr digital', '#636366', 'clock'], analog: ['Uhr analog', '#5856d6', 'clock'],
   calendar: ['Kalender', '#ff3b30', 'cal'], date: ['Datum', '#8e8e93', 'cal'], weather: ['Wetter', '#32ade6', 'sun'], energy: ['Energie', '#34c759', 'bolt'], info: ['Info', '#30b0c7', 'info'], cams: ['Kameras', '#8e8e93', 'cam'], people: ['Personen', '#5ac8fa', 'person'],
@@ -28,8 +29,9 @@ export const tileOf = (en, area = en.area) => ({ e: en.id, title: stripArea(en, 
 
 export const FACE_BG = { grid: 'auto', music: 'black', bigclock: 150, weather: 212, energy: 'auto', calendar: 'white', date: 'auto', analog: 150, info: 'auto', cams: 'black', people: 'auto' };
 // Standard: alle wichtigen Ansichten. Was das Haus nicht hergibt (kein Player, kein Wetter, keine Kamera, kein evcc …), liegt versteckt bereit statt leer zu laufen.
-const HAS = { music: e => e.domain === 'media_player', weather: e => e.domain === 'weather', cams: e => e.domain === 'camera', people: e => e.domain === 'person', energy: e => e.id.startsWith('sensor.evcc_') };
-const stdHas = type => !HAS[type] || allEnts().some(HAS[type]);
+const HAS = { music: e => e.domain === 'media_player', weather: e => e.domain === 'weather', cams: e => e.domain === 'camera', people: e => e.domain === 'person' };
+export const energyGuess = () => detect(allEnts(), energyPrefs());   // Energie-Face: Entities aus Energie-Dashboard bzw. Namen/Einheiten
+const stdHas = type => type === 'energy' ? ready(energyGuess()) : !HAS[type] || allEnts().some(HAS[type]);
 export const SETUP = [   // [Schlüssel, Name, Beschreibung, Faces]
   ['std', 'Standard', 'Alle wichtigen Ansichten, passend zu deinem Haus', ['grid', 'music', 'bigclock', 'weather', 'calendar', 'energy', 'cams', 'people']],
   ['room', 'Raum-Panel', 'Kacheln aus dem Bereich, Musik, Wetter, Kalender und Uhr', ['grid', 'music', 'weather', 'calendar', 'bigclock']],
@@ -51,7 +53,8 @@ export function roomTiles(area) {
   return tiles;
 }
 export function setupConfig(key, area) {
-  const types = SETUP.find(x => x[0] === key)[3], std = key === 'std', mk = type => ({ type, bg: FACE_BG[type], ...(type === 'grid' && { tiles: roomTiles(area) }) });
+  const types = SETUP.find(x => x[0] === key)[3], std = key === 'std', found = energyGuess(), ents = Object.keys(found).length ? { ...found, carName: 'Auto' } : null;   // „Auto“ statt „e-Golf“ (Standardname des Face)
+  const mk = type => ({ type, bg: FACE_BG[type], ...(type === 'grid' && { tiles: roomTiles(area) }), ...(type === 'energy' && ents && { ents }) });
   const c = { cams: 1, energy: 1, dyn: 2, off: std ? types.filter(t => !stdHas(t)).map(mk) : [], faces: types.filter(t => !std || stdHas(t)).map(mk) };
   normFaces(c);
   return c;

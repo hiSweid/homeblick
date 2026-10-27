@@ -15,20 +15,21 @@ const STATE = { on: 'an', off: 'aus', locked: 'verriegelt', unlocked: 'entsperrt
   heat: 'Heizen', cool: 'Kühlen', heat_cool: 'Auto', auto: 'Auto', dry: 'Trocknen', fan_only: 'Lüften', standby: 'Standby', detected: 'erkannt', clear: 'frei' };
 const NOSTATE = ['scene', 'button', 'event', 'script'];   // Zustand ist ein Zeitstempel oder nichtssagend
 const SKIP = new Set(['friendly_name', 'icon', 'entity_picture', 'supported_features', 'device_class', 'unit_of_measurement', 'state_class', 'attribution', 'editable', 'id', 'restored', 'entity_id']);
-let EN = [], BY = new Map();
+let EN = [], BY = new Map(), PREFS = null;   // PREFS: Energie-Dashboard von HA (fehlt, wenn nicht eingerichtet)
 export const entOf = id => BY.get(id);
 export const areasOf = () => [...new Set(EN.map(e => e.area).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'de'));
 export const entsIn = area => EN.filter(e => e.area === area && !e.hide);
 export const entsFor = domains => EN.filter(e => domains.includes(e.domain) && !e.hide).sort((a, b) => a.name.localeCompare(b.name, 'de'));
 export const entsOf = domain => EN.filter(e => e.domain === domain).sort((a, b) => a.name.localeCompare(b.name, 'de'));
 export const allEnts = () => EN;
+export const energyPrefs = () => PREFS;
 export function findEnts(q, domains) {   // Suche über Name, Bereich, Gerät, ID, nur passende Domains
   const w = fold(q).split(/\s+/).filter(Boolean);
   return EN.filter(e => domains.includes(e.domain) && !e.hide).map(e => [rank(e, w), e]).filter(x => x[0] >= 0).sort((a, b) => b[0] - a[0] || a[1].name.localeCompare(b[1].name, 'de')).map(x => x[1]);
 }
 export async function loadEntities(conn, states) {
   const q = type => conn.sendMessagePromise({ type }).catch(() => []);
-  const [er, dr, ar] = await Promise.all([q('config/entity_registry/list'), q('config/device_registry/list'), q('config/area_registry/list')]);
+  const [er, dr, ar] = await Promise.all([q('config/entity_registry/list'), q('config/device_registry/list'), q('config/area_registry/list'), conn.sendMessagePromise({ type: 'energy/get_prefs' }).then(p => { PREFS = p; }, () => {})]);
   const area = Object.fromEntries(ar.map(a => [a.area_id, a.name])), dev = Object.fromEntries(dr.map(d => [d.id, d])), reg = Object.fromEntries(er.map(e => [e.entity_id, e]));
   EN = states.map(s => {
     const id = s.entity_id, r = reg[id] || {}, d = dev[r.device_id], a = s.attributes;
