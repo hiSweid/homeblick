@@ -1,5 +1,5 @@
 // Konstanten und Hilfen für Faces, Kacheln, Themes und Vorlagen (aus dem bisherigen Admin übernommen).
-import { GROUP, ICON, faceId, normFaces, pack, rows } from '../faces.js';
+import { GROUP, ICON, normFaces, pack, rows } from '../faces.js';
 import { entsIn } from './entities.js';
 export { GROUP };
 import { entOf, DOM, allEnts, energyPrefs } from './entities.js';
@@ -18,7 +18,7 @@ export const GNAME = { clock: 'Uhr' };
 export const faceName = x => (GNAME[GROUP[x.type]] || FACE[x.type]?.[0] || x.type) + (x.id !== x.type ? ' ' + x.id.replace(x.type, '') : '');
 export const designs = f => DESIGN[GROUP[f.type]] ? DESIGN[GROUP[f.type]].concat((LEGACY[f.type] || []).filter(([v]) => v === f.style).map(([v, n]) => [`${f.type}:${v}`, `${{ bigclock: 'Digital', analog: 'Analog', info: 'Info' }[f.type]} · ${n}`])) : STYLES[f.type];
 export const designCur = f => DESIGN[GROUP[f.type]] ? `${f.type}:${f.style || STYLES[f.type]?.[0][0] || ''}` : f.style || STYLES[f.type]?.[0][0];
-export const withDesign = (cfg, f, v) => { if (!DESIGN[GROUP[f.type]]) return { ...f, style: v }; const [type, style] = v.split(':'); return { ...f, type, style: style || undefined, id: type === f.type ? f.id : faceId(cfg, type) }; };
+export const withDesign = (cfg, f, v) => { if (!DESIGN[GROUP[f.type]]) return { ...f, style: v }; const [type, style] = v.split(':'); return { ...f, type, style: style || undefined }; };
 export const WAKE = [['off', 'Aus'], ['hey_jarvis', 'Hey Jarvis'], ['alexa', 'Alexa']];
 export const bgCss = bg => bg === 'auto' ? 'linear-gradient(135deg,#ffb36b,#5a6bb5)' : bg === 'black' ? '#1c1c1e' : bg === 'white' ? '#f2f2f7' : bg === 'metal' ? 'linear-gradient(135deg,#b5c4d6,#8795ad)' : /^(prism|fan):\d+$/.test(bg) ? `linear-gradient(135deg,hsl(${bg.split(':')[1]} 70% 62%),hsl(${bg.split(':')[1]} 60% 28%))` : bg === 'prism' ? 'linear-gradient(135deg,#8483f3,#3c3cae)' : bg === 'teal' ? 'linear-gradient(135deg,#4fae9f,#1d5f56)' : typeof bg === 'number' ? `linear-gradient(135deg,hsl(${bg} 75% 66%),hsl(${bg + 25} 70% 52%))` : '#8e8e93';
 export const bgName = bg => BG.find(b => String(b[0]) === String(bg))?.[1] || THEME_SET.find(t => String(t[2]) === String(bg))?.[1] || 'Foto';
