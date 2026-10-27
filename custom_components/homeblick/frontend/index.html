@@ -1094,6 +1094,7 @@ if (PREVIEW) {
         Object.assign(g, { w0: inT._t.w || 1, h0: inT._t.h || 1, px: parseFloat(cs.gridTemplateColumns) + parseFloat(cs.columnGap), py: parseFloat(cs.gridTemplateRows) + parseFloat(cs.rowGap), n0: pack(f.tiles, rows(f)).filter(Boolean).length });
         g.size = [g.w0, g.h0];
       }
+      if (edit && inT && !g.hm && !g.hr) g.ar = setTimeout(() => { if (g && g.t === inT && !g.nl) { g.armed = true; inT.classList.add('pvlift'); } }, 250);   // erst nach kurzem Halten anheben; davor blättert ein Wisch die Ansicht
       if (!edit) { const x = e.clientX, y = e.clientY; g.lp = setTimeout(() => { if (g && !g.on) { g.long = true; showMenu(x, y); } }, 450); }
     }
     else if (g && e.type === 'pointermove') {
@@ -1111,7 +1112,7 @@ if (PREVIEW) {
       }
       if (Math.hypot(dx, dy) > 6) clearTimeout(g.lp);
       if (!edit || g.hm || !g.t) return;
-      if (!g.on && Math.hypot(dx, dy) > 6) { g.on = true; g.t.classList.add('pvlift'); }
+      if (!g.on && Math.hypot(dx, dy) > 6) { if (g.armed) g.on = true; else if (Math.hypot(dx, dy) > 10) { g.nl = true; clearTimeout(g.ar); } }
       if (!g.on) return;
       follow(e);
       const c = to(g.t, g.f), order = moveTo(g.f.tiles, g.j, c, rows(g.f)), key = order.map(t => g.f.tiles.indexOf(t)).join();
@@ -1120,7 +1121,8 @@ if (PREVIEW) {
     }
     else if (g && (e.type === 'pointerup' || e.type === 'pointercancel')) {
       const up = e.type === 'pointerup';
-      clearTimeout(g.lp);
+      clearTimeout(g.lp); clearTimeout(g.ar);
+      if (g.armed && !g.on) g.t.classList.remove('pvlift');
       const moved = Math.hypot(e.clientX - g.x, e.clientY - g.y) >= 6;
       if (g.sw) { if (up && !swipe(e) && !moved && g.f) post({ hb: 'facetap', face: g.f.id }); g = null; return; }
       if (g.pm) { if (up && e.target.closest?.('[data-pm]')?.dataset.pm === g.pm) { post({ hb: 'menu', item: g.pm }); closeMenu(); } g = null; return; }
@@ -1136,11 +1138,12 @@ if (PREVIEW) {
           const t = g.t, area = t.style.gridArea, fid = g.f.id, j = g.j;
           flip(g.face, { ...g.f, tiles: g.f.tiles.filter(x => x !== t._t) }, t);
           t.hidden = false; t.style.gridArea = area; t.style.pointerEvents = 'none';
-          t.animate([{ scale: 1, opacity: 1, rotate: '0deg' }, { scale: .3, opacity: 0, rotate: '-8deg' }], { duration: 260, easing: 'cubic-bezier(.4,0,.8,.4)', fill: 'forwards' }).finished.then(() => post({ hb: 'remove', face: fid, j }));
+          t.animate([{ scale: 1, opacity: 1, rotate: '0deg' }, { scale: .3, opacity: 0, rotate: '-8deg' }], { duration: 260, easing: 'cubic-bezier(.4,0,.8,.4)', fill: 'forwards' }).finished.then(() => post({ hb: 'remove', face: fid, j }), () => {});   // abgebrochene Animation (Doppeltipp): nichts senden
         }
       }
       else if (!edit) { /* außerhalb des Bearbeiten-Modus tut ein Tippen nichts; langes Drücken öffnet das Menü */ }
       else if (!g.t) { if (up && swipe(e)) { /* Face wechseln */ } else if (up && !moved) post({ hb: 'empty', face: g.f.id, cell: cellAt(g.f, g.face, e.clientX, e.clientY) }); }   // leere Stelle: Widget hinzufügen
+      else if (!g.on && moved) { if (up) swipe(e); }   // Wisch ab Kachel: Ansicht wechseln, sonst nichts
       else if (g.on) {   // loslassen: Kachel gleitet an ihren Platz
         const tr = g.t.style.transform;
         g.t.style.transform = ''; g.t.classList.remove('pvlift');

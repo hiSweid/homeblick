@@ -278,7 +278,7 @@ export function openHelp() {
   modal(`<div class="sheet-bar"><span class="l"></span><h2>So funktioniert es</h2><span class="r"><button class="done" data-r="">Fertig</button></span></div><div class="sheet-body"><div class="group"><div class="help-pop" style="padding:16px">${[
     ['pencil', 'Ändern', 'Tippe auf eine Kachel: rechts öffnen sich ihre Einstellungen. Tippe auf den Titel der Ansicht für deren Einstellungen.'],
     ['plus', 'Hinzufügen', 'Tippe unten auf „Hinzufügen“ oder in der Vorschau auf eine leere Stelle. Das Blatt zeigt Vorschläge für den Raum.'],
-    ['grip', 'Verschieben', 'Kachel in der Vorschau ziehen; der Griff unten rechts ändert die Größe; „−“ entfernt sie.'],
+    ['grip', 'Verschieben', 'Kachel kurz halten, dann ziehen; ein Wisch blättert die Ansicht. Der Griff unten rechts ändert die Größe; „−“ entfernt sie.'],
     ['pages', 'Ansichten', 'Zeigt alle Ansichten als Raster: ziehen sortiert, „−“ löscht, der Haken blendet aus.'],
     ['play', 'Wechseln und Auswählen', 'Wische zur nächsten Ansicht, oder nutze Punkte und Pfeiltasten. Umschalt oder ⌘ plus Klick wählt mehrere Kacheln, Entf entfernt sie.'],
     ['copy', 'Kopieren', 'Kachel wählen, dann ⌘C und ⌘V auf einer anderen Ansicht oder einem anderen Display.'],
