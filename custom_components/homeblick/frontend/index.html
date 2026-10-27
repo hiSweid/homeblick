@@ -1016,6 +1016,7 @@ const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [..
 const root = document.documentElement, screen = $('#screen'), faces = $('#faces');
 // Vorschau: Eingaben sind gesperrt (dieser Handler steht vor allen anderen und stoppt jedes Ereignis); Kacheln lassen sich ziehen (→ move) oder antippen (→ tile)
 if (PREVIEW) {
+  root.style.visibility = 'hidden';   // bis die echte Konfiguration da ist, sonst blitzt erst die Standard-Seite
   let g = null;
   const idx = () => Math.round(faces.scrollLeft / (faces.clientWidth * 1.025));
   const tracks = (v, o, gap) => v.split(' ').map(w => { const a = [o, o + parseFloat(w)]; o = a[1] + gap; return a; });
@@ -1168,6 +1169,7 @@ if (PREVIEW) {
       else renderAll(0);
     }
     if (m.face) { const i = CONF.faces.findIndex(f => f.id === m.face); if (i >= 0 && i !== idx()) faces.go(i, !m.anim); }
+    if (m.conf || m.designs) root.style.visibility = '';
     if (m.flash !== undefined) {   // neue Kachel: zweimal blauer Ring, der sich ausbreitet
       const t = [...(faces.children[idx()]?.querySelectorAll('[data-ti]') || [])].find(x => x._t === CONF.faces[idx()]?.tiles?.[m.flash]);
       t?.animate([{ boxShadow: '0 0 0 0 #0a84ffee' }, { boxShadow: '0 0 0 3.2cqw #0a84ff00' }], { duration: 650, iterations: 2, easing: 'ease-out' });
@@ -1180,7 +1182,7 @@ if (PREVIEW) {
       }
     }
   });
-  addEventListener('load', () => parent.postMessage({ hb: 'preview-ready' }, location.origin));
+  addEventListener('DOMContentLoaded', () => parent.postMessage({ hb: 'preview-ready' }, location.origin));   // nicht erst 'load': das wartet auf alle Schriften und Bilder
 }
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => `&#${c.charCodeAt(0)};`);
 const bind = (k, v) => { v = String(v); for (const e of $$(`[data-bind=${k}]`)) if (e.textContent !== v) e.textContent = v; };
