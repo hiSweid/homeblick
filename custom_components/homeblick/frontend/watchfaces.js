@@ -1,7 +1,7 @@
 // Apple-Watch-artige Zifferblätter: analog „chrono“, „utility“, „meridian“; digital „typo“, „rings“.
 // Farbe folgt dem Hintergrund des Face: Farbton (Zahl) = getönt, Schwarz = dunkel, Weiß = hell; „auto“ nachts = dunkel.
 // Zeiger sind eigene SVG-Ebenen (.wh, data-per = Umlaufzeit in s) und werden in index.html per WAAPI animiert (GPU, wie die übrigen Uhren).
-export const WF = { chrono: 'analog', utility: 'analog', meridian: 'analog', typo: 'bigclock', rings: 'bigclock' };
+export const WF = { chrono: 'analog', utility: 'analog', meridian: 'analog', typo: 'bigclock', rings: 'bigclock', solar: 'bigclock', moon: 'bigclock', modular: 'bigclock' };
 const DARK = { chrono: 1, rings: 1 };   // Standard je Stil; Schwarz/Weiß am Face überschreibt
 
 const hs = (h, s, l, a) => `hsl(${h} ${s}% ${l}%${a != null ? ' / ' + a : ''})`;
@@ -22,6 +22,15 @@ const THEME = {
       ? { bg: hs(b, 45, 7), b1: hs(b, 80, 38), b2: hs(b + 45, 80, 34), b3: hs(b - 45, 85, 30), ink: '#fff', ink2: '#ffffffa6', hi: `linear-gradient(180deg,#fff,${hs(b + 30, 90, 82)})` }
       : { bg: hs(b, 85, 93), b1: hs(b, 95, 82), b2: hs(b + 45, 95, 84), b3: hs(b - 45, 95, 86), ink: hs(b, 40, 17), ink2: hs(b, 25, 17, .6), hi: `linear-gradient(180deg,${hs(b, 62, 30)},${hs(b - 28, 72, 46)})` };
   },
+  solar: (d, h) => d
+    ? { bg: h == null ? 'linear-gradient(170deg,#101012,#2a2a2e)' : `linear-gradient(170deg,${hs(h, 52, 9)},${hs(h, 46, 25)} 72%,${hs(h, 42, 31)})`, ink: '#fff', dim: '#ffffff90', sun: '#ffd36b', hz: '#ffffff44' }
+    : { bg: h == null ? 'linear-gradient(170deg,#fafafc,#dcdce2)' : `linear-gradient(170deg,${hs(h, 70, 97)},${hs(h, 58, 83)})`, ink: '#1c1c1e', dim: '#1c1c1e85', sun: '#ff9500', hz: '#00000033' },
+  moon: (d, h) => d
+    ? { bg: h == null ? 'radial-gradient(120% 120% at 50% 30%,#1c1c20,#050506 72%)' : `radial-gradient(120% 120% at 50% 30%,${hs(h, 46, 19)},${hs(h, 52, 5)} 72%)`, ink: '#fff', dim: '#ffffff90', dark: h == null ? '#18181c' : hs(h, 38, 14), halo: '#cfd8ff47', star: '#fff' }
+    : { bg: h == null ? 'linear-gradient(160deg,#fafafc,#d9d9e0)' : `linear-gradient(160deg,${hs(h, 60, 97)},${hs(h, 45, 82)})`, ink: '#1c1c1e', dim: '#1c1c1e85', dark: h == null ? '#a9a9b3' : hs(h, 22, 64), halo: '#ffffff00', star: '#0000' },
+  modular: (d, h) => d
+    ? { bg: h == null ? 'linear-gradient(160deg,#16171c,#050507)' : `linear-gradient(160deg,${hs(h, 20, 12)},${hs(h, 28, 4)})`, ink: '#fff', dim: '#ffffff80', card: '#ffffff17', red: '#ff453a', blue: '#5ac8fa', yel: '#ffd60a', grn: '#30d158', acc: '#ff9f0a' }
+    : { bg: h == null ? 'linear-gradient(160deg,#f6f6f8,#dedee4)' : `linear-gradient(160deg,${hs(h, 60, 97)},${hs(h, 40, 86)})`, ink: '#1c1c1e', dim: '#1c1c1e80', card: '#ffffffb8', red: '#ff3b30', blue: '#0a84ff', yel: '#ff9f0a', grn: '#34c759', acc: '#ff6a00' },
   rings: (d, h) => d
     ? { bg: h == null ? 'radial-gradient(120% 120% at 50% 40%,#161618,#000 70%)' : `radial-gradient(120% 120% at 50% 40%,${hs(h, 28, 14)},${hs(h, 34, 3)} 70%)`, ink: '#fff', dim: '#ffffff80', r1: '#fa114f', r2: '#a6ff00', r3: '#00e5ff' }
     : { bg: h == null ? 'linear-gradient(155deg,#fbfbfc,#e0e0e5)' : `linear-gradient(155deg,${hs(h, 55, 97)},${hs(h, 40, 86)})`, ink: '#1c1c1e', dim: '#1c1c1e80', r1: '#ff2d55', r2: '#34c759', r3: '#0a84ff' },
@@ -79,7 +88,29 @@ const rings = () => ({ html: `<svg class="wd" viewBox="0 0 100 100">${RING.map((
 ${RING.map(([r, c], i) => `<circle cx="50" cy="50" r="${r}" class="${c} fg" ${i === 2 ? `data-per="60" data-dash="${(2 * Math.PI * r).toFixed(2)}"` : `style="--C:${(2 * Math.PI * r).toFixed(2)}px"`} transform="rotate(-90 50 50)"/>`).join('')}</svg>
 <div class="rc"><b data-bind="hm"></b><span data-bind="dsh"></span><em><i class="wi" data-wxi></i><span data-bind="wxt"></span></em></div>` });
 
-const PARTS = { chrono, utility, meridian, typo, rings };
+// Solar Graph: Sonnenbahn über 24 h (Nulldurchgang = Auf-/Untergang aus sun.sun, Kurve in wfTick). Klassen mit w-Präfix: index.html hat globale .ss/.sun/.mb/.mt …
+let SN = 0;
+const solar = () => { const id = 'sl' + ++SN; return { html: `<svg class="wd" viewBox="0 0 100 100"><defs><clipPath id="${id}d"><rect width="100" height="62"/></clipPath><clipPath id="${id}n"><rect y="62" width="100" height="40"/></clipPath><linearGradient id="${id}g" x2="0" y2="1"><stop offset="0" stop-color="var(--sun)" stop-opacity=".5"/><stop offset="1" stop-color="var(--sun)" stop-opacity="0"/></linearGradient><radialGradient id="${id}s"><stop offset="0" stop-color="#fff6c8"/><stop offset=".4" stop-color="var(--sun)"/><stop offset="1" stop-color="var(--sun)" stop-opacity="0"/></radialGradient></defs>
+<path class="wsf" fill="url(#${id}g)" clip-path="url(#${id}d)"/><path class="wsc" fill="none" stroke="var(--sun)" stroke-width=".9" stroke-linecap="round" clip-path="url(#${id}d)"/><path class="wsc" fill="none" stroke="var(--dim)" stroke-width=".7" stroke-dasharray="1 1.6" stroke-linecap="round" clip-path="url(#${id}n)"/>
+<line x1="0" y1="62" x2="100" y2="62" stroke="var(--hz)" stroke-width=".4"/><g stroke="var(--hz)" stroke-width=".4">${[0, 6, 12, 18, 24].map(h => `<line x1="${h / 24 * 100}" y1="62" x2="${h / 24 * 100}" y2="${h % 12 ? 64 : 65}"/>`).join('')}</g>
+<g class="wsun"><circle r="9" fill="url(#${id}s)"/><circle r="2.4" fill="#fff8d6"/></g>
+<text data-bind="hm" x="50" y="34" font-size="20" font-weight="300" text-anchor="middle" fill="var(--ink)" letter-spacing="-.5"></text><text data-bind="dsh" x="50" y="12" font-size="4.4" font-weight="600" text-anchor="middle" fill="var(--dim)" letter-spacing=".5" style="text-transform:uppercase"></text>
+<text x="18" y="79" font-size="3.2" font-weight="600" text-anchor="middle" fill="var(--dim)" letter-spacing=".4">AUFGANG</text><text class="wsr" x="18" y="88" font-size="7" font-weight="500" text-anchor="middle" fill="var(--ink)">–</text>
+<text x="82" y="79" font-size="3.2" font-weight="600" text-anchor="middle" fill="var(--dim)" letter-spacing=".4">UNTERGANG</text><text class="wss" x="82" y="88" font-size="7" font-weight="500" text-anchor="middle" fill="var(--ink)">–</text></svg>
+<div class="wswx"><i class="wi" data-wxi></i><span data-bind="wxt"></span></div>` }; };
+// Mond: Phase aus dem Datum (synodischer Monat ab Neumond 2000-01-06 18:14 UTC)
+const moon = () => { const id = 'mn' + ++SN, st = Array.from({ length: 34 }, (_, i) => { const r = n => { const x = Math.sin(i * 97.13 + n * 31.7) * 43758.5453; return x - Math.floor(x); }; return `<circle cx="${(r(1) * 100).toFixed(1)}" cy="${(r(2) * 100).toFixed(1)}" r="${(.2 + r(3) * .5).toFixed(2)}" opacity="${(.25 + r(4) * .6).toFixed(2)}"/>`; }).join(''); return { html: `<svg class="wd" viewBox="0 0 100 100"><defs><radialGradient id="${id}g" cx=".38" cy=".34"><stop offset="0" stop-color="#fffdf2"/><stop offset=".7" stop-color="#dad7c7"/><stop offset="1" stop-color="#a09e90"/></radialGradient><radialGradient id="${id}h"><stop offset=".6" stop-color="var(--halo)"/><stop offset="1" stop-color="#cfd8ff" stop-opacity="0"/></radialGradient><clipPath id="${id}c"><circle cx="50" cy="40" r="22"/></clipPath></defs>
+<g fill="var(--star)">${st}</g><circle cx="50" cy="40" r="34" fill="url(#${id}h)"/><circle cx="50" cy="40" r="22" fill="var(--dark)"/><g clip-path="url(#${id}c)"><path class="wlit" fill="url(#${id}g)"/><g fill="#0000002b"><circle cx="43" cy="34" r="4.4"/><circle cx="55" cy="46" r="5.6"/><circle cx="46" cy="50" r="2.6"/><circle cx="58" cy="31" r="2.4"/><circle cx="40" cy="44" r="2"/></g></g><circle cx="50" cy="40" r="22" fill="none" stroke="var(--dim)" stroke-opacity=".25" stroke-width=".4"/>
+<text data-bind="hm" x="50" y="84" font-size="15" font-weight="300" text-anchor="middle" fill="var(--ink)" letter-spacing="-.3"></text><text data-bind="dsh" x="50" y="10" font-size="4.2" font-weight="600" text-anchor="middle" fill="var(--dim)" letter-spacing=".5" style="text-transform:uppercase"></text><text class="wmph" x="50" y="94" font-size="3.6" font-weight="600" text-anchor="middle" fill="var(--dim)" letter-spacing=".4"></text></svg>` }; };
+// Modular: große Zeit + vier Komplikationen (Wetter, nächster Termin, Solar, Akku) aus den Daten der App
+const mring = c => `<svg class="wmr" viewBox="-10 -10 20 20"><circle r="7.6" fill="none" stroke="var(--${c})" stroke-opacity=".25" stroke-width="2.4"/><circle class="wmp" r="7.6" fill="none" stroke="var(--${c})" stroke-width="2.4" stroke-linecap="round" pathLength="1" stroke-dasharray="var(--p,0) 1" transform="rotate(-90)"/>`;
+const modular = () => ({ html: `<div class="wmt" data-bind="hm"></div><div class="wmd" data-bind="dsh"></div>
+<div class="wmg"><div class="wmc wmw"><div class="wmwt"><i class="wi" data-wxi></i><b data-bind="wxt"></b></div><small data-bind="wxc"></small></div>
+<div class="wmc wme"><em class="wet">–</em><b class="wen">Keine Termine</b><small class="wer"></small></div>
+<div class="wmc wms">${mring('yel')}<g fill="none" stroke="var(--yel)" stroke-width="1.2" stroke-linecap="round"><circle r="2"/><path d="M0-4.6v1.4M0 3.2v1.4M-4.6 0h1.4M3.2 0h1.4M-3.3-3.3l1 1M2.3 2.3l1 1M3.3-3.3l-1 1M-2.3 2.3l-1 1"/></g></svg><span><b class="wpv">–</b><small>kW Solar</small></span></div>
+<div class="wmc wmbat">${mring('grn')}<path d="M1.2-4.4L-2.2 .6h2.6l-1 3.8L2.4-.8H-.2z" fill="var(--grn)"/></svg><span><b class="wsoc">–</b><small>% Akku</small></span></div></div>` });
+
+const PARTS = { chrono, utility, meridian, typo, rings, solar, moon, modular };
 
 // bg = aufgelöster Hintergrund (Zahl | 'black' | 'white' | …), h = Farbton oder null, night = „auto“ nachts
 export function wfHTML(style, h, bg, night) {
@@ -97,10 +128,44 @@ export function wfAnimate(root) {
     return [per, w.animate(kf, { duration: per * 1000, iterations: Infinity })];
   });
 }
-// Minütlich: Tages- und Minutenring (Anteile 0–1)
-export function wfTick(d) {
+const fh = d => d.getHours() + d.getMinutes() / 60;
+// Minütlich: Ringe (Tag/Minute), Sonnenbahn (sun = sun.sun), Mondphase
+export function wfTick(d, sun) {
   const m = d.getMinutes() + d.getSeconds() / 60;
   for (const r of document.querySelectorAll('.wf-rings')) { r.style.setProperty('--d', (d.getHours() * 60 + m) / 1440); r.style.setProperty('--m', m / 60); }
+  for (const r of document.querySelectorAll('.wf-solar')) {
+    const at = a => { const t = a && new Date(a); return t && !isNaN(t) ? t : null; }, up = at(sun?.attributes?.next_rising), dn = at(sun?.attributes?.next_setting);
+    const sr = up ? fh(up) : 7.77, ss = dn ? fh(dn) : 17.43, len = Math.min(22, Math.max(2, (ss - sr + 24) % 24)), n = sr + len / 2, c0 = Math.cos(Math.PI * len / 24);
+    const Y = h => 62 - 26 * (Math.cos(2 * Math.PI * (h - n) / 24) - c0) / (1 - c0);
+    const path = 'M' + Array.from({ length: 97 }, (_, i) => `${(i / 96 * 100).toFixed(1)},${Y(i / 4).toFixed(1)}`).join('L');
+    r.querySelectorAll('.wsc').forEach(e => e.setAttribute('d', path)); r.querySelector('.wsf').setAttribute('d', path + 'L100,62L0,62Z');
+    r.querySelector('.wsun').setAttribute('transform', `translate(${(fh(d) / 24 * 100).toFixed(2)} ${Y(fh(d)).toFixed(2)})`);
+    const t = x => `${String(Math.floor(x)).padStart(2, '0')}:${String(Math.round(x % 1 * 60) % 60).padStart(2, '0')}`;
+    r.querySelector('.wsr').textContent = t(sr); r.querySelector('.wss').textContent = t(ss);
+  }
+  for (const r of document.querySelectorAll('.wf-moon')) {
+    const syn = 29.530588853, p = (((d - Date.UTC(2000, 0, 6, 18, 14)) / 864e5 % syn) + syn) % syn / syn, w = p < .5, pp = w ? p : 1 - p, rx = 22 * Math.abs(Math.cos(2 * Math.PI * pp));
+    const l = r.querySelector('.wlit'); l.setAttribute('d', `M50,18A22,22 0 0 1 50,62A${rx.toFixed(2)},22 0 0 ${pp < .25 ? 0 : 1} 50,18Z`); l.setAttribute('transform', w ? '' : 'translate(100 0) scale(-1 1)');
+    r.querySelector('.wmph').textContent = `${Math.round((1 - Math.cos(2 * Math.PI * p)) / 2 * 100)} % BELEUCHTET · ${p < .03 || p > .97 ? 'NEUMOND' : p < .47 ? 'ZUNEHMEND' : p < .53 ? 'VOLLMOND' : 'ABNEHMEND'}`;
+  }
+}
+// Modular: Solar und Akku aus der Energie-Auswertung (energyNow), nächster Termin aus der Terminliste
+export function wfEnergy(en) {
+  for (const r of document.querySelectorAll('.wf-modular')) {
+    const pv = en?.okPv ? en.pv / 1000 : null, soc = en?.okSoc ? en.soc : null;
+    r.querySelector('.wpv').textContent = pv == null ? '–' : pv.toLocaleString('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+    r.querySelector('.wms .wmp').style.setProperty('--p', pv == null ? 0 : Math.min(1, pv / 7));   // ponytail: Ring voll bei 7 kW (Anlagengröße), später aus Einstellung
+    r.querySelector('.wsoc').textContent = soc == null ? '–' : Math.round(soc);
+    r.querySelector('.wmbat .wmp').style.setProperty('--p', soc == null ? 0 : Math.min(1, soc / 100));
+  }
+}
+export function wfEvent(list, now = new Date()) {
+  const e = list?.find(x => !x.allDay && x.end > now), min = e && Math.round((e.start - now) / 6e4);
+  for (const r of document.querySelectorAll('.wf-modular .wme')) {
+    r.querySelector('.wet').textContent = e ? e.start.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : '';
+    r.querySelector('.wen').textContent = e ? e.title : list ? 'Keine Termine' : '–';
+    r.querySelector('.wer').textContent = !e ? '' : min <= 0 ? 'läuft' : min < 60 ? `in ${min} Min.` : min < 1440 ? `in ${Math.round(min / 60)} Std.` : e.start.toLocaleDateString('de-DE', { weekday: 'long' });
+  }
 }
 
 export const WF_CSS = `
@@ -138,5 +203,17 @@ export const WF_CSS = `
 .wf-rings .rc span{font-size:4cqw;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--dim)}
 .wf-rings .rc em{display:flex;align-items:center;gap:1.2cqw;font-style:normal;font-size:4.6cqw;font-weight:600;color:var(--dim)}
 .wf-rings .rc .wi{height:4.4cqw}
+/* Solar, Mond, Modular */
+.wf-solar .wswx{position:absolute;left:0;right:0;top:74cqw;display:flex;justify-content:center;align-items:center;gap:1.4cqw;font-size:4.8cqw;font-weight:600;color:var(--dim)}.wf-solar .wswx .wi{height:4.6cqw}
+.wf-modular{font-family:Inter,-apple-system,system-ui,sans-serif}
+.wf-modular .wmt{position:absolute;left:8.5cqw;top:6.5cqw;font-size:21cqw;font-weight:300;letter-spacing:-.04em;line-height:1.1}
+.wf-modular .wmd{position:absolute;right:8.5cqw;top:8.5cqw;font-size:4.2cqw;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--acc)}
+.wf-modular .wmg{position:absolute;left:7cqw;right:7cqw;top:40cqw;bottom:7cqw;display:grid;grid-template:1fr 1fr/1fr 1fr;gap:3cqw}
+.wf-modular .wmc{background:var(--card);border-radius:7cqw;padding:3.4cqw 4cqw;min-width:0;display:flex;flex-direction:column;justify-content:center;box-shadow:inset 0 0 0 .25cqw #ffffff12}
+.wf-modular small{font-size:3.5cqw;font-weight:500;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wf-modular .wmw{align-items:center;text-align:center;gap:.8cqw}.wf-modular .wmwt{display:flex;align-items:center;gap:1.6cqw;color:var(--blue)}.wf-modular .wmwt b{font-size:8.6cqw;font-weight:600}.wf-modular .wmwt .wi{height:6.2cqw}
+.wf-modular .wme{gap:.6cqw}.wf-modular .wet{font-style:normal;font-size:3.6cqw;font-weight:700;color:var(--red);letter-spacing:.03em}.wf-modular .wen{font-size:5cqw;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wf-modular .wms,.wf-modular .wmbat{flex-direction:row;align-items:center;gap:2.6cqw}.wf-modular .wmr{width:14.4cqw;height:14.4cqw;flex:none;overflow:visible}.wf-modular .wmp{transition:stroke-dasharray 1s cubic-bezier(.2,.8,.2,1)}
+.wf-modular .wms span,.wf-modular .wmbat span{display:grid;min-width:0}.wf-modular .wms b,.wf-modular .wmbat b{font-size:7.6cqw;font-weight:600;line-height:1.1}
 @media (prefers-reduced-motion:reduce){.wf-typo .wmb{animation:none}}
 `;

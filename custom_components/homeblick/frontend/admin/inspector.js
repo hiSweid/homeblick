@@ -51,6 +51,7 @@ export function mount(ed) {
       if (t.kind !== 'thermo') h += grp('Aktionen', navRow('Tippen', esc(act('tap')), 'tap') + navRow('Halten', esc(act('hold')), 'hold'), 'Standard: Licht schaltet, Halten öffnet den Dimmer; Schloss, Tor, Szene … wie bisher.');
       if (t.e) h += grp('', navRow('Aktuelle Daten', esc(en ? [en.state, en.unit].filter(Boolean).join(' ') : ''), 'data'));
     }
+    if (!(f.bg && typeof f.bg === 'object')) h += grp('Hintergrund der Seite', `<div class="stack">${dots('f.bg', BG, f.bg, bgCss)}</div>`, 'Gilt für die ganze Seite, nicht nur für diese Kachel.');
     h += grp('', `<button class="row danger" data-act="rm">Kachel entfernen</button>`);
     return { title: tileTitle(t), sub: faceName(f), more: true, body: h };
   }

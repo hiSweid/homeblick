@@ -161,6 +161,7 @@ function drawIn(f) {
 
 // ---------- Anzeige ----------
 let V = null, R = null;   // letzter Stand ({ ok, x: Werte je Schlüssel, st }); roll() aus index.html
+export const energyNow = () => V && { pv: V.x.pv, soc: V.x.soc, okPv: V.ok.pv, okSoc: V.ok.soc };   // für das Modular-Watchface
 const bd = (k, t) => { for (const e of $$(`[data-bind="${k}"]`)) if (e.textContent !== t) e.textContent = t; };
 // Zahl rollen; Richtung aus dem Wert (steigt → nach oben, sinkt → nach unten wie STEUERUNG P2-5)
 const rb = (k, t) => { for (const el of $$(`[data-bind="${k}"]`)) {

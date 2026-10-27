@@ -983,12 +983,12 @@ input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:tr
 
 <script type="module">
 import { weatherFace, weather, weatherHours, weatherNear, weatherPlaces, COND } from './weather.js';
-import { energyFace, energy, energyDemo, energyInit, energyEnts, energyDetail } from './energy.js';
+import { energyFace, energy, energyDemo, energyInit, energyEnts, energyDetail, energyNow } from './energy.js';
 import { kioskInit, KIOSK_DEF, luxLevel } from './kiosk.js';
 import { shot } from './shot.js';
 import { ICON, cleanConf, moveTo, normFaces, pack, rows } from './faces.js';
 import { wakeInit } from './wake.js';
-import { WF, wfHTML, wfAnimate, wfTick, WF_CSS } from './watchfaces.js';
+import { WF, wfHTML, wfAnimate, wfTick, wfEnergy, wfEvent, WF_CSS } from './watchfaces.js';
 document.head.insertAdjacentHTML('beforeend', `<style>${WF_CSS}</style>`);
 import { parseLRC, findLyrics } from './lyrics.js';
 import { voiceOK, voiceRun } from './voice.js';
@@ -1489,6 +1489,7 @@ function depthHTML(f) {
 function wfFace(el, f) {
   const b = bgOf(f); el.style.backgroundColor = ''; el.classList.remove('light', 'mono');
   el.innerHTML = wfHTML(f.style, hueOf(b), b, f.bg === 'auto' && isNight());
+  wfTick(new Date(), ents['sun.sun']); wfEnergy(energyNow()); infoEv();   // Daten sofort, nicht erst zur nächsten Minute
 }
 const FACE = {
   grid: (el, f) => {
@@ -1666,7 +1667,7 @@ function tick() {
   hands = hands.filter(([, a]) => a.effect.target.isConnected || a.cancel());
   for (const [per, a] of hands) a.currentTime = (s % per) * 1000;
   const hm = d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
-  bind('time', hm); bind('hm', `${d.getHours()}:${hm.slice(3)}`); bind('th', d.getHours()); bind('tmn', hm.slice(3)); bind('dsh', `${d.toLocaleDateString('de-DE', { weekday: 'short' }).replace('.', '')} ${d.getDate()}. ${d.toLocaleDateString('de-DE', { month: 'short' }).replace('.', '')}`); wfTick(d); glassSlots(hm); flowSlots(hm); [...hm.slice(0, 2)].forEach((c, i) => bind('dh' + i, !i && c === '0' ? '\u2007' : c)); [...hm.slice(3, 5)].forEach((c, i) => bind('dm' + i, c));
+  bind('time', hm); bind('hm', `${d.getHours()}:${hm.slice(3)}`); bind('th', d.getHours()); bind('tmn', hm.slice(3)); bind('dsh', `${d.toLocaleDateString('de-DE', { weekday: 'short' }).replace('.', '')} ${d.getDate()}. ${d.toLocaleDateString('de-DE', { month: 'short' }).replace('.', '')}`); wfTick(d, ents['sun.sun']); glassSlots(hm); flowSlots(hm); [...hm.slice(0, 2)].forEach((c, i) => bind('dh' + i, !i && c === '0' ? '\u2007' : c)); [...hm.slice(3, 5)].forEach((c, i) => bind('dm' + i, c));
   bind('wd', d.toLocaleDateString('de-DE', { weekday: 'short' }));
   bind('mo', d.toLocaleDateString('de-DE', { month: 'short' }));
   bind('day', d.getDate());
@@ -1974,7 +1975,7 @@ function render() {
   weatherPlaces(Object.keys(ents).filter(id => id.startsWith('weather.')).sort().map(id => [id, id === HOME.weather ? HOME.place : ents[id].attributes.friendly_name || id]), CFG.weather, pickPlace);
   doorbell(ents);
   peopleFill();
-  energy(ents, roll);
+  energy(ents, roll); wfEnergy(energyNow());
   if (timers(ents)) kiosk.wake();   // Timer abgelaufen → Display weckt
 
   // Musik: gewählter Player (AirPlay-Menü), sonst laufende Musik, sonst pausiert, sonst erster Lautsprecher
@@ -2619,11 +2620,12 @@ const events = () => loadEvents(calIds(), LIVE && ask).catch(e => (console.warn(
 // Info-Face: Termine heute links unten (Standard), alle 10 min neu geladen, jede Minute neu gefiltert; ohne calendar.*-Entities bleibt der Musikblock
 let evList, evAt = 0, evBusy = false;
 async function infoEv() {
-  const fs = $$('.f-info[data-ev]');
-  if (!fs.length) return;
+  const fs = $$('.f-info[data-ev]'), wm = $$('.wf-modular');
+  if (!fs.length && !wm.length) return;
   const have = Object.keys(ents).some(id => id.startsWith('calendar.'));
   if (have && !evBusy && Date.now() - evAt > 6e5) { evBusy = true; evList = await events(); evAt = evList ? Date.now() : Date.now() - 57e4; evBusy = false; }
   for (const f of fs) { f.classList.toggle('evon', !!(have && evList)); if (have && evList) $('.evb', f).innerHTML = infoHTML(evList); }
+  if (wm.length) wfEvent(have ? evList : []);
 }
 async function openEvents(face) {
   const l = $('#events .evl');
