@@ -4,12 +4,23 @@ A fluid, glassy wall-display panel for Home Assistant. Configurable faces (grid,
 
 **Status:** early prototype, not production ready.
 
-## Install (HACS)
+## Install
+
+Homeblick is not in the default catalog, so it is added as a custom repository (this needs a GitHub connection).
+
+**Home Assistant 2026.11 and newer (Marketplace):**
+
+1. *Settings → Marketplace* → **Add from link** → `hiSweid/homeblick` → **Add**.
+2. Install **Homeblick**. If Home Assistant asks for a restart (repair under *Settings → System → Repairs*), restart.
+3. Settings → Devices & services → Add integration → **Homeblick**.
+
+**Home Assistant 2026.10 and older (HACS):**
 
 1. HACS → Custom repositories → add `https://github.com/hiSweid/homeblick` (type: Integration).
 2. Install **Homeblick**, restart Home Assistant.
 3. Settings → Devices & services → Add integration → **Homeblick**.
-4. A **Homeblick** entry appears in the sidebar. Open it on the display: it reports itself and offers *Jetzt einrichten*. The settings page (*Homeblick Einstellungen*, admins) opens with a welcome and takes you through name, room and template; it jumps into that wizard as soon as the first display shows up. Faces, tiles and backgrounds are edited afterwards in the live editor.
+
+Afterwards a **Homeblick** entry appears in the sidebar. Open it on the display: it reports itself and offers *Jetzt einrichten*. The settings page (*Homeblick Einstellungen*, admins) opens with a welcome and takes you through name, room and template; it jumps into that wizard as soon as the first display shows up. Faces, tiles and backgrounds are edited afterwards in the live editor.
 
 No add-on, no extra token: the panel uses your existing Home Assistant login.
 
