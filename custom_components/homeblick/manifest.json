@@ -1,7 +1,6 @@
 {
   "domain": "homeblick",
   "name": "Homeblick",
-  "categories": ["productivity_information"],
   "codeowners": ["@hiSweid"],
   "config_flow": true,
   "dependencies": ["http", "frontend", "intent", "websocket_api"],
