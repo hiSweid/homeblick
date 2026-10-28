@@ -1559,6 +1559,12 @@ function lavaTick(now) {
   lavaRaf = busy ? requestAnimationFrame(lavaTick) : 0;   // Ruhe = Schleife steht, actIO startet sie bei der nächsten Ansicht
 }
 const lavaStart = () => lavaRaf ||= requestAnimationFrame(lavaTick);
+// Display wacht auf (Schwarz-Schoner, Dimmen, Bildschirm an), ohne dass das Face wechselt: Bewegung des sichtbaren Faces startet neu
+function replayAct() {
+  const f = faces.children[Math.round(faces.scrollLeft / (faces.clientWidth * 1.025))]; if (!f?.classList.contains('act')) return;
+  f.classList.remove('act'); f._da = 0; for (const c of f.querySelectorAll('canvas.amb')) c._a = 0;
+  setTimeout(() => { f.classList.add('act'); lavaStart(); drift(); }, 80);   // Pause, damit CSS-Animationen und Lava den Neustart sehen
+}
 // Flow (Vorlage faces_enhanced, unten links): weicher Verlauf aus Rosa, Blau und Violett, die Zeit als Glasformen. Linse = dieselben Farbflecken noch einmal, in die Ziffern geclippt und leicht vergrößert/versetzt
 // (keine Verzerrung per Filter: läuft ohne Live-Blur auch auf schwachen Tablets). Ziffern wechseln ohne Roll.
 const FSLOT = [[0, 27, 46], [1, 70, 46], [2, 27, 90], [3, 70, 90]];   // Mitte x, Grundlinie y (% Face)
@@ -3361,7 +3367,7 @@ pillsInit(screen, {
   done: (r, text) => nbPush({ title: text.replace(/ ist fertig$/, ''), message: 'ist fertig', duration: 0, entity: r.e }),
   quiet: () => { const d = CONF.kiosk?.dim, n = new Date(); return !!d && inWindow(n.getHours() * 60 + n.getMinutes(), mins(d.from), mins(d.to)); },
 });
-const kiosk = kioskInit({ faces, conf: () => CONF, lux: () => { const e = CONF.kiosk?.lux, v = e ? parseFloat(st(e).state) : NaN; return isNaN(v) ? null : luxLevel(v); }, busy: () => cur || AS.className || timerOn() || kzOn || nbOn(), touched: () => touched,
+const kiosk = kioskInit({ faces, onWake: replayAct, conf: () => CONF, lux: () => { const e = CONF.kiosk?.lux, v = e ? parseFloat(st(e).state) : NaN; return isNaN(v) ? null : luxLevel(v); }, busy: () => cur || AS.className || timerOn() || kzOn || nbOn(), touched: () => touched,
   music: () => NP && st(NP).state === 'playing' && !/video|movie|tvshow|channel/.test(st(NP).attributes.media_content_type),   // Filme/TV ohne device_class tv nicht als Musik
   onState: st => conn?.sendMessagePromise({ type: 'homeblick/report', display: DISPLAY, ...st, info: info() }).catch(() => {}) });
 if (!LIVE) camConfig({ list: [{ entity: 'camera.turklingel', name: 'Haustür', light: 'light.eingang' }, { entity: 'camera.cx410w_color_x_standardauflosung', name: 'Garten' }, { entity: 'camera.demo_veranda', name: 'Veranda' }, { entity: 'camera.demo_wohnzimmer', name: 'Wohnzimmer' }], bell: { event: 'event.turklingel_doorbell', camera: 'camera.turklingel' } });

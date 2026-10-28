@@ -7,10 +7,10 @@ export const mins = s => { const [h, m] = s.split(':'); return h * 60 + +m; };
 export const inWindow = (now, from, to) => from <= to ? now >= from && now < to : now >= from || now < to;   // über Mitternacht erlaubt
 
 // faces: Scroll-Container, conf: () => CONF, busy: () => Bearbeiten/Vollbild/Assist aktiv, touched: () => letzte Berührung (ms),
-// onState({ face, saver }) bei Änderung (Meldung an HA), music: () => läuft Musik (dann Musik-Face statt Schoner, Einstellung „music“)
+// onState({ face, saver }) bei Änderung (Meldung an HA), onWake() wenn das Display aufwacht, ohne dass das Face wechselt (Schwarz-Schoner, Dimmen, Bildschirm an), music: () => läuft Musik (dann Musik-Face statt Schoner, Einstellung „music“)
 export const luxLevel = lx => Math.min(1, .3 + .7 * Math.log10(1 + Math.max(0, lx)) / Math.log10(301));   // Lux → Helligkeitsfaktor: ≤0 lx 30 %, ab 300 lx 100 % (logarithmisch wie das Auge)
 
-export function kioskInit({ faces, conf, busy, touched, onState, music, lux }) {
+export function kioskInit({ faces, conf, busy, touched, onState, onWake, music, lux }) {
   const cfg = () => ({ ...KIOSK_DEF, ...conf().kiosk });
   const idx = () => Math.round(faces.scrollLeft / (faces.clientWidth * 1.025));
   const goto = (i, behavior = 'smooth') => faces.go(i, behavior !== 'smooth');
@@ -30,14 +30,14 @@ export function kioskInit({ faces, conf, busy, touched, onState, music, lux }) {
     req = navigator.wakeLock.request('screen').then(l => { wl = l; l.addEventListener('release', () => setTimeout(lock, 1000)); })
       .catch(() => {}).finally(() => req = null);
   };
-  lock(); document.addEventListener('visibilitychange', lock);
+  lock(); document.addEventListener('visibilitychange', () => { lock(); if (document.visibilityState === 'visible') onWake?.(); });
 
   // Dimmen/Helligkeit: schwarze Folie; Tippen hellt für 30 s auf
   const veil = Object.assign(document.createElement('div'), { style: 'position:fixed;inset:0;background:#000;pointer-events:none;z-index:99;opacity:0;transition:opacity 1.5s' });
   document.body.append(veil);
 
   // Erster Tipp aus dem Screensaver weckt nur (Capture, damit er die Kacheln nicht erreicht)
-  const wake = () => { last = Date.now(); if (back < 0) return false; goto(back); back = -1; veil.style.opacity = 0; return true; };
+  const wake = () => { last = Date.now(); if (back < 0) return false; const blk = cfg().black; goto(back); back = -1; veil.style.opacity = 0; if (blk) onWake?.(); return true; };
   document.addEventListener('pointerdown', e => { lock(); if (wake()) { e.stopPropagation(); e.preventDefault(); } }, true);
 
   const at = t => [...faces.children].findIndex(f => f.classList.contains('f-' + t));
@@ -67,9 +67,11 @@ export function kioskInit({ faces, conf, busy, touched, onState, music, lux }) {
     paint();
   }, 1000);
   // Helligkeit = Software-Folie (Browser kann die Hardware nicht steuern); ms = Überblendzeit (Kontrollzentrum-Regler: kurz, damit der Finger Wirkung sieht)
+  let dimmed = false;
   function paint(ms = 1500) {
     const { dim, bright, black } = cfg(), now = new Date(), min = now.getHours() * 60 + now.getMinutes();
     const d = dim && inWindow(min, mins(dim.from), mins(dim.to)) && Date.now() - last > 30000;
+    if (dimmed && !d) onWake?.(); dimmed = !!d;   // Tippen hellt das gedimmte Display auf
     veil.style.transitionDuration = ms + 'ms';
     veil.style.opacity = back >= 0 && black ? 1 : 1 - (1 - (d ? dim.level ?? .8 : 0)) * (bright ?? 1) * (lux?.() ?? 1);
   }
