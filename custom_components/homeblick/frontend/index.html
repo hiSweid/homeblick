@@ -85,6 +85,7 @@ svg.i{width:1em;height:1em;flex:none;fill:none;stroke:currentColor;stroke-width:
 [data-e^="cover."]{--accent:#ff9500}[data-e^="media_player."]{--accent:#ff2d55}   /* Schloss/Ventilator an: Icon dunkel wie Titel (Vorlage y-MO 02750), kein Akzent */
 .tile.on[data-e^="fan."]{--fanplay:running}
 .tile.na{opacity:.45}
+#clean{position:absolute;inset:0;z-index:97;background:#000d;backdrop-filter:blur(3cqw);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2cqw;text-align:center;touch-action:none}#clean b{font-size:18cqw;font-weight:600;font-variant-numeric:tabular-nums}#clean small{font-size:3.4cqw;opacity:.7}
 #setup{position:absolute;inset:0;z-index:99;background:#000;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2cqw;text-align:center;padding:0 10cqw}
 #setup b{font-size:9cqw;font-weight:600}#setup span{font-size:3.6cqw;color:#ffffff99;line-height:1.4}
 #setup small{font-size:3cqw;color:#ffffff66;letter-spacing:.08em;text-transform:uppercase}#setup button{margin-top:3cqw;font:inherit;font-size:3.8cqw;font-weight:600;color:#fff;background:#0a84ff;border:0;border-radius:99cqw;padding:2.2cqw 6cqw;cursor:pointer}
@@ -3529,6 +3530,15 @@ if (LIVE) {
       console[k] = (...a) => { o(...a); report(level, a.map(x => x?.message ?? x).join(' ')); };
     }
     let faceBack;
+    // Putzmodus: Overlay fängt jede Berührung ab, Ende per Zeitstempel (kein gespeicherter Zustand; "stop" beendet früher)
+    let cleanEnd;
+    const cleanMode = sec => {
+      cleanEnd?.(); kiosk.wake();
+      const end = Date.now() + sec * 1000, el = $('#screen').appendChild(Object.assign(document.createElement('div'), { id: 'clean' }));
+      const tick = () => { const r = Math.ceil((end - Date.now()) / 1000); if (r <= 0) return cleanEnd(); el.innerHTML = `<small>${tx('Putzmodus')}</small><b>${Math.floor(r / 60)}:${String(r % 60).padStart(2, '0')}</b><small>${tx('Berührungen sind gesperrt')}</small>`; };
+      const iv = setInterval(tick, 1000); tick();
+      cleanEnd = () => { clearInterval(iv); el.remove(); cleanEnd = null; };
+    };
     // Befehle und geänderte Einstellungen aus HA (Entities des Displays)
     hello.then(() => conn.subscribeMessage(c => {
       if (c.kiosk) { const w = [CFG.weather, CFG.place], g = !!CONF.kiosk?.guest; CONF.kiosk = c.kiosk; applyK(c.kiosk); if ([CFG.weather, CFG.place] + '' !== w + '') return location.reload(); if (!!c.kiosk.guest !== g) renderAll(curIdx()); wk(); }
@@ -3541,11 +3551,12 @@ if (LIVE) {
         if (c.duration && prev && prev !== c.face) faceBack = setTimeout(() => kiosk.show(prev), c.duration * 1000);
       }
       else if (c.action === 'reload') hardReload();
+      else if (c.action === 'clean') cleanMode(c.duration || 30);
       else if (c.action === 'screensaver') kiosk.sleep();
       else if (c.action === 'wake') kiosk.wake();
       else if (c.action === 'screenshot') shot().then(image => conn.sendMessagePromise({ type: 'homeblick/shot', display: DISPLAY, image })).catch(console.warn);
       else if (c.action === 'assist') { kiosk.wake(); assistStart(); }
-      else if (c.action === 'stop') { try { speechSynthesis.cancel(); } catch {} assistEnd(); }
+      else if (c.action === 'stop') { try { speechSynthesis.cancel(); } catch {} assistEnd(); cleanEnd?.(); }
       else if (c.action === 'navigate' && c.path) { const u = new URL(c.path, location.href); if (u.origin === location.origin) location.assign(u); }   // nur Pfade derselben Herkunft (Browser streicht Tab/Umbruch: "/\t/x" wäre sonst //x)
       else if (c.action === 'announce' && c.message) { kiosk.wake(); announce(c.message, c.title); }
       else if (c.action === 'notify' && c.message) nbPush(c);

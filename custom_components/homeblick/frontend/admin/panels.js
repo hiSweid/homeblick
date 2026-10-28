@@ -44,7 +44,7 @@ export function settings(el) {
     return G(tx('Displays'), tool('#/new', 'plus', '#007aff', tx('Neues Display'), tx('Name, Bereich und Vorlage wählen')) + tool('#/alerts', 'bell', '#ff3b30', tx('Mitteilungen'), tx('Karten, Kamerabilder und Ansagen aus Automationen')))
       + (ready.length > 1 || areas.length ? G(`${area ? esc(area) : tx('Alle Displays')} · ${tx('{n} online', { n: on_ })}`,
         (areas.length ? sroww(tx('Bereich'), '', `<button class="choice" data-area><span>${esc(area || tx('Alle'))}</span>${ic('chev-ud')}</button>`) : '')
-        + `<div class="quick">${[['reload', tx('Neu laden'), 'refresh'], ['assist', tx('Assist'), 'mic'], ['stop', tx('Abbrechen'), 'x'], ['screensaver', tx('Ruhemodus'), 'moon'], ['wake', tx('Aufwecken'), 'sun']].map(([c, n, i]) => `<button class="btn quiet" data-all="${c}" ${on_ ? '' : 'disabled'}>${ic(i)}${n}</button>`).join('')}</div>`
+        + `<div class="quick">${[['reload', tx('Neu laden'), 'refresh'], ['assist', tx('Assist'), 'mic'], ['stop', tx('Abbrechen'), 'x'], ['screensaver', tx('Ruhemodus'), 'moon'], ['wake', tx('Aufwecken'), 'sun'], ['clean', tx('Putzmodus'), 'lock']].map(([c, n, i]) => `<button class="btn quiet" data-all="${c}" ${on_ ? '' : 'disabled'}>${ic(i)}${n}</button>`).join('')}</div>`
         + sroww(tx('Zurück nach (s, leer = bleibt)'), '', `<input type="number" data-k="dur" min="1" max="3600" value="${esc(dur)}" placeholder="${tx('bleibt')}">`)
         + sroww(tx('Ansicht anzeigen'), '', selectBtn('allface', [['', tx('Wählen …')], ...TYPES], ''))
         + sroww(tx('Nachtmodus'), '', `<span class="seg"><button data-night="1">${tx('An')}</button><button data-night="0">${tx('Aus')}</button></span>`),

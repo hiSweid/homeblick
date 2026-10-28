@@ -117,6 +117,7 @@ export default {
   'Zurück nach (s, leer = bleibt)': 'Return after (s, empty = stays)',
   'bleibt': 'stays',
   'Ansicht anzeigen': 'Show view',
+  'Putzmodus': 'Cleaning mode',
   'Wählen …': 'Choose …',
   'Nachtmodus': 'Night mode',
   'An': 'On',

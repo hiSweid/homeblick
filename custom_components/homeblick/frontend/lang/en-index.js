@@ -140,6 +140,8 @@ export default {
   'Mikrofon stumm': 'Mute microphone',
   'Schoner halten': 'Keep screensaver',
   'Ruhemodus': 'Sleep',
+  'Putzmodus': 'Cleaning mode',
+  'Berührungen sind gesperrt': 'Touch is locked',
   'Wäsche': 'Laundry',
   'Die Waschmaschine ist fertig.': 'The washing machine is done.',
   'Paket': 'Package',
