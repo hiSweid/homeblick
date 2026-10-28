@@ -1531,19 +1531,12 @@ function lavaDraw(c, t) {
 }
 let lavaRaf = 0, lavaT = 0;
 const calm = matchMedia('(prefers-reduced-motion:reduce)');
-// Wallpaper-Drift: einmal je Ansicht (.act) in 40 s mit Ausklang zur Gegenseite (--wx/--wy von ±1 nach ∓1), danach Stillstand; 2 Hz, beim Wischen zieht der Scroll-Handler das einlaufende Face sofort nach
+// Wallpaper-Drift: dauerhaft für Faces im Bild: Kosinus über 106 s (--wx) bzw. 142 s (--wy), 2 Hz (unter 1 px je Schritt); beim Wischen zieht der Scroll-Handler das einlaufende Face sofort nach
 let driftT = 0;
 function drift() {
   const now = Date.now(); if (now - driftT < 120 || document.hidden || calm.matches || root.classList.contains('perf')) return;
-  driftT = now;
-  for (const f of faces.children) {
-    if (!f.classList.contains('act')) { f._da = 0; continue; }
-    if (!f._da) { f._da = now; f._dp = 0; f._x0 = f._x ?? 0; f._y0 = f._y ?? 0; }
-    if (f._dp === 1) continue;
-    const p = f._dp = Math.min(1, (now - f._da) / 40000), e = 1 - (1 - p) ** 2;
-    f._x = f._x0 + ((f._x0 >= 0 ? -1 : 1) - f._x0) * e; f._y = f._y0 + ((f._y0 >= 0 ? -1 : 1) - f._y0) * e;
-    f.style.setProperty('--wx', f._x.toFixed(3)); f.style.setProperty('--wy', f._y.toFixed(3));
-  }
+  driftT = now; const t = now / 1e3, x = (-Math.cos(t * Math.PI / 53)).toFixed(3), y = (-Math.cos(t * Math.PI / 71)).toFixed(3);
+  for (const f of faces.children) { const r = f.getBoundingClientRect(); if (r.right > 0 && r.left < innerWidth) { f.style.setProperty('--wx', x); f.style.setProperty('--wy', y); } }   // jedes Face im Bild (nicht nur .act): kein Sprung beim Hereinwischen
 }
 setInterval(drift, 500); faces.addEventListener('scroll', drift, { passive: true }); drift();
 const LAVA_T0 = 20;   // Startbild ohne Bewegung (Leistungsmodus, Face nie sichtbar gewesen)
@@ -1562,7 +1555,7 @@ const lavaStart = () => lavaRaf ||= requestAnimationFrame(lavaTick);
 // Display wacht auf (Schwarz-Schoner, Dimmen, Bildschirm an), ohne dass das Face wechselt: Bewegung des sichtbaren Faces startet neu
 function replayAct() {
   const f = faces.children[Math.round(faces.scrollLeft / (faces.clientWidth * 1.025))]; if (!f?.classList.contains('act')) return;
-  f.classList.remove('act'); f._da = 0;
+  f.classList.remove('act');
   setTimeout(() => { f.classList.add('act'); lavaStart(); drift(); }, 80);   // Pause, damit CSS-Animationen und Lava den Neustart sehen
 }
 // Flow (Vorlage faces_enhanced, unten links): weicher Verlauf aus Rosa, Blau und Violett, die Zeit als Glasformen. Linse = dieselben Farbflecken noch einmal, in die Ziffern geclippt und leicht vergrößert/versetzt
@@ -1769,7 +1762,7 @@ function initDials(scope) {
 // Wanduhr-Sekunden (DST-Tage); weit entfernte Faces ticken sonst mit 60 Hz im Hauptthread → Zeiger ausserhalb pausieren, beim Sichtbarwerden auf die Uhrzeit setzen
 const wallS = (d = new Date()) => d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds() + d.getMilliseconds() / 1000;
 const musicIO = new IntersectionObserver(es => { for (const e of es) e.target.isConnected ? e.target.classList.toggle('vo', !e.isIntersecting) : musicIO.unobserve(e.target); }, { threshold: .01 });
-// Bewegung einmal je Ansicht: .act ab 60 % sichtbar (Face neu geladen oder angeschaut), erst unter 5 % wieder weg (kein Zurückspringen beim Wischen) – Lavalampe, Flow, Tiefen-Uhr und Ambient-Licht laufen unter .act dauerhaft (GPU/Canvas), der Wallpaper-Drift läuft einmal und steht danach (Neuzeichnen im Main-Thread)
+// Bewegung nur bei sichtbarem Face: .act ab 60 % sichtbar (Face neu geladen oder angeschaut), erst unter 5 % wieder weg (kein Zurückspringen beim Wischen) – Lavalampe, Flow, Tiefen-Uhr und Ambient-Licht laufen unter .act dauerhaft (GPU/Canvas), der Wallpaper-Drift ebenfalls (2 Hz, Neuzeichnen im Main-Thread: stärkster Posten, im Leistungsmodus aus)
 const actIO = new IntersectionObserver(es => { for (const e of es) { if (!e.target.isConnected) { actIO.unobserve(e.target); continue; } if (e.intersectionRatio >= .6) { e.target.classList.add('act'); lavaStart(); drift(); } else if (e.intersectionRatio < .05) e.target.classList.remove('act'); } }, { threshold: [0, .05, .6] });
 const dialIO = new IntersectionObserver(es => { for (const e of es) if (!e.target.isConnected) dialIO.unobserve(e.target); else for (const [per, a] of e.target._h || []) if (e.isIntersecting) { a.currentTime = (wallS() % per) * 1000; a.play(); } else a.pause(); }, { threshold: .01 });
 // Zahlen-Roll: alt raus, neu mit Feder rein (Richtung dir = ±1, 0 = ohne Animation)
