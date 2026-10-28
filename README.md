@@ -1,8 +1,19 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/hiSweid/homeblick/main/docs/img/hero-dark.png">
+    <img src="https://raw.githubusercontent.com/hiSweid/homeblick/main/docs/img/hero-light.png" alt="Homeblick on a 4 inch ESP32-S3 touch display" width="900">
+  </picture>
+</p>
+
 # Homeblick
 
 A fluid, glassy wall-display panel for Home Assistant. Configurable faces (grid, music, clock, weather, calendar, energy, timer, camera), spring animations, settings stored in Home Assistant and shared by every display.
 
-**Status:** early prototype, not production ready.
+**Status:** beta.
+
+<p align="center"><img src="https://raw.githubusercontent.com/hiSweid/homeblick/main/docs/img/demo.webp" alt="Homeblick in motion: hold a light to dim it, set the thermostat, swipe through music, clock, weather, energy, calendar, to-do list and home check" width="480"></p>
+
+<p align="center"><img src="https://raw.githubusercontent.com/hiSweid/homeblick/main/docs/img/cards.png" alt="Homeblick faces and tiles" width="900"></p>
 
 ## Install
 
@@ -23,6 +34,20 @@ Homeblick is not in the default catalog, so it is added as a custom repository (
 Afterwards a **Homeblick** entry appears in the sidebar. Open it on the display: it reports itself and offers *Jetzt einrichten*. The settings page (*Homeblick Einstellungen*, admins) opens with a welcome and takes you through name, room and template; it jumps into that wizard as soon as the first display shows up. Faces, tiles and backgrounds are edited afterwards in the live editor.
 
 No add-on, no extra token: the panel uses your existing Home Assistant login.
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/hiSweid/homeblick/main/docs/img/faces.png" alt="Smart home, music and clock faces" width="49%">
+  <img src="https://raw.githubusercontent.com/hiSweid/homeblick/main/docs/img/duo.png" alt="Wall tablet next to a 4 inch panel" width="49%">
+</p>
+<p align="center">
+  <img src="https://raw.githubusercontent.com/hiSweid/homeblick/main/docs/img/music-dark.png" alt="Music face with full-bleed cover art" width="49%">
+  <img src="https://raw.githubusercontent.com/hiSweid/homeblick/main/docs/img/detail.png" alt="Liquid glass tiles" width="49%">
+</p>
+
+<sub>The pictures show the web interface on a mock-up of a Waveshare ESP32-S3-Touch-LCD-4B (4″, 480×480). The panel export (*Für ESP-Display exportieren*) is a reduced layout for LVGL panels: grid, music, clock and weather only.</sub>
+
+<details>
+<summary><b>All features and settings</b></summary>
 
 ## evcc
 
@@ -104,6 +129,8 @@ A ring of the doorbell event wakes the display, plays a chime and opens the door
 
 Also: `#music`, `#bigclock`, … in the URL switches to that face; the screen is kept awake via the Wake Lock API.
 
+</details>
+
 ## Kiosk / wall tablet
 
 Open `https://<your-ha>/homeblick/index.html?live` directly in the tablet's browser (full screen, without the Home Assistant sidebar; sign in once). Without `?live` the page shows demo data. Add `&display=<id>&name=<Name>` once to give the tablet a fixed display id. Use a browser in kiosk/full-screen mode (or "Add to home screen") and keep the tablet on power; Homeblick keeps the screen awake via the Wake Lock API.
@@ -125,3 +152,5 @@ Synced lyrics come from [LRCLIB](https://lrclib.net) (exact match, then title + 
 The Home Assistant WebSocket client ([home-assistant-js-websocket](https://github.com/home-assistant/home-assistant-js-websocket) 9.7.1, Apache-2.0) is bundled unchanged in `frontend/vendor/`, so the panel starts without internet.
 
 The wake word uses [openWakeWord](https://github.com/dscripka/openWakeWord) models in `frontend/wake/` and onnxruntime-web (from a CDN). The pre-trained models are licensed **CC BY-NC-SA 4.0** (non-commercial); the feature models are Apache-2.0.
+
+Pictures in `docs/img`: cover art is from The Metropolitan Museum of Art's Open Access collection (CC0): Vincent van Gogh, *Irises* and *La Berceuse*; album and artist names are made up. The device mock-up follows the published dimensions of the Waveshare board; Waveshare is not affiliated with this project.
