@@ -562,10 +562,11 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 /* Glas wie Home-Kachel, aber wie im Entwurf gesättigter (backdrop saturate 1.3 + Weiß 6 %): Wallpaper-Schicht als ::after mit Filter (statisch, einmal gerastert) */
 /* Uhr: dieselbe Glasfläche, rund (Entwurf: .g mit border-radius 50 %) */
 .f-energy:not(.light) :is(.et,.dial.glass){background:none}
-.f-energy:not(.light) .dial.glass{isolation:isolate;box-shadow:inset 0 .25cqw .1cqw #ffffff59,inset 0 -.25cqw .1cqw #ffffff40,inset 0 0 0 .25cqw #ffffff2e,0 0 0 .13cqw #0000002e,0 .6cqw 2cqw #0003}
+.f-energy:not(.light) :is(.et,.dial.glass){isolation:isolate;box-shadow:0 0 0 .13cqw #0000002e,0 .6cqw 2cqw #0003}   /* nur Außenlinie + Schatten: die helle Kante zeichnet ::after, sonst steht sie doppelt */
 .f-energy:not(.light) :is(.et,.dial.glass)::after{content:"";position:absolute;inset:0;z-index:-2;border-radius:inherit;filter:saturate(1.3);
   box-shadow:inset 0 .25cqw .1cqw #ffffff59,inset 0 -.25cqw .1cqw #ffffff40,inset 0 0 0 .25cqw #ffffff2e;   /* helle Glaskante: ::after (isolation) liegt über den inset-Schatten des Elements */
   background:linear-gradient(165deg,#fff3,#fff1 45%,#fff0 75%),linear-gradient(#ffffff0f,#ffffff0f),var(--wpb) calc(-1*(var(--pad) + var(--c)*(var(--t) + var(--gap)))) calc(-1*(var(--pad) + var(--r)*(var(--t) + var(--gap))))/100cqw 100cqw}
+@supports (corner-shape:squircle){.f-energy:not(.light) .et::after{corner-shape:squircle}}   /* corner-shape erbt nicht: ohne das ist die Glaskante rund, die Kachel selbst Squircle → versetzter Doppelrand an den Ecken */
 .f-energy:not(.light) .et.on{color:var(--eink)}.f-energy:not(.light) .et.on .sub{color:var(--eink2)}
 .f-energy:not(.light) .et.on::before{background:linear-gradient(#fffe,#ffffffc8)}
 /* Solarkurve: Fläche 24×11 cqw, rechts 4 / unten 4,4; Fenster 1 cqw größer + 4 cqw weiche Kante rechts (Wischblende) */

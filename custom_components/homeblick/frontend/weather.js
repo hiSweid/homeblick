@@ -254,7 +254,7 @@ export function weatherFace(el, f, place = '') {
 }
 // Stil „Bedingungen“ (Vorlage product-viewer/display_endframe, frames/pv-display_1…5): Ort, große Temperatur, Zustand, H/T mittig;
 // darunter Glaskarte mit Segment Temperatur/Niederschlag/Wind und horizontal scrollender Stundenleiste (HA-Vorhersage hourly).
-// Abweichung: Vorlage zeigt unter den Icons nichts mehr (Karte läuft aus dem Bild) → Werte darunter, Zeilen dafür etwas höher
+// Abweichung: Vorlage lässt die Karte unten aus dem Bild laufen → hier ganz sichtbar (Rand 4,3 cqw wie seitlich, Werte unter den Icons), Ort/Temperatur/Zustand dafür 3 cqw höher
 const MODES = { t: ['Temperatur (°C)', `<svg viewBox="0 2 28 24">${behind('<circle cx="20" cy="11.3" r="4.2"/>', CL(0, 3.5, 1))}</svg>`], p: ['Niederschlag (%)', '<svg viewBox="0 0 28 24"><path d="M14 2.5s-6.5 8-6.5 12.6a6.5 6.5 0 0 0 13 0C20.5 10.5 14 2.5 14 2.5z"/></svg>'], w: ['Wind (km/h)', FOOT.wind] };
 let hours = [], far = false;   // far: Fern-Ansicht (nur Text), sonst Nah mit Karte
 const setFar = (el, v) => { if (el.closest('.gallery,.custom')) return; el.toggleAttribute('data-far', v); };
@@ -441,17 +441,17 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 .wcond>time{right:8.8cqw;top:8.4cqw;font-size:3.93cqw;font-weight:400;transition:opacity .4s .2s}
 .wcond .wtop{left:0;right:0;top:0;height:60cqw;text-align:center}
 .wcond .wtop>*{position:absolute;left:0;right:0;line-height:1;transform-origin:50% 0;transition:transform var(--sd,.64s) var(--spring,ease-out)}
-.wcond .wtop b{top:19.1cqw;font-size:7cqw;font-weight:600;letter-spacing:-.045em}
-.wcond .wtop>div{top:27.7cqw;font-size:16.2cqw;font-weight:300;padding-left:3.8cqw}
+.wcond .wtop b{top:16.1cqw;font-size:7cqw;font-weight:600;letter-spacing:-.045em}
+.wcond .wtop>div{top:24.7cqw;font-size:16.2cqw;font-weight:300;padding-left:3.8cqw}
 .wcond .wtop span{font-size:3.85cqw;font-weight:400;letter-spacing:-.045em}
-.wcond .wtop span:nth-of-type(1){top:44.9cqw}
-.wcond .wtop span:nth-of-type(2){top:49.7cqw;word-spacing:.34em}
-.wcond[data-far] .wtop b{transform:translateY(5.1cqw) scale(1.2)}
-.wcond[data-far] .wtop>div{transform:translateY(7.35cqw) scale(1.66)}
-.wcond[data-far] .wtop span:nth-of-type(1){transform:translateY(18.5cqw) scale(1.46)}
-.wcond[data-far] .wtop span:nth-of-type(2){transform:translateY(20.7cqw) scale(1.44)}
+.wcond .wtop span:nth-of-type(1){top:41.9cqw}
+.wcond .wtop span:nth-of-type(2){top:46.7cqw;word-spacing:.34em}
+.wcond[data-far] .wtop b{transform:translateY(8.1cqw) scale(1.2)}
+.wcond[data-far] .wtop>div{transform:translateY(10.35cqw) scale(1.66)}
+.wcond[data-far] .wtop span:nth-of-type(1){transform:translateY(21.5cqw) scale(1.46)}
+.wcond[data-far] .wtop span:nth-of-type(2){transform:translateY(23.7cqw) scale(1.44)}
 .wcond[data-far]>time{opacity:0;transition-delay:0s}
-.wcard{corner-shape:squircle;left:4.4cqw;right:4.3cqw;top:64.2cqw;bottom:-6cqw;border-radius:5.1cqw;background:rgb(11 78 149/.5);-webkit-backdrop-filter:blur(3cqw);backdrop-filter:blur(3cqw);text-shadow:none;overflow:hidden;transition:transform var(--sd,.64s) var(--spring,ease-out) .1s,opacity .4s .1s}
+.wcard{corner-shape:squircle;left:4.4cqw;right:4.3cqw;bottom:4.3cqw;padding-bottom:3.65cqw;border-radius:5.1cqw;background:rgb(11 78 149/.5);-webkit-backdrop-filter:blur(3cqw);backdrop-filter:blur(3cqw);text-shadow:none;overflow:hidden;transition:transform var(--sd,.64s) var(--spring,ease-out) .1s,opacity .4s .1s}
 .wcond[data-far] .wcard{transform:translateY(40cqw);opacity:0;pointer-events:none;transition-delay:0s}
 .wcard header{display:flex;justify-content:space-between;align-items:flex-start;padding:3.65cqw 4.6cqw 0 4.2cqw}
 .wcard header b{display:block;font-size:4.9cqw;font-weight:600;line-height:1.15;letter-spacing:-.03em}
