@@ -2,8 +2,9 @@
 // Alles wirkt sofort, außer dem Theme: das gehört zum Entwurf des Layouts und braucht „Senden“.
 import { $, $$, choose, esc, guard, ic, toast } from './ui.js';
 import { S, call, cur, dirty, emit, mutate, on, save, setSetting } from './state.js';
-import { BG_SETS, THEMES, MODES, TYPES, WAKE, bgAll, bgCss, bgCur, bgVal, faceName } from './meta.js';
+import { BG_SETS, THEME_LIST, MODES, TYPES, WAKE, bgAll, bgCss, bgCur, bgVal, faceName } from './meta.js';
 import { hueOf, wall } from '../wallpapers.js';
+import { TH } from '../themes.js';
 import { ago, ledOf } from './util.js';
 import { bind, entityRow, numberRow, selectRow, sliderRow, switchRow, textRow, timeRow, sroww } from './controls.js';
 import { copyLayoutFrom, copySettingsFrom, applyToOthers, exportEsp, exportLayout, importLayout, removeDisplay, renameDisplay, screenshot } from './actions.js';
@@ -26,6 +27,9 @@ const langNow = () => { try { return localStorage.getItem('hb_lang') || ''; } ca
 const LANGS = () => [['', tx('Automatisch')], ['de', 'Deutsch'], ['en', 'English']];
 const micList = v => [['', tx('Standard des Geräts')], ...[...new Set([...(cur().info?.mics || []), ...(v ? [v] : [])])].map(m => [m, m])];   // gewähltes, gerade fehlendes Mikro bleibt sichtbar
 const DEPS = { dim_from: s => s.dim, dim_to: s => s.dim, dim_level: s => s.dim, sched_from: s => s.sched, sched_to: s => s.sched, wake_sens: s => s.wake !== 'off', barge: s => s.wake !== 'off' };
+// Look-Kacheln: Liquid/Flat als Verlauf, eigene Themes als Mini-Raster mit echtem Hintergrund und Kachelmaterial (Rand: cqw → px)
+const thMini = o => [[14, 14, 0], [52, 14, 0], [14, 52, 1], [52, 52, 0]].map(([x, y, on]) => `<u style="position:absolute;left:${x}%;top:${y}%;width:34%;height:34%;border-radius:22%;background:${esc(on ? o.v.on : o.v.glass)};box-shadow:${esc((on && o.v.onrim || o.v.rim).replace(/([\d.]+)cqw/g, (_, n) => n * 4 + 'px'))}"></u>`).join('');
+const thGrid = cur => `<div class="bg-grid">${THEME_LIST.map(([id, n, g]) => { const o = TH(id), bg = o ? (o.bg ? thumb(o.bg, o.mode === 'light') : o.v.blk || o.v.paper || (o.mode === 'light' ? '#fff' : '#000')) : g; return `<button type="button" class="bg-tile" data-th="${id}" aria-pressed="${id === cur}"><i style="background:${esc(bg)};position:relative;overflow:hidden;display:block">${o ? thMini(o) : ''}</i><span>${esc(n)}</span></button>`; }).join('')}</div>`;
 const G = (title, body, foot = '') => `<div class="sect">${title ? `<div class="group-h">${title}</div>` : ''}<div class="group">${body}</div>${foot ? `<div class="group-f">${foot}</div>` : ''}</div>`;
 const thumb = (v, lit) => hueOf(bgVal(v)) == null ? bgCss(bgVal(v)) : `${wall(bgVal(v), lit)[0]} center/cover`;   // Tageszeit/Schwarz/Weiß haben kein Wallpaper
 const stack = (label, control) => `<div class="stack"><span class="s-label">${label}</span>${control}</div>`;
@@ -74,7 +78,7 @@ export function mount(el, route) {
     wake: x => G('', entityRow(tx('Bewegungs-/Präsenzmelder'), 'presence', x.presence, { domains: ['binary_sensor'], dcs: ['motion', 'occupancy', 'presence'], none: tx('Keiner'), title: tx('Melder') }, tx('Solange „an“, bleibt das Display wach'), 'presence') + switchRow(tx('Kontrollzentrum'), 'kz', x.kz, tx('Wisch von oben rechts: Helligkeit, Lautstärke, Schalter'), 'kz')),
     pills: () => pillsHTML(S.cfg, G),
     look: () => `<div class="look-grid"><aside class="look-pv" aria-label="${tx('Vorschau aller Ansichten')}">${S.cfg.faces.map(f => `<figure class="pv-card" data-f="${esc(f.id)}"><div class="pv-dev"><iframe title="${esc(faceName(f))}" src="index.html?preview"></iframe></div><figcaption>${esc(faceName(f))}</figcaption></figure>`).join('')}</aside><div class="look-ctl">`
-      + G(tx('Look'), `<div class="stack">${seg2('look', THEMES, S.cfg.theme || 'liquid')}</div>`) + G(tx('Modus'), `<div class="stack">${seg2('mode', MODES, S.cfg.mode || 'dark')}</div>`)
+      + G(tx('Look'), thGrid(S.cfg.theme || 'liquid')) + `<div id="set-mode" ${TH(S.cfg.theme) ? 'hidden' : ''}>${G(tx('Modus'), `<div class="stack">${seg2('mode', MODES, S.cfg.mode || 'dark')}</div>`)}</div>`
       + BG_SETS.map(([n, l]) => G(n, `<div class="bg-grid">${l.map(([v, t]) => `<button type="button" class="bg-tile" data-bg="${esc(v)}" aria-pressed="${String(bgCur(S.cfg)) === String(v)}"><i data-w="${esc(v)}" style="background:${esc(thumb(v, S.cfg.mode === 'light'))}"></i><span>${esc(t)}</span></button>`).join('')}</div>`)).join('')
       + `<div class="sect"><div class="group-f">${tx('Die Vorschau zeigt alle Ansichten live. Der Hintergrund gilt für alle Ansichten außer Wetter, Musik, Kalender, Kameras, Fotos und Ansichten mit eigenem Foto.')}</div></div></div></div>`,
     status: () => `<div id="set-live">${liveRows(cur())}</div>` + G(tx('Bildschirmfoto'), `<div class="s-actions"><button class="btn quiet" data-cmd="shot" ${cur().connected ? '' : 'disabled'}>${ic('image')}${tx('Aufnehmen')}</button></div>${S.shots[S.sel] ? `<img class="shot" id="set-shot" src="${S.shots[S.sel]}" alt="">` : ''}`, tx('Bilder von fremden Servern, Kamera-Video und WebGL fehlen im Foto.')),
@@ -145,8 +149,10 @@ export function mount(el, route) {
   let lit = light();
   const looks = () => {
     if (!S.cfg || !$('.look-grid', el)) return;
-    $$('.bg-tile', el).forEach(b => b.setAttribute('aria-pressed', String(bgCur(S.cfg)) === b.dataset.bg));
-    if (lit !== light()) { lit = light(); $$('.bg-tile i', el).forEach(i => { i.style.background = thumb(i.dataset.w, lit); }); }
+    $$('.bg-tile[data-bg]', el).forEach(b => b.setAttribute('aria-pressed', String(bgCur(S.cfg)) === b.dataset.bg));
+    $$('.bg-tile[data-th]', el).forEach(b => b.setAttribute('aria-pressed', b.dataset.th === (S.cfg.theme || 'liquid')));
+    const sm = $('#set-mode', el); if (sm) sm.hidden = !!TH(S.cfg.theme);
+    if (lit !== light()) { lit = light(); $$('.bg-tile[data-bg] i', el).forEach(i => { i.style.background = thumb(i.dataset.w, lit); }); }
     push();
   };
   el.addEventListener('click', async e => {
@@ -163,6 +169,7 @@ export function mount(el, route) {
     }
     const pe = q('[data-pill-add],[data-pill-del],[data-pill-up]');
     if (pe && !pe.disabled) { const sc = $('#sm .scroller', el)?.scrollTop || 0, d = pe.dataset; if (d.pillAdd !== undefined) { if (!await pillsAdd()) return; } else if (d.pillDel !== undefined) pillsDel(+d.pillDel); else pillsUp(+d.pillUp); paintMain(); const n = $('#sm .scroller', el); if (n) n.scrollTop = sc; return; }
+    const th = q('[data-th]'); if (th) { mutate(tx('Look geändert'), cfg => { cfg.theme = th.dataset.th; if (TH(cfg.theme)) bgAll(cfg, 'auto'); }); return looks(); }   // eigenes Theme: Hintergrund wieder „Tageszeit“ = der des Themes
     const t = q('[data-bg]'); if (t) { mutate(tx('Hintergrund geändert'), cfg => bgAll(cfg, bgVal(t.dataset.bg))); return looks(); }
     const m = q('[data-m]');
     if (m && !m.disabled) {

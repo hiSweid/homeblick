@@ -6,7 +6,7 @@ export const LANG = pick(new URLSearchParams(globalThis.location?.search).get('l
 export const LOC = LANG === 'de' ? 'de-DE' : 'en-GB';   // Datum/Zahlen/24-Stunden-Uhr
 export const setLang = l => { try { l ? localStorage.setItem('hb_lang', l) : localStorage.removeItem('hb_lang'); } catch {} location.reload(); };
 
-const FILES = ['en-index', 'en-faces', 'en-info', 'en-device', 'en-admin', 'en-editor'];
+const FILES = ['en-index', 'en-faces', 'en-info', 'en-device', 'en-admin', 'en-editor', 'en-themes'];
 const EN = LANG === 'de' ? {} : Object.assign({}, ...(await Promise.all(FILES.map(f => import(`./lang/${f}.js`)))).map(m => m.default));
 
 // tx('Text mit {n} Platzhalter', { n }) · Kontext bei gleichem deutschem Text: tx('Zu‖Fenster') (alles ab ‖ wird nie angezeigt)

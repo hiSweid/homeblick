@@ -1,0 +1,88 @@
+/* Themes (themes.js): Tokens --th-* stehen auf <html>, html[data-th] schaltet diese Regeln ein; Liquid/Flat bleiben unberührt.
+   Specificity bewusst ≥ der Altregeln (.light .tile …), deshalb html[data-th] vorne. Reihenfolge: Material → Kacheln → Pillen/Listen/Karten → Uhren → Kalender/Datum → Overlays. */
+
+/* ---------- Grundflächen ---------- */
+html[data-th]{--glass:var(--th-glass);--th-fill:color-mix(in srgb,var(--th-ink) 14%,transparent)}
+html[data-th] .face.mono:not(.f-music):not(.f-cams){background-color:var(--th-blk,#000)}
+html[data-th] .face.light{--paper:var(--th-paper,#fff);background-color:var(--th-paper,#fff);color:var(--th-ink)}
+html[data-th] :is(.f-grid,.f-people,.f-todo,.f-check,.f-energy):not(.f-music){color:var(--th-ink)}
+
+/* ---------- Kacheln ---------- */
+html[data-th] .tile{color:var(--th-ink);box-shadow:var(--th-rim),var(--th-sh,0 .6cqw 2cqw #0003)}
+html[data-th] .tile .sub{color:var(--th-sub)}
+html[data-th] .tile::before{display:block;background:var(--th-on)}
+html[data-th] .tile.on{color:var(--th-onink);box-shadow:var(--th-onrim,var(--th-rim)),var(--th-onsh,var(--th-sh,0 .6cqw 2cqw #0003))}
+html[data-th] .tile.on .sub{color:var(--th-onsub)}
+html[data-th] .tile.on .ico{color:var(--accent,var(--th-acc))}
+html[data-th] .light .tile{background:var(--th-glass)}
+html[data-th] .tile :is(.ttl,.big){font-weight:var(--th-fw,600)}
+html[data-th] :is(.f-grid,.f-people,.f-todo,.f-check,.f-energy){--ink:var(--th-onink)!important;--ink2:var(--th-onsub)!important}
+
+/* ---------- Pillen oben (Live-Pillen, Timer) ---------- */
+html[data-th] .lp,html[data-th] #prow .tpill{background:var(--th-pill);color:var(--th-pillink);-webkit-backdrop-filter:blur(2cqw);backdrop-filter:blur(2cqw)}
+html[data-th] .rg::before{background:var(--th-pill)}
+html[data-th] .tpill em{color:var(--th-sub)}
+
+/* ---------- Listen und Karten (Personen, Aufgaben, Haus-Check) ---------- */
+html[data-th] :is(.prow,.chero,.crow,.trow,.tplus){box-shadow:var(--th-rim)}
+html[data-th] .prow.home,html[data-th] .tchip.on{background:var(--th-on);color:var(--th-onink)}
+html[data-th] .tchip{background:var(--th-fill)}
+html[data-th] .pav{background:var(--th-fill)}
+html[data-th] .tck{box-shadow:inset 0 0 0 .5cqw var(--th-sub)}
+html[data-th] .trow.done .tck{background:var(--th-ink)}html[data-th] .trow.done .tck::after{border-color:var(--th-blk,var(--th-paper,#fff))}
+html[data-th] :is(.crow button,.tadd button){background:var(--th-accent);color:var(--th-accink)}
+html[data-th] .tadd input{background:var(--th-on);color:var(--th-onink)}
+html[data-th] .tsep button{background:var(--th-fill)}
+
+/* ---------- Energie ---------- */
+html[data-th] .f-energy{--eink:var(--th-onink);--eink2:var(--th-onsub);--trk:var(--th-fill)}
+html[data-th] .f-energy:not(.light) .et.on::before{background:var(--th-on)}
+html[data-th] .f-energy .dim{color:var(--th-sub)}
+
+/* ---------- Uhren ---------- */
+html[data-th] .f-grid .dial .hand{color:var(--th-ink)}
+html[data-th] .f-grid .ss::after{background:var(--th-acc)}
+html[data-th] .f-grid .dial .ss{color:var(--th-accent)}
+html[data-th] .f-grid .dial svg g{stroke:var(--th-ink)}
+html[data-th] .f-grid .dial.glass{background:var(--th-glass)}
+html[data-th] .f-grid .dial .pin{background:radial-gradient(circle,var(--th-blk,var(--th-paper,#fff)) 0 22%,var(--th-ink) 26%)}
+html[data-th] .f-bigclock.stack:not(.mono):not(.light){background:var(--wp) calc((var(--wx) + 1)*-3cqw) calc((var(--wy) + 1)*-3cqw)/106cqw 106cqw}
+html[data-th] .f-bigclock.stack.mono{background:var(--th-blk,#000)}
+html[data-th] .f-bigclock.stack.light{background:var(--th-paper,#fff)}
+html[data-th] .f-bigclock.stack:is(.mono,.light,:not(.x)) .gt{fill:var(--th-clk)}
+html[data-th] .f-bigclock.stack:is(.mono,.light,:not(.x)) .gslow .gt{fill:var(--th-clk2)}
+html[data-th] .f-bigclock :is(.bt,.bs){color:var(--th-ink)}
+
+/* ---------- Kalender und Datum ---------- */
+html[data-th] .f-calendar:not([data-acc]){--paper:var(--th-cpaper);--cb:var(--th-cb);--cr:var(--th-cr);--cd:var(--th-cd);--cc:var(--th-cc)}
+html[data-th] .f-calendar.mono:not([data-acc]) .days i{color:var(--th-sub)}
+html[data-th] .f-date{--paper:var(--th-cpaper);--ink:var(--th-ink)}
+html[data-th] .f-date.light{background-image:none;background-color:var(--th-cpaper)}
+html[data-th] .f-date.mono{--ink:var(--th-ink);background-color:var(--th-cpaper)}
+
+/* ---------- Vollbild-Ansichten und Overlays ---------- */
+html[data-th] #climate{background:color-mix(in srgb,var(--cc) var(--th-cl,100%),var(--th-blk,var(--th-paper,#000)))}
+html[data-th] :is(#dimmer,#shade){background:var(--th-cpaper);color:var(--th-ink)}
+html[data-th] :is(#dimmer,#shade) .fill{background:var(--th-accent)}
+html[data-th] :is(#dimmer,#shade) .fill :is(.ico,.pct){color:var(--th-accink)}
+html[data-th] :is(#dimmer,#shade) .fill small{color:var(--th-accink);opacity:.7}
+html[data-th] :is(#dimmer,#shade,#events) .top{color:var(--th-ink)}
+html[data-th] :is(#dimmer,#shade,#events) .x{background:var(--th-fill);color:var(--th-ink)}
+html[data-th] #events{background:var(--th-cpaper);color:var(--th-ink)}
+html[data-th] .ev{background:color-mix(in srgb,var(--c) 15%,var(--th-cpaper))}
+html[data-th][data-mode=dark] .ev{background:color-mix(in srgb,var(--c) 28%,var(--th-cpaper));color:color-mix(in srgb,var(--c) 40%,#fff)}
+html[data-th][data-mode=dark] .ev:not(.ad) span{color:color-mix(in srgb,var(--c) 66%,#fff)}
+html[data-th] .evnone{color:var(--th-sub)}
+html[data-th] .hring{color:var(--th-ink)}
+html[data-th][data-mode=light] #assist{color:var(--th-ink)}
+
+/* ---------- Uhren mit eigener Farbwelt: folgen dem Farbton des Themes (einfarbige Themes haben sonst keinen) ---------- */
+html[data-th] .face{--h:var(--th-hue)}   /* ohne Farb-Hintergrund; mit Farbton setzt applyBg --h am Face selbst (gleicher Wert) */
+html[data-th] .f-bigclock.lava{--h:calc(var(--th-hue) - 34)!important}
+html[data-th] .f-bigclock.flow{background:hsl(var(--th-hue) 55% 82%)}
+html[data-th] .wf-typo.dk{--bg:hsl(var(--th-hue) 45% 7%)!important;--b1:hsl(var(--th-hue) 80% 38%)!important;--b2:hsl(calc(var(--th-hue) + 45) 80% 34%)!important;--b3:hsl(calc(var(--th-hue) - 45) 85% 30%)!important;--hi:linear-gradient(180deg,#fff,hsl(calc(var(--th-hue) + 30) 90% 82%))!important}
+html[data-th] .wf-typo.lt{--bg:hsl(var(--th-hue) 85% 93%)!important;--b1:hsl(var(--th-hue) 95% 82%)!important;--b2:hsl(calc(var(--th-hue) + 45) 95% 84%)!important;--b3:hsl(calc(var(--th-hue) - 45) 95% 86%)!important;--ink:hsl(var(--th-hue) 40% 17%)!important;--ink2:hsl(var(--th-hue) 25% 17% / .6)!important;--hi:linear-gradient(180deg,hsl(var(--th-hue) 62% 30%),hsl(calc(var(--th-hue) - 28) 72% 46%))!important}
+/* Overlays: Assist-Antwortkarte und PIN-Feld auf dem Papier/Schwarz des Themes */
+html[data-th] #assist .abg{background:var(--th-cpaper)}
+html[data-th] #assist .ans{color:var(--th-ink)}
+html[data-th] #pin{background:var(--th-cpaper);color:var(--th-ink)}

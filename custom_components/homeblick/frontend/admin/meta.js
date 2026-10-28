@@ -5,6 +5,7 @@ import { entsIn } from './entities.js';
 export { GROUP };
 import { entOf, DOM, allEnts, energyPrefs } from './entities.js';
 import { detect, ready } from './detect.js';
+import { THEMES as OWN } from '../themes.js';
 export const FACE = {
   grid: ['Smart Home', '#ff9500', 'grid'], music: [tx('Musik'), '#ff2d55', 'music'], bigclock: [tx('Uhr digital'), '#636366', 'clock'], analog: [tx('Uhr analog'), '#5856d6', 'clock'],
   calendar: [tx('Kalender'), '#ff3b30', 'cal'], date: [tx('Datum'), '#8e8e93', 'cal'], weather: [tx('Wetter'), '#32ade6', 'sun'], energy: [tx('Energie'), '#34c759', 'bolt'], info: ['Info', '#30b0c7', 'info'], cams: [tx('Kameras'), '#8e8e93', 'cam'], people: [tx('Personen'), '#5ac8fa', 'person'], todo: [tx('Aufgaben'), '#ff9500', 'check'], check: [tx('Haus-Check'), '#30d158', 'lock'], photos: [tx('Fotos'), '#ff2d55', 'cam'],
@@ -90,6 +91,7 @@ export const themeGrid = cfg => cfg.faces.find(f => f.type === 'grid') || cfg.fa
 export const bgCur = cfg => { const b = themeGrid(cfg).bg; return { prism: 'prism:245', teal: 'fan:172' }[b] ?? b; };   // Kurzformen wie die Auswahl schreiben
 export const bgAll = (cfg, v) => cfg.faces.forEach(f => { if (THEME_TYPES.includes(f.type) && themeBg(f)) f.bg = v; });
 export const THEMES = [['liquid', 'Liquid', 'linear-gradient(135deg,#e29b56,#a8541a)'], ['flat', 'Flat', 'linear-gradient(135deg,#e8e8e8 50%,#c6c2e3 50%)']];
+export const THEME_LIST = [...THEMES, ...OWN.map(t => [t.id, t.name, ''])];   // Look-Auswahl: Liquid, Flat und die eigenen Themes (themes.js)
 export const MODES = [['dark', tx('Dunkel'), 'linear-gradient(135deg,#3a3a3c,#1c1c1e)'], ['light', tx('Hell'), 'linear-gradient(135deg,#fff,#d8d8dc)']];
 export const LOOKS = [['', 'Theme', 'linear-gradient(135deg,#d8d8dc,#8e8e93)'], ...THEMES];
 export const SV = { light: [['', tx('Standard')], ['fill', tx('Füllstand')]], value: [['', tx('Standard')], ['value', tx('Wert')]], circle: [['', tx('Standard')], ['circle', tx('Kreis')]], blind: [['', tx('Standard')], ['blind', tx('Fläche')]], spark: [['', tx('Standard')], ['value', tx('Wert')], ['spark', tx('Verlauf')]], media: [['', tx('Standard')], ['cover', tx('Cover')]], camera: [['', tx('Standard')], ['live', tx('Livebild')]] };   // Stil-Varianten (Ideen-Galerie) je Kachel-Art
