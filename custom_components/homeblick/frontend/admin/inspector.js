@@ -99,6 +99,8 @@ export function mount(ed) {
     if (f.type === 'calendar' || f.type === 'info') { const cs = entsOf('calendar'); h += grp('Kalender', cs.map(e => sroww(esc(e.name), '', sw(!f.cals || f.cals.includes(e.id), 'cal:' + e.id))).join('') || '<div class="srow"><span class="s-label muted">Keine Kalender in Home Assistant</span></div>'); }
     if (f.type === 'cams') h += grp('Kameras', `<button class="row tap" data-goto="#/settings"><span class="av" style="--c:#8e8e93">${ic('cam')}</span><span class="t"><b>Kameras und Türklingel</b><small>gelten für alle Displays</small></span>${ic('right')}</button>`);
     if (f.type === 'todo') h += grp('Liste', sroww('Liste', '', entityBtn('f.todo', f.todo || '', { domains: ['todo'], none: 'Erste Liste', title: 'Liste wählen' }, 'Erste Liste')), 'Ohne Auswahl zeigt die Ansicht die erste Liste, bei mehreren kann man am Display wechseln.');
+    if (f.type === 'photos') h += grp('Quelle', textRow('Medienquelle', 'f.src', f.src || '', { ph: 'media-source://immich/…', max: 300 }, 'Medien-ID eines Immich-Albums oder Ordners aus „Medien“ in Home Assistant (Seitenleiste → Medien → Ordner öffnen → „Medien-ID kopieren“)'), 'Bis zu 300 Bilder (JPEG, PNG, WebP) aus der Quelle und ihren Unterordnern, gemischt. Im Bildschirmschoner wählbar: Einstellungen → Bildschirmschoner → Ansicht „Fotos“.')
+      + grp('Wechsel', stack('Bild alle', segB('f.sec', [['10', '10 s'], ['20', '20 s'], ['60', '1 min'], ['300', '5 min']], String(f.sec || 20))));
     if (f.type === 'check') h += grp('Ausnahmen', textRow('Ignorieren', 'f.skip', f.skip || '', { ph: 'z. B. Garage, Gästezimmer', max: 200 }, 'Namen oder Entitäten, mit Komma getrennt, werden nicht geprüft'), 'Der Haus-Check liest Tür- und Fenstersensoren, Schlösser, Garagentore, Wassermelder und Batterien.');
     h += grp('', `<button class="row tap" data-act="show" ${d?.connected ? '' : 'disabled'}>${ic('monitor-eye')}<span class="t"><b>Auf dem Display zeigen</b></span></button><button class="row tap" data-act="hide">${ic('eye-off')}<span class="t"><b>Ansicht ausblenden</b></span></button>`);
     h += grp('', `<button class="row danger" data-act="del">Ansicht löschen</button>`);
@@ -156,6 +158,8 @@ export function mount(ed) {
       if (p === 'bg') return mt('Hintergrund geändert', g => { g.bg = bgVal(v); });
       if (p === 'design') return mt('Stil geändert', g => { Object.assign(g, withDesign(S.cfg, g, v)); });
       if (p === 'todo') return mt('Liste geändert', g => { v ? g.todo = v : delete g.todo; });
+      if (p === 'src') { if (phase === 'input') return; return mt('Quelle geändert', g => { const t = String(v).trim(); t ? g.src = t : delete g.src; }); }
+      if (p === 'sec') return mt('Wechselzeit geändert', g => { g.sec = +v; });
       if (p === 'skip') { if (phase === 'input') return; return mt('Ausnahmen geändert', g => { const t = String(v).trim(); t ? g.skip = t : delete g.skip; }); }
       return;
     }

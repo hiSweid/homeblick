@@ -6,7 +6,7 @@ import { entOf, DOM, allEnts, energyPrefs } from './entities.js';
 import { detect, ready } from './detect.js';
 export const FACE = {
   grid: ['Smart Home', '#ff9500', 'grid'], music: ['Musik', '#ff2d55', 'music'], bigclock: ['Uhr digital', '#636366', 'clock'], analog: ['Uhr analog', '#5856d6', 'clock'],
-  calendar: ['Kalender', '#ff3b30', 'cal'], date: ['Datum', '#8e8e93', 'cal'], weather: ['Wetter', '#32ade6', 'sun'], energy: ['Energie', '#34c759', 'bolt'], info: ['Info', '#30b0c7', 'info'], cams: ['Kameras', '#8e8e93', 'cam'], people: ['Personen', '#5ac8fa', 'person'], todo: ['Aufgaben', '#ff9500', 'check'], check: ['Haus-Check', '#30d158', 'lock'],
+  calendar: ['Kalender', '#ff3b30', 'cal'], date: ['Datum', '#8e8e93', 'cal'], weather: ['Wetter', '#32ade6', 'sun'], energy: ['Energie', '#34c759', 'bolt'], info: ['Info', '#30b0c7', 'info'], cams: ['Kameras', '#8e8e93', 'cam'], people: ['Personen', '#5ac8fa', 'person'], todo: ['Aufgaben', '#ff9500', 'check'], check: ['Haus-Check', '#30d158', 'lock'], photos: ['Fotos', '#ff2d55', 'cam'],
 };
 export const TYPES = Object.entries(FACE).map(([k, v]) => [k, v[0]]);
 export const BG = [['auto', 'Tageszeit'], ['black', 'Schwarz'], ['white', 'Weiß'], ['metal', 'Metall'], ['prism', 'Prisma'], ['teal', 'Teal'], [30, 'Orange'], [5, 'Rot'], [340, 'Rosa'], [285, 'Violett'], [307, 'Pink'], [228, 'Blau'], [205, 'Türkis'], [212, 'Himmel'], [150, 'Grün']];
@@ -27,7 +27,7 @@ export const bgVal = v => /^\d+$/.test(v) ? +v : v;
 export const stripArea = (en, area) => area ? en.name.replace(new RegExp('^' + area.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '[\\s:_-]*', 'i'), '').trim() : en.name;
 export const tileOf = (en, area = en.area) => ({ e: en.id, title: stripArea(en, area) || autoTitle(en), sub: area, ...(['sensor', 'binary_sensor'].includes(en.domain) && { val: 'state' }) });
 
-export const FACE_BG = { grid: 'auto', music: 'black', bigclock: 150, weather: 212, energy: 'auto', calendar: 'white', date: 'auto', analog: 150, info: 'auto', cams: 'black', people: 'auto', todo: 'auto', check: 'auto' };
+export const FACE_BG = { grid: 'auto', music: 'black', bigclock: 150, weather: 212, energy: 'auto', calendar: 'white', date: 'auto', analog: 150, info: 'auto', cams: 'black', people: 'auto', todo: 'auto', check: 'auto', photos: 'black' };
 // Standard: alle wichtigen Ansichten. Was das Haus nicht hergibt (kein Player, kein Wetter, keine Kamera, kein evcc …), liegt versteckt bereit statt leer zu laufen.
 const HAS = { music: e => e.domain === 'media_player', weather: e => e.domain === 'weather', cams: e => e.domain === 'camera', people: e => e.domain === 'person', todo: e => e.domain === 'todo', check: e => e.domain === 'lock' || (e.domain === 'binary_sensor' && ['door', 'window', 'opening', 'garage_door', 'moisture'].includes(e.dc)) };
 export const energyGuess = () => detect(allEnts(), energyPrefs());   // Energie-Face: Entities aus Energie-Dashboard bzw. Namen/Einheiten

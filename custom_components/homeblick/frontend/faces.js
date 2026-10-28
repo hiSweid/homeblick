@@ -15,7 +15,7 @@ export const siblings = t => Object.keys(GROUP).filter(k => GROUP[k] === GROUP[t
 const dedupe = (list, seen) => { for (let i = 0; i < list.length; i++) { const g = GROUP[list[i].type]; if (!g) continue; if (seen.has(g)) list.splice(i--, 1); else seen.add(g); } };
 
 // Struktur prüfen: eine kaputte gespeicherte Konfig würde sonst bei jedem Start renderAll sprengen
-const FACE_TYPES = ['grid', 'music', 'bigclock', 'analog', 'calendar', 'date', 'weather', 'energy', 'cams', 'people', 'todo', 'check', 'info'];   // = Schlüssel von FACE (index.html)
+const FACE_TYPES = ['grid', 'music', 'bigclock', 'analog', 'calendar', 'date', 'weather', 'energy', 'cams', 'people', 'todo', 'check', 'photos', 'info'];   // = Schlüssel von FACE (index.html)
 // Kachelfelder mit falschem Typ verwerfen (kindOf/iconOf rufen String-Methoden); night rekursiv
 const cleanTile = t => { for (const k of ['e', 'title', 'sub', 'icon', 'kind', 'cs', 'k', 'dom']) if (typeof t[k] !== 'string') delete t[k]; if (Array.isArray(t.ents)) t.ents = t.ents.filter(x => typeof x === 'string').slice(0, 100); else delete t.ents; if (t.night && typeof t.night === 'object' && !Array.isArray(t.night)) cleanTile(t.night); else delete t.night; return t; };
 // Kacheln haben „Smart Home“ und „Energie“; Energie ohne gespeicherte Kacheln startet mit den bisherigen acht (ENERGY_TILES), ein leeres Feld bleibt leer

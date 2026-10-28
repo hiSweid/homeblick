@@ -27,7 +27,8 @@
           "cams": "Kameras",
           "people": "Personen",
           "todo": "Aufgaben",
-          "check": "Haus-Check"
+          "check": "Haus-Check",
+          "photos": "Fotos"
         }
       },
       "saver": {
@@ -45,7 +46,8 @@
           "cams": "Kameras",
           "people": "Personen",
           "todo": "Aufgaben",
-          "check": "Haus-Check"
+          "check": "Haus-Check",
+          "photos": "Fotos"
         }
       },
       "wake": {

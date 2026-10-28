@@ -54,7 +54,7 @@ notify:
     face:
       selector:
         select:
-          options: [bigclock, analog, weather, music, grid, calendar, date, energy, info, cams, people, todo, check]
+          options: [bigclock, analog, weather, music, grid, calendar, date, energy, info, cams, people, todo, check, photos]
     entity:
       selector:
         entity:
