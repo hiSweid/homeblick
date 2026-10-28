@@ -126,20 +126,20 @@ if (typeof document !== 'undefined') document.head.insertAdjacentHTML('beforeend
 .lp,.tpill{--c:#ff9230}
 @property --v{syntax:'<number>';inherits:true;initial-value:0}
 @property --a{syntax:'<angle>';inherits:false;initial-value:0deg}
-.lp,#prow .tpill{position:relative;flex:none;display:flex;align-items:center;gap:.9cqw;height:3.8cqw;padding:0 1.8cqw 0 .45cqw;border-radius:2cqw;background:#161618;color:#fff;font-size:2.2cqw;font-weight:600;line-height:1;
-  font-variant-numeric:tabular-nums;box-shadow:0 .4cqw 1.6cqw #0008;transition:scale .25s}
-.lp::before{content:"";position:absolute;inset:-3cqw -.5cqw}
+.lp,#prow .tpill{position:relative;flex:none;display:flex;align-items:center;gap:1.17cqw;height:4.94cqw;padding:0 2.34cqw 0 0.59cqw;border-radius:2.6cqw;background:#161618;color:#fff;font-size:2.86cqw;font-weight:600;line-height:1;
+  font-variant-numeric:tabular-nums;box-shadow:0 0.52cqw 2.08cqw #0008;transition:scale .25s}
+.lp::before{content:"";position:absolute;inset:-3.9cqw -0.65cqw}
 .lp:active{scale:.94;transition:scale .12s ease-out}
 /* Ring statt Icon-Fläche: der Fortschritt füllt sich weich nach (--v animiert), unbekannter Fortschritt = kreisender Bogen, fertig = voller grüner Ring */
-.rg{position:relative;flex:none;width:2.9cqw;height:2.9cqw;border-radius:50%;display:grid;place-items:center;background:conic-gradient(var(--c) calc(var(--v) * 1%),#ffffff22 0);transition:--v .9s cubic-bezier(.3,.7,.2,1)}
-.rg::before{content:"";position:absolute;inset:.3cqw;border-radius:50%;background:#161618}
+.rg{position:relative;flex:none;width:3.77cqw;height:3.77cqw;border-radius:50%;display:grid;place-items:center;background:conic-gradient(var(--c) calc(var(--v) * 1%),#ffffff22 0);transition:--v .9s cubic-bezier(.3,.7,.2,1)}
+.rg::before{content:"";position:absolute;inset:0.39cqw;border-radius:50%;background:#161618}
 .lp.ind .rg{background:conic-gradient(from var(--a),#0000 0 62%,var(--c));animation:lpr 1.5s linear infinite}
-.rg svg{position:relative;width:1.6cqw;height:1.6cqw;fill:none;stroke:var(--c);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
-.lp b{max-width:24cqw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rg svg{position:relative;width:2.08cqw;height:2.08cqw;fill:none;stroke:var(--c);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.lp b{max-width:31.2cqw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .lp i{flex:none;font-style:normal;font-weight:600;color:var(--c)}
 .lp.fin i{font-weight:500}
 #prow .tpill b{color:var(--c)}#prow .tpill em{color:#fff}
-#prow .tpill .gl{width:1.6cqw;height:1.6cqw;stroke:var(--c);stroke-width:2.4}
+#prow .tpill .gl{width:2.08cqw;height:2.08cqw;stroke:var(--c);stroke-width:2.4}
 #prow .tpill.pa .rg{opacity:.6}
 @keyframes lpr{to{--a:360deg}}
 </style>`);
