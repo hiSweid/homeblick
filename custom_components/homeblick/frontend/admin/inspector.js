@@ -96,6 +96,7 @@ export function mount(ed) {
     if (f.type === 'energy') h += grp('', navRow('Entitäten', `${Object.keys(f.ents || {}).filter(k => k !== 'carName').length || 'Standard'}`, 'energy', `<span class="av" style="--c:${meta[1]}">${ic('bolt')}</span>`), 'Ohne Auswahl liest die Ansicht die Standard-Entitäten (evcc, Kostal, Solcast).');
     if (f.type === 'calendar' || f.type === 'info') { const cs = entsOf('calendar'); h += grp('Kalender', cs.map(e => sroww(esc(e.name), '', sw(!f.cals || f.cals.includes(e.id), 'cal:' + e.id))).join('') || '<div class="srow"><span class="s-label muted">Keine Kalender in Home Assistant</span></div>'); }
     if (f.type === 'cams') h += grp('Kameras', `<button class="row tap" data-goto="#/settings"><span class="av" style="--c:#8e8e93">${ic('cam')}</span><span class="t"><b>Kameras und Türklingel</b><small>gelten für alle Displays</small></span>${ic('right')}</button>`);
+    if (f.type === 'todo') h += grp('Liste', sroww('Liste', '', entityBtn('f.todo', f.todo || '', { domains: ['todo'], none: 'Erste Liste', title: 'Liste wählen' }, 'Erste Liste')), 'Ohne Auswahl zeigt die Ansicht die erste Liste, bei mehreren kann man am Display wechseln.');
     h += grp('', `<button class="row tap" data-act="show" ${d?.connected ? '' : 'disabled'}>${ic('monitor-eye')}<span class="t"><b>Auf dem Display zeigen</b></span></button><button class="row tap" data-act="hide">${ic('eye-off')}<span class="t"><b>Ansicht ausblenden</b></span></button>`);
     h += grp('', `<button class="row danger" data-act="del">Ansicht löschen</button>`);
     return { title: faceName(f), sub: `Ansicht ${i + 1} · ${meta[0]}`, more: true, del: ['del', 'Ansicht löschen'], body: h };
@@ -151,6 +152,7 @@ export function mount(ed) {
     if (ns === 'f') {
       if (p === 'bg') return mt('Hintergrund geändert', g => { g.bg = bgVal(v); });
       if (p === 'design') return mt('Stil geändert', g => { Object.assign(g, withDesign(S.cfg, g, v)); });
+      if (p === 'todo') return mt('Liste geändert', g => { v ? g.todo = v : delete g.todo; });
       return;
     }
     if (ns === 'e' && p === 'carName' && phase === 'input') return;

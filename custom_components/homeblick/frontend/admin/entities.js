@@ -8,7 +8,7 @@ export const DOM = {
   script: ['Skript', '#6b7280', 'script'], media_player: ['Medien', '#d6336c', 'play'], fan: ['Ventilator', '#1096b0', 'fan'],
   timer: ['Timer', '#d9930f', 'timer'], camera: ['Kamera', '#5856d6', 'cam'], sensor: ['Sensor', '#266df0', 'pulse'],
   binary_sensor: ['Binärsensor', '#266df0', 'pulse'], weather: ['Wetter', '#1d8fd0', 'cloud'], calendar: ['Kalender', '#d93f3f', 'cal'],
-  event: ['Ereignis', '#9b51e0', 'bolt'], input_boolean: ['Schalter', '#6b7280', 'switch'], button: ['Taster', '#6b7280', 'switch'], input_button: ['Taster', '#6b7280', 'switch'],
+  event: ['Ereignis', '#9b51e0', 'bolt'], todo: ['Aufgaben', '#ff9500', 'check'], input_boolean: ['Schalter', '#6b7280', 'switch'], button: ['Taster', '#6b7280', 'switch'], input_button: ['Taster', '#6b7280', 'switch'],
 };
 const STATE = { on: 'an', off: 'aus', locked: 'verriegelt', unlocked: 'entsperrt', open: 'offen', closed: 'zu', opening: 'öffnet', closing: 'schließt',
   playing: 'spielt', paused: 'pausiert', idle: 'bereit', active: 'läuft', unavailable: 'nicht verfügbar', unknown: 'unbekannt', home: 'zuhause', not_home: 'abwesend',

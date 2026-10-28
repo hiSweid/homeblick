@@ -11,7 +11,7 @@ import { openGallery } from './gallery.js';
 
 const SC = [1, .7, .52, .42], GAP = 26, OP = [1, .62, .3, 0];
 const xOf = (d, S_) => { let x = 0; for (let k = 0; k < Math.min(Math.abs(d), 4); k++) x += S_ * (SC[k] ?? .4) / 2 + GAP + S_ * (SC[k + 1] ?? .4) / 2; return Math.sign(d) * x; };
-const PAGE_SUB = { grid: 'Kacheln für Lampen, Szenen und Geräte', music: 'Wiedergabe und Cover', bigclock: 'Große Uhr', analog: 'Analoge Uhr', weather: 'Wetter und Vorhersage', energy: 'Solar, Netz, Batterie, Auto', calendar: 'Termine', date: 'Datum groß', cams: 'Kameras und Türklingel', people: 'Wer ist zuhause', info: 'Info' };
+const PAGE_SUB = { grid: 'Kacheln für Lampen, Szenen und Geräte', music: 'Wiedergabe und Cover', bigclock: 'Große Uhr', analog: 'Analoge Uhr', weather: 'Wetter und Vorhersage', energy: 'Solar, Netz, Batterie, Auto', calendar: 'Termine', date: 'Datum groß', cams: 'Kameras und Türklingel', people: 'Wer ist zuhause', todo: 'Einkaufsliste und Aufgaben', info: 'Info' };
 
 export function mount(ed) {
   let mode = 'deck', slots = new Map(), ghosts = new Map(), offs = [], drag = null, lastIx = 0;

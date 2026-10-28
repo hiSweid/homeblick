@@ -25,7 +25,8 @@
           "energy": "Energy",
           "info": "Info",
           "cams": "Cameras",
-          "people": "People"
+          "people": "People",
+          "todo": "Tasks"
         }
       },
       "saver": {
@@ -41,7 +42,8 @@
           "energy": "Energy",
           "info": "Info",
           "cams": "Cameras",
-          "people": "People"
+          "people": "People",
+          "todo": "Tasks"
         }
       },
       "wake": {

@@ -6,7 +6,7 @@ import { entOf, DOM, allEnts, energyPrefs } from './entities.js';
 import { detect, ready } from './detect.js';
 export const FACE = {
   grid: ['Smart Home', '#ff9500', 'grid'], music: ['Musik', '#ff2d55', 'music'], bigclock: ['Uhr digital', '#636366', 'clock'], analog: ['Uhr analog', '#5856d6', 'clock'],
-  calendar: ['Kalender', '#ff3b30', 'cal'], date: ['Datum', '#8e8e93', 'cal'], weather: ['Wetter', '#32ade6', 'sun'], energy: ['Energie', '#34c759', 'bolt'], info: ['Info', '#30b0c7', 'info'], cams: ['Kameras', '#8e8e93', 'cam'], people: ['Personen', '#5ac8fa', 'person'],
+  calendar: ['Kalender', '#ff3b30', 'cal'], date: ['Datum', '#8e8e93', 'cal'], weather: ['Wetter', '#32ade6', 'sun'], energy: ['Energie', '#34c759', 'bolt'], info: ['Info', '#30b0c7', 'info'], cams: ['Kameras', '#8e8e93', 'cam'], people: ['Personen', '#5ac8fa', 'person'], todo: ['Aufgaben', '#ff9500', 'check'],
 };
 export const TYPES = Object.entries(FACE).map(([k, v]) => [k, v[0]]);
 export const BG = [['auto', 'Tageszeit'], ['black', 'Schwarz'], ['white', 'Weiß'], ['metal', 'Metall'], ['prism', 'Prisma'], ['teal', 'Teal'], [30, 'Orange'], [5, 'Rot'], [340, 'Rosa'], [285, 'Violett'], [307, 'Pink'], [228, 'Blau'], [205, 'Türkis'], [212, 'Himmel'], [150, 'Grün']];
@@ -27,13 +27,13 @@ export const bgVal = v => /^\d+$/.test(v) ? +v : v;
 export const stripArea = (en, area) => area ? en.name.replace(new RegExp('^' + area.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '[\\s:_-]*', 'i'), '').trim() : en.name;
 export const tileOf = (en, area = en.area) => ({ e: en.id, title: stripArea(en, area) || autoTitle(en), sub: area, ...(['sensor', 'binary_sensor'].includes(en.domain) && { val: 'state' }) });
 
-export const FACE_BG = { grid: 'auto', music: 'black', bigclock: 150, weather: 212, energy: 'auto', calendar: 'white', date: 'auto', analog: 150, info: 'auto', cams: 'black', people: 'auto' };
+export const FACE_BG = { grid: 'auto', music: 'black', bigclock: 150, weather: 212, energy: 'auto', calendar: 'white', date: 'auto', analog: 150, info: 'auto', cams: 'black', people: 'auto', todo: 'auto' };
 // Standard: alle wichtigen Ansichten. Was das Haus nicht hergibt (kein Player, kein Wetter, keine Kamera, kein evcc …), liegt versteckt bereit statt leer zu laufen.
-const HAS = { music: e => e.domain === 'media_player', weather: e => e.domain === 'weather', cams: e => e.domain === 'camera', people: e => e.domain === 'person' };
+const HAS = { music: e => e.domain === 'media_player', weather: e => e.domain === 'weather', cams: e => e.domain === 'camera', people: e => e.domain === 'person', todo: e => e.domain === 'todo' };
 export const energyGuess = () => detect(allEnts(), energyPrefs());   // Energie-Face: Entities aus Energie-Dashboard bzw. Namen/Einheiten
 const stdHas = type => type === 'energy' ? ready(energyGuess()) : !HAS[type] || allEnts().some(HAS[type]);
 export const SETUP = [   // [Schlüssel, Name, Beschreibung, Faces]
-  ['std', 'Standard', 'Alle wichtigen Ansichten, passend zu deinem Haus', ['grid', 'music', 'bigclock', 'weather', 'calendar', 'energy', 'cams', 'people']],
+  ['std', 'Standard', 'Alle wichtigen Ansichten, passend zu deinem Haus', ['grid', 'music', 'bigclock', 'weather', 'calendar', 'energy', 'cams', 'people', 'todo']],
   ['room', 'Raum-Panel', 'Kacheln aus dem Bereich, Musik, Wetter, Kalender und Uhr', ['grid', 'music', 'weather', 'calendar', 'bigclock']],
   ['clock', 'Uhr & Wetter', 'Uhr, Wetter, Kalender und Datum – ganz ohne Entities', ['bigclock', 'weather', 'calendar', 'date']],
   ['all', 'Alle Ansichten', 'Jede Ansicht einmal; was nicht passt, blendest du später aus', Object.keys(FACE).filter(t => !['analog', 'info'].includes(t))],
@@ -83,7 +83,7 @@ export const THEME_SET = [
   ['p-prisma', 'Prisma Hell', 'prism:245', 'liquid', 'light'], ['p-teal', 'Teal Hell', 'fan:172', 'liquid', 'light'],
   ['flat-dunkel', 'Flat Dunkel', 'black', 'flat', 'dark'], ['flat-hell', 'Flat Hell', 'white', 'flat', 'light'],
 ];
-export const THEME_TYPES = ['grid', 'analog', 'bigclock', 'energy', 'info', 'people'];   // Faces, deren Hintergrund ein Theme mitnimmt (Foto-Hintergründe bleiben)
+export const THEME_TYPES = ['grid', 'analog', 'bigclock', 'energy', 'info', 'people', 'todo'];   // Faces, deren Hintergrund ein Theme mitnimmt (Foto-Hintergründe bleiben)
 export const themeBg = f => !f.bg || typeof f.bg !== 'object';
 export const themeGrid = cfg => cfg.faces.find(f => f.type === 'grid') || cfg.faces[0];
 export const themeCur = cfg => { const g = themeGrid(cfg); return THEME_SET.find(t => t[3] === (cfg.theme || 'liquid') && t[4] === (cfg.mode || 'dark') && String(t[2]) === String(g.bg))?.[0] ?? ''; };

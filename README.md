@@ -78,6 +78,8 @@ A ring of the doorbell event wakes the display, plays a chime and opens the door
 
 **Connection watchdog:** a glass pill at the top ("Keine Verbindung seit 14:02") appears 4 s after the connection drops and the tiles dim; taps shake instead of being queued, so an old tap cannot fire minutes later. A ping every 20 s catches half-open sockets and reconnects; if the server answers over HTTP but the connection stays down for 3 min, the page reloads itself (at most once per 10 min; not in the Home Assistant panel or Kiosk Satellite). Inside the kiosk quiet window (setting *Zeitplan*) the page also reloads once a night after 5 min without touch.
 
+**Tasks face:** a glass list of a `todo.*` entity (shopping list, local tasks, Google Tasks …), live via `todo/item/subscribe`. Tap to tick, **+** to add an item with the keyboard, *Entfernen* clears the finished ones. With several lists, chips switch between them (the list named *Einkaufsliste* comes first); the editor can pin one list. Hidden by default until you enable it under the views.
+
 **Guest mode:** setting *Gastmodus* (also a switch entity per display, e.g. for an automation): calendar, info and camera faces show only a padlock until it is off.
 
 **People face** (*Personen*, „Wo ist?“): every `person` entity as a glass row with avatar, zone or distance from home, and the battery of its device tracker; people at home are highlighted.

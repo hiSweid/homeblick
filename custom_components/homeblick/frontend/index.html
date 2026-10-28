@@ -1003,6 +1003,7 @@ import { voiceOK, voiceRun } from './voice.js';
 import { timerInit, timers, timerDemo, timerShow, timerOn, timerMusic, voiceTimers, ping } from './timer.js';
 import { camInit, camConfig, camShow, camHide, camFace, camTile, camOpen, camRinging, doorbell } from './doorbell.js';
 import { loadEvents, eventsHTML, infoHTML } from './events.js';
+import { todoInit, todoFace, todoSync } from './todo.js';
 // Ohne Parameter: Demo-Daten. Echtes HA nur mit ?live
 const LIVE = new URLSearchParams(location.search).has('live');
 // ?preview: Vorschau in der Einstellungsseite – Konfiguration und Zustände kommen per postMessage, nichts wird gespeichert
@@ -1338,6 +1339,7 @@ const DEF = { cams: 1, energy: 1, dyn: 2, faces: [   // Flags: Migrationen unten
   { type: 'info', bg: 'auto' },
   { type: 'cams', bg: 'black' },
   { type: 'people', bg: 'auto' },
+  { type: 'todo', bg: 'auto' },
 ] };
 let conn;   // vor save(): die Migrationen unten rufen save() schon vor der Verbindung
 const KEY = 'homeblick.v1';
@@ -1565,6 +1567,7 @@ const FACE = {
 <div class="dial nums mt"></div>
 <div class="np"><div class="cover" data-act="go" data-v="music"></div><b data-bind="npt"></b><span data-bind="npa"></span><button data-act="play">${svg('play')} <span data-bind="npb"></span></button></div>
 <div class="evb" data-act="events"></div>
+  todo: (el, f) => { todoFace(el, f); todoSync($$('.f-todo')); },
 ${svg('note', 'mn')}
 <div class="wx" data-act="go" data-v="weather"><div class="loc">${esc(CFG.place)} ${svg('arrow')}</div><div class="tmp" data-bind="wxt"></div><div class="wc"><i class="wi" data-wxi></i></div><div class="cond" data-bind="wxc"></div><div class="hl" data-bind="wxhl"></div></div>`;
   },
@@ -1765,6 +1768,7 @@ function demoCall(domain, service, data) {
   if (domain === 'scene') return ['light.wohnzimmer', 'light.kuche'].forEach(l => demoCall('light', id === 'scene.gute_nacht' ? 'turn_off' : 'turn_on', { entity_id: l, brightness_pct: 80 }));
   ({
     toggle: () => set(s.state === 'on' ? 'off' : 'on'),
+todoInit({ conn: () => conn, live: LIVE, ents: () => ents, down: () => netDown });   // Aufgaben-Face (todo.js)
     turn_on: () => set(domain === 'climate' ? 'heat' : 'on', data.brightness_pct ? { brightness: data.brightness_pct * 2.55 } : {}),
     turn_off: () => set('off'),
     // Demo wie ein HA-Schloss: Zwischenzustand „locking/unlocking“ (Kachel bleibt weiß, Untertitel „Wird verriegelt …“), dann Endzustand
@@ -1989,7 +1993,7 @@ function render() {
   weather(st(CFG.weather), ents['sun.sun'], forecast);
   weatherPlaces(Object.keys(ents).filter(id => id.startsWith('weather.')).sort().map(id => [id, id === HOME.weather ? HOME.place : ents[id].attributes.friendly_name || id]), CFG.weather, pickPlace);
   doorbell(ents);
-  peopleFill();
+  peopleFill(); todoSync($$('.f-todo'));
   energy(ents, roll); wfEnergy(energyNow());
   if (timers(ents)) kiosk.wake();   // Timer abgelaufen → Display weckt
 
@@ -3071,6 +3075,8 @@ if (!LIVE) {
     'zone.home': ['zoning', { friendly_name: 'Home', latitude: 48.8, longitude: 9.8 }],
     'device_tracker.henryk_handy': ['home', { battery_level: 82 }],
     'device_tracker.anna_handy': ['not_home', { battery_level: 41 }],
+    'todo.einkaufsliste': ['4', { friendly_name: 'Einkaufsliste', supported_features: 7 }],
+    'todo.aufgaben': ['2', { friendly_name: 'Aufgaben', supported_features: 7 }],
     'lock.eingangstur': ['locked', { friendly_name: 'Eingangstür', code_format: '^\\d{4}$' }],
     'lock.garagentur': ['locked', { friendly_name: 'Garagentür' }],
     'cover.garagentor': ['closed', { friendly_name: 'Garagentor', device_class: 'garage' }],
