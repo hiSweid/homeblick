@@ -57,6 +57,7 @@ export function pillsInit(screen, o) {
   const host = screen.querySelector('#lps'), mem = new Map(), els = new Map();   // mem: Regel-Schlüssel → { on, off (seit), done (Zeit) }
   const keyOf = (r, i) => i + ':' + r.e;
   const tint = ic => `--c:${COLOR[ic]}`;
+  const calm = () => document.documentElement.classList.contains('perf') || matchMedia('(prefers-reduced-motion: reduce)').matches;   // Leistungsmodus: nur Zustände, keine Bewegung
 
   const spring = () => { const c = n => getComputedStyle(document.documentElement).getPropertyValue(n); return { duration: +c('--sd').replace('ms', '') || 640, easing: c('--spring') || 'ease-out' }; };
   function eval1(rule, i, now) {
@@ -70,21 +71,36 @@ export function pillsInit(screen, o) {
     let list = rules.map((r, i) => eval1(r, i, now)).filter(Boolean);
     list = [...list.filter(x => !x.fin), ...list.filter(x => x.fin)].slice(0, MAX);   // Laufendes vor „fertig“
     const keep = new Set(list.map(x => x.key));
-    for (const [k, el] of els) if (!keep.has(k)) { els.delete(k); el.getAnimations().forEach(a => a.cancel()); el.animate([{ opacity: 1 }, { opacity: 0, scale: '.7' }], { duration: 200, easing: 'ease-in' }).onfinish = () => el.remove(); }
+    for (const [k, el] of els) if (!keep.has(k)) { els.delete(k); el.getAnimations().forEach(a => a.cancel()); calm() ? el.remove() : (el.animate([{ opacity: 1, scale: '1', translate: '0 0', filter: 'blur(0)' }, { opacity: 0, scale: '.55', translate: '0 -1.4cqw', filter: 'blur(.8cqw)' }], { duration: 260, easing: 'cubic-bezier(.5,0,.8,.4)' }).onfinish = () => el.remove()); }
     list.forEach((x, i) => {
       let el = els.get(x.key);
       if (!el) {
         el = Object.assign(document.createElement('button'), { className: 'lp', innerHTML: '<svg class="i" viewBox="0 0 24 24"></svg><b></b><i></i>' });
         el.addEventListener('click', e => { e.stopPropagation(); const m = mem.get(el.dataset.k); if (el.classList.contains('fin') && m) { m.done = 0; tick(); } else o.go?.(el._r); });   // „fertig“ wegtippen, sonst zur Kachel
         el.dataset.k = x.key; els.set(x.key, el); host.append(el);
-        el.animate([{ opacity: 0, scale: '.5' }, { opacity: 1, scale: '1' }], spring());
+        if (!calm()) {
+          el.animate([{ opacity: 0, scale: '.45', translate: '0 -2.2cqw', filter: 'blur(.9cqw)' }, { opacity: 1, scale: '1', translate: '0 0', filter: 'blur(0)' }], spring());
+          for (const c of el.children) c.animate([{ opacity: 0, translate: '-.8cqw 0' }, { opacity: 1, translate: '0 0' }], { duration: 420, delay: 140, easing: 'ease-out', fill: 'backwards' });
+        }
       }
       if (host.children[i] !== el) host.insertBefore(el, host.children[i] || null);
       const ic = x.fin ? 'ok' : iconOf(x.rule), name = x.rule.text || x.s?.attributes?.friendly_name || x.rule.e, d = x.fin ? 'fertig' : detail(o.ents()[x.rule.left] || (isFinite(parseFloat(x.s?.state)) ? x.s : null), now);
-      el._r = x.rule; el.classList.toggle('fin', !!x.fin); el.style.cssText = tint(iconOf(x.rule));
+      el._r = x.rule; el.classList.toggle('fin', !!x.fin); el.style.cssText = tint(x.fin ? 'ok' : iconOf(x.rule));
       const svg = el.querySelector('svg'); if (svg._i !== ic) { svg._i = ic; svg.innerHTML = ICONS[ic]; }
-      el.querySelector('b').textContent = name; const di = el.querySelector('i'); di.textContent = d; di.hidden = !d;
-      if (x.pulse) { x.pulse = false; el.animate([{ scale: '1' }, { scale: '1.18' }, { scale: '1' }], { duration: 700, easing: 'ease-out' }); }
+      el.querySelector('b').textContent = name; const di = el.querySelector('i');
+      if (di.textContent !== d) {   // Wert rollt: alter gleitet hoch hinaus, neuer von unten herein (nicht beim ersten Setzen)
+        const had = di.textContent !== '' && !di.hidden;
+        di.textContent = d; di.hidden = !d;
+        if (had && d && !calm()) di.animate([{ opacity: 0, translate: '0 .9cqw', filter: 'blur(.3cqw)' }, { opacity: 1, translate: '0 0', filter: 'blur(0)' }], { duration: 380, easing: 'cubic-bezier(.2,.8,.2,1)' });
+      }
+      if (x.pulse) {   // fertig: Pille hüpft, ein grüner Ring läuft nach außen
+        x.pulse = false;
+        if (!calm()) {
+          el.animate([{ scale: '1' }, { scale: '1.22' }, { scale: '.97' }, { scale: '1' }], { duration: 760, easing: 'cubic-bezier(.3,1.4,.5,1)' });
+          const B = '0 .4cqw 1.6cqw #0007, inset 0 0 0 .12cqw #30d15855';
+          el.animate([{ boxShadow: `${B}, 0 0 0 0 #30d158aa` }, { boxShadow: `${B}, 0 0 0 3.2cqw #30d15800` }], { duration: 900, easing: 'ease-out' });
+        }
+      }
     });
   }
   setInterval(tick, 1000);
@@ -92,14 +108,25 @@ export function pillsInit(screen, o) {
 }
 
 if (typeof document !== 'undefined') document.head.insertAdjacentHTML('beforeend', `<style>
-.lp{position:relative;flex:none;display:flex;align-items:center;gap:.8cqw;height:3.8cqw;padding:0 1.6cqw 0 .9cqw;border-radius:2cqw;background:#000;color:#fff;font-size:2.2cqw;font-weight:600;line-height:1;
-  font-variant-numeric:tabular-nums;box-shadow:0 .4cqw 1.6cqw #0007,inset 0 0 0 .12cqw color-mix(in srgb,var(--c) 32%,#0000);transition:scale .25s}
+.lp,.tpill{--c:#ff9230}
+.lp{position:relative;flex:none;display:flex;align-items:center;gap:.8cqw;height:3.8cqw;padding:0 1.6cqw 0 .9cqw;border-radius:2cqw;background:linear-gradient(#262628f2,#000 70%);color:#fff;font-size:2.2cqw;font-weight:600;line-height:1;
+  font-variant-numeric:tabular-nums;box-shadow:0 .4cqw 1.6cqw #0007,inset 0 0 0 .12cqw color-mix(in srgb,var(--c) 32%,#0000);transition:scale .25s,box-shadow .4s}
 .lp::before{content:"";position:absolute;inset:-3cqw -.5cqw}
 .lp:active{scale:.94;transition:scale .12s ease-out}
-.lp svg{flex:none;width:2.6cqw;height:2.6cqw;fill:none;stroke:var(--c);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.lp svg{flex:none;width:2.6cqw;height:2.6cqw;fill:none;stroke:var(--c);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;animation:lpg 2.6s ease-in-out infinite}
 .lp b{max-width:24cqw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .lp i{flex:none;font-style:normal;font-weight:600;color:var(--c)}
-.lp.fin i{font-weight:500}
+.lp.fin i{font-weight:500}.lp.fin svg{animation:none}
+/* Lebendiger Rand: ein heller Bogen läuft um die laufende Pille (Timer-Pillen mit, solange sie nicht pausieren); fertig/pausiert: ruhig */
+@property --a{syntax:'<angle>';inherits:false;initial-value:0deg}
+.lp::after,.tpill:not(.pa)::after{content:"";position:absolute;inset:0;border-radius:inherit;padding:.16cqw;pointer-events:none;
+  background:conic-gradient(from var(--a),#0000 0 58%,color-mix(in srgb,var(--c) 85%,#fff) 100%);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;animation:lpr 3.2s linear infinite}
+.lp.fin::after{animation:none;opacity:0;transition:opacity .5s}
+.lp:nth-child(2n)::after,.tpill:nth-child(2n)::after{animation-delay:-1.1s}   /* mehrere Pillen laufen nicht im Gleichschritt */
+#prow .tpill{background:linear-gradient(#262628f2,#000 70%)}
+@keyframes lpr{to{--a:360deg}}
+@keyframes lpg{50%{filter:drop-shadow(0 0 .7cqw var(--c))}}
 </style>`);
 
 // Selbsttest: node pills.js
