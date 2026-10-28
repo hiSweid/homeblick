@@ -74,6 +74,8 @@ A ring of the doorbell event wakes the display, plays a chime and opens the door
 
 **PIN pad:** locks that report a `code_format` ask for the code on a diamond-layout number pad (like the HomeView lock) when unlocked by hold; a wrong code clears the dots and shakes. **Squircle corners** on cards and tiles where the browser supports `corner-shape` (Chromium ≥ 139).
 
+**Waste collection:** the info face shows a bin chip ("Morgen: Biotonne") when an all-day calendar event in the next 7 days is titled like a bin (Restmüll, Biotonne, Papier, Gelber Sack, Grünschnitt); today's pickup is shown until noon.
+
 **Guest mode:** setting *Gastmodus* (also a switch entity per display, e.g. for an automation): calendar, info and camera faces show only a padlock until it is off.
 
 **People face** (*Personen*, „Wo ist?“): every `person` entity as a glass row with avatar, zone or distance from home, and the battery of its device tracker; people at home are highlighted.

@@ -63,14 +63,39 @@ export function eventsHTML(list, max = Infinity) {
   return html;
 }
 
+// Müllabfuhr: Tonne aus dem Titel eines Ganztagstermins (Heuristik nach Titeln der Anbieter, Wortanfang beachten); Farben wie die Tonnen in Deutschland
+const BINS = [
+  { rx: /(^|[^a-zäöüß])(rest|haus)(m[uü]ll|tonne|abfall)|schwarze tonne|graue tonne/i, name: 'Restmüll', short: 'Rest', color: '#636366' },
+  { rx: /(^|[^a-zäöüß])bio(tonne|m[uü]ll|abfall|\b)|braune tonne/i, name: 'Biotonne', short: 'Bio', color: '#a2672f' },
+  { rx: /(^|[^a-zäöüß])(alt)?papier|pappe|blaue tonne/i, name: 'Papiertonne', short: 'Papier', color: '#0a84ff' },
+  { rx: /gelbe?r? (sack|s[aä]cke|tonne)|wertstoff|leichtverpackung/i, name: 'Gelber Sack', short: 'Gelb', color: '#ffd60a' },
+  { rx: /gr[uü]n(schnitt|gut|tonne)|laubsack/i, name: 'Grünschnitt', short: 'Grün', color: '#30b94d' },
+];
+const binOf = title => BINS.find(b => b.rx.test(title));
+const dayNo = d => Math.round(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 864e5);   // Kalendertage, nicht ms/86400000 (Sommerzeit)
+// Nächster Abholtag mit erkannten Tonnen in den nächsten 7 Tagen; heute nur bis 12 Uhr (danach ist abgeholt). null = nichts
+export function wasteChip(list, now = new Date()) {
+  const n = dayNo(now), found = new Map();   // Tag → Tonnen
+  for (const e of list) {
+    const b = e.allDay && binOf(e.title), d = dayNo(e.start) - n;
+    if (b && d >= 0 && d <= 7 && !(d === 0 && now.getHours() >= 12)) (found.get(d) || found.set(d, new Set()).get(d)).add(b);
+  }
+  if (!found.size) return null;
+  const d = Math.min(...found.keys()), bins = [...found.get(d)];
+  const names = bins.map(b => d > 1 || bins.length > 1 ? b.short : b.name).join(' + ');   // kurz, sonst bricht die 42-cqw-Spalte (Ellipse)
+  return { bins, text: d === 0 ? `Heute: ${names}` : d === 1 ? `Morgen: ${names}` : `${names} in ${d} Tagen` };
+}
+const chipHTML = c => c ? `<div class="ew"><i>${c.bins.map(b => `<svg class="i bin" style="color:${b.color}"><use href="#evbin"/></svg>`).join('')}</i><span>${esc(c.text)}</span></div>` : '';
+
 // Info-Face (Vorlage Video y-MO 08500 / _Tbq 01230): nur heute — „N ganztägig“, die nächsten zwei Termine mit Zeit, „N weitere Termine“
 export function infoHTML(list, now = new Date()) {
   const t0 = new Date(now); t0.setHours(0, 0, 0, 0);
   const t1 = new Date(t0.getFullYear(), t0.getMonth(), t0.getDate() + 1);
   const day = list.filter(e => e.start < t1 && e.end > t0), ad = day.filter(e => e.allDay), tm = day.filter(e => !e.allDay && e.end > now), more = tm.length - 2;
+  const chip = chipHTML(wasteChip(list, now));   // ersetzt die Restzeile („N weitere“ / „Keine Termine heute“), damit das Raster nicht überläuft; Tippen öffnet wie der ganze Block die Terminliste
   return (ad.length ? `<div class="ea"><i><svg class="i"><use href="#evcal"/></svg></i>${ad.length} ganztägig</div>` : '')
     + tm.slice(0, 2).map(e => `<div class="ee"><b>${hm(e.start < t0 ? t0 : e.start)}–${hm(e.end)}</b><span>${esc(e.title)}</span></div>`).join('')
-    + (more > 0 ? `<div class="em">${more} weitere${more > 1 ? '' : 'r'} Termin${more > 1 ? 'e' : ''}</div>` : ad.length || tm.length ? '' : '<div class="em">Keine Termine heute</div>');
+    + (chip ? chip : more > 0 ? `<div class="em">${more} weitere${more > 1 ? '' : 'r'} Termin${more > 1 ? 'e' : ''}</div>` : ad.length || tm.length ? '' : '<div class="em">Keine Termine heute</div>');
 }
 
 // Selbstcheck: Sortierung (ganztägig vor Uhrzeit am selben Tag), Gruppierung, Escaping
@@ -81,8 +106,18 @@ export function infoHTML(list, now = new Date()) {
   console.assert(list[0].title === 'B' && (h.match(/<h4/g) || []).length === 1 && h.includes('A&#60;b&#62;') && h.includes('09:00–10:00'), 'eventsHTML');
 }
 
+{
+  const at = (d, title, allDay = true) => ({ title, allDay, start: new Date(2030, 0, 5 + d), end: new Date(2030, 0, 6 + d) }), morning = new Date(2030, 0, 5, 8), evening = new Date(2030, 0, 5, 18);
+  const w = (l, now) => wasteChip(l, now)?.text;
+  console.assert(w([at(0, 'Restmüll')], morning) === 'Heute: Restmüll' && w([at(0, 'Restmüll')], evening) === undefined, 'Müll: heute nur bis 12 Uhr');
+  console.assert(w([at(1, 'Biotonne'), at(1, 'Papiertonne'), at(4, 'Gelber Sack')], evening) === 'Morgen: Bio + Papier', 'Müll: mehrere Tonnen am selben Tag');
+  console.assert(w([at(3, 'Gelber Sack')], evening) === 'Gelb in 3 Tagen' && w([at(9, 'Biotonne')], evening) === undefined, 'Müll: höchstens 7 Tage');
+  console.assert(w([at(1, 'Biologie Prüfung'), at(1, 'Papier', false)], evening) === undefined, 'Müll: nur Tonnen, nur ganztägig');
+}
+
 document.querySelector('body > svg').insertAdjacentHTML('beforeend', `
 <symbol id="evcal" viewBox="0 0 24 24"><rect x="5.5" y="6.5" width="13" height="12" rx="2.4" stroke-width="1.7"/><path d="M5.5 10h13" stroke-width="1.7"/><g fill="currentColor" stroke="none"><circle cx="9" cy="13" r=".95"/><circle cx="12" cy="13" r=".95"/><circle cx="15" cy="13" r=".95"/><circle cx="9" cy="15.8" r=".95"/><circle cx="12" cy="15.8" r=".95"/></g></symbol>
+<symbol id="evbin" viewBox="0 0 24 24"><path d="M9 3.6h6l.6 1.6H19a1 1 0 010 2H5a1 1 0 010-2h3.4z"/><path d="M6.3 9h11.4l-.9 10.2a1.9 1.9 0 01-1.9 1.7H9.1a1.9 1.9 0 01-1.9-1.7z"/></symbol>
 <symbol id="evclock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" stroke-width="2"/><path d="M12 7.5V12l3 2" stroke-width="2"/></symbol>`);
 
 // Maße aus der Vorlage Website siri-ai/gallery_context (Frontalbild, Kalender-Antwort; % Displaybreite, Schrift Inter breitenabgeglichen): Pille 91,2 % breit (x 4,4–95,6), ganztägig 10,9 % hoch mit Kreis ⌀ 4,95 (x 7,5),
@@ -90,6 +125,10 @@ document.querySelector('body > svg').insertAdjacentHTML('beforeend', `
 // Tagesüberschrift 3,1 % Semibold (x 10,4), Grundlinie 2,45 über der Pille, 7,6 unter der vorigen. Farben: Pille 15 % Kalenderfarbe auf Weiß, Titel 40 %, Zeitzeile 66 % Kalenderfarbe auf Schwarz.
 document.head.insertAdjacentHTML('beforeend', `<style>
 #events{background:#fff;color:#1c1c1e}
+.evb .ew{display:flex;align-items:center;gap:2cqw;width:45cqw;margin-top:2.85cqw;height:7cqw;font-size:3.6cqw;color:var(--t1)}
+.ew i{display:flex;align-items:center;gap:.2cqw;flex:none;height:7cqw;padding:0 1.6cqw;border-radius:9cqw;background:var(--btn)}
+.ew svg.bin{width:4.4cqw;height:4.4cqw;fill:currentColor;stroke:none;filter:drop-shadow(0 0 .25cqw #0007)}
+.ew span{min-width:0;overflow:hidden;text-overflow:ellipsis}
 #events .x{background:#0000000f}
 #events .top{font-size:3.8cqw}
 .evl{position:absolute;inset:15cqw 0 0;overflow-y:auto;scrollbar-width:none;touch-action:pan-y;overscroll-behavior:contain;padding:0 4.4cqw 8cqw}
