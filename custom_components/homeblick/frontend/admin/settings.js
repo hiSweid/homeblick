@@ -2,7 +2,7 @@
 // Alles wirkt sofort, außer dem Theme: das gehört zum Entwurf des Layouts und braucht „Senden“.
 import { $, $$, choose, esc, guard, ic, toast } from './ui.js';
 import { S, call, cur, dirty, emit, mutate, on, save, setSetting } from './state.js';
-import { BG_SETS, THEMES, MODES, TYPES, WAKE, bgAll, bgCss, bgCur, bgVal, themeGrid } from './meta.js';
+import { BG_SETS, THEMES, MODES, TYPES, WAKE, bgAll, bgCss, bgCur, bgVal, faceName } from './meta.js';
 import { hueOf, wall } from '../wallpapers.js';
 import { ago, ledOf } from './util.js';
 import { bind, entityRow, numberRow, selectRow, sliderRow, switchRow, textRow, timeRow, sroww } from './controls.js';
@@ -69,10 +69,10 @@ export function mount(el, route) {
       + G('Modi', switchRow('Mikrofon stumm', 'micmute', x.micmute, 'Assist per Tippen geht weiter', 'micmute') + switchRow('Gastmodus', 'guest', x.guest, 'Kalender, Info und Kameras zeigen ein Schloss', 'guest') + switchRow('Nicht stören', 'dnd', x.dnd, 'Kein Wake Word, keine Sprache, kein Gong', 'dnd') + switchRow('Gong beim Klingeln', 'chime', x.chime, 'Ton erst nach der ersten Berührung', 'chime')),
     wake: x => G('', entityRow('Bewegungs-/Präsenzmelder', 'presence', x.presence, { domains: ['binary_sensor'], dcs: ['motion', 'occupancy', 'presence'], none: 'Keiner', title: 'Melder' }, 'Solange „an“, bleibt das Display wach', 'presence') + switchRow('Kontrollzentrum', 'kz', x.kz, 'Wisch von oben rechts: Helligkeit, Lautstärke, Schalter', 'kz')),
     pills: () => pillsHTML(S.cfg, G),
-    look: () => `<div class="sect"><div class="pv-device bg-pv"><iframe title="Vorschau" src="index.html?preview"></iframe></div><div class="group-f">Vorschau der ersten Seite. Gilt für das ganze Display und gehört zum Entwurf: „Senden“ schickt es ans Display.</div></div>`
+    look: () => `<div class="look-grid"><aside class="look-pv" aria-label="Vorschau aller Ansichten">${S.cfg.faces.map(f => `<figure class="pv-card" data-f="${esc(f.id)}"><div class="pv-dev"><iframe title="${esc(faceName(f))}" src="index.html?preview"></iframe></div><figcaption>${esc(faceName(f))}</figcaption></figure>`).join('')}</aside><div class="look-ctl">`
       + G('Look', `<div class="stack">${seg2('look', THEMES, S.cfg.theme || 'liquid')}</div>`) + G('Modus', `<div class="stack">${seg2('mode', MODES, S.cfg.mode || 'dark')}</div>`)
       + BG_SETS.map(([n, l]) => G(n, `<div class="bg-grid">${l.map(([v, t]) => `<button type="button" class="bg-tile" data-bg="${esc(v)}" aria-pressed="${String(bgCur(S.cfg)) === String(v)}"><i data-w="${esc(v)}" style="background:${esc(thumb(v, S.cfg.mode === 'light'))}"></i><span>${esc(t)}</span></button>`).join('')}</div>`)).join('')
-      + `<div class="sect"><div class="group-f">Der Hintergrund gilt für alle Ansichten außer Wetter, Musik, Kalender, Kameras, Fotos und Ansichten mit eigenem Foto.</div></div>`,
+      + `<div class="sect"><div class="group-f">Die Vorschau zeigt alle Ansichten live. Der Hintergrund gilt für alle Ansichten außer Wetter, Musik, Kalender, Kameras, Fotos und Ansichten mit eigenem Foto.</div></div></div></div>`,
     status: () => `<div id="set-live">${liveRows(cur())}</div>` + G('Bildschirmfoto', `<div class="s-actions"><button class="btn quiet" data-cmd="shot" ${cur().connected ? '' : 'disabled'}>${ic('image')}Aufnehmen</button></div>${S.shots[S.sel] ? `<img class="shot" id="set-shot" src="${S.shots[S.sel]}" alt="">` : ''}`, 'Bilder von fremden Servern, Kamera-Video und WebGL fehlen im Foto.'),
     manage: () => {
       const b = (k, i, n, ok = S.cfg) => `<button class="row tap" data-m="${k}" ${ok ? '' : 'disabled'}>${ic(i)}<span class="t"><b>${n}</b></span>${ic('right')}</button>`;
@@ -97,7 +97,7 @@ export function mount(el, route) {
     const h = $('#sm', el); if (!h) return;
     $('.split', el).dataset.pane = section ? 'main' : 'side';
     if (!section) { h.innerHTML = `<div class="empty"><div class="ico48">${ic('sliders')}</div><h2>Einstellungen</h2><p>Wähle links einen Abschnitt.</p></div>`; return; }
-    h.innerHTML = pane({ title: nameOf(section), left: `<button class="back nar" data-sec="">${ic('left')}<span>Einstellungen</span></button>`, right: `<span class="save-slot">${saveBtn()}</span>` }, `<div class="set-status" id="set-status" role="status"></div>${SEC[section](s())}`);
+    h.innerHTML = pane({ title: nameOf(section), left: `<button class="back nar" data-sec="">${ic('left')}<span>Einstellungen</span></button>`, right: `<span class="save-slot">${saveBtn()}</span>`, wrap: section === 'look' ? 'look' : '' }, `<div class="set-status" id="set-status" role="status"></div>${SEC[section](s())}`);
     collapse(h); deps();
   };
   const html = () => { el.innerHTML = `<div class="split" data-pane="${section ? 'main' : 'side'}"><div class="split-side" id="ss"></div><div class="split-main" id="sm"></div></div>`; paintSide(); paintMain(); };
@@ -129,13 +129,17 @@ export function mount(el, route) {
   html();
   bind(el, { on: setK, listOf: k => k.startsWith('p.') ? PILL_LISTS[k.split('.')[2]] || [] : lists[k]?.() || [], valueOf: k => k.startsWith('p.') ? pillGet(k) : k === 'show' ? '' : s()[k] ?? '' });
   // Hintergrund-Auswahl: gewählte Kachel markieren, Thumbnails passend zu Hell/Dunkel, Vorschau-Rahmen mit dem Entwurf füttern
-  const frame = () => $('.bg-pv iframe', el), light = () => S.cfg?.mode === 'light';
-  const push = () => { const f = frame(); if (f?.dataset.ready && S.cfg) f.contentWindow.postMessage({ hb: 'preview', conf: { ...S.cfg, off: [] }, face: themeGrid(S.cfg).id, edit: false, sel: -1, states: S.states }, location.origin); };
-  const onFrame = e => { const f = frame(); if (f && e.source === f.contentWindow && e.origin === location.origin && e.data?.hb === 'preview-ready') { f.dataset.ready = 1; push(); } };
+  const frames = () => $$('.pv-card iframe', el), light = () => S.cfg?.mode === 'light';
+  const push = () => frames().forEach(fr => {   // je Ansicht ein Rahmen wie im Editor: nur senden, was sich geändert hat
+    const f = S.cfg?.faces.find(x => x.id === fr.closest('.pv-card').dataset.f); if (!f || !fr.dataset.ready) return;
+    const conf = { ...S.cfg, off: [], faces: [f] }, k = JSON.stringify(conf); if (k === fr._k) return; fr._k = k;
+    fr.contentWindow.postMessage({ hb: 'preview', conf, face: f.id, edit: false, sel: -1, states: S.states }, location.origin);
+  });
+  const onFrame = e => { const f = frames().find(x => x.contentWindow === e.source); if (f && e.origin === location.origin && e.data?.hb === 'preview-ready') { f.dataset.ready = 1; push(); } };
   addEventListener('message', onFrame);
   let lit = light();
   const looks = () => {
-    if (!S.cfg || !frame()) return;
+    if (!S.cfg || !$('.look-grid', el)) return;
     $$('.bg-tile', el).forEach(b => b.setAttribute('aria-pressed', String(bgCur(S.cfg)) === b.dataset.bg));
     if (lit !== light()) { lit = light(); $$('.bg-tile i', el).forEach(i => { i.style.background = thumb(i.dataset.w, lit); }); }
     push();
