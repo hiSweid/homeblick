@@ -1,8 +1,10 @@
+import { EN_NAMES } from './faces.js';
 // Energie-Face. Vorlage = Entwurf 1 des Users (statt Apple-Bildern; Bild scratchpad en/Entwurf1.png, Mockup en/m5.html Abschnitt #d1, Maße dort in cqw bei 784 px).
 // Raster/Glas/Press/Analoguhr = Home-Face (.f-grid/.tile/.dial aus index.html), Zahlen-Roll = roll() aus index.html, Federn = --spring/--sd.
 // Reihe 1: Solar jetzt 2×1 (kW + Tageskurve: Ist gelb gefüllt, Rest gestrichelte Solcast-Prognose) · autark (Ring)
 // Reihe 2: Verbrauch (Haus-kW, Netzbalken: Mitte = 0, rechts grün Einspeisung, links orange Bezug) · Akku · e-Golf (weiße An-Kacheln)
 // Reihe 3: Heute (kWh von Prognose) · Morgen (Prognose + Spitzenzeit) · Analoguhr
+// Das sind die Standard-Kacheln (ENERGY_TILES in faces.js): jede ist eine Kachel (kind 'en') der Kachelliste des Face und lässt sich wie bei „Smart Home“ verschieben, vergrößern, umbenennen, entfernen und doppelt anlegen.
 
 // HA-Entities (Prod-HA geprüft 2026-10-21), im Live-Editor je Face änderbar (f.ents). Leistung in W oder kW (Einheit wird gelesen).
 // Netz: + = Bezug, − = Einspeisung; Akku: + = Entladen, − = Laden
@@ -52,20 +54,27 @@ const io = new IntersectionObserver(es => { for (const e of es) {
   else if (!e.isIntersecting && f._drawn) { f._drawn = false; veil(f, !still()); }
 } }, { threshold: [0, .95] });
 
-export function energyFace(el) {
-  const g = 'eg' + ++gN;
-  el.classList.add('f-grid');   // Raster/Glas/Uhr des Home-Face
-  el.insertAdjacentHTML('beforeend', `
-<div class="tile et pv" data-act="edet" data-v="pv" style="${cell(0, 0, 2)}">${ttl('sun', 'Solar jetzt', 'y')}${val('pv', ' kW')}
+const esc = s => String(s).replace(/[&<>"]/g, c => `&#${c.charCodeAt(0)};`);
+// Kachel (kind 'en') → { cls, html }; index.html tileEl setzt Raster-Platz und Größe. Inhalt steht in .ez: bei 2 × 2 wird er auf das Doppelte gezogen (--z), sonst wie Entwurf 1.
+export function energyTile(t) {
+  const k = t.k, g = 'eg' + ++gN, nm = esc(t.title || (k === 'car' ? CAR : EN_NAMES[k]));
+  const html = {
+    pv: () => `${ttl('sun', nm, 'y')}${val('pv', ' kW')}
   <div class="cw"><div class="ci"><svg viewBox="0 0 100 30" preserveAspectRatio="none"><defs><linearGradient id="${g}" x2="0" y2="1"><stop offset="0" stop-color="#ffd60a" stop-opacity=".6"/><stop offset="1" stop-color="#ffd60a" stop-opacity="0"/></linearGradient></defs>
-    <path class="ar" fill="url(#${g})"/><path class="ln"/><path class="fc"/></svg></div></div></div>
-<div class="tile et aut" data-act="edet" data-v="aut" style="${cell(0, 2)}"><svg class="rg" viewBox="-50 -50 100 100"><circle r="44"/><circle class="on" r="44" pathLength="100" transform="rotate(-90)"/></svg>${val('aut', '%')}<div class="sub">autark</div></div>
-<div class="tile et use" data-act="edet" data-v="use" style="${cell(1, 0)}">${ttl('home', 'Verbrauch')}${val('home', ' kW')}<div class="bar g mid"><div class="cl l"><i></i></div><div class="cl r"><i></i></div></div><div class="sub gl" data-bind="e_gl"></div></div>
-<div class="tile et on bat" data-act="edet" data-v="bat" style="${cell(1, 1)}">${ttl('bat', 'Akku', 'gr')}${val('soc', '%')}${bar('soc')}<div class="sub" data-bind="e_batl"></div></div>
-<div class="tile et on car" data-act="edet" data-v="car" style="${cell(1, 2)}">${ttl('car', CAR, 'bl')}${val('carSoc', '%')}${bar('carSoc')}<div class="sub" data-bind="e_carl"></div></div>
-<div class="tile et day" data-act="edet" data-v="day" style="${cell(2, 0)}">${ttl('sun', 'Heute', 'y')}${val('today')}<div class="sub dim" data-bind="e_todayl"></div>${bar('today')}</div>
-<div class="tile et tmr" data-act="edet" data-v="tmr" style="${cell(2, 1)}">${ttl('sun', 'Morgen')}${val('tomorrow')}<div class="sub dim">kWh Prognose</div><div class="sub pk" data-bind="e_peak"></div></div>
-<div class="dial glass" style="grid-area:3/3;--r:2;--c:2"></div>`);
+    <path class="ar" fill="url(#${g})"/><path class="ln"/><path class="fc"/></svg></div></div>`,
+    aut: () => `<svg class="rg" viewBox="-50 -50 100 100"><circle r="44"/><circle class="on" r="44" pathLength="100" transform="rotate(-90)"/></svg>${val('aut', '%')}<div class="sub">${esc(t.title || 'autark')}</div>`,
+    use: () => `${ttl('home', nm)}${val('home', ' kW')}<div class="bar g mid"><div class="cl l"><i></i></div><div class="cl r"><i></i></div></div><div class="sub gl" data-bind="e_gl"></div>`,
+    bat: () => `${ttl('bat', nm, 'gr')}${val('soc', '%')}${bar('soc')}<div class="sub" data-bind="e_batl"></div>`,
+    car: () => `${ttl('car', nm, 'bl')}${val('carSoc', '%')}${bar('carSoc')}<div class="sub" data-bind="e_carl"></div>`,
+    day: () => `${ttl('sun', nm, 'y')}${val('today')}<div class="sub dim" data-bind="e_todayl"></div>${bar('today')}`,
+    tmr: () => `${ttl('sun', nm)}${val('tomorrow')}<div class="sub dim">kWh Prognose</div><div class="sub pk" data-bind="e_peak"></div>`,
+  }[k]();
+  const sz = `${t.w || 1}x${t.h || 1}`, z = k !== 'pv' && sz === '2x2' ? 2 : 1;
+  return { cls: `tile et${k === 'bat' || k === 'car' ? ' on' : ''} ${k}`, z, html: `<div class="ez" style="--z:${z}">${html}</div>` };
+}
+// Kurve und Wischblende gehören zu den Solar-Kacheln (.cw) – ohne sie bleibt alles still
+export function energyFace(el) {
+  el.classList.add('f-grid');   // Raster/Glas/Uhr des Home-Face
   veil(el, !still());   // Kurve bis zum Einzeichnen verdeckt, auch während das Face hereingleitet
   io.observe(el);
   if (V) paint(el);
@@ -147,16 +156,16 @@ function curve(band) {
 }
 function paint(f) {
   const c = V.ok?.pv ? curve() : { ln: '', ar: '', fc: '' };
-  for (const k of ['ln', 'ar', 'fc']) { const p = f.querySelector('.cw .' + k); if (p.getAttribute('d') !== c[k]) p.setAttribute('d', c[k]); }
+  for (const k of ['ln', 'ar', 'fc']) for (const p of f.querySelectorAll('.cw .' + k)) if (p.getAttribute('d') !== c[k]) p.setAttribute('d', c[k]);
 }
 // Einzeichnen per Wischblende (nur transform): Fenster nach links geschoben, Inhalt gegenläufig → verdeckt; weiche Kante liegt in Ruhe rechts neben der Kurve
 const VEIL = ['translateX(-29cqw)', 'translateX(29cqw)'];
-function veil(f, on) { const cw = f.querySelector('.cw'); [cw, cw.firstElementChild].forEach((n, i) => n.style.transform = on ? VEIL[i] : ''); }
+function veil(f, on) { for (const cw of f.querySelectorAll('.cw')) [cw, cw.firstElementChild].forEach((n, i) => n.style.transform = on ? VEIL[i] : ''); }
 function drawIn(f) {
   if (still()) return veil(f, false);
-  const cw = f.querySelector('.cw'), o = { duration: 1600, easing: SPR(), fill: 'forwards' };   // Feder gestreckt: zeichnet weich von links nach rechts
-  const as = [cw, cw.firstElementChild].map((n, i) => n.animate([{ transform: VEIL[i] }, { transform: 'none' }], o));
-  as[0].onfinish = () => { veil(f, false); as.forEach(a => a.cancel()); };
+  const o = { duration: 1600, easing: SPR(), fill: 'forwards' };   // Feder gestreckt: zeichnet weich von links nach rechts
+  const as = [...f.querySelectorAll('.cw')].flatMap(cw => [cw, cw.firstElementChild].map((n, i) => n.animate([{ transform: VEIL[i] }, { transform: 'none' }], o)));
+  if (as[0]) as[0].onfinish = () => { veil(f, false); as.forEach(a => a.cancel()); };
 }
 
 // ---------- Anzeige ----------
@@ -208,14 +217,14 @@ export function energy(ents, roll) {
   bd('e_peak', pk ? `☀︎ Spitze ${pk}` : '');
   const c01 = x => Math.min(1, Math.max(0, x));
   for (const f of faces) {
-    const set = (s, k, x, show = true) => { const b = f.querySelector(s); b.style.setProperty(k, x); b.style.visibility = show ? '' : 'hidden'; };
+    const set = (s, k, x, show = true) => { for (const b of f.querySelectorAll(s)) { b.style.setProperty(k, x); b.style.visibility = show ? '' : 'hidden'; } };
     set('.rg .on', '--v', aut == null ? 0 : aut / 100);
     set('.bar.g', '--g', imp || exp ? Math.max(-1, Math.min(1, -grid / 4000)) : 0, ok.grid);   // ponytail: halbe Balkenbreite = 4 kW, darüber voll
     set('.bar.soc', '--v', c01(soc / 100), ok.soc);
     set('.bar.carSoc', '--v', c01(carSoc / 100), ok.carSoc);
     set('.bar.today', '--v', c01(today / todayFc), ok.today && ok.todayFc && todayFc > 0);
-    for (const [t, has] of [['bat', ok.soc || ok.bat], ['car', ok.carSoc || ok.car], ['day', ok.today], ['tmr', ok.tomorrow]]) f.querySelector('.tile.' + t)?.classList.toggle('na', !has);   // ohne passende Entity abgeblendet
-    const gl = f.querySelector('.gl'); gl.classList.toggle('imp', imp); gl.classList.toggle('z', !imp && !exp);
+    for (const [t, has] of [['bat', ok.soc || ok.bat], ['car', ok.carSoc || ok.car], ['day', ok.today], ['tmr', ok.tomorrow]]) for (const n of f.querySelectorAll('.tile.' + t)) n.classList.toggle('na', !has);   // ohne passende Entity abgeblendet
+    for (const gl of f.querySelectorAll('.gl')) { gl.classList.toggle('imp', imp); gl.classList.toggle('z', !imp && !exp); }
     paint(f);
   }
 }
@@ -519,10 +528,11 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 .f-energy{--eink:hsl(calc(var(--h,30) - 4) 88% 19%);--eink2:hsl(calc(var(--h,30) - 4) 38% 44%);--trk:#ffffff38}   /* Orange-Face: #5a2a06 / #9a6a45 wie Entwurf */
 .f-energy.mono{--eink:#1c1c1e;--eink2:#1c1c1e99}
 .f-energy.light{--trk:#0000001a}
-.f-energy .et{display:block;padding:4.6cqw 3.4cqw;text-align:left;line-height:normal;white-space:nowrap;overflow:hidden}
-.f-energy .et.pv{padding:4.4cqw 5cqw}
+.f-energy .et{display:block;padding:0;text-align:left;line-height:normal;white-space:nowrap;overflow:hidden}
+.f-energy .ez{position:absolute;left:0;top:0;box-sizing:border-box;width:calc(100% / var(--z,1));height:calc(100% / var(--z,1));padding:4.6cqw 3.4cqw;transform:scale(var(--z,1));transform-origin:0 0}   /* Inhalt: 2 × 2 = Entwurfsmaß ×2 */
+.f-energy .et.pv .ez{padding:4.4cqw 5cqw}
 .f-energy .et .ttl{line-height:normal}
-.f-energy svg.i{vertical-align:-.12em}
+.f-energy .et svg.i{vertical-align:-.12em}
 .f-energy .i.y{color:#ffd60a}.f-energy .i.gr{color:#28b04a}.f-energy .i.bl{color:#1d8fd8}
 .f-energy.light .i.y{color:#e0a800}
 .f-energy .enum{display:flex;align-items:baseline;font-size:8.6cqw;margin-top:1.4cqw;font-weight:600;letter-spacing:-.025em;font-variant-numeric:tabular-nums}
@@ -531,10 +541,10 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 .f-energy .pv .enum{font-size:14cqw;line-height:1;margin-top:1.6cqw}
 .f-energy .pv .enum small{font-size:5cqw;font-weight:500}
 .f-energy .use .enum small{font-weight:500}   /* „ kW“ Medium, „%“ wie die Zahl */
-.f-energy .sub{font-size:3cqw;line-height:normal;color:inherit;transition:color .3s}
+.f-energy .et .sub{font-size:3cqw;line-height:normal;color:inherit;transition:color .3s}
 .f-energy .dim{color:#ffffff9e}.f-energy.light .dim{color:#828284}
 /* Autarkie: Ring 24,2 cqw (r 44, Strich 6 von 100), Zahl 8 cqw */
-.f-energy .aut{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0}
+.f-energy .aut .ez{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0}
 .f-energy .aut .enum{font-size:8cqw;line-height:1;margin:0}
 .f-energy .aut .sub{margin-top:.6cqw}
 .f-energy .rg{position:absolute;left:3.4cqw;top:3.4cqw;width:24.2cqw;height:24.2cqw;fill:none;stroke-width:6}
@@ -556,7 +566,7 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 .f-energy .use .sub{margin-top:1.8cqw;color:#c8ffd4}.f-energy .use .sub.imp{color:#ffd9a8}
 .f-energy.light .use .sub{color:#248a3d}.f-energy.light .use .sub.imp{color:#c93400}
 .f-energy .use .sub.z{color:#ffffff9e}.f-energy.light .use .sub.z{color:#828284}
-.f-energy .on .sub{margin-top:1.8cqw}
+.f-energy .et.on .sub{margin-top:1.8cqw}
 .f-energy .tmr .pk{margin-top:2cqw}
 /* Weiße An-Kacheln (Akku, e-Golf): Fläche #fffe → #ffffffc8, Schrift im Face-Ton */
 /* Glas wie Home-Kachel, aber wie im Entwurf gesättigter (backdrop saturate 1.3 + Weiß 6 %): Wallpaper-Schicht als ::after mit Filter (statisch, einmal gerastert) */

@@ -13,7 +13,10 @@ const FILTERS = [   // [Schlüssel, Name, Domains]
 ];
 const WIDGETS = [['analog', 'Uhr analog', 'clock', '#636366', 'Zifferblatt mit Zeigern'], ['digital', 'Uhr digital', 'clock', '#636366', 'Ziffern, 2 × 1'], ['wx', 'Wetter', 'sun', '#32ade6', 'Aktuelles Wetter, 2 × 1']];
 const SHOWN = 80;
-const wLabel = { wx: 'Wetter', analog: 'Uhr', digital: 'Uhr' };
+const EN_W = [['en:pv', 'Solar jetzt', 'sun', '#ffd60a', 'Leistung und Tageskurve, 2 × 1'], ['en:aut', 'Autarkie', 'bolt', '#30d158', 'Ring in Prozent'], ['en:use', 'Verbrauch', 'house', '#ff9f0a', 'Haus und Netzbalken'],
+  ['en:bat', 'Akku', 'bolt', '#28b04a', 'Ladestand'], ['en:car', 'Auto', 'bolt', '#1d8fd8', 'Ladestand und Reichweite'], ['en:day', 'Heute', 'sun', '#ffd60a', 'Ertrag von der Prognose'], ['en:tmr', 'Morgen', 'sun', '#8e8e93', 'Prognose und Spitzenzeit']];
+const wLabel = { wx: 'Wetter', analog: 'Uhr', digital: 'Uhr', ...Object.fromEntries(EN_W.map(x => [x[0], x[1]])) };
+const widgets = () => targetFace()?.type === 'energy' ? [...EN_W, ...WIDGETS] : WIDGETS;
 
 export function openGallery() {
   if ($('.sheet.gal')) return;
@@ -31,7 +34,7 @@ export function openGallery() {
 
   function where() {
     const f = targetFace(), cell = f && S.ui.insert?.f === f.id;
-    if (!f) return `<div class="gal-where">${ic('info')}<span>Kacheln gibt es auf Smart-Home-Ansichten.</span><button class="btn mini quiet" data-newpage style="margin-left:auto">Ansicht anlegen</button></div>`;
+    if (!f) return `<div class="gal-where">${ic('info')}<span>Kacheln gibt es auf Smart-Home- und Energie-Ansichten.</span><button class="btn mini quiet" data-newpage style="margin-left:auto">Ansicht anlegen</button></div>`;
     return `<div class="gal-where">${ic('layout')}<span>Kommt auf „${esc(faceName(f))}“${cell ? ' · auf den markierten Platz' : ''}</span></div>`;
   }
   function draw(dir = '') {
@@ -39,7 +42,7 @@ export function openGallery() {
     const pl = placed(), bar = $('#gb-bar', dlg), body = $('#gb', dlg), rooms = byRoom(), s = q.trim();
     let title = 'Hinzufügen', html = where();
     if (s) {
-      const w = WIDGETS.filter(x => x[1].toLowerCase().includes(s.toLowerCase())), hits = findEnts(s, TILE_DOM);
+      const w = widgets().filter(x => x[1].toLowerCase().includes(s.toLowerCase())), hits = findEnts(s, TILE_DOM);
       html += (w.length ? grp('Widgets', w.map(wrow).join('')) : '') + (hits.length ? grp(`${hits.length} Treffer`, hits.slice(0, SHOWN).map(e => row(e, pl)).join('')) + (hits.length > SHOWN ? '<p class="hint center" style="padding:10px">Weiter tippen, um einzugrenzen.</p>' : '') : '') + (!w.length && !hits.length ? '<div class="gal-none">Nichts gefunden.<br><small>Versuche einen anderen Namen, Raum oder ein Gerät.</small></div>' : '');
     } else if (view) {
       const list = view.k === 'cat' ? pool.filter(e => FILTERS.find(f => f[0] === view.id)[2].includes(e.domain)) : rooms.get(view.id) || [];
@@ -51,7 +54,7 @@ export function openGallery() {
     } else {
       const sug = area ? entsIn(area).filter(e => ROOM_DOM.includes(e.domain) && !pl.has(e.id)).sort((a, b) => ROOM_DOM.indexOf(a.domain) - ROOM_DOM.indexOf(b.domain) || a.name.localeCompare(b.name, 'de')).slice(0, 12) : [];
       if (sug.length) html += `<div class="sect"><div class="group-h">Vorschläge für ${esc(area)}</div><div class="sug">${sug.map(e => { const i = items.push({ e }) - 1; return `<button class="sug-card" data-i="${i}">${avatar(e.domain, 'lg')}<span class="tx"><b>${esc(e.name)}</b><small>${esc(DOM[e.domain]?.[0] || e.domain)}</small></span><span class="addc">${ic('plus')}</span></button>`; }).join('')}</div></div>`;
-      html += grp('Widgets', WIDGETS.map(wrow).join(''));
+      html += grp('Widgets', widgets().map(wrow).join(''));
       const cats = FILTERS.map(f => [f, pool.filter(e => f[2].includes(e.domain)).length]).filter(x => x[1]);
       html += grp('Kategorien', cats.map(([f, n]) => `<button class="ent" data-cat="${f[0]}">${avatar(f[2][0])}<span class="tx"><b>${f[1]}</b></span><span class="cnt">${n}</span>${ic('right')}</button>`).join(''));
       const rs = [...rooms].sort((a, b) => a[0].localeCompare(b[0], 'de'));

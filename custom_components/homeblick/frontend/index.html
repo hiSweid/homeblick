@@ -990,11 +990,11 @@ input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:tr
 
 <script type="module">
 import { weatherFace, weather, weatherHours, weatherNear, weatherPlaces, COND } from './weather.js';
-import { energyFace, energy, energyDemo, energyInit, energyEnts, energyDetail, energyNow } from './energy.js';
+import { energyFace, energyTile, energy, energyDemo, energyInit, energyEnts, energyDetail, energyNow } from './energy.js';
 import { kioskInit, KIOSK_DEF, luxLevel, inWindow, mins } from './kiosk.js';
 import { netwatchInit } from './netwatch.js';
 import { shot } from './shot.js';
-import { ICON, cleanConf, moveTo, normFaces, pack, rows } from './faces.js';
+import { ENERGY_TILES, ICON, cleanConf, enSizes, hasTiles, moveTo, normFaces, pack, rows } from './faces.js';
 import { wakeInit } from './wake.js';
 import { WF, wfHTML, wfAnimate, wfTick, wfEnergy, wfEvent, WF_CSS } from './watchfaces.js';
 document.head.insertAdjacentHTML('beforeend', `<style>${WF_CSS}</style>`);
@@ -1049,7 +1049,7 @@ if (PREVIEW) {
   };
   // Face i neu aufbauen (die Einstellungsseite hat die Konfiguration geändert): Kacheln gleiten von ihrer bisherigen Lage an die neue, eine neue ploppt auf
   const keep = i => {
-    const tk = t => { const n = (tk.n[t._t.e + '|' + (t._t.kind || '')] = (tk.n[t._t.e + '|' + (t._t.kind || '')] || 0) + 1); return t._t.e + '|' + (t._t.kind || '') + '|' + n; };
+    const tk = t => { const q = (t._t.e ?? t._t.k) + '|' + (t._t.kind || ''), n = (tk.n[q] = (tk.n[q] || 0) + 1); return q + '|' + n; };
     tk.n = {};
     const old = faces.children[i], r0 = new Map($$('[data-ti]', old).filter(t => !t.hidden).map(t => [tk(t), t.getBoundingClientRect()]));
     rerender(i);
@@ -1096,7 +1096,7 @@ if (PREVIEW) {
       closeMenu();
       try { e.target.setPointerCapture?.(e.pointerId); } catch {}   // Ziehen bleibt dran, auch wenn der Zeiger das Display verlässt
       const t = e.target.closest?.('[data-ti]'), inT = t && face.contains(t) ? t : null;
-      if (!(f?.type === 'grid' && face.contains(e.target))) { g = { sw: true, x: e.clientX, y: e.clientY, f }; return; }   // andere Faces: Wischen oder Antippen (→ Face-Einstellungen)
+      if (!(f && hasTiles(f) && face.contains(e.target))) { g = { sw: true, x: e.clientX, y: e.clientY, f }; return; }   // andere Faces: Wischen oder Antippen (→ Face-Einstellungen)
       g = { t: inT, x: e.clientX, y: e.clientY, on: false, f, face, hm: edit && e.target.closest('.hbm'), hr: edit && e.target.closest('.hbr') };
       if (inT) Object.assign(g, { j: f.tiles.indexOf(inT._t), ox: inT.offsetLeft, oy: inT.offsetTop, key: '' });
       if (g.hr) {   // Resize-Griff: Rasterschritt aus den Spuren des Rasters
@@ -1112,7 +1112,7 @@ if (PREVIEW) {
       const dx = e.clientX - g.x, dy = e.clientY - g.y;
       if (g.hr) {   // Größe live: nächste erlaubte Größe; passt dann eine andere Kachel nicht mehr ins Raster, bleibt die alte
         const tw = g.w0 + dx / g.px, th = g.h0 + dy / g.py, d = g.t._t;
-        const c = SZ.reduce((b, s) => (s[0] - tw) ** 2 + (s[1] - th) ** 2 < (b[0] - tw) ** 2 + (b[1] - th) ** 2 ? s : b);
+        const c = (d.kind === 'en' ? enSizes(d.k).map(v => v.split('x').map(Number)) : SZ).reduce((b, s) => (s[0] - tw) ** 2 + (s[1] - th) ** 2 < (b[0] - tw) ** 2 + (b[1] - th) ** 2 ? s : b);
         if (c[0] === g.size[0] && c[1] === g.size[1]) return;
         const was = [d.w, d.h];
         c[0] > 1 ? d.w = c[0] : delete d.w; c[1] > 1 ? d.h = c[1] : delete d.h;
@@ -1180,7 +1180,7 @@ if (PREVIEW) {
       CONF = { ...m.conf, kiosk: k };
       evList = null;   // Kalender-Auswahl kann sich geändert haben
       if (th !== `${CONF.theme}|${CONF.mode}`) renderAll(idx());   // Theme gewechselt: alle Kacheln neu
-      else if (old.length === CONF.faces.length && old.every((f, i) => f.id === CONF.faces[i].id)) CONF.faces.forEach((f, i) => JSON.stringify(f) !== JSON.stringify(old[i]) && (f.type === 'grid' ? keep(i) : rerender(i)));
+      else if (old.length === CONF.faces.length && old.every((f, i) => f.id === CONF.faces[i].id)) CONF.faces.forEach((f, i) => JSON.stringify(f) !== JSON.stringify(old[i]) && (hasTiles(f) ? keep(i) : rerender(i)));
       else renderAll(0);
     }
     if (m.face) { const i = CONF.faces.findIndex(f => f.id === m.face); if (i >= 0 && i !== idx()) faces.go(i, !m.anim); }
@@ -1353,7 +1353,7 @@ const DISPLAY = PREVIEW ? 'preview' : (() => {
 let CONF;
 if (!PREVIEW) try { CONF = JSON.parse(localStorage.getItem(KEY)); } catch {}
 if (Array.isArray(CONF?.faces)) cleanConf(CONF); else CONF = null;   // kaputte Struktur → Standard
-if (!CONF?.faces?.length) CONF = structuredClone(DEF);
+if (!CONF?.faces?.length) cleanConf(CONF = structuredClone(DEF));
 if (PREVIEW) CONF.kiosk = { idle: 0, kz: false };
 const normSave = () => { if (normFaces(CONF, DEF.faces)) save(); };
 // ponytail: Fotos als data-URL im localStorage (~5 MB Limit); bei vielen Fotos → IndexedDB
@@ -1410,7 +1410,11 @@ function tileEl(c) {
   if (t.noop) el.dataset.noop = '';
   el.dataset.lk = t.look || CONF.theme || 'liquid';
   if (t.sv) el.dataset.sv = t.sv;   // Look der Kachel überschreibt das Theme des Displays
-  if (kind === 'clock') {
+  if (kind === 'en') {   // Energie-Kachel (energy.js): eigene Maße, Look und Größe über --z, daher ohne data-size/-lk der Home-Kacheln
+    const x = energyTile(t); el.className = x.cls; el.innerHTML = x.html; el.dataset.act = 'edet'; el.dataset.v = t.k;
+    delete el.dataset.size; delete el.dataset.lk;
+  }
+  else if (kind === 'clock') {
     el.className = t.cs === 'digital' ? 'dclock glass' : `dial glass${t.cs === 'numbers' ? ' nums' : ''}`;
     if (t.cs === 'digital') el.innerHTML = '<span data-bind="time"></span>';
   }
@@ -1555,7 +1559,12 @@ const FACE = {
   calendar: el => { el.innerHTML = calHTML(); el.dataset.act = 'events'; },
   date: el => el.innerHTML = '<div class="wk" data-bind="wdl"></div><div class="dn" data-bind="day"></div>',
   weather: (el, f) => weatherFace(el, f, CFG.place),
-  energy: (el, f) => { energyEnts(f.ents); energyFace(el); },
+  energy: (el, f) => {
+    energyEnts(f.ents);
+    const g = f.tiles ? f : { ...f, tiles: ENERGY_TILES };   // Standard (cleanConf legt sie normalerweise schon an)
+    for (const t of g.tiles) el.append(tileEl(t));
+    place(el, g); energyFace(el);
+  },
   cams: el => camFace(el),
   people: el => { el.innerHTML = '<header>Personen</header><div class="plist"></div>'; peopleFill(); },
   info: (el, f) => {

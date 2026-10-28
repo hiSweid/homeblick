@@ -17,8 +17,14 @@ const dedupe = (list, seen) => { for (let i = 0; i < list.length; i++) { const g
 // Struktur prüfen: eine kaputte gespeicherte Konfig würde sonst bei jedem Start renderAll sprengen
 const FACE_TYPES = ['grid', 'music', 'bigclock', 'analog', 'calendar', 'date', 'weather', 'energy', 'cams', 'people', 'todo', 'info'];   // = Schlüssel von FACE (index.html)
 // Kachelfelder mit falschem Typ verwerfen (kindOf/iconOf rufen String-Methoden); night rekursiv
-const cleanTile = t => { for (const k of ['e', 'title', 'sub', 'icon', 'kind', 'cs']) if (typeof t[k] !== 'string') delete t[k]; if (t.night && typeof t.night === 'object' && !Array.isArray(t.night)) cleanTile(t.night); else delete t.night; return t; };
-const cleanFaces = l => (Array.isArray(l) ? l : []).filter(f => f && FACE_TYPES.includes(f.type)).map(f => { if (f.type === 'grid') f.tiles = Array.isArray(f.tiles) ? f.tiles.filter(t => t && typeof t === 'object').map(cleanTile) : []; return f; });
+const cleanTile = t => { for (const k of ['e', 'title', 'sub', 'icon', 'kind', 'cs', 'k']) if (typeof t[k] !== 'string') delete t[k]; if (t.night && typeof t.night === 'object' && !Array.isArray(t.night)) cleanTile(t.night); else delete t.night; return t; };
+// Kacheln haben „Smart Home“ und „Energie“; Energie ohne gespeicherte Kacheln startet mit den bisherigen acht (ENERGY_TILES), ein leeres Feld bleibt leer
+export const hasTiles = f => f.type === 'grid' || f.type === 'energy';
+export const ENERGY_TILES = [{ kind: 'en', k: 'pv', w: 2 }, { kind: 'en', k: 'aut' }, { kind: 'en', k: 'use' }, { kind: 'en', k: 'bat' }, { kind: 'en', k: 'car' }, { kind: 'en', k: 'day' }, { kind: 'en', k: 'tmr' }, { kind: 'clock' }];
+export const EN_NAMES = { pv: 'Solar jetzt', aut: 'Autarkie', use: 'Verbrauch', bat: 'Akku', car: 'Auto', day: 'Heute', tmr: 'Morgen' };   // kind 'en': k = Schlüssel; title überschreibt den Namen
+export const enSizes = k => k === 'pv' ? ['2x1', '2x2'] : k === 'aut' ? ['1x1', '2x2'] : ['1x1', '2x1', '2x2'];   // Ring (autark) und Solarkurve sind nur für diese Maße gezeichnet
+const goodTile = t => t && typeof t === 'object' && (t.kind !== 'en' || t.k in EN_NAMES);
+const cleanFaces = l => (Array.isArray(l) ? l : []).filter(f => f && FACE_TYPES.includes(f.type)).map(f => { if (hasTiles(f)) f.tiles = Array.isArray(f.tiles) ? f.tiles.filter(goodTile).map(cleanTile) : f.type === 'energy' ? structuredClone(ENERGY_TILES) : []; return f; });
 export function cleanConf(conf) { conf.faces = cleanFaces(conf.faces); if (conf.off) conf.off = cleanFaces(conf.off); return conf; }
 
 // Alte Konfiguration (ohne id/off) übernehmen, fehlende Standard-Faces als ausgeschaltet ergänzen, Uhr/Kalender nur einmal; true = geändert
@@ -28,7 +34,7 @@ export function normFaces(conf, defs = []) {
   ids(conf.faces);
   conf.off = (conf.off || []).filter(f => !conf.faces.some(a => a.id === f.id)); ids(conf.off);
   const seen = new Set(); dedupe(conf.faces, seen); dedupe(conf.off, seen);
-  const d = structuredClone(defs); ids(d);
+  const d = cleanFaces(structuredClone(defs)); ids(d);
   for (const f of d) if (![...conf.faces, ...conf.off].some(x => x.id === f.id) && !seen.has(GROUP[f.type])) { conf.off.push(f); if (GROUP[f.type]) seen.add(GROUP[f.type]); }
   return JSON.stringify([conf.faces, conf.off]) !== before;
 }

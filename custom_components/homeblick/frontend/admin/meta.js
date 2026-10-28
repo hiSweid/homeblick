@@ -1,5 +1,5 @@
 // Konstanten und Hilfen für Faces, Kacheln, Themes und Vorlagen (aus dem bisherigen Admin übernommen).
-import { GROUP, ICON, normFaces, pack, rows } from '../faces.js';
+import { EN_NAMES, GROUP, ICON, normFaces, pack, rows } from '../faces.js';
 import { entsIn } from './entities.js';
 export { GROUP };
 import { entOf, DOM, allEnts, energyPrefs } from './entities.js';
@@ -100,6 +100,7 @@ export const COLORS = [['', 'Standard'], ['#ff9500', 'Orange'], ['#ff3b30', 'Rot
 export const ICONS = ['bulb', 'pendant', 'lock', 'unlock', 'garage', 'blind', 'video', 'fan', 'timer', 'sun', 'moon', 'house', 'power', 'play', 'thermo', 'drop', 'wind', 'cloud', 'intercom', 'note'];
 
 export const xi = id => `<svg><use href="#x-${id}"/></svg>`;
-export const tileIcon = t => t.icon || (t.kind === 'clock' ? 'timer' : t.kind === 'wx' ? 'cloud' : (e => e?.domain === 'cover' && e.dc !== 'garage' ? 'blind' : ICON[t.e?.split('.')[0]])(entOf(t.e))) || 'house';
-export const tileTitle = t => t.title || (t.kind === 'clock' ? 'Uhr' : t.kind === 'wx' ? 'Wetter' : entOf(t.e)?.name || t.e || 'Kachel');
+const EN_ICON = { pv: 'sun', aut: 'power', use: 'house', bat: 'power', car: 'garage', day: 'sun', tmr: 'sun' };
+export const tileIcon = t => t.icon || (t.kind === 'clock' ? 'timer' : t.kind === 'wx' ? 'cloud' : t.kind === 'en' ? EN_ICON[t.k] : (e => e?.domain === 'cover' && e.dc !== 'garage' ? 'blind' : ICON[t.e?.split('.')[0]])(entOf(t.e))) || 'house';
+export const tileTitle = t => t.title || (t.kind === 'clock' ? 'Uhr' : t.kind === 'wx' ? 'Wetter' : t.kind === 'en' ? EN_NAMES[t.k] : entOf(t.e)?.name || t.e || 'Kachel');
 export const autoTitle = en => ['sensor', 'binary_sensor'].includes(en.domain) ? en.name : DOM[en.domain]?.[0] || en.name;

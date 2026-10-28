@@ -1,5 +1,5 @@
 // Bearbeiten von Seiten (Faces) und Kacheln im Entwurf: jede Funktion ist genau ein Rückgängig-Schritt.
-import { faceId, moveTo, pack, rows, GROUP } from '../faces.js';
+import { faceId, moveTo, pack, rows, GROUP, hasTiles, ENERGY_TILES } from '../faces.js';
 import { S, mutate, select, undo } from './state.js';
 import { toast } from './ui.js';
 import { faceName, tileOf, tileTitle, bgVal, FACE_BG } from './meta.js';
@@ -16,15 +16,19 @@ const NO_ROOM = 'Kein Platz mehr auf dieser Ansicht: erst eine Kachel verkleiner
 /** Seite, auf die neue Kacheln kommen: die gewählte bzw. vordere (wenn Smart Home), sonst die erste Smart-Home-Seite. */
 export function targetFace() {
   const f = faceBy(S.ui.sel?.f || S.ui.insert?.f || S.ui.page);
-  return f?.type === 'grid' ? f : S.cfg.faces.find(x => x.type === 'grid') || null;
+  return f && hasTiles(f) ? f : S.cfg.faces.find(x => x.type === 'grid') || S.cfg.faces.find(hasTiles) || null;
 }
+/** Energie-Kacheln (kind 'en') gibt es nur auf der Energie-Ansicht, alles andere auf beiden. */
+export const canHold = (f, t) => f.type === 'energy' || (f.type === 'grid' && t.kind !== 'en');
 
 // ---- Kacheln ----
-export const widgetTile = kind => kind === 'wx' ? { kind: 'wx', w: 2 } : kind === 'digital' ? { kind: 'clock', cs: 'digital', w: 2, h: 1 } : { kind: 'clock', w: 2, h: 2 };
+export const widgetTile = kind => kind.startsWith('en:') ? { kind: 'en', k: kind.slice(3), ...(kind === 'en:pv' && { w: 2 }) } : kind === 'wx' ? { kind: 'wx', w: 2 } : kind === 'digital' ? { kind: 'clock', cs: 'digital', w: 2, h: 1 } : { kind: 'clock', w: 2, h: 2 };
 
 /** Kachel(n) am Ende bzw. auf der markierten Zelle einer Seite einfügen; liefert die neuen Kacheln oder null (kein Platz). */
 export function addTiles(list, label, { face = targetFace(), pickIt = true } = {}) {
   if (!face) { toast('Kacheln gibt es auf Smart-Home-Ansichten: lege über „Ansicht hinzufügen“ eine an', { bad: true }); return null; }
+  list = list.filter(t => canHold(face, t));
+  if (!list.length) { toast('Energie-Kacheln gibt es nur auf der Energie-Ansicht', { bad: true }); return null; }
   const cell = S.ui.insert?.f === face.id ? S.ui.insert.cell : null;
   let added = null;
   mutate(label, () => {
@@ -57,7 +61,7 @@ export function removeTiles(fid, js) {
 }
 export function moveTile(fid, j, to) {
   const from = faceBy(fid), dest = faceBy(to);
-  if (!from || !dest || dest.type !== 'grid' || from === dest) return;
+  if (!from || !dest || !canHold(dest, from.tiles[j]) || from === dest) return;
   let ok = true;
   mutate(`${tileTitle(from.tiles[j])} auf eine andere Ansicht verschoben`, () => {
     const a = faceBy(fid), b = faceBy(to), [t] = a.tiles.splice(j, 1), n0 = lost(b);
@@ -120,7 +124,7 @@ export const pageTypes = () => {   // Typen, die man neu anlegen kann (Uhr, Kale
 };
 export function addPage(type) {
   const id = faceId(S.cfg, type);
-  mutate(`Ansicht „${faceName({ type, id })}“ hinzugefügt`, c => { c.faces.push({ type, id, bg: FACE_BG[type] ?? 'black', ...(type === 'grid' && { tiles: [] }) }); });
+  mutate(`Ansicht „${faceName({ type, id })}“ hinzugefügt`, c => { c.faces.push({ type, id, bg: FACE_BG[type] ?? 'black', ...(type === 'grid' && { tiles: [] }), ...(type === 'energy' && { tiles: structuredClone(ENERGY_TILES) }) }); });
   select({ k: 'page', f: id });
   return id;
 }

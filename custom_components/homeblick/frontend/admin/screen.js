@@ -3,6 +3,7 @@
 import { $, choose, esc, ic, menu, toast } from './ui.js';
 import { S, byId, call, cur, dirty, discard, emit, openDoc, redo, save, select, on, undo } from './state.js';
 import { ledOf } from './util.js';
+import { hasTiles } from '../faces.js';
 import * as layout from './layout.js';
 import * as inspector from './inspector.js';
 import * as settings from './settings.js';
@@ -107,7 +108,7 @@ export async function mount(el, route) {
       if (k === 'x' && sel) { e.preventDefault(); return copyTiles(sel.f, sel.js, true); }
       if (k === 'v') { e.preventDefault(); return pasteTiles(); }
       if (k === 'a') {
-        const f = faceBy(S.ui.page); if (f?.type !== 'grid') return;
+        const f = faceBy(S.ui.page); if (!f || !hasTiles(f)) return;
         const n = tilesOf(f).length; if (!n) return;
         e.preventDefault(); const js = [...Array(n).keys()];
         return select(n > 1 ? { k: 'tiles', f: f.id, js } : { k: 'tile', f: f.id, j: 0 });

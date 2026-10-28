@@ -1,7 +1,7 @@
 // Editor-Fläche: die Seiten des Displays als Karussell (echte Vorschau je Seite), darunter Titel und Punkte, schwebendes Dock.
 // „Seiten“ zeigt dieselben Frames als Raster zum Umsortieren und Ausblenden (wie „Seiten bearbeiten“ auf dem iPhone); die Frames wandern nie im DOM, nur ihre Position ändert sich.
 // Jede Seite ist ein ?preview-Frame der echten App; Konfiguration und Zustände gehen per postMessage hin, Antippen/Ziehen/Größe kommen zurück.
-import { moveTo, rows } from '../faces.js';
+import { hasTiles, moveTo, rows } from '../faces.js';
 import { $, $$, clamp, esc, ic, menu, modal, rapidAt, rapidTap, toast } from './ui.js';
 import { S, byId, call, emit, mutate, on, select } from './state.js';
 import { FACE, GROUP, faceName } from './meta.js';
@@ -87,7 +87,7 @@ export function mount(ed) {
   const post = (s, m) => s.frame.contentWindow?.postMessage({ hb: 'preview', ...m }, location.origin);
   function syncSlot(s, f, i, a) {
     if (!f || !s.ready) return;
-    const conf = { ...S.cfg, off: [], faces: [f] }, key = JSON.stringify(conf), m = {}, j = selTile(f), jk = JSON.stringify(j), edit = f.type === 'grid' && mode === 'deck' && i === a;
+    const conf = { ...S.cfg, off: [], faces: [f] }, key = JSON.stringify(conf), m = {}, j = selTile(f), jk = JSON.stringify(j), edit = hasTiles(f) && mode === 'deck' && i === a;
     if (key !== s.sent) { s.sent = key; m.conf = conf; m.face = f.id; m.sel = j; s.sel = jk; }
     else if (jk !== s.sel) { s.sel = jk; m.sel = j; }
     if (edit !== s.edit) { s.edit = edit; m.edit = edit; }
@@ -106,11 +106,11 @@ export function mount(ed) {
     const fs = faces(), a = activeIx(), f = fs[a], n = fs.length, tiles = f && tilesOf(f).length;
     meta.hidden = mode !== 'deck';
     if (f) meta.innerHTML = `<button class="page-title" data-ptitle title="Ansicht anpassen">${esc(faceName(f))}${ic('right')}</button>
-      <small>${f.type === 'grid' ? `${tiles} Kachel${tiles === 1 ? '' : 'n'} · ${used(f)} von ${cells(f)} Plätzen` : esc(PAGE_SUB[f.type] || '')}</small>
+      <small>${hasTiles(f) ? `${tiles} Kachel${tiles === 1 ? '' : 'n'} · ${used(f)} von ${cells(f)} Plätzen` : esc(PAGE_SUB[f.type] || '')}</small>
       <div class="pager"><button class="gbtn sm" id="pl" aria-label="Vorherige Ansicht" ${a === 0 ? 'disabled' : ''}>${ic('left')}</button><div class="dots" role="tablist" aria-label="Ansichten">${fs.map((x, i) => `<button role="tab" data-i="${i}" class="${i === a ? 'on' : ''}" aria-selected="${i === a}" aria-label="Ansicht ${i + 1}: ${esc(faceName(x))}"></button>`).join('')}<button class="add" data-addpage aria-label="Ansicht hinzufügen">${ic('plus')}</button></div><button class="gbtn sm" id="pr" aria-label="Nächste Ansicht" ${a >= n - 1 ? 'disabled' : ''}>${ic('right')}</button></div>`;
     dock.dataset.mode = mode;
     dock.innerHTML = mode === 'deck'
-      ? `<button class="dock-i main" data-d="add" ${S.cfg.faces.some(x => x.type === 'grid') ? '' : 'title="Kacheln gibt es auf Smart-Home-Ansichten"'}>${ic('plus')}<span>Hinzufügen</span></button><button class="dock-i" data-d="pages">${ic('pages')}<span>Ansichten</span></button><button class="dock-i" data-d="preview">${ic('play')}<span>Vorschau</span></button><button class="dock-i" data-d="settings">${ic('cog')}<span>Einstellungen</span></button>`
+      ? `<button class="dock-i main" data-d="add" ${S.cfg.faces.some(hasTiles) ? '' : 'title="Kacheln gibt es auf Smart-Home-Ansichten"'}>${ic('plus')}<span>Hinzufügen</span></button><button class="dock-i" data-d="pages">${ic('pages')}<span>Ansichten</span></button><button class="dock-i" data-d="preview">${ic('play')}<span>Vorschau</span></button><button class="dock-i" data-d="settings">${ic('cog')}<span>Einstellungen</span></button>`
       : `<button class="dock-i" data-d="newpage">${ic('page-add')}<span>Neue Ansicht</span></button><button class="dock-i main" data-d="pages">${ic('check')}<span>Fertig</span></button>`;
     main.classList.toggle('pages', mode === 'pages');
     $$('[data-chk]', deck).forEach(b => { b.classList.remove('off'); });
@@ -118,11 +118,11 @@ export function mount(ed) {
   }
   function chrome() {
     if (!S.cfg) return;
-    const w = [], lostF = faces().filter(f => f.type === 'grid' && lost(f));
+    const w = [], lostF = faces().filter(f => hasTiles(f) && lost(f));
     if (S.draftOffer) w.push(['draft', `Ungesendeter Entwurf von ${ago(S.draftOffer.at)} gefunden.`, 'undo']);
     if (dev() && !dev().connected) w.push(['info', 'Das Display ist offline. Änderungen werden gespeichert und beim nächsten Öffnen übernommen.']);
     for (const f of lostF) w.push(['warn', `${lost(f)} Kachel${lost(f) > 1 ? 'n passen' : ' passt'} auf „${faceName(f)}“ nicht mehr ins Raster und ${lost(f) > 1 ? 'werden' : 'wird'} nicht angezeigt.`]);
-    if (!faces().some(f => f.type === 'grid')) w.push(['info', 'Kacheln gibt es auf Smart-Home-Ansichten: lege über „Ansichten“ eine an.']);
+    if (!faces().some(hasTiles)) w.push(['info', 'Kacheln gibt es auf Smart-Home-Ansichten: lege über „Ansichten“ eine an.']);
     else if (!faces().some(f => tilesOf(f).length)) w.push(['info', 'Tippe auf „Hinzufügen“, um die erste Lampe, Szene oder das erste Gerät auf die Ansicht zu legen.', 'plus']);
     const nt0 = ed.style.getPropertyValue('--nt');
     notices.innerHTML = w.slice(0, 2).map(([k, t, i]) => `<div class="notice ${k === 'warn' ? 'warn' : ''}" role="status">${ic(i || (k === 'warn' ? 'alert' : 'info'))}<span>${esc(t)}</span>${k === 'draft' ? '<span class="n-acts"><button data-draft="restore">Wiederherstellen</button><button data-draft="drop">Verwerfen</button></span>' : ''}</div>`).join('');

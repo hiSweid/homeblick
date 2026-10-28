@@ -4,11 +4,12 @@ import { $, esc, ic, menu, rapidTap, toast } from './ui.js';
 import { DOM, entOf, entsOf, pickEntity } from './entities.js';
 import { S, byId, call, mutate, on, select, setSetting } from './state.js';
 import { BG, COLORS, ENERGY, FACE, energyGuess, ICONS, LOOKS, SIZES, TILE_DOM, TOGGLE_DOM, autoTitle, bgCss, bgVal, designCur, designs, faceName, svOf, tileIcon, tileTitle, withDesign, xi } from './meta.js';
-import { copyTiles, faceBy, faceIx, hidePage, lost, moveTile, removePage, removeTiles, resizeTile, resizeTiles, tilesOf } from './edit.js';
+import { canHold, copyTiles, faceBy, faceIx, hidePage, lost, moveTile, removePage, removeTiles, resizeTile, resizeTiles, tilesOf } from './edit.js';
 import { bind, entityBtn, selectBtn, sroww, sw, textRow } from './controls.js';
 import { pageMenu } from './layout.js';
 import { openGallery } from './gallery.js';
 import { ago, setPath } from './util.js';
+import { EN_NAMES, enSizes, hasTiles } from '../faces.js';
 
 const grp = (title, body, foot = '') => `<div class="sect">${title ? `<div class="group-h">${title}</div>` : ''}<div class="group">${body}</div>${foot ? `<div class="group-f">${foot}</div>` : ''}</div>`;
 const stack = (label, control) => `<div class="stack"><span class="s-label">${label}</span>${control}</div>`;
@@ -16,7 +17,7 @@ const navRow = (label, value, push, icon = '') => `<button class="row tap" data-
 const segB = (k, list, v) => `<span class="seg fill">${list.map(([a, n]) => `<button type="button" data-k="${k}" data-v="${esc(a)}" aria-pressed="${String(a) === String(v)}">${esc(n)}</button>`).join('')}</span>`;
 const dots = (k, list, cur, css) => `<div class="swatches">${list.map(([v, n]) => `<button type="button" class="sw-dot ${v === '' ? 'auto' : ''}" data-k="${k}" data-v="${esc(v)}" aria-pressed="${String(v) === String(cur)}" aria-label="${esc(n)}" title="${esc(n)}"><i style="background:${css(v)}"></i></button>`).join('')}</div>`;
 const glyph = v => { const [w, h] = v.split('x').map(Number); return `<span class="gl">${[0, 1, 2, 3].map(i => `<i class="${i % 2 < w && Math.floor(i / 2) < h ? 'on' : ''}"></i>`).join('')}</span>`; };
-const sizePick = (k, cur) => `<div class="size-pick">${SIZES.map(([v, n]) => `<button type="button" data-k="${k}" data-v="${v}" aria-pressed="${v === cur}">${glyph(v)}${n}</button>`).join('')}</div>`;
+const sizePick = (k, cur, only) => `<div class="size-pick">${SIZES.filter(([v]) => !only || only.includes(v)).map(([v, n]) => `<button type="button" data-k="${k}" data-v="${v}" aria-pressed="${v === cur}">${glyph(v)}${n}</button>`).join('')}</div>`;
 const SUB_VALS = en => [['', 'Keine'], ['state', 'Zustand'], ...(en?.attrs || []).map(a => [a, a])];
 const ACTS = en => [['default', 'Standard'], ...(TOGGLE_DOM.includes(en?.domain) ? [['toggle', 'Umschalten']] : []), ['service', 'Dienst aufrufen'], ['face', 'Ansicht öffnen'], ['none', 'Nichts']];
 const SKIP_ATTR = new Set(['icon', 'entity_picture', 'supported_features', 'entity_id']);
@@ -33,13 +34,13 @@ export function mount(ed) {
 
   // ---- Kachel ----
   function tileRoot(f, t) {
-    const en = entOf(t.e), clock = t.kind === 'clock', wx = t.kind === 'wx', ent = !clock && !wx, sv = svOf(t, S.states), sz = `${t.w || 1}x${t.h || 1}`, vals = SUB_VALS(en);
+    const en = entOf(t.e), clock = t.kind === 'clock', wx = t.kind === 'wx', enk = t.kind === 'en', ent = !clock && !wx && !enk, sv = svOf(t, S.states), sz = `${t.w || 1}x${t.h || 1}`, vals = SUB_VALS(en);
     const vv = t.val && !vals.some(x => x[0] === t.val) ? [...vals, [t.val, t.val]] : vals;
     const act = k => { const a = t[k]; return a?.do ? ACTS(en).find(x => x[0] === a.do)?.[1] || a.do : 'Standard'; };
     let h = `<div class="insp-id"><button class="av" style="--c:${colorOf(t)}" data-push="icon" aria-label="Symbol ändern">${xi(tileIcon(t))}</button></div>`;
-    h += grp('Name auf dem Display', `<div class="srow"><input class="name-in" id="tile-name" data-k="t.title" value="${esc(t.title || '')}" maxlength="60" placeholder="${esc(ent ? (en ? autoTitle(en) : 'Name') : clock ? 'Uhr' : 'Wetter')}" autocomplete="off"></div>`);
+    h += grp('Name auf dem Display', `<div class="srow"><input class="name-in" id="tile-name" data-k="t.title" value="${esc(t.title || '')}" maxlength="60" placeholder="${esc(ent ? (en ? autoTitle(en) : 'Name') : clock ? 'Uhr' : wx ? 'Wetter' : EN_NAMES[t.k])}" autocomplete="off"></div>`);
     if (ent) h += grp('Entität', `<button class="ent-row" data-pick-ent><span class="av" style="--c:${colorOf(t)}">${xi(tileIcon(t))}</span><span class="t"><b class="${t.e && !en ? 'bad' : ''}">${esc(en?.name || t.e || 'Wählen …')}</b><small>${esc(t.e && !en ? 'in Home Assistant nicht gefunden' : t.e || '')}</small></span>${ic('right')}</button>`);
-    h += grp('Größe', sizePick('t.size', sz));
+    h += grp('Größe', sizePick('t.size', sz, enk && enSizes(t.k)), enk ? 'Die Werte kommen aus den Entitäten der Ansicht („Entitäten“ in den Ansichtseinstellungen).' : '');
     const styles = (sv ? stack('Stil', segB('t.sv', sv, t.sv || '')) : '') + (clock ? stack('Zifferblatt', segB('t.cs', [['', 'Striche'], ['numbers', 'Zahlen'], ['digital', 'Digital']], t.cs || '')) : '') + (ent ? stack('Look', segB('t.look', LOOKS.map(([a, n]) => [a, n]), t.look || '')) : '');
     if (styles) h += grp('Stil', styles, ent ? 'Theme: wie im Display eingestellt. Liquid oder Flat gilt nur für diese Kachel.' : '');
     if (ent) {
@@ -76,9 +77,9 @@ export function mount(ed) {
 
   // ---- Mehrere Kacheln ----
   function multi(f) {
-    const js = S.ui.sel.js, ts = js.map(j => f.tiles[j]), s0 = `${ts[0].w || 1}x${ts[0].h || 1}`, sz = ts.every(t => `${t.w || 1}x${t.h || 1}` === s0) ? s0 : '';
-    const others = S.cfg.faces.filter(x => x.type === 'grid' && x.id !== f.id), row = (act, label, icon) => `<button class="row tap" data-act="${act}">${ic(icon)}<span class="t"><b>${label}</b></span></button>`;
-    return { title: `${js.length} Kacheln`, sub: faceName(f), del: ['mrm', `${js.length} Kacheln entfernen`], body: grp('Größe', sizePick('m.size', sz), 'Alle gewählten Kacheln bekommen dieselbe Größe.')
+    const js = S.ui.sel.js, ts = js.map(j => f.tiles[j]), lim = ts.filter(t => t.kind === 'en').map(t => enSizes(t.k)), only = lim.length ? SIZES.map(s => s[0]).filter(v => lim.every(l => l.includes(v))) : null, s0 = `${ts[0].w || 1}x${ts[0].h || 1}`, sz = ts.every(t => `${t.w || 1}x${t.h || 1}` === s0) ? s0 : '';
+    const others = S.cfg.faces.filter(x => x.id !== f.id && ts.every(t => canHold(x, t))), row = (act, label, icon) => `<button class="row tap" data-act="${act}">${ic(icon)}<span class="t"><b>${label}</b></span></button>`;
+    return { title: `${js.length} Kacheln`, sub: faceName(f), del: ['mrm', `${js.length} Kacheln entfernen`], body: grp('Größe', sizePick('m.size', sz, only), 'Alle gewählten Kacheln bekommen dieselbe Größe.')
       + grp('', (others.length ? row('mmove', 'Auf andere Ansicht verschieben …', 'layout') : '') + row('mcopy', 'Kopieren', 'copy') + row('mcut', 'Ausschneiden', 'cut'))
       + grp('', `<button class="row danger" data-act="mrm">${js.length} Kacheln entfernen</button>`, '⇧ oder ⌘ plus Klick wählt weitere Kacheln, ⌘A alle der Ansicht.') };
   }
@@ -91,7 +92,7 @@ export function mount(ed) {
     let h = `<div class="insp-id"><span class="av" style="--c:${meta[1]}">${ic(meta[2])}</span></div>`;
     if (!photo) h += grp('Hintergrund', `<div class="stack">${dots('f.bg', bgList, f.bg, bgCss)}</div>`, esc(bgList.find(([v]) => String(v) === String(f.bg))?.[1] || ''));
     if (sty?.length) h += grp('Stil', sty.length <= 3 && sty.every(x => x[1].length < 12) ? stack('Design', segB('f.design', sty, designCur(f))) : navRow('Design', esc(sty.find(x => x[0] === designCur(f))?.[1] || ''), 'design'));
-    if (f.type === 'grid') h += grp(`Kacheln · ${tilesOf(f).length}`, (tilesOf(f).map(tile).join('') || '<div class="srow"><span class="s-label muted">Noch keine Kacheln</span></div>') + `<button class="row accent" data-lib>${ic('plus')}Kachel hinzufügen</button>`, n ? `<span class="warn">${n} Kachel${n > 1 ? 'n passen' : ' passt'} nicht mehr ins Raster und ${n > 1 ? 'werden' : 'wird'} nicht angezeigt.</span>` : '');
+    if (hasTiles(f)) h += grp(`Kacheln · ${tilesOf(f).length}`, (tilesOf(f).map(tile).join('') || '<div class="srow"><span class="s-label muted">Noch keine Kacheln</span></div>') + `<button class="row accent" data-lib>${ic('plus')}Kachel hinzufügen</button>`, n ? `<span class="warn">${n} Kachel${n > 1 ? 'n passen' : ' passt'} nicht mehr ins Raster und ${n > 1 ? 'werden' : 'wird'} nicht angezeigt.</span>` : '');
     if (f.type === 'weather') h += grp('Wetter', sroww('Wetter-Entität', '', entityBtn('s.weather', s.weather, { domains: ['weather'], title: 'Wetter-Entität' })) + sroww('Ortsname', '', `<input data-k="s.place" value="${esc(s.place || '')}" maxlength="40" autocomplete="off">`), 'Gilt sofort für alle Wetter-Anzeigen dieses Displays.');
     if (f.type === 'energy') h += grp('', navRow('Entitäten', `${Object.keys(f.ents || {}).filter(k => k !== 'carName').length || 'Standard'}`, 'energy', `<span class="av" style="--c:${meta[1]}">${ic('bolt')}</span>`), 'Ohne Auswahl liest die Ansicht die Standard-Entitäten (evcc, Kostal, Solcast).');
     if (f.type === 'calendar' || f.type === 'info') { const cs = entsOf('calendar'); h += grp('Kalender', cs.map(e => sroww(esc(e.name), '', sw(!f.cals || f.cals.includes(e.id), 'cal:' + e.id))).join('') || '<div class="srow"><span class="s-label muted">Keine Kalender in Home Assistant</span></div>'); }
@@ -232,14 +233,14 @@ export function mount(ed) {
       if (act === 'mcopy') return copyTiles(id, sel.js);
       if (act === 'mcut') return copyTiles(id, sel.js, true);
       if (act === 'mmove') {
-        const others = S.cfg.faces.filter(x => x.type === 'grid' && x.id !== id);
+        const others = S.cfg.faces.filter(x => x.id !== id && sel.js.every(j => canHold(x, faceBy(id).tiles[j])));
         return menu(a, others.map(x => ({ label: faceName(x), icon: 'layout', run: () => [...sel.js].sort((m, n) => n - m).forEach(j => moveTile(id, j, x.id)) })), { width: 250, align: 'start' });
       }
     }
     if (q('#in-more')) {
       const f = cfgFace(), i = faceIx(f.id), sel = S.ui.sel;
       if (sel.k !== 'tile') return pageMenu(q('#in-more'), i);
-      const t = curTile(), others = S.cfg.faces.filter(x => x.type === 'grid' && x.id !== f.id);
+      const t = curTile(), others = S.cfg.faces.filter(x => x.id !== f.id && canHold(x, t));
       return menu(q('#in-more'), [
         { label: 'Umbenennen', icon: 'pencil', run: () => { $('#tile-name', el)?.focus(); $('#tile-name', el)?.select(); } },
         ...(t.kind ? [] : [{ label: 'Andere Entität zeigen', icon: 'swap', run: () => $('[data-pick-ent]', el)?.click() }]),
