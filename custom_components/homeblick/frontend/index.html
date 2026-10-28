@@ -894,7 +894,7 @@ input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:tr
 <div id="screen">
   <div id="faces"></div>
   <div id="dim"></div>
-  <div id="hud"><div id="prow"><div id="tps"></div><div id="lps"></div></div>   <!-- oben mittig: Pillenreihe (je Timer eine Pille, dann die Live-Pillen), darunter die Offline-Pille -->
+  <div id="hud"><div id="prow"><div id="tps"></div><div id="lps"></div></div></div>   <!-- oben mittig: Pillenreihe (je Timer eine Pille, dann die Live-Pillen), darunter die Offline-Pille -->
 
   <section id="climate" class="view" hidden>
     <button class="x" data-act="close" aria-label="Schließen"><svg class="i"><use href="#xt"/></svg></button>
@@ -1821,7 +1821,9 @@ const call = (domain, service, data) => LIVE ? (netDown ? callFail(data) : conn.
 // Service mit Antwort (z. B. sonos.get_queue)
 const ask = (domain, service, data) => conn.sendMessagePromise({ type: 'call_service', domain, service, service_data: data, return_response: true }).then(r => r.response);
 // Energie-Tageskurven: HA-History per WebSocket (nur lesend); Demo simuliert selbst
-energyInit((ids, start) => LIVE && conn ? conn.sendMessagePromise({ type: 'history/history_during_period', start_time: start.toISOString(), entity_ids: ids, minimal_response: true, no_attributes: true, significant_changes_only: false }) : null, { call, close: () => close() });   // Detail: Lademodus/-limit live über call (Demo ruft nie), Wisch runter/Escape schließt
+energyInit((ids, start) => LIVE && conn ? conn.sendMessagePromise({ type: 'history/history_during_period', start_time: start.toISOString(), entity_ids: ids, minimal_response: true, no_attributes: true, significant_changes_only: false }) : null, { call, close: () => close(), stats: {   // Summen im Autarkie-Detail: energy/get_prefs + Langzeitstatistik (Tage, Änderung, kWh)
+  prefs: () => conn.sendMessagePromise({ type: 'energy/get_prefs' }),
+  rows: (ids, start) => LIVE && conn ? conn.sendMessagePromise({ type: 'recorder/statistics_during_period', start_time: new Date(start).toISOString(), statistic_ids: ids, period: 'day', types: ['change'], units: { energy: 'kWh' } }) : null } });   // Detail: Lademodus/-limit live über call (Demo ruft nie), Wisch runter/Escape schließt
 
 // Modus-Menü der Klima-Ansicht: Reihenfolge wie im Video (Off, Cool, Heat, Auto), weitere HA-Modi dahinter
 const HVAC = { off: 'Aus', cool: 'Kühlen', heat: 'Heizen', heat_cool: 'Auto', auto: 'Auto', dry: 'Entfeuchten', fan_only: 'Lüften' };

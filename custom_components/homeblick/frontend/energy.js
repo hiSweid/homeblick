@@ -1,5 +1,6 @@
 import { EN_NAMES } from './faces.js';
 import { bins, smooth } from './curve.js';
+import { sources, ids as statIds, startOf, sums } from './energy-stats.js';
 // Energie-Face. Vorlage = Entwurf 1 des Users (statt Apple-Bildern; Bild scratchpad en/Entwurf1.png, Mockup en/m5.html Abschnitt #d1, Maße dort in cqw bei 784 px).
 // Raster/Glas/Press/Analoguhr = Home-Face (.f-grid/.tile/.dial aus index.html), Zahlen-Roll = roll() aus index.html, Federn = --spring/--sd.
 // Reihe 1: Solar jetzt 2×1 (kW + Tageskurve: Ist gelb gefüllt, Rest gestrichelte Solcast-Prognose) · autark (Ring)
@@ -85,9 +86,10 @@ export function energyFace(el) {
 // Ist = HA-History der PV-Leistung (Demo: simuliert), Prognose = Solcast detailedForecast (pv_estimate kW je 30 min) des Heute-Sensors
 let H = [], F = [], FB = [];   // [[ms, W]]; FB = Prognose-Band [[ms, W10, W90]]
 const HD = { home: [], grid: [], soc: [] };   // Detailansichten: Verlauf heute (Haus/Netz in W, Akku in %)
-let histFn = null, histAt = 0, demo = false, CALL = null, CLOSE = null;
+let histFn = null, histAt = 0, demo = false, CALL = null, CLOSE = null, STAT = null;
 // fn(ids, start) → Promise<{id: [{s, lu}]}> (WS history/history_during_period); o.call = callService aus index.html (Demo: nie aufgerufen), o.close = Vollbild schließen
-export function energyInit(fn, o = {}) { histFn = fn; CALL = o.call; CLOSE = o.close; }
+// o.stats = { prefs(): energy/get_prefs, rows(ids, startMs): recorder/statistics_during_period (day, change, kWh) } für die Summen im Autarkie-Detail
+export function energyInit(fn, o = {}) { histFn = fn; CALL = o.call; CLOSE = o.close; STAT = o.stats; }
 const day0 = () => new Date().setHours(0, 0, 0, 0);
 const isKW = s => /^kW$/i.test(s?.attributes.unit_of_measurement);
 const hpts = (l, f = 1) => (l || []).map(x => [(x.lu ?? x.lc) * 1000, parseFloat(x.s) * f]).filter(p => isFinite(p[1]) && isFinite(p[0]));
@@ -101,6 +103,24 @@ async function loadDet(ents) {
     for (const k of ks) HD[k] = hpts(r[E[k]], k !== 'soc' && isKW(ents[E[k]]) ? 1000 : 1);
     detail();
   } catch (e) { console.warn('Energie-History (Detail)', e); }
+}
+// Summen Heute/Woche/Monat (Autarkie-Detail): Zähler aus den Energie-Einstellungen, ein Abruf je Zeitraum, 5 min Cache
+const SUM = {};   // Zeitraum → { at, v } (v null: noch nichts aufgezeichnet)
+let SRC;          // Zähler-IDs; false = Energie-Dashboard nicht eingerichtet (Segment fällt weg)
+const price = id => { const v = parseFloat(V?.ents?.[id]?.state); return isFinite(v) ? v : null; };
+async function loadSum(p) {
+  if (p === 'now' || SUM[p] && Date.now() - SUM[p].at < 3e5) return;
+  const at = Date.now();
+  try {
+    if (demo) SUM[p] = { at, v: demoSums(p) };
+    else if (STAT && SRC !== false) {
+      SRC ??= sources(await STAT.prefs());
+      const rows = await STAT.rows(statIds(SRC), startOf(p));
+      if (!rows) return;   // noch keine Verbindung
+      SUM[p] = { at, v: sums(SRC, rows, price) };
+    }
+  } catch (e) { if (SRC == null) SRC = false; else console.warn('Energie-Summen', e); }
+  detail();
 }
 async function loadHist(ents) {
   if (demo || !histFn || !ents[E.pv] || Date.now() - histAt < 3e5) return;
@@ -177,7 +197,7 @@ export function energy(ents, roll) {
   FB = fl.map(p => [Date.parse(p.period_start) + step / 2, p.pv_estimate10 * 1000, p.pv_estimate90 * 1000]).filter(p => inDay(p) && isFinite(p[2]));
   if (ok.pv) rec(H, pv);
   for (const k of ['home', 'grid', 'soc']) if (ok[k]) rec(HD[k], x[k]);
-  V = { ok, x, st };
+  V = { ok, x, st, ents };
   loadHist(ents);
   detail();
   const faces = $$('.f-energy');
@@ -218,7 +238,8 @@ const DT = { pv: 'Solar', aut: 'Autarkie', use: 'Verbrauch', bat: 'Akku', get ca
 const MODE = { off: 'Aus', now: 'Sofort', minpv: 'Min+PV', pv: 'PV' };
 const WD = { Monday: 'Mo', Tuesday: 'Di', Wednesday: 'Mi', Thursday: 'Do', Friday: 'Fr', Saturday: 'Sa', Sunday: 'So' };   // Solcast dayname (englisch)
 const BOLT = '<path d="M13.5 2.5 5.5 13.5h5.8l-1.3 8 8-11h-5.8z" fill="currentColor" stroke="none"/>';
-let dk = null, sg = 'home', hold = {}, drag = null;   // offenes Detail, Segment Verbrauch, lokale Werte bis HA nachzieht (Modus/Limit), Limit-Ziehen
+const SP = { now: 'Jetzt', day: 'Heute', week: 'Woche', month: 'Monat' }, SPL = { day: 'heute', week: 'diese Woche', month: 'diesen Monat' };
+let dk = null, sg = 'home', sp = 'now', hold = {}, drag = null;   // offenes Detail, Segment Verbrauch, lokale Werte bis HA nachzieht (Modus/Limit), Limit-Ziehen
 const $d = () => document.getElementById('edet');
 const hx = (v, s) => `${v}<small> ${s}</small>`;
 // Stundenbalken: mind. eine Balkenbreite hoch (2,8 von 13 cqw), sonst schneidet die Rundung der .hb ein Oval; „0,0“ (< 50 Wh) → kein Balken
@@ -234,7 +255,7 @@ function body(k, g) {
   const lt = '<div class="t"><span>Ladelimit</span><b data-bind="d_lim"></b></div>';
   return hero + {
     pv: () => card('Tagesverlauf', chart(g, '<path class="bd"/>' + area + '<path class="fc"/>') + strip()),
-    aut: () => card('Verbrauch jetzt', `<div class="sb"><i class="so"></i><i class="ak"></i><i class="nz"></i></div>${strip('ecol')}`),
+    aut: () => card('Verbrauch', `<div class="wseg emode">${Object.entries(SP).map(([p, l]) => `<button data-sp="${p}">${l}</button>`).join('')}</div><div class="sb"><i class="so"></i><i class="ak"></i><i class="nz"></i></div>${strip('ecol')}`),
     use: () => card('Tagesverlauf', chart(g, `<g class="hh">${area}</g><clipPath id="${g}a"><rect class="ka" width="100"/></clipPath><clipPath id="${g}b"><rect class="kb" width="100"/></clipPath>`
       + `<g class="gg ex" clip-path="url(#${g}a)"><path class="ar"/><path class="ln"/></g><g class="gg im" clip-path="url(#${g}b)"><path class="ar"/><path class="ln"/></g><path class="gg z"/>`),
       `<div class="wseg">${[['home', SYM.home], ['grid', BOLT]].map(([s, p]) => `<button data-sg="${s}" aria-label="${s === 'home' ? 'Haus' : 'Netz'}"><i class="wi"><svg viewBox="0 0 24 24">${p}</svg></i></button>`).join('')}</div>`),
@@ -246,7 +267,7 @@ function body(k, g) {
 }
 export function energyDetail(k, tile) {
   const view = $d(), f = tile.closest('.face');
-  dk = k; sg = 'home'; hold = {}; drag = null;
+  dk = k; sg = 'home'; sp = 'now'; hold = {}; drag = null;
   view.className = 'view ' + k + (still() ? '' : ' ni');   // ni: Balken/Werte stehen auf 0, bis die Karte aufgeklappt ist
   for (const c of ['light', 'mono']) view.classList.toggle(c, f.classList.contains(c));
   view.style.setProperty('--wpb', f.style.getPropertyValue('--wpb') || 'none');
@@ -290,6 +311,7 @@ function wire(view) {
     const b = e.target.closest('.wseg button');
     if (!b) return;
     if (b.dataset.sg) { sg = view.dataset.sg = b.dataset.sg; detail(); wipe(view); }
+    else if (b.dataset.sp) { sp = b.dataset.sp; loadSum(sp); detail(); }
     else if (b.dataset.mode) { hold.mode = [b.dataset.mode, Date.now() + 5e3]; svc('select', 'select_option', { entity_id: E.carMode, option: b.dataset.mode }); detail(); }
   });
   // Ladelimit: relativ ziehen wie die Regler im Kontrollzentrum (Tippen springt nicht), Senden beim Loslassen
@@ -367,16 +389,21 @@ function detail(force) {
     const nd = l.findIndex(([t]) => t >= day0() + 864e5);   // erste Stunde von morgen mit Wochentag (Spalte 14 cqw fasst nur „Do 7 Uhr“)
     setH($('[data-h]', view), l.map(([t, w], i) => col(t <= now ? 'Jetzt' : (i === nd ? new Date(t).toLocaleDateString('de-DE', { weekday: 'short' }).slice(0, 2) + ' ' : '') + hx(hr(t), 'Uhr'), hx(t <= now && ok.pv ? kw(x.pv) : de(w / 1000), 'kW'), i)).join(''));   // „Jetzt“ = Live-Wert wie die große Zahl
   } else if (k === 'aut') {
-    const H0 = Math.max(0, x.home) + x.car, net = ok.grid && x.grid > 50 ? Math.min(H0, x.grid) : 0, akku = ok.bat && x.bat > 50 ? Math.min(H0 - net, x.bat) : 0, sol = Math.max(0, H0 - net - akku);
-    const aut = ok.home && ok.grid ? (H0 > 0 ? Math.round(100 * (1 - net / H0)) : 100) : null;   // wie die Kachel: 1 − Netzbezug / (Haus + Auto)
-    n(String(aut), aut != null); bd('d_l', 'Autarkie jetzt');
-    m(ok.solarPct ? `Solaranteil gesamt ${Math.round(x.solarPct)} %` : '');
-    sub(ok.home ? `Anteile an ${kw(H0)} kW Verbrauch` : '');
+    const live = sp === 'now', P = live ? null : SUM[sp]?.v;
+    for (const b of $$('[data-sp]', view)) b.classList.toggle('on', b.dataset.sp === sp);
+    $('.emode', view).style.display = SRC === false ? 'none' : '';
+    const H0 = live ? Math.max(0, x.home) + x.car : P?.use || 0, net = live ? (ok.grid && x.grid > 50 ? Math.min(H0, x.grid) : 0) : P?.share.net || 0, akku = live ? (ok.bat && x.bat > 50 ? Math.min(H0 - net, x.bat) : 0) : P?.share.akku || 0, sol = live ? Math.max(0, H0 - net - akku) : P?.share.sol || 0;
+    const aut = live ? (ok.home && ok.grid ? (H0 > 0 ? Math.round(100 * (1 - net / H0)) : 100) : null) : P?.aut ?? null;   // wie die Kachel: 1 − Netzbezug / (Haus + Auto)
+    const u = v => hx(de(v), 'kWh'), eur = c => `${de(c, 2)} €`;
+    n(String(aut), aut != null); bd('d_l', live ? 'Autarkie jetzt' : `Autarkie ${SPL[sp]}`);
+    if (live) m(ok.solarPct ? `Solaranteil gesamt ${Math.round(x.solarPct)} %` : '');
+    else m(P ? `Verbrauch ${de(P.use)} kWh · PV-Ertrag ${de(P.pv)} kWh` : SUM[sp] ? 'Noch keine Werte aufgezeichnet' : 'Lädt …', P ? [`Einspeisung ${de(P.to)} kWh`, P.cost != null && `Kosten ${P.approx ? 'ca. ' : ''}${eur(P.cost)}`].filter(Boolean).join(' · ') : '');
+    sub(live ? (ok.home ? `Anteile an ${kw(H0)} kW Verbrauch` : '') : P ? `Anteile an ${de(H0)} kWh Verbrauch` : '');
     const sh = [['so', 'Solar', sol], ['ak', 'Akku', akku], ['nz', 'Netz', net]], f = v => H0 > 0 ? v / H0 : 0;
     let acc = 0;
     for (const [c, , v] of sh) { const e = $('.sb .' + c, view); e.style.setProperty('--x', acc); e.style.setProperty('--w', f(v)); acc += f(v); }
-    $('.sb', view).style.visibility = ok.home ? '' : 'hidden';
-    setH($('[data-h]', view), ok.home ? sh.map(([c, l, v], i) => col(`<i class="dot ${c}"></i>${l}`, hx(kw(v), 'kW'), i, '', `<em>${Math.round(100 * f(v))} %</em>`)).join('') : '');
+    $('.sb', view).style.visibility = live ? (ok.home ? '' : 'hidden') : P ? '' : 'hidden';
+    setH($('[data-h]', view), (live ? ok.home : P) ? sh.map(([c, l, v], i) => col(`<i class="dot ${c}"></i>${l}`, live ? hx(kw(v), 'kW') : u(v), i, '', `<em>${Math.round(100 * f(v))} %</em>`)).join('') : '');
   } else if (k === 'use') {
     n(kw(x.home), ok.home); bd('d_l', 'Hausverbrauch');
     const imp = x.grid > 50, exp = x.grid < -50;
@@ -477,6 +504,8 @@ function model(now, s, live = true) {
 // Solcast-artige Prognose (30-min-Perioden, kW, Band 10/90 %): klarer Tag × Faktor; morgen sonniger als heute, Tag 3/4 trüber
 const fcDay = (d, k) => Array.from({ length: 48 }, (_, i) => { const e = 4.3 * k * sunAt(i / 2 + .25), r = x => +x.toFixed(4); return { period_start: new Date(d + i * 18e5).toISOString(), pv_estimate: r(e), pv_estimate10: r(e * .58), pv_estimate90: r(Math.min(4.5, e * 1.14)) }; });
 const fcHour = l => l.filter((_, i) => !(i % 2)).map((p, i) => ({ ...p, pv_estimate: +((p.pv_estimate + l[2 * i + 1].pv_estimate) / 2).toFixed(4) }));
+const DEMO_SRC = sources({ energy_sources: [{ type: 'grid', flow_from: [{ stat_energy_from: 'g', number_energy_price: .32 }], flow_to: [{ stat_energy_to: 'e' }] }, { type: 'solar', stat_energy_from: 'p' }, { type: 'battery', stat_energy_from: 'bo', stat_energy_to: 'bi' }] });
+const demoSums = p => { const k = { day: 1, week: 6.5, month: 27 }[p], r = v => [{ change: v * k }]; return sums(DEMO_SRC, { g: r(7.2), e: r(5.1), p: r(14.8), bo: r(2.4), bi: r(3.1) }); };
 export function energyDemo(now = Date.now()) {
   if (!demo) {   // einmal: Tag ab Mitternacht in 2-min-Schritten, schreibt die History (auch Haus, Netz, Akku für die Detailansichten)
     demo = true;
@@ -629,6 +658,7 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 /* e-Golf: Lademodus = .wseg mit Text, Ladelimit = Regler wie Licht/Kontrollzentrum (Füllung per transform, Text an der Füllkante geteilt) */
 #edet .emode{margin:2.2cqw 4.6cqw 0 4.2cqw}
 #edet .emode button{flex:1;width:auto;font-size:3.3cqw;font-weight:600}
+#edet.aut .wcard{top:50.4cqw}#edet.aut .emode{margin-top:1.4cqw}#edet.aut .emode button{height:5.4cqw}#edet.aut .sb{margin-top:2.2cqw}   /* Autarkie: Segment + zwei Textzeilen im Kopf, Karte rückt hoch, damit die Prozentzeile der Spalten nicht abgeschnitten wird */
 #edet .sl{position:relative;height:6.6cqw;margin:2.2cqw 4.6cqw 0 4.2cqw;border-radius:2.2cqw;overflow:hidden;background:var(--trk);cursor:pointer;touch-action:none;transition:scale var(--sd) var(--spring);outline:0}
 #edet .sl.drag{scale:.97}
 #edet .sl:focus-visible{outline:.4cqw solid currentColor;outline-offset:.3cqw}
