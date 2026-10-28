@@ -97,9 +97,9 @@ svg.i{width:1em;height:1em;flex:none;fill:none;stroke:currentColor;stroke-width:
 .tile[data-size="2x1"]:not(.thermo){flex-direction:row;justify-content:flex-start;gap:4cqw;padding:0 5cqw;text-align:left}
 /* Stil-Varianten (Ideen-Galerie), im Layout der Apple-Vorlage (Website highlights/dashboard): zentriert wie die Thermostat-Zahl 68 mit Titel/Untertitel darunter, Glas, weiße An-Fläche, Ring/Kreis nur als dünne weiße Linie.
    value = Messwert groß statt Symbol (Sensor), circle = Symbol im Kreis (Szene, Schalter, Ventilator …), fill = Licht als Dimmer (weiße Fläche steigt) */
-.tile[data-sv=value] .ico{display:none}.tile[data-sv=value] .big{flex:1;display:flex;flex-wrap:wrap;align-items:baseline;align-content:center;justify-content:center;font-size:8.5cqw;font-weight:500;letter-spacing:-.02em;line-height:1;white-space:nowrap;padding-top:1.5cqw}
-.tile[data-sv=value] .big small{font-size:.5em;font-weight:500;margin-left:.15em}
-.tile[data-sv=value][data-size="2x1"] .big{font-size:12cqw}.tile[data-sv=value][data-size="2x2"] .big{font-size:20cqw}
+.tile:is([data-sv=value],[data-sv=spark]) .ico{display:none}.tile:is([data-sv=value],[data-sv=spark]) .big{flex:1;display:flex;flex-wrap:wrap;align-items:baseline;align-content:center;justify-content:center;font-size:8.5cqw;font-weight:500;letter-spacing:-.02em;line-height:1;white-space:nowrap;padding-top:1.5cqw}
+.tile:is([data-sv=value],[data-sv=spark]) .big small{font-size:.5em;font-weight:500;margin-left:.15em}
+.tile:is([data-sv=value],[data-sv=spark])[data-size="2x1"] .big{font-size:12cqw}.tile:is([data-sv=value],[data-sv=spark])[data-size="2x2"] .big{font-size:20cqw}.tile[data-sv=spark] .big{flex:1 1 0;padding-top:0;font-size:7.5cqw}
 .tile[data-sv=circle] .ico{box-sizing:content-box;font-size:6.2cqw;padding:2.4cqw;border-radius:50%;background:#ffffff26;transition:background .3s,color .3s}
 .tile[data-sv=circle].on .ico{background:var(--accent,var(--ink));color:#fff}
 .tile[data-sv=circle][data-size="2x2"] .ico{font-size:12cqw;padding:5cqw}.tile[data-sv=circle][data-size="2x1"]:not(.thermo) .ico{font-size:6.2cqw}
@@ -1006,6 +1006,7 @@ import { camInit, camConfig, camShow, camHide, camFace, camTile, camOpen, camRin
 import { loadEvents, eventsHTML, infoHTML } from './events.js';
 import { todoInit, todoFace, todoSync } from './todo.js';
 import { checkInit, checkFace, checkSync } from './check.js';
+import { sparkInit, sparkSync } from './spark.js';
 import { pillsInit } from './pills.js';
 // Ohne Parameter: Demo-Daten. Echtes HA nur mit ?live
 const LIVE = new URLSearchParams(location.search).has('live');
@@ -1426,7 +1427,7 @@ function tileEl(c) {
   else if (kind === 'thermo') { el.className = 'tile thermo'; el.innerHTML = `<div class="num" data-temp="${esc(t.e)}"></div><div class="foot">${chev('down')}${label}${chev('up')}</div>`; }
   else {
     el.className = 'tile';
-    el.innerHTML = (t.e?.startsWith('camera.') ? '<div class="feed"></div>' + (t.sv === 'live' ? '<div class="lvp"></div><div class="mch">Bewegung</div>' : '') : '') + (t.sv === 'fill' || t.sv === 'blind' ? '<div class="fill"></div><div class="pct"></div>' : t.sv === 'cover' ? `<div class="art"></div><div class="pill">${esc(t.title)}</div><div class="pct"></div><div class="cvr"><button data-act="tmp" aria-label="Zurück">${svg('prev')}</button><button class="pp" data-act="tmt" aria-label="Abspielen/Pause"></button><button data-act="tmn" aria-label="Weiter">${svg('next')}</button></div>` : '') + svg(iconOf(t), 'ico') + (t.sv === 'value' ? '<div class="big"></div>' : '') + label;
+    el.innerHTML = (t.e?.startsWith('camera.') ? '<div class="feed"></div>' + (t.sv === 'live' ? '<div class="lvp"></div><div class="mch">Bewegung</div>' : '') : '') + (t.sv === 'fill' || t.sv === 'blind' ? '<div class="fill"></div><div class="pct"></div>' : t.sv === 'cover' ? `<div class="art"></div><div class="pill">${esc(t.title)}</div><div class="pct"></div><div class="cvr"><button data-act="tmp" aria-label="Zurück">${svg('prev')}</button><button class="pp" data-act="tmt" aria-label="Abspielen/Pause"></button><button data-act="tmn" aria-label="Weiter">${svg('next')}</button></div>` : '') + svg(iconOf(t), 'ico') + (t.sv === 'value' ? '<div class="big"></div>' : t.sv === 'spark' ? '<div class="big"></div><div class="spw"></div>' : '') + label;
   }   // Livebild: camTile in render()
   return el;
 }
@@ -1775,6 +1776,7 @@ const track = (q, i, pos = 0) => {
 // Demo: Service-Calls verändern den lokalen Zustand wie HA es täte
 todoInit({ conn: () => conn, live: LIVE, ents: () => ents, down: () => netDown });   // Aufgaben-Face (todo.js)
 checkInit({ ents: () => ents, call: (...a) => call(...a) });   // Haus-Check (check.js)
+sparkInit({ ents: () => ents, live: LIVE, hist: (ids, start) => LIVE && conn ? conn.sendMessagePromise({ type: 'history/history_during_period', start_time: start.toISOString(), entity_ids: ids, minimal_response: true, no_attributes: true, significant_changes_only: false }) : null });   // Verlaufs-Kachel (spark.js)
 function demoCall(domain, service, data) {
   const id = data.entity_id, s = ent(id);
   if (!s) return;
@@ -1976,7 +1978,7 @@ function render() {
     }
     else if (d === 'lock') { const sv = $('svg.lk', t); if (sv) sv.classList.toggle('open', s.state !== 'locked'); }
     if (d === 'camera' && t.dataset.ti != null) camTile(t, id, s);
-    if (t.dataset.sv === 'value') {   // Messwert groß über dem Titel; Zahl und Einheit getrennt
+    if (t.dataset.sv === 'value' || t.dataset.sv === 'spark') {   // Messwert groß über dem Titel; Zahl und Einheit getrennt
       const big = $('.big', t), m = valText(s, t._val || 'state').match(/^(-?[\d.,]+)\s*(.*)$/), h = m ? `${m[1]}${m[2] ? `<small>${esc(m[2])}</small>` : ''}` : esc(valText(s, t._val || 'state') || '–');
       if (big && big.dataset.h !== h) { big.dataset.h = h; big.innerHTML = h; }
     }
@@ -1986,6 +1988,7 @@ function render() {
     }
     if (STATUS[d] && t.classList.contains('tile') && t.dataset.ti != null) { statusSub(t, d, s); statusLine(t, d, s); }
   }
+  sparkSync($$('[data-sv=spark]'));   // Verlaufs-Kacheln (spark.js): selbst gedrosselt, ein gebündelter History-Abruf
   for (const el of $$('[data-temp]')) {
     const id = el.dataset.temp, v = st(id).attributes.temperature, th = el.closest('.thermo');
     // Untertitel „Wohnzimmer • 20,5°“; 1×1 zu schmal → nur Raum

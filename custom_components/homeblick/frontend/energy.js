@@ -1,4 +1,5 @@
 import { EN_NAMES } from './faces.js';
+import { bins, smooth } from './curve.js';
 // Energie-Face. Vorlage = Entwurf 1 des Users (statt Apple-Bildern; Bild scratchpad en/Entwurf1.png, Mockup en/m5.html Abschnitt #d1, Maße dort in cqw bei 784 px).
 // Raster/Glas/Press/Analoguhr = Home-Face (.f-grid/.tile/.dial aus index.html), Zahlen-Roll = roll() aus index.html, Federn = --spring/--sd.
 // Reihe 1: Solar jetzt 2×1 (kW + Tageskurve: Ist gelb gefüllt, Rest gestrichelte Solcast-Prognose) · autark (Ring)
@@ -117,27 +118,6 @@ const rec = (A, v, now = Date.now()) => {   // Live-Werte anhängen (höchstens 
   while (A.length && A[0][0] < d) A.shift();
   if (v != null && (!A.length || now - A.at(-1)[0] >= 6e4)) A.push([now, v]);
 };
-// Mittelwert je Schritt (Kurve: 15 min) (Zustand hält bis zur nächsten Änderung)
-function bins(s, t0, t1, step) {
-  const out = [];
-  let i = 0, v = 0;
-  while (i < s.length && s[i][0] <= t0) v = s[i++][1];
-  for (let t = t0; t < t1; t += step) {
-    let sum = 0, a = t;
-    const b = Math.min(t + step, t1);
-    while (i < s.length && s[i][0] < b) { sum += v * (s[i][0] - a); a = s[i][0]; v = s[i++][1]; }
-    sum += v * (b - a);
-    out.push([Math.min(t + step / 2, t1), sum / (b - t)]);
-  }
-  return out;
-}
-// Catmull-Rom → Bézier (weiche Kurve ohne Knicke), Kontrollpunkte auf die Fläche geklemmt
-const cl = (v, lo = 0, hi = 30) => Math.min(hi, Math.max(lo, v));
-const smooth = p => p.map(([x, y], i) => {
-  if (!i) return `M${x.toFixed(2)},${y.toFixed(2)}`;
-  const a = p[i - 2] || p[i - 1], b = p[i - 1], c = p[i + 1] || [x, y];
-  return `C${(b[0] + (x - a[0]) / 6).toFixed(2)},${cl(b[1] + (y - a[1]) / 6).toFixed(2)} ${(x - (c[0] - b[0]) / 6).toFixed(2)},${cl(y - (c[1] - b[1]) / 6).toFixed(2)} ${x.toFixed(2)},${y.toFixed(2)}`;
-}).join('');
 // Fläche 100×30 wie im Entwurf: x = Erzeugungsfenster laut Prognose (sonst 6–21 Uhr), y = 30 (0 W) … 2 (Tagesspitze aus Ist/Prognose)
 // band: Detailansicht mit Solcast-Band 10–90 % (geht in die Skala ein); t0/t1/peak für die Achse
 function curve(band) {

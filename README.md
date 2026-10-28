@@ -82,6 +82,8 @@ A ring of the doorbell event wakes the display, plays a chime and opens the door
 
 **House check face:** one glance whether the house is secure: open doors/windows/garage, unlocked locks (tap *Schließen* to lock or close), water leaks, low batteries (<20 %) and unreachable sensors. The headline says "Alles zu" or "N offen"; entities can be excluded in the editor (*Ausnahmen*). Hidden in guest mode.
 
+**History tiles:** a sensor tile with the style *Verlauf* (tile inspector → Stil) shows the value large and a smooth 24-hour curve with a filled area and an end dot below it (sizes 1×1, 2×1, 2×2). One bundled `history/history_during_period` call serves all such tiles (cached for 10 minutes), the live value is appended at the end; sensors without recorded history show "Kein Verlauf". Needs the `history`/`recorder` integrations (part of default HA).
+
 **Live pills:** small glass pills at the top for whatever is running ("Waschmaschine 42 Min", "Golf lädt 63 %"); invisible when nothing runs. Rules live in the display config (`pills`: entity, running states or comparison like `>5`, label, optional sensor for the right-hand value, icon, `done`). When the source stops for a minute a pulse and a "ist fertig" card follow (no card inside the dim window, so the display stays dark). Timer pills sit in the same row, one per running timer, and tapping one opens that timer; if the row gets full it wraps. Pills are hidden in guest mode. They are edited under *Einstellungen → Live-Pillen* (part of the draft, sent with *Senden*).
 
 **Guest mode:** setting *Gastmodus* (also a switch entity per display, e.g. for an automation): calendar, info and camera faces show only a padlock until it is off.
