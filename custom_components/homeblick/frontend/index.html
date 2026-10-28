@@ -873,6 +873,14 @@ input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:tr
 .pav{flex:none;width:10.4cqw;height:10.4cqw;border-radius:50%;overflow:hidden;display:grid;place-items:center;background:#ffffff40;font-size:5cqw;font-weight:600}.pav img{width:100%;height:100%;object-fit:cover}
 .pt{flex:1;min-width:0}.pt b{display:block;font-size:4.4cqw;font-weight:600;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pt span{display:block;font-size:3.5cqw;opacity:.75;margin-top:.6cqw}
 .pb{font-size:3.5cqw;font-weight:500;opacity:.8}.pnone{position:absolute;left:0;right:0;top:40cqw;text-align:center;opacity:.6;font-size:4cqw}
+/* Personen-Karte (peoplemap.js): füllt das Face, Titel als helle Pille darüber, Marker = Avatar mit weißem Ring + Namensschild */
+.f-people .pmap{position:absolute;inset:0;opacity:0;transition:opacity .6s}.f-people.mapped .pmap{opacity:1}.f-people.mapped .plist{display:none}
+.f-people.mapped header{z-index:2;left:5cqw;top:5cqw;padding:1.4cqw 4cqw;border-radius:9cqw;background:#ffffffd9;color:#3c3c3c;font-size:4.6cqw;letter-spacing:0}
+.pm{width:11cqw;height:11cqw;animation:pmin .6s var(--spring) backwards}@keyframes pmin{from{scale:.3;opacity:0}}
+.pm .pav{width:100%;height:100%;background:#dfe5e8;color:#3c3c3c;box-shadow:0 0 0 .7cqw #fff,0 .6cqw 2cqw #0004}
+.pm .lb{position:absolute;top:calc(100% + 1.6cqw);left:50%;translate:-50% 0;padding:.7cqw 2.2cqw;border-radius:2.4cqw;background:#ffffffe6;color:#3c3c3c;text-align:center;white-space:nowrap;line-height:1.2;box-shadow:0 .4cqw 1.4cqw #0003}
+.pm .lb b{display:block;font-size:3.4cqw;font-weight:600}.pm .lb span{display:block;font-size:2.8cqw;opacity:.7}
+.f-people .maplibregl-ctrl-attrib{font-size:2.4cqw}
 /* Flow: eigener Farbton (wie Lavalampe), Flecken driften langsam; Ziffern = breite, schwere Glasformen */
 .f-bigclock.flow{background:hsl(285 72% 82%)}
 .flow .ft{font-size:49px;font-weight:900;font-variation-settings:'wght' 1000,'wdth' 151,'opsz' 144}.flow .dg{fill:#ffffff2e}
@@ -1675,7 +1683,7 @@ const FACE = {
     place(el, g); energyFace(el);
   },
   cams: el => camFace(el),
-  people: el => { el.innerHTML = '<header>Personen</header><div class="plist"></div>'; peopleFill(); },
+  people: el => { el.innerHTML = '<div class="pmap"></div><header>Personen</header><div class="plist"></div>'; peopleFill(); },
   todo: (el, f) => { todoFace(el, f); todoSync($$('.f-todo')); },
   check: (el, f) => { checkFace(el, f); checkSync($$('.f-check')); },
   photos: (el, f) => photosFace(el, f),
@@ -1696,16 +1704,37 @@ ${svg('note', 'mn')}
 const GUEST_HIDES = new Set(['calendar', 'info', 'cams', 'check', 'photos']);
 // Personen-Face („Wo ist?“): person.* mit Zone bzw. Entfernung zu zone.home und Akku des verknüpften Geräts; Glaszeilen wie die Kacheln (keine Apple-Vorlage, eigener Entwurf)
 const kmBetween = (a, b, c, d) => { const q = x => x * Math.PI / 180, h = Math.sin(q(c - a) / 2) ** 2 + Math.cos(q(a)) * Math.cos(q(c)) * Math.sin(q(d - b) / 2) ** 2; return 12742 * Math.asin(Math.sqrt(h)); };
+// Karte (HA ≥ 2026.10, peoplemap.js) ersetzt die Liste, sobald das Face sichtbar ist (Bibliothek ~430 KB gzip, vorher nicht geladen); Rückfall bleibt die Liste (Demo, Vorschau, kein WebGL2, ältere HA)
+const pmaps = new Set();
+const peopleIO = new IntersectionObserver(es => { for (const e of es) if (e.isIntersecting) { peopleIO.unobserve(e.target); peopleMount(e.target); } }, { threshold: .3 });
+async function peopleMount(f) {
+  if (f._pm || !f.isConnected) return;
+  f._pm = true;
+  try {
+    const m = await (await import('./peoplemap.js')).mount($('.pmap', f), conn, HASS);
+    if (!f.isConnected) return m.destroy();
+    f._map = m; pmaps.add(f); f._pk = ''; f.classList.add('mapped'); peopleFill();
+  } catch (e) { console.warn('Personen-Karte:', e.message || e); }
+}
 function peopleFill() {
+  for (const f of pmaps) if (!f.isConnected) { f._map.destroy(); pmaps.delete(f); }
   const fs = $$('.f-people'); if (!fs.length) return;
-  const home = ents['zone.home']?.attributes;
+  const home = ents['zone.home']?.attributes, pts = [];
   const html = Object.keys(ents).filter(i => i.startsWith('person.')).sort().map(id => {
     const s = ents[id], a = s.attributes, name = a.friendly_name || id, bat = ents[a.source]?.attributes.battery_level;
     const away = s.state === 'not_home', d = away && a.latitude != null && home?.latitude != null ? kmBetween(a.latitude, a.longitude, home.latitude, home.longitude) : null;
     const where = s.state === 'home' ? 'Zuhause' : away ? 'Unterwegs' + (d != null ? ` • ${d < 10 ? d.toFixed(1).replace('.', ',') : Math.round(d)} km` : '') : s.state === 'unknown' || s.state === 'unavailable' ? 'Unbekannt' : s.state;
-    return `<div class="prow${s.state === 'home' ? ' home' : ''}"><div class="pav">${a.entity_picture ? `<img src="${esc(abs(a.entity_picture))}" alt="">` : esc(name.trim()[0] || '?').toUpperCase()}</div><div class="pt"><b>${esc(name)}</b><span>${esc(where)}</span></div>${bat != null ? `<div class="pb">${Math.round(bat)} %</div>` : ''}</div>`;
+    const av = `<div class="pav">${a.entity_picture ? `<img src="${esc(abs(a.entity_picture))}" alt="">` : esc(name.trim()[0] || '?').toUpperCase()}</div>`;
+    const at = a.latitude != null ? a : s.state === 'home' && home?.latitude != null ? home : null;   // ohne GPS steht, wer „Zuhause“ ist, auf der Home-Zone
+    if (at) pts.push({ id, lat: at.latitude, lon: at.longitude, html: `${av}<div class="lb"><b>${esc(name)}</b><span>${esc(where)}</span></div>` });
+    return `<div class="prow${s.state === 'home' ? ' home' : ''}">${av}<div class="pt"><b>${esc(name)}</b><span>${esc(where)}</span></div>${bat != null ? `<div class="pb">${Math.round(bat)} %</div>` : ''}</div>`;
   }).join('') || '<p class="pnone">Keine Personen in Home Assistant</p>';
-  for (const f of fs) if (f._h !== html) { f._h = html; $('.plist', f).innerHTML = html; }
+  const pk = JSON.stringify(pts);
+  for (const f of fs) {
+    if (f._h !== html) { f._h = html; $('.plist', f).innerHTML = html; }
+    if (f._map) { if (f._pk !== pk) { f._pk = pk; f._map.set(pts); } }
+    else if (pts.length && LIVE && !PREVIEW && !f._pm && !f.closest('#dgrid')) peopleIO.observe(f);
+  }
 }
 function buildFace(f) {
   const el = document.createElement('div');
