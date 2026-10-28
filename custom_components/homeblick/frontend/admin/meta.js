@@ -101,6 +101,6 @@ export const ICONS = ['bulb', 'pendant', 'lock', 'unlock', 'garage', 'blind', 'v
 
 export const xi = id => `<svg><use href="#x-${id}"/></svg>`;
 const EN_ICON = { pv: 'sun', aut: 'power', use: 'house', bat: 'power', car: 'garage', day: 'sun', tmr: 'sun' };
-export const tileIcon = t => t.icon || (t.kind === 'clock' ? 'timer' : t.kind === 'wx' ? 'cloud' : t.kind === 'en' ? EN_ICON[t.k] : (e => e?.domain === 'cover' && e.dc !== 'garage' ? 'blind' : ICON[t.e?.split('.')[0]])(entOf(t.e))) || 'house';
-export const tileTitle = t => t.title || (t.kind === 'clock' ? 'Uhr' : t.kind === 'wx' ? 'Wetter' : t.kind === 'en' ? EN_NAMES[t.k] : entOf(t.e)?.name || t.e || 'Kachel');
+export const tileIcon = t => t.icon || (t.kind === 'clock' ? 'timer' : t.kind === 'wx' ? 'cloud' : t.kind === 'multi' ? (t.dom === 'cover' ? 'blind' : ICON[t.dom]) : t.kind === 'en' ? EN_ICON[t.k] : (e => e?.domain === 'cover' && e.dc !== 'garage' ? 'blind' : ICON[t.e?.split('.')[0]])(entOf(t.e))) || 'house';
+export const tileTitle = t => t.title || (t.kind === 'clock' ? 'Uhr' : t.kind === 'wx' ? 'Wetter' : t.kind === 'multi' ? 'Gruppe' : t.kind === 'en' ? EN_NAMES[t.k] : entOf(t.e)?.name || t.e || 'Kachel');
 export const autoTitle = en => ['sensor', 'binary_sensor'].includes(en.domain) ? en.name : DOM[en.domain]?.[0] || en.name;

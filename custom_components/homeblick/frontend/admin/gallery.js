@@ -49,6 +49,8 @@ export function openGallery() {
       title = view.k === 'cat' ? FILTERS.find(f => f[0] === view.id)[1] : view.id;
       if (view.k === 'room') {   // im Raum nach Art gliedern
         const by = new Map(); for (const e of list.slice().sort((a, b) => ROOM_DOM.indexOf(a.domain) - ROOM_DOM.indexOf(b.domain) || a.name.localeCompare(b.name, 'de'))) (by.get(DOM[e.domain]?.[0] || e.domain) || by.set(DOM[e.domain]?.[0] || e.domain, []).get(DOM[e.domain]?.[0] || e.domain)).push(e);
+        const gr = [['light', 'Alle Lichter', 'Lichter'], ['cover', 'Alle Rollläden', 'Rollläden']].map(([d, n, s]) => [d, n, s, list.filter(e => e.domain === d && e.dc !== 'garage')]).filter(g => g[3].length > 1);   // Sammelkachel: ein Tipp für alle
+        html += gr.length ? grp('Als eine Kachel', gr.map(([d, n, s, es]) => { const i = items.push({ g: { kind: 'multi', dom: d, title: `${s} ${view.id}`, ents: es.map(e => e.id) } }) - 1; return `<button class="ent" data-i="${i}">${avatar(d)}<span class="tx"><b>${n}</b><small>${es.length} in ${esc(view.id)} · Tippen schaltet alle</small></span><span class="addc">${ic('plus')}</span></button>`; }).join('')) : '';
         html += [...by].map(([n, es]) => grp(n, es.map(e => row(e, pl)).join(''))).join('');
       } else html += grp('', list.slice(0, SHOWN).map(e => row(e, pl)).join('')) + (list.length > SHOWN ? `<p class="hint center" style="padding:10px">${list.length} Einträge: suche, um einzugrenzen.</p>` : '');
     } else {
@@ -68,7 +70,7 @@ export function openGallery() {
   function add(btn) {
     if (!S.cfg) return;
     const it = items[+btn.dataset.i]; if (!it) return;
-    const r = it.w ? addTiles([widgetTile(it.w)], `${wLabel[it.w]} hinzugefügt`, { pickIt: false }) : addTiles([tileOf(it.e)], `${tileTitle(tileOf(it.e))} hinzugefügt`, { pickIt: false });
+    const r = it.g ? addTiles([it.g], `${it.g.title} hinzugefügt`, { pickIt: false }) : it.w ? addTiles([widgetTile(it.w)], `${wLabel[it.w]} hinzugefügt`, { pickIt: false }) : addTiles([tileOf(it.e)], `${tileTitle(tileOf(it.e))} hinzugefügt`, { pickIt: false });
     if (!r) return;
     const c = $('.addc', btn); c.classList.add('done'); c.innerHTML = ic('check');
     if (S.ui.insert === null) $('.gal-where span', dlg) && ($('.gal-where span', dlg).textContent = $('.gal-where span', dlg).textContent.replace(' · auf den markierten Platz', ''));

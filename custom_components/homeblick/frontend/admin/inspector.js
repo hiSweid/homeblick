@@ -34,12 +34,13 @@ export function mount(ed) {
 
   // ---- Kachel ----
   function tileRoot(f, t) {
-    const en = entOf(t.e), clock = t.kind === 'clock', wx = t.kind === 'wx', enk = t.kind === 'en', ent = !clock && !wx && !enk, sv = svOf(t, S.states), sz = `${t.w || 1}x${t.h || 1}`, vals = SUB_VALS(en);
+    const en = entOf(t.e), clock = t.kind === 'clock', wx = t.kind === 'wx', enk = t.kind === 'en', mk = t.kind === 'multi', ent = !clock && !wx && !enk && !mk, sv = svOf(t, S.states), sz = `${t.w || 1}x${t.h || 1}`, vals = SUB_VALS(en);
     const vv = t.val && !vals.some(x => x[0] === t.val) ? [...vals, [t.val, t.val]] : vals;
     const act = k => { const a = t[k]; return a?.do ? ACTS(en).find(x => x[0] === a.do)?.[1] || a.do : 'Standard'; };
     let h = `<div class="insp-id"><button class="av" style="--c:${colorOf(t)}" data-push="icon" aria-label="Symbol ändern">${xi(tileIcon(t))}</button></div>`;
-    h += grp('Name auf dem Display', `<div class="srow"><input class="name-in" id="tile-name" data-k="t.title" value="${esc(t.title || '')}" maxlength="60" placeholder="${esc(ent ? (en ? autoTitle(en) : 'Name') : clock ? 'Uhr' : wx ? 'Wetter' : EN_NAMES[t.k])}" autocomplete="off"></div>`);
+    h += grp('Name auf dem Display', `<div class="srow"><input class="name-in" id="tile-name" data-k="t.title" value="${esc(t.title || '')}" maxlength="60" placeholder="${esc(ent ? (en ? autoTitle(en) : 'Name') : clock ? 'Uhr' : wx ? 'Wetter' : mk ? 'Gruppe' : EN_NAMES[t.k])}" autocomplete="off"></div>`);
     if (ent) h += grp('Entität', `<button class="ent-row" data-pick-ent><span class="av" style="--c:${colorOf(t)}">${xi(tileIcon(t))}</span><span class="t"><b class="${t.e && !en ? 'bad' : ''}">${esc(en?.name || t.e || 'Wählen …')}</b><small>${esc(t.e && !en ? 'in Home Assistant nicht gefunden' : t.e || '')}</small></span>${ic('right')}</button>`);
+    if (mk) { const ns = (t.ents || []).map(id => entOf(id)?.name || id); h += grp('Enthält', `<div class="row"><span class="t"><b>${ns.length} ${t.dom === 'cover' ? 'Rollläden' : 'Lichter und Schalter'}</b><small>${esc(ns.slice(0, 4).join(', ') + (ns.length > 4 ? ' …' : ''))}</small></span></div>`, 'Tippen schaltet alle, Halten zeigt die Einzelnen. Die Mitglieder werden beim Anlegen aus dem Raum übernommen; zum Ändern die Kachel neu anlegen.'); }
     h += grp('Größe', sizePick('t.size', sz, enk && enSizes(t.k)), enk ? 'Die Werte kommen aus den Entitäten der Ansicht („Entitäten“ in den Ansichtseinstellungen).' : '');
     const styles = (sv ? stack('Stil', segB('t.sv', sv, t.sv || '')) : '') + (clock ? stack('Zifferblatt', segB('t.cs', [['', 'Striche'], ['numbers', 'Zahlen'], ['digital', 'Digital']], t.cs || '')) : '') + (ent ? stack('Look', segB('t.look', LOOKS.map(([a, n]) => [a, n]), t.look || '')) : '');
     if (styles) h += grp('Stil', styles, ent ? 'Theme: wie im Display eingestellt. Liquid oder Flat gilt nur für diese Kachel.' : '');

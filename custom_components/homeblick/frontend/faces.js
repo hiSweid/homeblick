@@ -17,7 +17,7 @@ const dedupe = (list, seen) => { for (let i = 0; i < list.length; i++) { const g
 // Struktur prüfen: eine kaputte gespeicherte Konfig würde sonst bei jedem Start renderAll sprengen
 const FACE_TYPES = ['grid', 'music', 'bigclock', 'analog', 'calendar', 'date', 'weather', 'energy', 'cams', 'people', 'todo', 'check', 'info'];   // = Schlüssel von FACE (index.html)
 // Kachelfelder mit falschem Typ verwerfen (kindOf/iconOf rufen String-Methoden); night rekursiv
-const cleanTile = t => { for (const k of ['e', 'title', 'sub', 'icon', 'kind', 'cs', 'k']) if (typeof t[k] !== 'string') delete t[k]; if (t.night && typeof t.night === 'object' && !Array.isArray(t.night)) cleanTile(t.night); else delete t.night; return t; };
+const cleanTile = t => { for (const k of ['e', 'title', 'sub', 'icon', 'kind', 'cs', 'k', 'dom']) if (typeof t[k] !== 'string') delete t[k]; if (Array.isArray(t.ents)) t.ents = t.ents.filter(x => typeof x === 'string').slice(0, 100); else delete t.ents; if (t.night && typeof t.night === 'object' && !Array.isArray(t.night)) cleanTile(t.night); else delete t.night; return t; };
 // Kacheln haben „Smart Home“ und „Energie“; Energie ohne gespeicherte Kacheln startet mit den bisherigen acht (ENERGY_TILES), ein leeres Feld bleibt leer
 export const hasTiles = f => f.type === 'grid' || f.type === 'energy';
 export const ENERGY_TILES = [{ kind: 'en', k: 'pv', w: 2 }, { kind: 'en', k: 'aut' }, { kind: 'en', k: 'use' }, { kind: 'en', k: 'bat' }, { kind: 'en', k: 'car' }, { kind: 'en', k: 'day' }, { kind: 'en', k: 'tmr' }, { kind: 'clock' }];
