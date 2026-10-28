@@ -3,7 +3,7 @@
 import { $, esc, ic, menu, rapidTap, toast } from './ui.js';
 import { DOM, entOf, entsOf, pickEntity } from './entities.js';
 import { S, byId, call, mutate, on, select, setSetting } from './state.js';
-import { BG, COLORS, ENERGY, FACE, energyGuess, ICONS, LOOKS, SIZES, TILE_DOM, TOGGLE_DOM, autoTitle, bgCss, bgVal, designCur, designs, faceName, svOf, tileIcon, tileTitle, withDesign, xi } from './meta.js';
+import { ACC, BG, COLORS, ENERGY, FACE, energyGuess, ICONS, LOOKS, SIZES, TILE_DOM, TOGGLE_DOM, autoTitle, accCss, bgCss, bgVal, designCur, designs, faceName, svOf, tileIcon, tileTitle, withDesign, xi } from './meta.js';
 import { canHold, copyTiles, faceBy, faceIx, hidePage, lost, moveTile, removePage, removeTiles, resizeTile, resizeTiles, tilesOf } from './edit.js';
 import { bind, entityBtn, selectBtn, sroww, sw, textRow } from './controls.js';
 import { pageMenu } from './layout.js';
@@ -93,6 +93,7 @@ export function mount(ed) {
     let h = `<div class="insp-id"><span class="av" style="--c:${meta[1]}">${ic(meta[2])}</span></div>`;
     if (!photo) h += grp('Hintergrund', `<div class="stack">${dots('f.bg', bgList, f.bg, bgCss)}</div>`, esc(bgList.find(([v]) => String(v) === String(f.bg))?.[1] || ''));
     if (sty?.length) h += grp('Stil', sty.length <= 3 && sty.every(x => x[1].length < 12) ? stack('Design', segB('f.design', sty, designCur(f))) : navRow('Design', esc(sty.find(x => x[0] === designCur(f))?.[1] || ''), 'design'));
+    if (f.type === 'calendar') h += grp('Farbe', `<div class="stack">${dots('f.acc', ACC, f.acc ?? '', accCss)}</div>`, esc(ACC.find(([v]) => String(v) === String(f.acc ?? ''))?.[1] || ''));
     if (hasTiles(f)) h += grp(`Kacheln · ${tilesOf(f).length}`, (tilesOf(f).map(tile).join('') || '<div class="srow"><span class="s-label muted">Noch keine Kacheln</span></div>') + `<button class="row accent" data-lib>${ic('plus')}Kachel hinzufügen</button>`, n ? `<span class="warn">${n} Kachel${n > 1 ? 'n passen' : ' passt'} nicht mehr ins Raster und ${n > 1 ? 'werden' : 'wird'} nicht angezeigt.</span>` : '');
     if (f.type === 'weather') h += grp('Wetter', sroww('Wetter-Entität', '', entityBtn('s.weather', s.weather, { domains: ['weather'], title: 'Wetter-Entität' })) + sroww('Ortsname', '', `<input data-k="s.place" value="${esc(s.place || '')}" maxlength="40" autocomplete="off">`), 'Gilt sofort für alle Wetter-Anzeigen dieses Displays.');
     if (f.type === 'energy') h += grp('', navRow('Entitäten', `${Object.keys(f.ents || {}).filter(k => k !== 'carName').length || 'Standard'}`, 'energy', `<span class="av" style="--c:${meta[1]}">${ic('bolt')}</span>`), 'Ohne Auswahl liest die Ansicht die Standard-Entitäten (evcc, Kostal, Solcast).');
@@ -133,7 +134,7 @@ export function mount(ed) {
   const designSync = f => {
     const fr = $('.dz', el); if (!fr) return;
     for (const b of el.querySelectorAll('[data-k="f.bg"]')) b.setAttribute('aria-pressed', String(b.dataset.v === String(f.bg)));
-    fr.contentWindow?.postMessage({ hb: 'preview', states: S.states, designs: { list: designs(f), bg: f.bg, cur: designCur(f) } }, location.origin);
+    fr.contentWindow?.postMessage({ hb: 'preview', states: S.states, designs: { list: designs(f), bg: f.bg, acc: f.acc, cur: designCur(f) } }, location.origin);
   };
   addEventListener('message', e => {
     const fr = $('.dz', el), m = e.data; if (!fr || e.source !== fr.contentWindow || e.origin !== location.origin) return;
@@ -156,6 +157,7 @@ export function mount(ed) {
     if (ns === 'm') { const [w, h] = v.split('x').map(Number); return resizeTiles(sel.f, sel.js, w, h) || draw({ keep: true }); }
     if (ns === 'f') {
       if (p === 'bg') return mt('Hintergrund geändert', g => { g.bg = bgVal(v); });
+      if (p === 'acc') return mt('Farbe geändert', g => { v === '' ? delete g.acc : g.acc = bgVal(v); });
       if (p === 'design') return mt('Stil geändert', g => { Object.assign(g, withDesign(S.cfg, g, v)); });
       if (p === 'todo') return mt('Liste geändert', g => { v ? g.todo = v : delete g.todo; });
       if (p === 'src') { if (phase === 'input') return; return mt('Quelle geändert', g => { const t = String(v).trim(); t ? g.src = t : delete g.src; }); }

@@ -285,7 +285,7 @@ html.dg,html.dg body{background:transparent;overflow:auto;display:block;height:a
 .f-calendar.mono{--cb:#fff;--cr:#ff3b30;--cd:#ff3b30;--cc:#ff3b30}
 .f-calendar .big{position:absolute;left:0;right:0;top:19.07cqw;line-height:1;text-align:center;font-size:76cqw;font-weight:530;letter-spacing:-.04em;color:var(--cd)}
 .f-calendar.mono .big{opacity:.13}
-.f-calendar header b{font-weight:inherit}
+.f-calendar header b,.f-calendar header small{font-weight:inherit;font-size:inherit}
 .f-calendar header{position:absolute;left:8.3cqw;right:9cqw;top:8.1cqw;display:flex;justify-content:space-between;font-size:6.3cqw;line-height:1;font-weight:500;color:var(--cr)}
 .f-calendar.mono header time{color:#fff}
 .f-calendar .days{position:absolute;left:7.66cqw;top:18.83cqw;width:84.56cqw;display:grid;grid-template-columns:repeat(7,1fr);grid-auto-rows:10.66cqw;align-items:center;justify-items:center;font-size:6.15cqw;line-height:1;font-weight:600;color:var(--cb)}
@@ -296,6 +296,31 @@ html.dg,html.dg body{background:transparent;overflow:auto;display:block;height:a
 .f-calendar .o{opacity:.3}
 .f-calendar .t{position:relative;z-index:0;mix-blend-mode:normal;color:#fff;font-weight:700}
 .f-calendar .t::before{content:"";position:absolute;left:50%;top:50%;width:10.6cqw;height:10.6cqw;margin:-5.3cqw;border-radius:50%;background:var(--cc);z-index:-1}
+/* Farben (face.acc = Farbton | 'gray'): einfarbige Töne statt Apples Blau/Rot — Zahlen dunkel, Kopf und große Zahl hell, Heute-Kreis sehr dunkel; Nacht: weiße Zahlen, Farbe nur im Kopf/Kreis */
+.f-calendar[data-acc]{--paper:hsl(var(--ch) 22% 93%);--cb:hsl(var(--ch) 85% 34%);--cr:hsl(var(--ch) 75% 44%);--cd:hsl(var(--ch) 80% 52%);--cc:hsl(var(--ch) 80% 16%)}
+.f-calendar[data-acc=g]{--paper:#ececee;--cb:#48484a;--cr:#8e8e93;--cd:#aeaeb2;--cc:#1c1c1e}
+.f-calendar.mono[data-acc]{--cb:#fff;--cr:hsl(var(--ch) 100% 64%);--cd:hsl(var(--ch) 100% 64%);--cc:hsl(var(--ch) 90% 52%)}
+.f-calendar.mono[data-acc=g]{--cr:#aeaeb2;--cd:#aeaeb2;--cc:#636366}
+/* Designs (Vorlage nur für „Monat“; die anderen sind eigene Entwürfe aus denselben Formen): schlicht = Raster ohne große Zahl, Wochenende in Akzent; Woche = Wochenband aus Kapseln; Blatt = Abreißblatt */
+.cv-plain .big{display:none}
+.cv-plain header{align-items:baseline;white-space:nowrap}
+.cv-plain header b{font-size:8.6cqw;font-weight:650;letter-spacing:-.02em;color:var(--cd)}
+.cv-plain header small{font-size:5.2cqw;font-weight:500;color:var(--cr)}
+.cv-plain .days>:nth-child(7n+6):not(.t),.cv-plain .days>:nth-child(7n):not(.t){color:var(--cr)}
+.cv-week .wkb{position:absolute;left:7.66cqw;top:22cqw;width:84.56cqw;display:grid;grid-template-columns:repeat(7,1fr);gap:1.5cqw}
+.cv-week .wkb span{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2.4cqw;height:31cqw;border-radius:6cqw;background:color-mix(in srgb,var(--cb) 9%,transparent);color:var(--cb);font-size:7cqw;line-height:1;font-weight:650}
+.cv-week .wkb i{font-style:normal;font-size:4.6cqw;font-weight:700;opacity:.65}
+.cv-week .wkb .t{background:var(--cc);color:#fff}
+.cv-week .wkb .t i{opacity:.8}
+.cv-week .wkt{position:absolute;left:8.3cqw;right:8.3cqw;top:62cqw;line-height:1}
+.cv-week .wkt b{display:block;font-size:14cqw;font-weight:620;letter-spacing:-.03em;color:var(--cd)}
+.cv-week .wkt span{display:block;margin-top:3cqw;font-size:8cqw;font-weight:600;color:var(--cb)}
+.cv-week .wkt small{display:block;margin-top:3.4cqw;font-size:5cqw;font-weight:600;color:var(--cr)}
+.cv-sheet .sb{position:absolute;left:0;right:0;top:0;height:25cqw;padding:0 8.3cqw;display:flex;justify-content:space-between;align-items:center;background:linear-gradient(#ffffff26,#0000),var(--cd);color:#fff;font-size:6.4cqw;font-weight:650;letter-spacing:.08em;text-transform:uppercase}
+.cv-sheet .sd{position:absolute;left:0;right:0;top:27cqw;text-align:center;font-size:58cqw;line-height:1;font-weight:560;letter-spacing:-.04em;color:var(--cc)}
+.cv-sheet .sw{position:absolute;left:0;right:0;top:87cqw;text-align:center;font-size:7.4cqw;line-height:1;font-weight:650;color:var(--cr)}
+.cv-sheet[data-acc] .sb{background:linear-gradient(#ffffff26,#0000),color-mix(in srgb,var(--cd) 72%,#000)}   /* weiße Schrift auf hellen Tönen (Grün, Türkis) lesbar halten */
+.f-calendar.mono.cv-sheet .sd{color:#fff}
 
 /* ---------- Datum ---------- */
 /* Vorlage Website faces_enhanced (Datums-Face hell/dunkel, Frontalbild, % Displaybreite) + Video y-MO 07530: Wochentag in Handschrift-Versalien mittig (Höhe der Versalien 7,9 %, Grundlinie 22,1 %), riesige Tageszahl
@@ -1374,14 +1399,22 @@ function tileEl(c) {
   }   // Livebild: camTile in render()
   return el;
 }
-function calHTML() {
-  const d = new Date(), y = d.getFullYear(), m = d.getMonth(), first = (new Date(y, m, 1).getDay() + 6) % 7;
+const CAL_ST = ['plain', 'week', 'sheet'];   // face.style; sonst „Monat“ (Vorlage)
+const isoKw = d => { const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())); t.setUTCDate(t.getUTCDate() + 4 - (t.getUTCDay() || 7)); return Math.ceil(((t - Date.UTC(t.getUTCFullYear(), 0, 1)) / 864e5 + 1) / 7); };
+function calHTML(st) {
+  const d = new Date(), y = d.getFullYear(), m = d.getMonth(), first = (new Date(y, m, 1).getDay() + 6) % 7, L = o => d.toLocaleDateString('de-DE', o);
+  if (st === 'week') {
+    const wd = (d.getDay() + 6) % 7;
+    return `<header><b>${L({ month: 'long', year: 'numeric' })}</b><time data-bind="time"></time></header><div class="wkb">${Array.from({ length: 7 }, (_, i) => `<span class="${i === wd ? 't' : ''}"><i>${'MDMDFSS'[i]}</i>${new Date(y, m, d.getDate() - wd + i).getDate()}</span>`).join('')}</div>`
+      + `<div class="wkt"><b>${L({ weekday: 'long' })}</b><span>${L({ day: 'numeric', month: 'long' })}</span><small>Kalenderwoche ${isoKw(d)}</small></div>`;
+  }
+  if (st === 'sheet') return `<div class="sb"><b>${L({ month: 'long' })}</b><time data-bind="time"></time></div><div class="sd">${d.getDate()}</div><div class="sw">${L({ weekday: 'long' })}</div>`;
   const n = 42;   // Vorlage: immer 6 Wochen
   const days = Array.from({ length: n }, (_, i) => {
     const x = new Date(y, m, i - first + 1);
     return `<span class="${x.getMonth() !== m ? 'o' : x.getDate() === d.getDate() ? 't' : ''}">${x.getDate()}</span>`;
   }).join('');
-  return `<div class="big">${d.getDate()}</div><header><b>${d.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' })}</b><time data-bind="time"></time></header>
+  return `<div class="big">${d.getDate()}</div><header><b>${L({ month: 'long' })} <small>${y}</small></b><time data-bind="time"></time></header>
 <div class="days">${'MDMDFSS'.split('').map(c => `<i>${c}</i>`).join('')}${days}</div>`;
 }
 // Tiefe (Video 15,4 s): Glasziffern = verwischtes Hintergrundbild in die Ziffern geclippt + heller Rand; freigestellte Person davor
@@ -1504,7 +1537,12 @@ const FACE = {
     if (k === 'relief' && h != null && h > 45 && h < 330) el.style.setProperty('--sec', '#fff');   // rosé: Magenta; Mint/Hellgrün: weiß (y-MO 07100/08250)
     el.innerHTML = (k === 'big' ? bigNums : reliefNums()) + (k === 'big' ? '<div class="fdate" data-bind="wdd"></div>' : '') + '<div class="dial fl"></div>';
   },
-  calendar: el => { el.innerHTML = calHTML(); el.dataset.act = 'events'; },
+  calendar: (el, f) => {
+    const st = CAL_ST.includes(f.style) ? f.style : '', a = f.acc, h = a == null || a === '' ? null : a === 'gray' ? 0 : +a;
+    if (st) el.classList.add('cv-' + st);
+    if (h != null && !isNaN(h)) { el.dataset.acc = a === 'gray' ? 'g' : 'h'; el.style.setProperty('--ch', h); }
+    el.innerHTML = calHTML(st); el.dataset.act = 'events';
+  },
   date: el => el.innerHTML = '<div class="wk" data-bind="wdl"></div><div class="dn" data-bind="day"></div>',
   weather: (el, f) => weatherFace(el, f, CFG.place),
   energy: (el, f) => {
@@ -1559,14 +1597,14 @@ function buildFace(f) {
 
 // Design-Auswahl: jedes Design als lebendes Face in der gewählten Hintergrundfarbe; Antippen meldet es der Einstellungsseite
 let dgKey = '';
-function dgrid({ list, bg, cur }) {
+function dgrid({ list, bg, acc, cur }) {
   let g = $('#dgrid'); if (!g) { g = document.createElement('div'); g.id = 'dgrid'; document.body.append(g); }
-  const key = JSON.stringify([list, bg]);
+  const key = JSON.stringify([list, bg, acc]);
   if (key === dgKey) { [...g.children].forEach((c, i) => c.classList.toggle('on', list[i][0] === cur)); return; }   // nur die Auswahl wechselt: nichts neu bauen (kein Flackern)
   dgKey = key;
   g.replaceChildren(...list.map(([v, n]) => {
     const [type, style] = v.split(':'), c = document.createElement('div'), b = document.createElement('div');
-    c.className = 'dcell' + (v === cur ? ' on' : ''); b.className = 'dbox'; b.append(buildFace({ type, style: style || undefined, bg, id: 'dg' }));
+    c.className = 'dcell' + (v === cur ? ' on' : ''); b.className = 'dbox'; b.append(buildFace({ type, style: style || undefined, bg, acc, id: 'dg' }));
     c.append(b); c.insertAdjacentHTML('beforeend', `<span>${esc(n)}</span>`); c.onclick = () => parent.postMessage({ hb: 'design', v }, location.origin);
     return c;
   }));
