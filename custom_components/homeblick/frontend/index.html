@@ -2150,7 +2150,7 @@ function times() {
   if (!sk) { bind('npe', mmss(p)); bind('npr', dur ? '−' + mmss(dur - p) : s.attributes.media_title ? 'LIVE' : ''); }
   // Demo: am Songende weiter (bzw. Titel wiederholen)
   if (!LIVE && dur && p >= dur && s.state === 'playing') demoCall('media_player', s.attributes.repeat === 'one' ? 'media_seek' : s.attributes._i === s.attributes._q?.length - 1 && s.attributes.repeat !== 'all' && !s.attributes.shuffle ? 'media_stop' : 'media_next_track', { entity_id: NP, seek_position: 0 });
-  if (f?.classList.contains('f-music') && s.attributes.media_title && !cur && !kzOn && !AS.className && Date.now() - touched > IDLE && !sk && !f.classList.contains('amb')) {
+  if (!PREVIEW && f?.classList.contains('f-music') && s.attributes.media_title && !cur && !kzOn && !AS.className && Date.now() - touched > IDLE && !sk && !f.classList.contains('amb')) {
     f.classList.add('amb'); volOpen(false); $$('.pop.open', f).forEach(x => x.classList.remove('open'));
   }
 }
