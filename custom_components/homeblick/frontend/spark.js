@@ -14,7 +14,9 @@ export function shape(pts, cur, now) {
   const s = pts.filter(p => p[0] > now - SPAN - STEP);
   if (isFinite(cur)) s.push([now, cur]);
   if (s.length < 2) return null;
-  const t0 = now - SPAN, b = bins(s, t0, now, STEP), v = b.map(p => p[1]);
+  const t0 = now - SPAN;
+  if (s[0][0] > t0) s.unshift([t0, s[0][1]]);   // junge Entität: erster Wert gilt nach links (bins() startete sonst bei 0)
+  const b = bins(s, t0, now, STEP), v = b.map(p => p[1]);
   const lo = Math.min(...v), hi = Math.max(...v), rg = Math.max(hi - lo, .5, .04 * Math.max(Math.abs(lo), Math.abs(hi)));   // Mindestspanne: Rauschen wird keine Zacke
   const mid = (hi + lo) / 2, P = ([t, y]) => [100 * (t - t0) / SPAN, 15 - 12 * (y - mid) / rg];
   const q = b.map(P), ln = smooth(q);
@@ -76,5 +78,7 @@ if (typeof process !== 'undefined' && process.argv[1]?.endsWith('spark.js')) {
   t(g && /^M/.test(g.ln) && g.ar.endsWith('Z') && g.y > 0 && g.y < 30, 'Kurve mit Fläche und Endpunkt im Bild');
   const f = shape([[now - SPAN, 20], [now - 1e6, 20.2]], 20.1, now);   // Rauschen < Mindestspanne bleibt flach
   t(f && Math.abs(f.y - 15) < 3, 'Rauschen bleibt nahe der Mitte');
+  const j = shape([[now - SPAN / 2, 30], [now - SPAN / 4, 10]], 10, now);   // junge Entität: der erste Wert gilt nach links (30 = oben), nicht 0 (= unten)
+  t(j && +/^M[\d.]+,([\d.]+)/.exec(j.ln)?.[1] < 15, 'kurze History startet nicht bei 0');
   console.log('ok');
 }

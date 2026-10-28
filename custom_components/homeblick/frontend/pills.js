@@ -100,11 +100,11 @@ export function pillsInit(screen, o) {
       }
       if (host.children[i] !== el) host.insertBefore(el, host.children[i] || null);
       const ic = x.fin ? 'ok' : iconOf(x.rule), name = x.rule.text || x.s?.attributes?.friendly_name || x.rule.e, d = x.fin ? tx('fertig') : detail(o.ents()[x.rule.left] || (isFinite(parseFloat(x.s?.state)) ? x.s : null), now);
-      el._r = x.rule; el.classList.toggle('fin', !!x.fin); el.style.cssText = tint(x.fin ? 'ok' : iconOf(x.rule)) + (el._v == null ? '' : `;--v:${el._v}`);
+      el._r = x.rule; el.classList.toggle('fin', !!x.fin); el.style.cssText = tint(x.fin ? 'ok' : iconOf(x.rule)) + (el._v == null ? '' : `;--rv:${el._v}`);
       const pr = x.fin ? 100 : progress(o.ents()[x.rule.left] || (isFinite(parseFloat(x.s?.state)) ? x.s : null), x.m, now);
       el.classList.toggle('ind', pr == null); if (pr != null) {   // Ring: Fortschritt oder, wenn unbekannt, ein kreisender Bogen; nur ab 1 % Sprung neu setzen (jede Änderung startet eine 0,9-s-Übergangsanimation auf dem Main-Thread, bei 1-s-Takt wäre sie Dauerlast)
     const v = +pr.toFixed(1);
-    if (el._v == null || Math.abs(v - el._v) >= 1 || (v >= 100 || v <= 0) && v !== el._v) { el._v = v; el.style.setProperty('--v', v); }
+    if (el._v == null || Math.abs(v - el._v) >= 1 || (v >= 100 || v <= 0) && v !== el._v) { el._v = v; el.style.setProperty('--rv', v); }
   }
       const svg = el.querySelector('svg'); if (svg._i !== ic) { svg._i = ic; svg.innerHTML = ICONS[ic]; }
       el.querySelector('b').textContent = name; const di = el.querySelector('i');
@@ -129,14 +129,14 @@ export function pillsInit(screen, o) {
 
 if (typeof document !== 'undefined') document.head.insertAdjacentHTML('beforeend', `<style>
 .lp,.tpill{--c:#ff9230}
-@property --v{syntax:'<number>';inherits:true;initial-value:0}
+@property --rv{syntax:'<number>';inherits:true;initial-value:0}   /* nicht --v: so heißt die Prozent-Füllung der Lautstärkeregler (index.html), registriert als Zahl wäre sie ungültig */
 @property --a{syntax:'<angle>';inherits:false;initial-value:0deg}
 .lp,#prow .tpill{position:relative;flex:none;display:flex;align-items:center;gap:1.17cqw;height:4.94cqw;padding:0 2.34cqw 0 0.59cqw;border-radius:2.6cqw;background:#161618;color:#fff;font-size:2.86cqw;font-weight:600;line-height:1;
   font-variant-numeric:tabular-nums;box-shadow:0 0.52cqw 2.08cqw #0008;transition:scale .25s}
 .lp::before{content:"";position:absolute;inset:-3.9cqw -0.65cqw}
 .lp:active{scale:.94;transition:scale .12s ease-out}
-/* Ring statt Icon-Fläche: der Fortschritt füllt sich weich nach (--v animiert), unbekannter Fortschritt = kreisender Bogen, fertig = voller grüner Ring */
-.rg{position:relative;flex:none;width:3.77cqw;height:3.77cqw;border-radius:50%;display:grid;place-items:center;background:conic-gradient(var(--c) calc(var(--v) * 1%),#ffffff22 0);transition:--v .9s cubic-bezier(.3,.7,.2,1)}
+/* Ring statt Icon-Fläche: der Fortschritt füllt sich weich nach (--rv animiert), unbekannter Fortschritt = kreisender Bogen, fertig = voller grüner Ring */
+.rg{position:relative;flex:none;width:3.77cqw;height:3.77cqw;border-radius:50%;display:grid;place-items:center;background:conic-gradient(var(--c) calc(var(--rv) * 1%),#ffffff22 0);transition:--rv .9s cubic-bezier(.3,.7,.2,1)}
 .rg::before{content:"";position:absolute;inset:0.39cqw;border-radius:50%;background:#161618}
 .lp.ind .rg{background:conic-gradient(from var(--a),#0000 0 62%,var(--c));animation:lpr 1.5s linear infinite}
 .rg svg{position:relative;width:2.08cqw;height:2.08cqw;fill:none;stroke:var(--c);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}

@@ -303,15 +303,17 @@ function nightAt(t) {
 function fillHours(row, anim) {
   const m = row.closest('.wcond').dataset.m, cut = Date.now() - 3600e3;
   const list = hours.filter(h => Date.parse(h.datetime) > cut).slice(0, 24);
+  if (!list.length) { row.innerHTML = `<p class="wnone">${tx('Keine Stundenvorhersage')}</p>`; return; }   // Entity ohne hourly-Abo
   row.innerHTML = list.map((h, i) => {
     const t = Date.parse(h.datetime), n = nightAt(t), c = h.condition === 'sunny' && n ? 'clear-night' : h.condition;
-    const v = m === 't' ? Math.round(h.temperature) + '°' : m === 'p' ? (h.precipitation_probability ?? 0) + '<small> %</small>' : h.wind_speed == null ? '–' : Math.round(h.wind_speed) + '';
+    const v = m === 't' ? (h.temperature == null ? '–' : Math.round(h.temperature) + '°') : m === 'p' ? (h.precipitation_probability != null ? h.precipitation_probability + '<small> %</small>' : h.precipitation != null ? (+h.precipitation).toFixed(1) + '<small> mm</small>' : '–') : h.wind_speed == null ? '–' : Math.round(h.wind_speed) + '';
     return `<div><b>${i ? new Date(t).getHours() + '<small>' + tx(' Uhr‖Stunde') + '</small>' : tx('Jetzt')}</b><i class="wi">${icon(c in ICON ? c : 'cloudy', n, 1)}</i><span>${v}</span></div>`;
   }).join('');
   if (anim) row.querySelectorAll('span').forEach((x, i) => x.animate([{ opacity: 0, transform: 'translateY(40%)' }, { opacity: 1, transform: 'none' }], { duration: 500, delay: i * 25, easing: getComputedStyle(document.documentElement).getPropertyValue('--spring') || 'ease-out', fill: 'backwards' }));
 }
 // Aus index.html: Stundenvorhersage (weather/subscribe_forecast hourly)
-export function weatherHours(list) { hours = list || []; for (const r of $$('.whours')) fillHours(r); }
+// nur Wetter-Karten, nicht die Stundenleisten im Energie-Detail (gleiche Klasse)
+export function weatherHours(list) { hours = list || []; for (const r of $$('.wcond .whours')) fillHours(r); }
 
 const LIST = [...Object.keys(COND).filter(c => c !== 'clear-night').map(c => [c, 'day']), ['clear-night', 'night'],
   ['partlycloudy', 'night'], ['cloudy', 'night'], ['rainy', 'night'], ['snowy', 'night'], ['lightning-rainy', 'night'], ['sunny', 'dusk'], ['partlycloudy', 'dusk'], ['rainy', 'dusk']];
@@ -442,7 +444,7 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 .wcond>time{right:8.8cqw;top:8.4cqw;font-size:3.93cqw;font-weight:400;transition:opacity .4s .2s}
 .wcond .wtop{left:0;right:0;top:0;height:60cqw;text-align:center}
 .wcond .wtop>*{position:absolute;left:0;right:0;line-height:1;transform-origin:50% 0;transition:transform var(--sd,.64s) var(--spring,ease-out)}
-.wcond .wtop b{top:16.1cqw;font-size:7cqw;font-weight:600;letter-spacing:-.045em}
+.wcond .wtop b{top:16.1cqw;font-size:7cqw;font-weight:600;letter-spacing:-.045em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 4cqw}
 .wcond .wtop>div{top:24.7cqw;font-size:16.2cqw;font-weight:300;padding-left:3.8cqw}
 .wcond .wtop span{font-size:3.85cqw;font-weight:400;letter-spacing:-.045em}
 .wcond .wtop span:nth-of-type(1){top:41.9cqw}
@@ -469,6 +471,7 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 .whours>div{flex:0 0 14cqw;display:flex;flex-direction:column;align-items:center}
 .whours b{font-size:3.2cqw;font-weight:600;line-height:1;white-space:nowrap}
 .whours small{font-size:.76em}
+.whours .wnone{margin:9cqw auto;font-size:3.6cqw;opacity:.6;white-space:nowrap}
 .whours .wi{height:7.1cqw;margin-top:5.5cqw}
 .whours .s{fill:#ffcc00;stroke:#ffcc00}
 .whours .s path{stroke-width:1.2}

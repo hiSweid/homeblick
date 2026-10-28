@@ -198,7 +198,8 @@ export function camFace(el) {
 const vis = new IntersectionObserver(es => es.forEach(en => {
   const box = en.target, c = box._cam;
   clearTimeout(box._off);
-  if (en.isIntersecting) { if (!box._on) { box._on = true; feed(box, c.e, ents[c.e] || c.s, (st, still) => c.tile.classList.toggle('live', st === tx('Live') || !!still)); } }
+  // Gastmodus: das Kamera-Face liegt hinter der Sperre, dort keine Streams
+  if (en.isIntersecting && !(api.guest?.() && box.closest('.f-cams'))) { if (!box._on) { box._on = true; feed(box, c.e, ents[c.e] || c.s, (st, still) => c.tile.classList.toggle('live', st === tx('Live') || !!still)); } }
   else box._off = setTimeout(() => { if (!box._on) return; box._on = false; box._stop?.(); box._stop = null; box._tag = null; box.replaceChildren(); c.tile.classList.remove('live'); }, 1500);
 }), { threshold: .01 });
 export function camTile(tile, e, s) {

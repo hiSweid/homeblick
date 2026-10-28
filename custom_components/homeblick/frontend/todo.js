@@ -121,7 +121,7 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 .f-todo.multi .tchips{display:flex}
 .tchip{flex:none;height:7.4cqw;padding:0 3.4cqw;border-radius:9cqw;font-size:3.5cqw;font-weight:600;color:inherit;background:#ffffff26;white-space:nowrap}
 .tchip.on{background:#ffffffd9;color:#3c3c3c}
-.tbody{position:absolute;left:5cqw;right:5cqw;top:25cqw;bottom:4cqw;display:flex;flex-direction:column;gap:2cqw;overflow-y:auto;scrollbar-width:none}
+.tbody{position:absolute;left:5cqw;right:5cqw;top:25cqw;bottom:4cqw;display:flex;flex-direction:column;gap:2cqw;overflow-y:auto;scrollbar-width:none;touch-action:pan-y}
 .tbody::-webkit-scrollbar{display:none}
 .f-todo.multi .tbody{top:33cqw}
 .f-todo.adding .tbody{bottom:19cqw}

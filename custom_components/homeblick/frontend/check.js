@@ -86,7 +86,7 @@ if (typeof document !== 'undefined') document.head.insertAdjacentHTML('beforeend
 .chero.good>i{background:#30d158;color:#fff}.chero.bad>i{background:#ff9f0a;color:#fff}
 .chero span{min-width:0}.chero b{display:block;font-size:5.4cqw;font-weight:600;letter-spacing:-.02em;line-height:1.15}
 .chero small{display:block;margin-top:.8cqw;font-size:3.3cqw;opacity:.75;line-height:1.3;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
-.cbody{position:absolute;left:5cqw;right:5cqw;top:44cqw;bottom:4cqw;overflow-y:auto;scrollbar-width:none;display:flex;flex-direction:column;gap:1.8cqw}
+.cbody{position:absolute;left:5cqw;right:5cqw;top:44cqw;bottom:4cqw;overflow-y:auto;scrollbar-width:none;touch-action:pan-y;display:flex;flex-direction:column;gap:1.8cqw}
 .cbody::-webkit-scrollbar{display:none}
 .cbody h4{flex:none;margin:1.6cqw 0 0 3cqw;font-size:3.2cqw;font-weight:600;letter-spacing:.06em;text-transform:uppercase;opacity:.7}
 .crow{flex:none;display:flex;align-items:center;gap:3cqw;min-height:11cqw;padding:1.6cqw 3.4cqw 1.6cqw 2.4cqw;border-radius:4cqw;corner-shape:squircle;font-size:3.9cqw;font-weight:500;
