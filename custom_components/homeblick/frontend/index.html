@@ -3241,9 +3241,9 @@ const KS = window.kioskSatellite?.platform === 'kiosksatellite' ? window.kioskSa
 // Nur die Auth, nicht dessen Socket: den trennt das HA-Frontend, sobald die Seite verdeckt ist (Display wäre offline)
 const PARENT = (() => { try { return !KS && parent !== window && parent.hassConnection || null; } catch { return null; } })();
 if (LIVE) {
-  // ponytail: Bibliothek vom CDN; für den Kiosk ohne Internet lokal ablegen
-  const ha = await import('https://cdn.jsdelivr.net/npm/home-assistant-js-websocket@9.7.1/+esm');
+  let ha;   // Bibliothek liegt lokal (vendor/), damit das Display auch ohne Internet startet
   try {
+    ha = await import('./vendor/ha-websocket.js');
     if (PARENT) conn = await ha.createConnection({ auth: (await PARENT).auth, setupRetry: -1 });
     else if (KS) {
       // setupRetry greift bei eigenem createSocket nicht → ersten Versuch selbst wiederholen (HA bootet)
@@ -3359,7 +3359,8 @@ if (LIVE) {
     hello.then(subWx);   // Stundenleiste (Stil „Bedingungen“); Wetter ohne hourly → Fehler, Leiste bleibt leer
   } catch (err) {
     // In KS heißt ERR_INVALID_AUTH: Teilen aus / keine Custom Page. Kein Reload, sonst Endlosschleife.
-    if (KS) console.error('KS: „Share Home Assistant connection“ einschalten bzw. Seite als Custom Page eintragen', err);
+    if (!ha) $('#screen').insertAdjacentHTML('beforeend', '<div id="setup"><small>Homeblick</small><b>Start nicht möglich</b><span>Die Verbindungsbibliothek konnte nicht geladen werden.</span><button onclick="location.reload()">Erneut versuchen</button></div>');
+    else if (KS) console.error('KS: „Share Home Assistant connection“ einschalten bzw. Seite als Custom Page eintragen', err);
     // Neustart ohne auth_callback/code/state in der URL, sonst Schleife; einmal pro Sitzung, danach nur Fehler
     else if (err === ha.ERR_INVALID_AUTH && !(() => { try { return sessionStorage.hbAuthRetry; } catch { return 1; } })()) {
       try { sessionStorage.hbAuthRetry = 1; } catch {}

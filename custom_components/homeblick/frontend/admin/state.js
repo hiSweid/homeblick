@@ -25,7 +25,7 @@ async function connect() {
   // Im HA-Panel die Verbindung des HA-Frontends (gleicher Origin) statt eines zweiten Logins
   const p = (() => { try { return parent !== window && parent.hassConnection; } catch { return null; } })();
   if (p) return (await p).conn;
-  const ha = await import('https://cdn.jsdelivr.net/npm/home-assistant-js-websocket@9.7.1/+esm');
+  const ha = await import('../vendor/ha-websocket.js');
   const auth = await ha.getAuth({ hassUrl: location.origin, saveTokens: t => localStorage.hassTokens = JSON.stringify(t), loadTokens: async () => JSON.parse(localStorage.hassTokens || 'null') });
   if (location.search.includes('auth_callback')) history.replaceState(null, '', location.pathname);
   return ha.createConnection({ auth, setupRetry: -1 });

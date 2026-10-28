@@ -102,4 +102,6 @@ Synced lyrics come from [LRCLIB](https://lrclib.net) (exact match, then title + 
 
 ## Third-party
 
+The Home Assistant WebSocket client ([home-assistant-js-websocket](https://github.com/home-assistant/home-assistant-js-websocket) 9.7.1, Apache-2.0) is bundled unchanged in `frontend/vendor/`, so the panel starts without internet.
+
 The wake word uses [openWakeWord](https://github.com/dscripka/openWakeWord) models in `frontend/wake/` and onnxruntime-web (from a CDN). The pre-trained models are licensed **CC BY-NC-SA 4.0** (non-commercial); the feature models are Apache-2.0.
