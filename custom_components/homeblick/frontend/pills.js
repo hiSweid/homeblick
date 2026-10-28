@@ -31,6 +31,18 @@ export function detail(s, now = Date.now()) {
   return `${Math.round(n * 10) / 10}`.replace('.', ',') + (u ? (u === '%' ? ' %' : ' ' + u) : '');
 }
 
+// Fortschritt 0–100 für den Ring: Prozent-Sensor direkt, Restzeit relativ zur größten gesehenen Restzeit (m.tot); null = unbekannt → Ring dreht sich
+export function progress(s, m, now) {
+  if (!s || GONE.has(s.state)) return null;
+  const v = String(s.state), u = s.attributes?.unit_of_measurement || '';
+  let rem;
+  if (/^\d{4}-\d\d-\d\d[T ]/.test(v)) rem = (Date.parse(v) - now) / 1000;
+  else { const n = parseFloat(v); if (!isFinite(n)) return null; if (u === '%') return Math.min(100, Math.max(0, n)); rem = { s: n, min: n * 60, h: n * 3600 }[u]; }
+  if (!(rem > 0)) return null;
+  m.tot = Math.max(m.tot || 0, rem);
+  return m.tot - rem < 1 ? 0 : 100 * (1 - rem / m.tot);
+}
+
 const ICONS = { wash: '<rect x="5" y="3.5" width="14" height="17" rx="2.5"/><circle cx="12" cy="13.5" r="3.6"/><path d="M8.5 7h.01M11.5 7h.01"/>', bolt: '<path d="M13 3 6 13.5h5L10 21l8-11h-5z"/>',
   mow: '<path d="M4 15h13l2-6h-5"/><circle cx="7" cy="17.8" r="2"/><circle cx="16" cy="17.8" r="2"/>', vac: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2.4"/>', dot: '<circle cx="12" cy="12" r="4" fill="currentColor"/>', ok: '<path d="m5 12.5 4.5 4.5L19 7.5"/>' };
 export const PILL_ICONS = { wash: 'Waschmaschine', bolt: 'Laden', mow: 'Mäher', vac: 'Sauger', dot: 'Punkt' };
@@ -63,6 +75,7 @@ export function pillsInit(screen, o) {
   function eval1(rule, i, now) {
     const key = keyOf(rule, i), s = o.ents()[rule.e], m = mem.get(key) || (mem.set(key, { on: null, off: 0, done: 0 }), mem.get(key)), mode = rule.done || 'card', k = step(m, running(rule, s), mode, now), x = { rule, key, s, m };
     if (k === 'end') { if (mode === 'card' && !o.quiet?.()) o.done?.(rule, `${rule.text || s.attributes.friendly_name || rule.e} ist fertig`); return { ...x, fin: true, pulse: true }; }
+    if (k !== 'live') m.tot = 0;   // nächster Lauf zählt neu
     return k && { ...x, fin: k === 'fin' };
   }
 
@@ -75,7 +88,7 @@ export function pillsInit(screen, o) {
     list.forEach((x, i) => {
       let el = els.get(x.key);
       if (!el) {
-        el = Object.assign(document.createElement('button'), { className: 'lp', innerHTML: '<svg class="i" viewBox="0 0 24 24"></svg><b></b><i></i>' });
+        el = Object.assign(document.createElement('button'), { className: 'lp', innerHTML: '<span class="rg"><svg class="i" viewBox="0 0 24 24"></svg></span><b></b><i></i>' });
         el.addEventListener('click', e => { e.stopPropagation(); const m = mem.get(el.dataset.k); if (el.classList.contains('fin') && m) { m.done = 0; tick(); } else o.go?.(el._r); });   // „fertig“ wegtippen, sonst zur Kachel
         el.dataset.k = x.key; els.set(x.key, el); host.append(el);
         if (!calm()) {
@@ -86,6 +99,8 @@ export function pillsInit(screen, o) {
       if (host.children[i] !== el) host.insertBefore(el, host.children[i] || null);
       const ic = x.fin ? 'ok' : iconOf(x.rule), name = x.rule.text || x.s?.attributes?.friendly_name || x.rule.e, d = x.fin ? 'fertig' : detail(o.ents()[x.rule.left] || (isFinite(parseFloat(x.s?.state)) ? x.s : null), now);
       el._r = x.rule; el.classList.toggle('fin', !!x.fin); el.style.cssText = tint(x.fin ? 'ok' : iconOf(x.rule));
+      const pr = x.fin ? 100 : progress(o.ents()[x.rule.left] || (isFinite(parseFloat(x.s?.state)) ? x.s : null), x.m, now);
+      el.classList.toggle('ind', pr == null); if (pr != null) el.style.setProperty('--v', pr.toFixed(1));   // Ring: Fortschritt oder, wenn unbekannt, ein kreisender Bogen
       const svg = el.querySelector('svg'); if (svg._i !== ic) { svg._i = ic; svg.innerHTML = ICONS[ic]; }
       el.querySelector('b').textContent = name; const di = el.querySelector('i');
       if (di.textContent !== d) {   // Wert rollt: alter gleitet hoch hinaus, neuer von unten herein (nicht beim ersten Setzen)
@@ -97,7 +112,7 @@ export function pillsInit(screen, o) {
         x.pulse = false;
         if (!calm()) {
           el.animate([{ scale: '1' }, { scale: '1.22' }, { scale: '.97' }, { scale: '1' }], { duration: 760, easing: 'cubic-bezier(.3,1.4,.5,1)' });
-          const B = '0 .4cqw 1.6cqw #0007, inset 0 0 0 .12cqw #30d15855';
+          const B = '0 .4cqw 1.6cqw #0008';
           el.animate([{ boxShadow: `${B}, 0 0 0 0 #30d158aa` }, { boxShadow: `${B}, 0 0 0 3.2cqw #30d15800` }], { duration: 900, easing: 'ease-out' });
         }
       }
@@ -109,24 +124,24 @@ export function pillsInit(screen, o) {
 
 if (typeof document !== 'undefined') document.head.insertAdjacentHTML('beforeend', `<style>
 .lp,.tpill{--c:#ff9230}
-.lp{position:relative;flex:none;display:flex;align-items:center;gap:.8cqw;height:3.8cqw;padding:0 1.6cqw 0 .9cqw;border-radius:2cqw;background:linear-gradient(#262628f2,#000 70%);color:#fff;font-size:2.2cqw;font-weight:600;line-height:1;
-  font-variant-numeric:tabular-nums;box-shadow:0 .4cqw 1.6cqw #0007,inset 0 0 0 .12cqw color-mix(in srgb,var(--c) 32%,#0000);transition:scale .25s,box-shadow .4s}
+@property --v{syntax:'<number>';inherits:true;initial-value:0}
+@property --a{syntax:'<angle>';inherits:false;initial-value:0deg}
+.lp,#prow .tpill{position:relative;flex:none;display:flex;align-items:center;gap:.9cqw;height:3.8cqw;padding:0 1.8cqw 0 .45cqw;border-radius:2cqw;background:#161618;color:#fff;font-size:2.2cqw;font-weight:600;line-height:1;
+  font-variant-numeric:tabular-nums;box-shadow:0 .4cqw 1.6cqw #0008;transition:scale .25s}
 .lp::before{content:"";position:absolute;inset:-3cqw -.5cqw}
 .lp:active{scale:.94;transition:scale .12s ease-out}
-.lp svg{flex:none;width:2.6cqw;height:2.6cqw;fill:none;stroke:var(--c);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;animation:lpg 2.6s ease-in-out infinite}
+/* Ring statt Icon-Fläche: der Fortschritt füllt sich weich nach (--v animiert), unbekannter Fortschritt = kreisender Bogen, fertig = voller grüner Ring */
+.rg{position:relative;flex:none;width:2.9cqw;height:2.9cqw;border-radius:50%;display:grid;place-items:center;background:conic-gradient(var(--c) calc(var(--v) * 1%),#ffffff22 0);transition:--v .9s cubic-bezier(.3,.7,.2,1)}
+.rg::before{content:"";position:absolute;inset:.3cqw;border-radius:50%;background:#161618}
+.lp.ind .rg{background:conic-gradient(from var(--a),#0000 0 62%,var(--c));animation:lpr 1.5s linear infinite}
+.rg svg{position:relative;width:1.6cqw;height:1.6cqw;fill:none;stroke:var(--c);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
 .lp b{max-width:24cqw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .lp i{flex:none;font-style:normal;font-weight:600;color:var(--c)}
-.lp.fin i{font-weight:500}.lp.fin svg{animation:none}
-/* Lebendiger Rand: ein heller Bogen läuft um die laufende Pille (Timer-Pillen mit, solange sie nicht pausieren); fertig/pausiert: ruhig */
-@property --a{syntax:'<angle>';inherits:false;initial-value:0deg}
-.lp::after,.tpill:not(.pa)::after{content:"";position:absolute;inset:0;border-radius:inherit;padding:.16cqw;pointer-events:none;
-  background:conic-gradient(from var(--a),#0000 0 58%,color-mix(in srgb,var(--c) 85%,#fff) 100%);
-  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;animation:lpr 3.2s linear infinite}
-.lp.fin::after{animation:none;opacity:0;transition:opacity .5s}
-.lp:nth-child(2n)::after,.tpill:nth-child(2n)::after{animation-delay:-1.1s}   /* mehrere Pillen laufen nicht im Gleichschritt */
-#prow .tpill{background:linear-gradient(#262628f2,#000 70%)}
+.lp.fin i{font-weight:500}
+#prow .tpill b{color:var(--c)}#prow .tpill em{color:#fff}
+#prow .tpill .gl{width:1.6cqw;height:1.6cqw;stroke:var(--c);stroke-width:2.4}
+#prow .tpill.pa .rg{opacity:.6}
 @keyframes lpr{to{--a:360deg}}
-@keyframes lpg{50%{filter:drop-shadow(0 0 .7cqw var(--c))}}
 </style>`);
 
 // Selbsttest: node pills.js
@@ -148,5 +163,8 @@ if (typeof process !== 'undefined' && process.argv[1]?.endsWith('pills.js')) {
   t(step(m, false, 'card', T + 3000 + OFF_MS) === 'end' && step(m, false, 'card', T + 4000 + OFF_MS) === 'fin' && step(m, false, 'card', T + 3000 + OFF_MS + DONE_MS) === null, 'Ende einmal, dann „fertig“, dann weg');
   const n = { on: null, off: 0, done: 0 };
   t(step(n, true, 'none', T) === 'live' && step(n, false, 'none', T + 1) === 'live' && step(n, false, 'none', T + 1 + OFF_MS) === null, 'done none: ohne „fertig“');
+  const pm = {}, nowp = Date.parse('2030-01-01T10:00:00Z');
+  t(progress(S('63', { unit_of_measurement: '%' }), {}, nowp) === 63 && progress(S('abc'), {}, nowp) === null && progress(S('unavailable'), {}, nowp) === null && progress(S('12', { unit_of_measurement: 'kW' }), {}, nowp) === null, 'Prozent direkt, sonst unbekannt');
+  t(progress(S('2030-01-01T11:00:00Z'), pm, nowp) === 0 && Math.round(progress(S('2030-01-01T10:15:00Z'), pm, nowp)) === 75 && progress(S('2030-01-01T09:00:00Z'), pm, nowp) === null, 'Restzeit relativ zur größten gesehenen');
   console.log('ok');
 }

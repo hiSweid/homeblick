@@ -127,7 +127,7 @@ const pills = new Map();   // entity_id → Button
 function syncPills() {
   for (const [id, b] of pills) if (!run.some(s => s.entity_id === id)) { b.remove(); pills.delete(id); }
   for (const s of run) if (!pills.has(s.entity_id)) {
-    const id = s.entity_id, b = Object.assign(document.createElement('button'), { className: 'tpill', hidden: true, innerHTML: `${GLYPH}<em hidden></em><b></b>` });
+    const id = s.entity_id, b = Object.assign(document.createElement('button'), { className: 'tpill', hidden: true, innerHTML: `<span class="rg">${GLYPH}</span><em hidden></em><b></b>` });
     b.addEventListener('click', e => { e.stopPropagation(); timerShow(id); });
     pills.set(id, b);
   }
@@ -140,6 +140,7 @@ function paintPills() {
   for (const s of run) {
     const b = pills.get(s.entity_id); if (!b) continue;
     b.querySelector('b').textContent = hms(left(s));
+    const du = sec(s.attributes.duration); b.style.setProperty('--v', du > 0 ? Math.min(100, Math.max(0, 100 * (1 - left(s) / du))) : 0);   // Ring = abgelaufener Anteil
     b.classList.toggle('pa', s.state === 'paused');
     const n = b.querySelector('em'), nm = multi ? s.attributes.friendly_name || '' : ''; n.hidden = !nm; n.textContent = nm;   // Name nur bei mehreren Timern, sonst genügt die Zeit
   }
