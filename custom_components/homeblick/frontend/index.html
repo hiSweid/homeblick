@@ -724,12 +724,14 @@ input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:tr
 #assist:is(.listen,.think,.answer,.out) .orb{opacity:1}
 /* weißer Lichtbogen im unteren Drittel, schwingt; Regenbogensaum dreht langsam */
 #assist .hl{position:absolute;left:12%;right:12%;top:30%;height:34%;border-radius:50%;border-bottom:1.7cqw solid #fff;filter:blur(.45cqw) drop-shadow(0 0 .8cqw #fff);
-  animation:hl 2.2s ease-in-out infinite alternate}
+  }
+#assist:is(.listen,.think,.answer,.out) .hl{animation:hl 2.2s ease-in-out infinite alternate}   /* Dauer-Animationen nur, solange die Kugel sichtbar ist (sonst 60 Frames/s für nichts) */
 #assist.think .hl{animation-duration:.6s}
 @keyframes hl{0%{transform:rotate(-7deg) scaleX(.9)}50%{transform:translateY(-4%) rotate(3deg) scaleX(1.06)}100%{transform:translateY(3%) rotate(8deg) scaleX(.94)}}
-#assist .iri{position:absolute;inset:0;border-radius:50%;opacity:.3;mix-blend-mode:screen;animation:spin 5s linear infinite;
+#assist .iri{position:absolute;inset:0;border-radius:50%;opacity:.3;mix-blend-mode:screen;
   background:conic-gradient(from 100deg,#0000,#ff3cac 8%,#7a5cff 16%,#2bb5ff 24%,#3dffc5 32%,#fff35c 40%,#0000 48%);
   -webkit-mask:radial-gradient(closest-side,#0000 74%,#000 90%,#0000);mask:radial-gradient(closest-side,#0000 74%,#000 90%,#0000)}
+#assist:is(.listen,.think,.answer,.out) .iri{animation:spin 5s linear infinite}
 #assist.answer .iri{opacity:0;transition:opacity .3s}
 @keyframes spin{to{rotate:360deg}}
 #assist .ink{position:absolute;inset:0;background:#000;opacity:0}
