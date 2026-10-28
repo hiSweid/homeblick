@@ -1,4 +1,5 @@
 // Assist im Browser: Mikro (16 kHz, PCM16) → HA-Pipeline (STT → Absicht → TTS) → Antwort abspielen.
+import { playSpeech } from './speak.js';
 // Braucht einen Secure Context (https oder localhost) für getUserMedia; voiceOK() prüft das.
 export const voiceOK = () => !!navigator.mediaDevices?.getUserMedia;
 
@@ -40,7 +41,7 @@ const errText = (code, msg) => ERR[code] || 'Das hat nicht geklappt' + (msg ? ':
 // device = HA-Geräte-ID des Displays (Raum für „Licht an“); next = { conversation } wenn der Agent eine Rückfrage stellt
 export async function voiceRun(conn, h) {
   let mic, unsub, audio, id, next, sent = false, dead = false, answered = false, wd;
-  const cleanup = () => { dead = true; mic?.stop(); unsub?.(); audio?.pause(); clearTimeout(cap); clearTimeout(wd); };
+  const cleanup = () => { dead = true; mic?.stop(); unsub?.(); audio?.stop(); clearTimeout(cap); clearTimeout(wd); };
   // Wachhund: kommt in der jeweiligen Phase nichts mehr von HA, nicht ewig „zuhören“ (Pipeline hängt, Verbindung weg, kein Lauf gestartet)
   const arm = ms => { clearTimeout(wd); wd = setTimeout(() => fail('timeout'), ms); };
   const endAudio = () => { if (sent || id == null) return; sent = true; conn.socket.send(new Uint8Array([id])); mic?.stop(); arm(15000); };
@@ -67,10 +68,8 @@ export async function voiceRun(conn, h) {
       else if (ev.type === 'tts-end') {
         clearTimeout(wd);
         if (h.mute) { cleanup(); return h.onEnd(next); }   // stumm: Text erscheint, kein Ton
-        audio = new Audio(h.base + d.tts_output.url);
-        audio.volume = (h.volume ?? 100) / 100;
-        audio.onended = audio.onerror = () => { cleanup(); h.onEnd(next); };
-        audio.play().catch(() => { cleanup(); h.onEnd(next); });
+        audio = playSpeech(conn, h.ents, { path: h.base + d.tts_output.url, media: d.tts_output.media_id, out: h.out, duck: h.duck, volume: h.volume ?? 100 });
+        audio.done.then(() => { cleanup(); h.onEnd(next); });
       } else if (ev.type === 'error') {
         if (d.code === 'duplicate_wake_up_detected' || (h.conversation && d.code === 'stt-no-text-recognized')) { cleanup(); h.onEnd(); }   // anderes Display war schneller / Rückfrage ohne Antwort: still schließen
         else fail(d.code, d.message);

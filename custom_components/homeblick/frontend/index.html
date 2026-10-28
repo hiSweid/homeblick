@@ -228,19 +228,15 @@ svg.i{width:1em;height:1em;flex:none;fill:none;stroke:currentColor;stroke-width:
 .f-bigclock.stack:not(.light) .gslow .gt{fill:hsl(calc(var(--h,150) + 28) 66% 82% / .96)}   /* untere Zeile y-MO 07850: rgb(176,238,237) gegen oben (194,244,243) */
 .f-bigclock.lava .gt{font-size:53px;fill:#ffffff52;font-variation-settings:'wght' 500,'wdth' 44,'opsz' 144,'XOPQ' 130,'YOPQ' 70,'YTFI' 788}
 .f-bigclock.stack:not(.light) .gt{fill:hsl(calc(var(--h,150) + 28) 76% 88% / .96)}   /* Ziffernfläche y-MO 07850: #c8f5f4 auf #32e891, untere Zeile ≈ 8 % dunkler */
-/* Lavalampe: Farben relativ zum Ton (Blau 228 → Kern hsl(228 96 49) wie y-MO 07350, Magenta-Hof +65, Lavendelrand +13); Blob driftet (Bewegung nur grob belegt, y-MO 07167) */
+/* Lavalampe: Farben relativ zum Ton (Blau 228 → Kern hsl(228 96 49) wie y-MO 07350, Magenta-Hof +65, Lavendelrand +13); Wachs = Metaballs im Canvas (lavaTick), Bewegung nur grob belegt (y-MO 07167) */
 .f-bigclock.lava{background:linear-gradient(115deg,hsl(calc(var(--h,228) + 55) 70% 62%) 0 38%,hsl(calc(var(--h,228) + 34) 75% 70%) 72%,hsl(calc(var(--h,228) + 13) 85% 76%))}
 .lv{position:absolute;inset:0;overflow:hidden;pointer-events:none}
-.lv i{position:absolute;left:38cqw;top:28cqw;width:58cqw;aspect-ratio:1;border-radius:50%;animation:lava 13s ease-in-out infinite alternate;
-  background:radial-gradient(circle closest-side,hsl(var(--h,228) 96% 49%) 0 80%,hsl(calc(var(--h,228) - 12) 100% 55%) 90%,hsl(calc(var(--h,228) - 24) 100% 58%) 95%,#0000 100%)}
-.lv i:first-child{left:27cqw;top:17cqw;width:80cqw;background:radial-gradient(circle closest-side,hsl(calc(var(--h,228) + 66) 75% 55%) 0 48%,hsl(calc(var(--h,228) + 66) 75% 55% / 0) 100%)}
-@keyframes lava{to{transform:translate(-5cqw,3cqw) scale(1.1,.92) rotate(24deg)}}
+.lv canvas{position:absolute;inset:0;width:100%;height:100%}
 html.dg,html.dg body{background:transparent;overflow:auto;display:block;height:auto}html.dg body>:not(#dgrid){display:none!important}
 #dgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px 12px;padding:6px 4px 4px}
 .dcell{cursor:pointer;text-align:center;font:600 12px/1.2 Inter,system-ui,sans-serif;color:#8e8e93;-webkit-tap-highlight-color:transparent}.dcell span{display:block;margin-top:6px}
 .dbox{container-type:inline-size;aspect-ratio:1;border-radius:8%;overflow:hidden;position:relative;transition:transform .35s cubic-bezier(.3,1.4,.5,1),box-shadow .2s}.dcell:active .dbox{transform:scale(.96)}
 .dcell.on .dbox{box-shadow:0 0 0 2.5px var(--dgap,#fff),0 0 0 5px #0a84ff}html.dg{color-scheme:light dark}@media (prefers-color-scheme:dark){html.dg{--dgap:#1c1c1e}}.dcell.on span{color:#0a84ff}
-@media (prefers-reduced-motion:reduce){.lv i{animation:none}}
 .perf *,.perf *::before,.perf *::after{animation:none!important;transition:none!important}   /* Leistungsmodus (je Display): keine CSS-Animationen/-Übergänge, Wetter-Blitze aus */
 
 /* Analog-Face. Vorlagen (frontal Website faces_enhanced „Analog grün“ und „Relief rosé“, Pixelmaße auf 350 px Face; Video y-MO 01167/07100/08250/07950, TGo 00370/00485):
@@ -852,9 +848,20 @@ input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:tr
 /* Flow: eigener Farbton (wie Lavalampe), Flecken driften langsam; Ziffern = breite, schwere Glasformen */
 .f-bigclock.flow{background:hsl(285 72% 82%)}
 .flow .ft{font-size:49px;font-weight:900;font-variation-settings:'wght' 1000,'wdth' 151,'opsz' 144}.flow .dg{fill:#ffffff2e}
-.flow .fb{animation:flowd 17s ease-in-out infinite alternate}.flow .fb1{animation-duration:23s;animation-direction:alternate-reverse}.flow .fb2{animation-duration:19s}.flow .fb3{animation-duration:29s;animation-direction:alternate-reverse}
-@keyframes flowd{0%{transform:translate(-9px,5px)}50%{transform:translate(8px,-7px)}100%{transform:translate(-4px,10px)}}
-@media (prefers-reduced-motion:reduce){.flow .fb{animation:none}}
+.flow .fb{transform-box:fill-box;transform-origin:center;animation:flow0 41s ease-in-out infinite alternate}
+.flow .fb1{animation-name:flow1;animation-duration:53s}.flow .fb2{animation-name:flow2;animation-duration:47s}.flow .fb3{animation-name:flow3;animation-duration:61s}
+@keyframes flow0{0%{transform:translate(-14px,-6px) scale(.9)}35%{transform:translate(22px,10px) scale(1.22)}70%{transform:translate(8px,34px) scale(.85)}100%{transform:translate(-18px,22px) scale(1.15)}}
+@keyframes flow1{0%{transform:translate(16px,10px) scale(1.1)}40%{transform:translate(-24px,22px) scale(.82)}75%{transform:translate(-8px,-16px) scale(1.2)}100%{transform:translate(20px,-12px) scale(.95)}}
+@keyframes flow2{0%{transform:translate(-20px,12px) scale(1.2)}30%{transform:translate(14px,-22px) scale(.88)}65%{transform:translate(26px,6px) scale(1.15)}100%{transform:translate(-6px,-18px) scale(.9)}}
+@keyframes flow3{0%{transform:translate(12px,-14px) scale(.85)}45%{transform:translate(-22px,-4px) scale(1.2)}80%{transform:translate(-10px,26px) scale(.95)}100%{transform:translate(24px,16px) scale(1.12)}}
+/* Ambient-Licht für flache Uhr-Flächen: zwei weiche Lichtflecken kreisen langsam und atmen (nur transform/rotate/scale → läuft auf der GPU, im Leistungsmodus aus) */
+.f-bigclock.stack:not(.mono):not(.light),.f-analog.an-big,.f-analog.an-relief,.wfr:not(.wf-typo){isolation:isolate}
+.f-bigclock.stack:not(.mono):not(.light)::before,.f-analog.an-big::before,.f-analog.an-relief::before,.wfr:not(.wf-typo)::before{content:"";position:absolute;inset:-35%;z-index:-1;pointer-events:none;will-change:transform;
+  background:radial-gradient(closest-side at 32% 36%,hsl(calc(var(--h,150) + 30) 92% 82% / .55),#0000),radial-gradient(closest-side at 70% 68%,hsl(calc(var(--h,150) - 28) 90% 38% / .32),#0000);animation:ambr 80s linear infinite,ambs 29s ease-in-out infinite alternate}
+.f-analog.an-relief::before,.wfr.lt::before{background:radial-gradient(closest-side at 32% 36%,#ffffffb3,#0000),radial-gradient(closest-side at 70% 68%,hsl(var(--h,5) 60% 60% / .22),#0000)}
+.wfr.dk::before{background:radial-gradient(closest-side at 32% 36%,#ffffff1f,#0000),radial-gradient(closest-side at 70% 68%,#ffffff12,#0000)}
+@keyframes ambr{to{rotate:360deg}}@keyframes ambs{to{scale:1.3;translate:7% -5%}}
+@media (prefers-reduced-motion:reduce){.f-bigclock::before,.f-analog::before,.wfr::before,.flow .fb{animation:none}}
 </style>
 </head>
 <body>
@@ -1026,6 +1033,7 @@ import { WF, wfHTML, wfAnimate, wfTick, wfEnergy, wfEvent, WF_CSS } from './watc
 document.head.insertAdjacentHTML('beforeend', `<style>${WF_CSS}</style>`);
 import { parseLRC, findLyrics } from './lyrics.js';
 import { voiceOK, voiceRun, setMic, listMics } from './voice.js';
+import { playSpeech } from './speak.js';
 import { timerInit, timers, timerDemo, timerShow, timerOn, timerMusic, voiceTimers, ping } from './timer.js';
 import { camInit, camConfig, camShow, camHide, camFace, camTile, camOpen, camRinging, doorbell } from './doorbell.js';
 import { loadEvents, eventsHTML, infoHTML } from './events.js';
@@ -1042,13 +1050,13 @@ const LIVE = new URLSearchParams(location.search).has('live');
 const PREVIEW = new URLSearchParams(location.search).has('preview');
 const DESIGNS = PREVIEW && new URLSearchParams(location.search).has('designs');   // Design-Auswahl der Einstellungsseite: alle Stile als Live-Raster (dgrid)
 if (DESIGNS) document.documentElement.classList.add('dg');
-const CFG = { hass: '', weather: 'weather.home', place: 'Home', pipeline: '', mic: '', mute: false, barge: false, listen: 15, volume: 100, music: true, chime: true, device: '' };   // Wetter, Ort, Assist-Pipeline: je Display in der Einstellungsseite (applyK); device = HA-Gerät (register)
+const CFG = { hass: '', weather: 'weather.home', place: 'Home', pipeline: '', mic: '', out: '', duck: 30, mute: false, barge: false, listen: 15, volume: 100, music: true, chime: true, device: '' };   // Wetter, Ort, Assist-Pipeline: je Display in der Einstellungsseite (applyK); device = HA-Gerät (register)
 // Ort-Wahl am Wetter-Face (Listenknopf): nur dieses Gerät, bleibt über Neuladen; ohne Wahl gilt die Entity der Einstellungen
 let wxOver; try { wxOver = JSON.parse(localStorage.hbwx || 'null'); } catch { }
 const HOME = { weather: CFG.weather, place: CFG.place };
 let pickPlace = () => { };
 const applyK = k => {
-  root.classList.toggle('perf', !!k?.perf); for (const x of ['weather', 'place', 'tts', 'pipeline', 'mic', 'mute', 'barge', 'listen', 'volume', 'music', 'chime']) if (k?.[x] != null) CFG[x] = k[x];
+  root.classList.toggle('perf', !!k?.perf); for (const x of ['weather', 'place', 'tts', 'pipeline', 'mic', 'out', 'duck', 'mute', 'barge', 'listen', 'volume', 'music', 'chime']) if (k?.[x] != null) CFG[x] = k[x];
   setMic(CFG.mic); HOME.weather = CFG.weather; HOME.place = CFG.place; if (wxOver?.id) [CFG.weather, CFG.place] = [wxOver.id, wxOver.name];
 };
 const HASS = /^\/(local|homeblick)\//.test(location.pathname) ? location.origin : CFG.hass;   // unter /local/ ist die Seite selbst der HA-Origin
@@ -1455,6 +1463,44 @@ function glassSlots(hm) {
     setTimeout(() => old.remove(), 160);
   }
 }
+// Lavalampe: Metaballs im Kleinformat (96 px breit, Feldsumme je Pixel), per CSS auf Face-Größe gezogen. Ein gemeinsamer Takt (~30 fps) für alle Canvas, pausiert bei hidden/außerhalb/Leistungsmodus.
+// Wachs: Kern + hellerer Rand + Magenta-Hof wie y-MO 07350; unten ein Wachs-Pool, Blasen steigen und sinken in 35–100 s (Lampen-Tempo)
+const LAVA = [  // [x, y0, Amplitude x, Amplitude y, Periode x, Periode y (s), Radius (Facebreite), Phase]
+  [.30, .5, .14, .56, 71, 47, .130, 0], [.68, .5, .12, .6, 59, 61, .105, 2.1], [.50, .5, .22, .5, 83, 37, .085, 4], [.20, .5, .08, .55, 97, 53, .070, 5.3], [.80, .5, .10, .52, 67, 43, .075, 1.2], [.45, .5, .16, .58, 89, 67, .110, 3.1]];
+const hslRgb = (h, s, l) => { h = (h % 360 + 360) % 360; s /= 100; l /= 100; const k = n => (n + h / 30) % 12, a = s * Math.min(l, 1 - l), f = n => l - a * Math.max(-1, Math.min(k(n) - 3, 9 - k(n), 1)); return [f(0) * 255, f(8) * 255, f(4) * 255]; };
+const ss = (a, b, x) => { x = Math.min(1, Math.max(0, (x - a) / (b - a))); return x * x * (3 - 2 * x); };
+function lavaDraw(c, t) {
+  const cw = c.clientWidth, ch = c.clientHeight; if (!cw || !ch) return;
+  const W = 96, H = Math.max(24, Math.min(200, Math.round(W * ch / cw)));
+  if (c.width !== W || c.height !== H) { c.width = W; c.height = H; c._im = null; }
+  if (c._n++ % 30 === 0 || !c._k) { const h = parseFloat(getComputedStyle(c).getPropertyValue('--h')) || 228; if (h !== c._h) { c._h = h; c._k = [hslRgb(h, 96, 49), hslRgb(h - 24, 100, 62), hslRgb(h + 66, 75, 55)]; } }
+  const a = H / W, s = 2 * Math.PI * t, g = c.getContext('2d'), im = c._im ||= g.createImageData(W, H), d = im.data, [core, rim, halo] = c._k;
+  const B = LAVA.map(([x, y, ax, ay, px, py, r, ph]) => [x + ax * Math.sin(s / px + ph), a * (y + ay * (Math.sin(s / py + ph) + .3 * Math.sin(2 * s / py + 2 * ph)) / 1.3), r * r]);
+  for (const [x, k] of [[.18, 0], [.5, 2.1], [.82, 4.2]]) { const r = .15 + .045 * Math.sin(s / 31 + k); B.push([x + .05 * Math.sin(s / 53 + k), a + .01, r * r]); }   // Wachs-Pool
+  for (let j = 0, o = 0; j < H; j++) for (let i = 0; i < W; i++, o += 4) {
+    const px = (i + .5) / W, py = (j + .5) / W; let f = 0;
+    for (const [bx, by, r2] of B) { const dx = px - bx, dy = (py - by) * .8; f += r2 / (dx * dx + dy * dy + 1e-4); }
+    const ab = ss(.95, 1.1, f), ah = .7 * ss(.3, 1, f) * (1 - ab), A = ab + ah, e = 1 - ss(1.1, 1.9, f);
+    if (A < .004) { d[o + 3] = 0; continue; }
+    for (let q = 0; q < 3; q++) d[o + q] = ((core[q] + (rim[q] - core[q]) * e) * ab + halo[q] * ah) / A;
+    d[o + 3] = A * 255;
+  }
+  g.putImageData(im, 0, 0); return true;
+}
+let lavaRaf = 0, lavaT = 0;
+const calm = matchMedia('(prefers-reduced-motion:reduce)');
+function lavaTick(now) {
+  const cs = document.querySelectorAll('canvas.amb'); if (!cs.length) return lavaRaf = 0;
+  lavaRaf = requestAnimationFrame(lavaTick);
+  const still = calm.matches || root.classList.contains('perf');
+  if (now - lavaT < 33 || document.hidden) return;
+  lavaT = now;
+  for (const c of cs) {
+    const r = c.getBoundingClientRect(); if (r.right < 0 || r.left > innerWidth || (c._d && still)) continue;
+    c._n ??= 0; c._d = lavaDraw(c, still ? 20 : now / 1000);
+  }
+}
+const lavaStart = () => lavaRaf ||= requestAnimationFrame(lavaTick);
 // Flow (Vorlage faces_enhanced, unten links): weicher Verlauf aus Rosa, Blau und Violett, die Zeit als Glasformen. Linse = dieselben Farbflecken noch einmal, in die Ziffern geclippt und leicht vergrößert/versetzt
 // (keine Verzerrung per Filter: läuft ohne Live-Blur auch auf schwachen Tablets). Ziffern wechseln ohne Roll.
 const FSLOT = [[0, 27, 46], [1, 70, 46], [2, 27, 90], [3, 70, 90]];   // Mitte x, Grundlinie y (% Face)
@@ -1521,7 +1567,8 @@ const FACE = {
     const line = f.style === 'line';
     el.classList.add(line ? 'lava' : 'stack');
     if (line) { el.style.backgroundColor = ''; el.classList.remove('light', 'mono'); }   // Lavalampe hat immer ihre eigene Farbwelt
-    el.innerHTML = line ? `<div class="lv"><i></i><i></i></div>${glassHTML('line')}`
+    if (line) lavaStart();
+    el.innerHTML = line ? `<div class="lv"><canvas class="amb"></canvas></div>${glassHTML('line')}`
       : `<div class="bt"><b data-bind="wdd"></b><span><i class="wi" data-wxi></i><span data-bind="wxt"></span></span></div>${glassHTML('stack')}<div class="bs"><i data-wxsi></i><span data-bind="wxsun"></span></div>`;
   },
   analog: (el, f) => {
@@ -2194,10 +2241,11 @@ function announce(m, title) {
   let ms = 8000 + t.length * 60;
   const fin = () => { asT.forEach(clearTimeout); asT = [setTimeout(assistEnd, 2500)]; };
   const auth = conn?.options?.auth;
-  if (!CFG.mute && CFG.tts && auth?.accessToken) {   // HA-Stimme; bei Fehler Browser-Stimme. Token läuft nach 30 min ab (WebSocket merkt das nicht)
+  const engine = CFG.tts || (CFG.out && Object.keys(ents).find(k => k.startsWith('tts.')));   // Player-Ausgabe braucht eine HA-Stimme
+  if (!CFG.mute && engine && auth?.accessToken) {   // HA-Stimme; bei Fehler Browser-Stimme. Token läuft nach 30 min ab (WebSocket merkt das nicht)
     Promise.resolve(auth.expired && auth.refreshAccessToken())
-      .then(() => fetch('/api/tts_get_url', { method: 'POST', headers: { Authorization: 'Bearer ' + auth.accessToken, 'Content-Type': 'application/json' }, body: JSON.stringify({ message: t, engine_id: CFG.tts }) }))
-      .then(r => r.ok ? r.json() : Promise.reject()).then(j => { const a = new Audio(j.path); a.volume = CFG.volume / 100; a.onended = a.onerror = fin; return a.play(); }).catch(() => speak(t, fin));
+      .then(() => fetch('/api/tts_get_url', { method: 'POST', headers: { Authorization: 'Bearer ' + auth.accessToken, 'Content-Type': 'application/json' }, body: JSON.stringify({ message: t, engine_id: engine }) }))
+      .then(r => r.ok ? r.json() : Promise.reject()).then(j => playSpeech(conn, () => ents, { path: j.path, media: j.url, out: CFG.out, duck: CFG.duck, volume: CFG.volume }).done.then(fin)).catch(() => speak(t, fin));
     ms = 60000;
   } else if (!CFG.mute) { speak(t, fin); ms = 60000; }
   assistShow(ms);
@@ -2241,7 +2289,7 @@ async function assistVoice(conversation) {
   AS.dataset.k = 'voice'; $('.atxt', AS).textContent = ''; $('.atr', AS).textContent = '';
   const say = t => { const el = $('.atxt', AS); el.innerHTML = rich(t); el.scrollTop = 0; };
   const v = await voiceRun(LIVE ? conn : asSim(), {
-    pipeline: CFG.pipeline, device: CFG.device, conversation, wake, mute: CFG.mute, volume: CFG.volume,
+    pipeline: CFG.pipeline, device: CFG.device, conversation, wake, mute: CFG.mute, volume: CFG.volume, out: CFG.out, duck: CFG.duck, ents: () => ents,
     listen: conversation ? Math.min(CFG.listen, 8) : CFG.listen,   // Rückfrage: kürzer warten
     base: location.origin === 'null' ? '' : location.origin,
     onThink: t => { if (!live()) return; if (AS.className === 'listen') AS.className = 'think'; if (t && AS.classList.contains('think')) transcript(t); },

@@ -7,7 +7,7 @@ import { entOf, entsIn } from './entities.js';
 import { autoTitle, stripArea, tileIcon } from './meta.js';
 import { dl } from './util.js';
 
-const SKIP = ['place', 'weather', 'pipeline', 'mic', 'presence', 'lux'];   // gehören zum Raum/Gerät, nicht zur Vorlage
+const SKIP = ['place', 'weather', 'pipeline', 'mic', 'out', 'presence', 'lux'];   // gehören zum Raum/Gerät, nicht zur Vorlage
 const sameCfg = c => JSON.stringify(c);
 const remap = (config, area) => remapConfig(config, area, { en: entOf, inArea: entsIn, title: (e, a = e.area) => stripArea(e, a) || autoTitle(e) });
 /** Entwurf als Ganzes ersetzen (ein Rückgängig-Schritt); der Nutzer sendet danach selbst. */
@@ -58,7 +58,7 @@ export async function applyToOthers() {
   if (r !== 'go') return;
   const ids = [...box.querySelectorAll('[data-id]:checked')].map(c => c.dataset.id), fit = box.querySelector('#fit').checked;   // das entfernte Fenster behält seine Eingaben
   if (!ids.length) return;
-  const { place, weather, pipeline, mic, presence, lux, ...s } = src.settings;
+  const { place, weather, pipeline, mic, out, presence, lux, ...s } = src.settings;
   let dropped = 0;
   await guard(Promise.all(ids.map(id => {
     const t = byId(id); let c = S.cfg;

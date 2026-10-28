@@ -127,6 +127,8 @@ SETTINGS = vol.Schema({
     vol.Optional("wake"): vol.In(WAKE),
     vol.Optional("pipeline"): str,
     vol.Optional("mic"): vol.All(str, vol.Length(max=120)),   # Name des Mikrofons am Display ("" = Standard des Geräts)
+    vol.Optional("out"): vol.Any("", vol.Match(r"^media_player\.\w+$")),   # Sprachausgabe: "" = am Display
+    vol.Optional("duck"): vol.All(int, vol.Range(min=0, max=100)),   # Musik während der Sprache auf x % (0/100 = aus)
     vol.Optional("mute"): bool,
     vol.Optional("barge"): bool,
     vol.Optional("listen"): vol.All(int, vol.Range(min=3, max=60)),

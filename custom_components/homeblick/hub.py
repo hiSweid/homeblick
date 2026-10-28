@@ -42,7 +42,7 @@ class Display:
         return {
             "idle": s["idle"], "saver": s["saver"], "music": s["music"], "chime": s["chime"] and not s["dnd"],
             "wake": None if s["wake"] == "off" or s["micmute"] or s["dnd"] else f"{s['wake']}_v0.1", "wake_sens": s["wake_sens"],
-            "pipeline": s["pipeline"], "mic": s["mic"], "mute": s["mute"] or s["dnd"], "barge": s["barge"], "listen": s["listen"], "volume": s["volume"], "bright": s["bright"] / 100, "tts": s["tts"], "weather": s["weather"], "place": s["place"], "presence": s["presence"], "lux": s["lux"],
+            "pipeline": s["pipeline"], "mic": s["mic"], "out": s["out"], "duck": s["duck"], "mute": s["mute"] or s["dnd"], "barge": s["barge"], "listen": s["listen"], "volume": s["volume"], "bright": s["bright"] / 100, "tts": s["tts"], "weather": s["weather"], "place": s["place"], "presence": s["presence"], "lux": s["lux"],
             "black": s["black"], "perf": s["perf"], "hold": s["hold"], "kz": s["kz"], "dnd": s["dnd"], "micmute": s["micmute"], "guest": s["guest"], "sched": {"from": s["sched_from"], "to": s["sched_to"]} if s["sched"] else None,
             "dim": {"from": s["dim_from"], "to": s["dim_to"], "level": s["dim_level"] / 100} if s["dim"] else None,
         }
