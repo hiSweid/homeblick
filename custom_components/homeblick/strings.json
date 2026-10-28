@@ -96,6 +96,9 @@
       "perf": {
         "name": "Performance mode"
       },
+      "perfauto": {
+        "name": "Performance mode automatic"
+      },
       "sched": {
         "name": "Screensaver schedule"
       }

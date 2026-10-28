@@ -1089,6 +1089,7 @@ let wxOver; try { wxOver = JSON.parse(localStorage.hbwx || 'null'); } catch { }
 const HOME = { weather: CFG.weather, place: CFG.place };
 let pickPlace = () => { };
 const applyK = k => {
+  if (k?.perfauto === false && AUTOPERF) { AUTOPERF = false; try { localStorage.removeItem('hb-autoperf'); } catch {} }   // Auto-Erkennung aus (Admin) → gemerkten Zustand verwerfen
   root.classList.toggle('perf', !!k?.perf || AUTOPERF); for (const x of ['weather', 'place', 'tts', 'pipeline', 'mic', 'out', 'duck', 'mute', 'barge', 'listen', 'volume', 'music', 'chime']) if (k?.[x] != null) CFG[x] = k[x];
   setMic(CFG.mic); HOME.weather = CFG.weather; HOME.place = CFG.place; if (wxOver?.id) [CFG.weather, CFG.place] = [wxOver.id, wxOver.name];
 };
@@ -1097,7 +1098,7 @@ const HASS = /^\/(local|homeblick)\//.test(location.pathname) ? location.origin 
 const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const root = document.documentElement, screen = $('#screen'), faces = $('#faces');
 // Schwache Tablets: Leistungsmodus automatisch (Messung unten, probePerf); gemerkt je Display im localStorage, ?autoperf=0 löscht es. Der Schalter „Leistungsmodus“ in HA schaltet ihn weiterhin zusätzlich an.
-const AUTOPERF = (() => { try { if (new URLSearchParams(location.search).get('autoperf') === '0') localStorage.removeItem('hb-autoperf'); return localStorage.getItem('hb-autoperf') === '1'; } catch { return false; } })();
+let AUTOPERF = (() => { try { if (new URLSearchParams(location.search).get('autoperf') === '0') localStorage.removeItem('hb-autoperf'); return localStorage.getItem('hb-autoperf') === '1'; } catch { return false; } })();
 if (AUTOPERF) root.classList.add('perf');
 // Vorschau: Eingaben sind gesperrt (dieser Handler steht vor allen anderen und stoppt jedes Ereignis); Kacheln lassen sich ziehen (→ move) oder antippen (→ tile)
 if (PREVIEW) {
@@ -1557,18 +1558,19 @@ function lavaTick(now) {
 const lavaStart = () => lavaRaf ||= requestAnimationFrame(lavaTick);
 // Bildrate messen (8 s, 20 s nach dem Start, bei laufenden Hintergrund-Animationen): Median über 40 ms (< 25 fps) = zu schwach → Leistungsmodus an und merken. 30-fps-Geräte (Stromsparen) bleiben darüber. Versteckt/zu wenige Bilder → in 60 s nochmal
 function probePerf() {
-  if (document.hidden || root.classList.contains('perf')) return setTimeout(probePerf, 60000);
+  if (AUTOPERF || root.classList.contains('perf') || CONF.kiosk?.perfauto === false) return setTimeout(probePerf, 600000);   // schon an oder Auto aus (Einstellung): nur selten neu prüfen
+  if (document.hidden) return setTimeout(probePerf, 60000);
   const d = []; let p = 0; const t0 = performance.now();
   const f = now => {
     if (p) d.push(now - p); p = now;
     if (now - t0 < 8000 && !document.hidden) return requestAnimationFrame(f);
     if (document.hidden || d.length < 20) return setTimeout(probePerf, 60000);
     d.sort((a, b) => a - b); const med = d[d.length >> 1];
-    if (med > 40) { root.classList.add('perf'); try { localStorage.setItem('hb-autoperf', '1'); } catch {} console.warn(`Leistungsmodus automatisch eingeschaltet: Median ${Math.round(med)} ms je Bild`); }
+    if (med > 40) { AUTOPERF = true; root.classList.add('perf'); try { localStorage.setItem('hb-autoperf', '1'); } catch {} kiosk.report(); console.warn(`Leistungsmodus automatisch eingeschaltet: Median ${Math.round(med)} ms je Bild`); }
   };
   requestAnimationFrame(f);
 }
-if (!AUTOPERF && !PREVIEW) setTimeout(probePerf, 20000);
+if (!PREVIEW) setTimeout(probePerf, 20000);
 // Display wacht auf (Schwarz-Schoner, Dimmen, Bildschirm an), ohne dass das Face wechselt: Bewegung des sichtbaren Faces startet neu
 function replayAct() {
   const f = faces.children[Math.round(faces.scrollLeft / (faces.clientWidth * 1.025))]; if (!f?.classList.contains('act')) return;
@@ -3388,7 +3390,7 @@ camInit($('#cam'), { open, close, view: () => cur?.view, conn: () => conn, hass:
 // Laufender Zustand für die Einstellungsseite (Mikro braucht https, Wake Word hält es offen, Wake Lock hält den Bildschirm an)
 const INFO = { wake: null, v: undefined };
 let MICS = [];   // Mikrofone des Geräts für die Auswahl in der Einstellungsseite
-const info = () => (listMics().then(m => { MICS = m; }), { secure: isSecureContext, mic: voiceOK(), mics: MICS, wake: INFO.wake, wakelock: kiosk.wakeLock(), visible: document.visibilityState === 'visible', w: innerWidth, h: innerHeight, v: INFO.v });
+const info = () => (listMics().then(m => { MICS = m; }), { secure: isSecureContext, perf: root.classList.contains('perf'), perfAuto: AUTOPERF, mic: voiceOK(), mics: MICS, wake: INFO.wake, wakelock: kiosk.wakeLock(), visible: document.visibilityState === 'visible', w: innerWidth, h: innerHeight, v: INFO.v });
 renderAll(0);
 setTimeout(() => { tick(); setInterval(tick, 60000); }, 60050 - Date.now() % 60000);
 setInterval(times, 1000);

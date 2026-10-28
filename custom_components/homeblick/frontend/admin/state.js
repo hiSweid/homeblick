@@ -51,15 +51,25 @@ export async function reload() {
   S.displays = await call('displays');
   const todo = S.displays.filter(d => !d.new && !S.shots[d.id]);   // letztes Bild vom Server (auch offline) vor dem ersten Zeichnen holen, sonst blitzt erst der Platzhalter
   await Promise.all(todo.map(async d => { const { image } = await call('get_shot', { display: d.id }).catch(() => ({})); if (image) S.shots[d.id] = image; }));
-  emit('list');
+  emit('list'); perfNotice();
   todo.filter(d => d.connected).forEach(d => snap(d.id));   // neues Bild im Hintergrund
+}
+// Popup, sobald ein Display im Leistungsmodus läuft (einmal je Zustand): „Deaktivieren“ schaltet ihn und die automatische Erkennung aus
+const perfSeen = new Set();
+function perfNotice() {
+  for (const d of S.displays) {
+    if (!d.connected || !d.info?.perf) { perfSeen.delete(d.id); continue; }
+    if (perfSeen.has(d.id)) continue;
+    perfSeen.add(d.id);
+    toast(`${d.name}: Leistungsmodus aktiv${d.info.perfAuto ? ', automatisch erkannt' : ''}. Animationen sind aus.`, { action: 'Deaktivieren', run: () => setSetting(d.id, { perf: false, perfauto: false }).then(() => toast('Leistungsmodus aus, automatische Erkennung aus')) });
+  }
 }
 export async function poll() {   // Status nachführen, ohne Formulare neu zu zeichnen
   const n = await call('displays').catch(() => null);
   if (!n) return;
   if (n.length !== S.displays.length) return reload();
   n.forEach(x => Object.assign(byId(x.id) || {}, { new: x.new, connected: x.connected, face: x.face, saver: x.saver, info: x.info, seen: x.seen, logs: x.logs, outdated: x.outdated, windows: x.windows }));
-  emit('list');
+  emit('list'); perfNotice();
 }
 // Bildschirmfoto als Bild der Karte (das Display antwortet asynchron); null = keine Antwort
 export async function snap(id) {

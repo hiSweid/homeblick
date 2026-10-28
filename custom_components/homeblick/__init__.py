@@ -75,7 +75,7 @@ def subscribe(hass, connection, msg):
 
 # Laufzustand des Panels (landet im HTML der Einstellungsseite und in der Diagnose) → feste Felder statt beliebigem dict
 INFO = vol.Schema({vol.Optional("secure"): bool, vol.Optional("mic"): bool, vol.Optional("mics"): vol.All([vol.All(str, vol.Length(max=120))], vol.Length(max=20)), vol.Optional("wake"): vol.Any(None, vol.All(str, vol.Length(max=40))),
-                   vol.Optional("wakelock"): bool, vol.Optional("visible"): bool, vol.Optional("w"): vol.All(int, vol.Range(min=0, max=20000)),
+                   vol.Optional("wakelock"): bool, vol.Optional("visible"): bool, vol.Optional("perf"): bool, vol.Optional("perfAuto"): bool, vol.Optional("w"): vol.All(int, vol.Range(min=0, max=20000)),
                    vol.Optional("h"): vol.All(int, vol.Range(min=0, max=20000)),
                    vol.Optional("v"): vol.All(str, vol.Length(max=40))}, extra=vol.REMOVE_EXTRA)
 
@@ -128,6 +128,7 @@ SETTINGS = vol.Schema({
     vol.Optional("music"): bool,
     vol.Optional("black"): bool,
     vol.Optional("perf"): bool,
+    vol.Optional("perfauto"): bool,
     vol.Optional("hold"): bool,
     vol.Optional("kz"): bool,
     vol.Optional("micmute"): bool,

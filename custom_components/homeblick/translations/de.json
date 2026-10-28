@@ -96,6 +96,9 @@
       "perf": {
         "name": "Leistungsmodus"
       },
+      "perfauto": {
+        "name": "Leistungsmodus automatisch"
+      },
       "sched": {
         "name": "Screensaver-Zeitplan"
       }

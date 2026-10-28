@@ -10,6 +10,7 @@ export const issues = d => {
   return [!d.connected && d.seen && [`Offline seit ${ago(d.seen).replace(/^vor /, '')}`, 'down'],
     d.connected && i.secure === false && ['Ohne https: kein Mikrofon, Bildschirm geht aus', 'warn'],
     d.connected && i.visible === false && ['Fenster verdeckt', 'warn'],
+    d.connected && i.perf && [i.perfAuto ? 'Leistungsmodus aktiv (automatisch, Bildrate zu niedrig)' : 'Leistungsmodus aktiv, Animationen aus', 'warn'],
     d.windows > 1 && [`${d.windows} Fenster mit derselben Display-ID offen (jedes Gerät braucht eine eigene, ?display=)`, 'warn'],
     d.connected && d.outdated && ['Alte Version geladen, Seite neu laden', 'warn'],
     err && [`${err} Fehler in den letzten 24 Std`, 'warn']].filter(Boolean);
