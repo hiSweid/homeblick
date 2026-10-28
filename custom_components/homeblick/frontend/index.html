@@ -1005,6 +1005,7 @@ import { timerInit, timers, timerDemo, timerShow, timerOn, timerMusic, voiceTime
 import { camInit, camConfig, camShow, camHide, camFace, camTile, camOpen, camRinging, doorbell } from './doorbell.js';
 import { loadEvents, eventsHTML, infoHTML } from './events.js';
 import { todoInit, todoFace, todoSync } from './todo.js';
+import { checkInit, checkFace, checkSync } from './check.js';
 import { pillsInit } from './pills.js';
 // Ohne Parameter: Demo-Daten. Echtes HA nur mit ?live
 const LIVE = new URLSearchParams(location.search).has('live');
@@ -1342,6 +1343,7 @@ const DEF = { cams: 1, energy: 1, dyn: 2, faces: [   // Flags: Migrationen unten
   { type: 'cams', bg: 'black' },
   { type: 'people', bg: 'auto' },
   { type: 'todo', bg: 'auto' },
+  { type: 'check', bg: 'auto' },
 ] };
 let conn;   // vor save(): die Migrationen unten rufen save() schon vor der Verbindung
 const KEY = 'homeblick.v1';
@@ -1570,6 +1572,7 @@ const FACE = {
   cams: el => camFace(el),
   people: el => { el.innerHTML = '<header>Personen</header><div class="plist"></div>'; peopleFill(); },
   todo: (el, f) => { todoFace(el, f); todoSync($$('.f-todo')); },
+  check: (el, f) => { checkFace(el, f); checkSync($$('.f-check')); },
   info: (el, f) => {
     // Farbtöne laut Vorlage: Türkis y-MO 08500 = 190; Himmel (hellblau, TGo 00179) ≈ 203; Blau (dunkelblau, TGo 00387) ≈ 213; Metall = Graublau #92abb1 (helle Variante)
     const hh = { 205: 190, 212: 203, 228: 213 }[f.bg]; if (hh) el.style.setProperty('--h', hh);
@@ -1584,7 +1587,7 @@ ${svg('note', 'mn')}
   },
 };
 // Gastmodus (Einstellung „Gastmodus“, auch als HA-Schalter): persönliche Faces zeigen nur ein Schloss; Vorlage: Privacy-Schloss (overview/privacy), Text und Anordnung eigene Annahme
-const GUEST_HIDES = new Set(['calendar', 'info', 'cams']);
+const GUEST_HIDES = new Set(['calendar', 'info', 'cams', 'check']);
 // Personen-Face („Wo ist?“): person.* mit Zone bzw. Entfernung zu zone.home und Akku des verknüpften Geräts; Glaszeilen wie die Kacheln (keine Apple-Vorlage, eigener Entwurf)
 const kmBetween = (a, b, c, d) => { const q = x => x * Math.PI / 180, h = Math.sin(q(c - a) / 2) ** 2 + Math.cos(q(a)) * Math.cos(q(c)) * Math.sin(q(d - b) / 2) ** 2; return 12742 * Math.asin(Math.sqrt(h)); };
 function peopleFill() {
@@ -1771,6 +1774,7 @@ const track = (q, i, pos = 0) => {
 
 // Demo: Service-Calls verändern den lokalen Zustand wie HA es täte
 todoInit({ conn: () => conn, live: LIVE, ents: () => ents, down: () => netDown });   // Aufgaben-Face (todo.js)
+checkInit({ ents: () => ents, call: (...a) => call(...a) });   // Haus-Check (check.js)
 function demoCall(domain, service, data) {
   const id = data.entity_id, s = ent(id);
   if (!s) return;
@@ -2004,7 +2008,7 @@ function render() {
   weather(st(CFG.weather), ents['sun.sun'], forecast);
   weatherPlaces(Object.keys(ents).filter(id => id.startsWith('weather.')).sort().map(id => [id, id === HOME.weather ? HOME.place : ents[id].attributes.friendly_name || id]), CFG.weather, pickPlace);
   doorbell(ents);
-  peopleFill(); todoSync($$('.f-todo'));
+  peopleFill(); todoSync($$('.f-todo')); checkSync($$('.f-check'));
   energy(ents, roll); wfEnergy(energyNow());
   if (timers(ents)) kiosk.wake();   // Timer abgelaufen → Display weckt
 
@@ -3081,6 +3085,12 @@ if (!LIVE) {
     'sensor.waschmaschine_restzeit': [new Date(Date.now() + 42 * 6e4).toISOString(), { friendly_name: 'Waschmaschine Restzeit', device_class: 'timestamp' }],
     'binary_sensor.golf_laedt': ['on', { friendly_name: 'Golf lädt' }],
     'sensor.golf_ladestand': ['63', { friendly_name: 'Golf Ladestand', unit_of_measurement: '%' }],
+    'binary_sensor.fenster_kueche': ['on', { friendly_name: 'Fenster Küche', device_class: 'window' }],
+    'binary_sensor.terrassentuer': ['off', { friendly_name: 'Terrassentür', device_class: 'door' }],
+    'binary_sensor.wasser_keller': ['off', { friendly_name: 'Wassermelder Keller', device_class: 'moisture' }],
+    'binary_sensor.kellerfenster': ['unavailable', { friendly_name: 'Kellerfenster', device_class: 'window' }],
+    'sensor.fenstersensor_batterie': ['14', { friendly_name: 'Fenstersensor Batterie', device_class: 'battery', unit_of_measurement: '%' }],
+    'lock.nebeneingang': ['unlocked', { friendly_name: 'Nebeneingang' }],
     'todo.einkaufsliste': ['4', { friendly_name: 'Einkaufsliste', supported_features: 7 }],
     'todo.aufgaben': ['2', { friendly_name: 'Aufgaben', supported_features: 7 }],
     'person.erica': ['home', { friendly_name: 'Erica' }],

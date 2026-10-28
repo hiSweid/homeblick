@@ -26,7 +26,8 @@
           "info": "Info",
           "cams": "Kameras",
           "people": "Personen",
-          "todo": "Aufgaben"
+          "todo": "Aufgaben",
+          "check": "Haus-Check"
         }
       },
       "saver": {
@@ -43,7 +44,8 @@
           "info": "Info",
           "cams": "Kameras",
           "people": "Personen",
-          "todo": "Aufgaben"
+          "todo": "Aufgaben",
+          "check": "Haus-Check"
         }
       },
       "wake": {
