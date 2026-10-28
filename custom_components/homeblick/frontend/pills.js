@@ -6,6 +6,7 @@
 // Ende = läuft → aus für OFF_MS am Stück (Waschmaschinen pausieren zwischen den Phasen kurz); nach dem Start gibt es kein falsches Ende (erste Auswertung stumm, unavailable zählt nicht).
 const OFF_MS = 60000, DONE_MS = 600000, MAX = 3;   // MAX: so viele Live-Pillen gleichzeitig (Priorität = Reihenfolge der Regeln), mehr verdrängen sonst die Timer
 const ON = { binary_sensor: 'on', switch: 'on', input_boolean: 'on', light: 'on', fan: 'on', humidifier: 'on', siren: 'on', vacuum: 'cleaning', lawn_mower: 'mowing', media_player: 'playing', timer: 'active', climate: 'heating', water_heater: 'on', valve: 'open' };
+export const defOn = e => ON[e.split('.')[0]] || '';   // Standard-Zustände je Domain (für den Editor)
 const GONE = new Set(['unavailable', 'unknown', '']);
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => `&#${c.charCodeAt(0)};`);
 const pad = n => String(n).padStart(2, '0');

@@ -7,18 +7,19 @@ import { ago, ledOf } from './util.js';
 import { bind, entityRow, numberRow, selectRow, sliderRow, switchRow, textRow, timeRow, sroww } from './controls.js';
 import { copyLayoutFrom, copySettingsFrom, applyToOthers, exportEsp, exportLayout, importLayout, removeDisplay, renameDisplay, screenshot } from './actions.js';
 import { backBtn, collapse, pane } from './nav.js';
+import { PILL_LISTS, pillGet, pillsAdd, pillsDel, pillsHTML, pillsSet, pillsUp } from './pills.js';
 
 export const spot = { key: null, section: null };
 const SECTIONS = [   // [Schlüssel, Name, Symbol, Farbe]; Gruppen wie in den iOS-Einstellungen
   [['general', 'Allgemein', 'monitor', '#8e8e93'], ['control', 'Steuerung und Ansage', 'refresh', '#007aff']],
   [['brightness', 'Helligkeit', 'sun', '#ff9500'], ['saver', 'Bildschirmschoner', 'moon', '#5856d6'], ['night', 'Nachtmodus', 'moon', '#3a3a8c']],
-  [['voice', 'Sprache und Mikrofon', 'mic', '#ff3b30'], ['wake', 'Aufwecken und Bedienung', 'bolt', '#ff9f0a'], ['look', 'Darstellung', 'paint', '#ff2d55']],
+  [['voice', 'Sprache und Mikrofon', 'mic', '#ff3b30'], ['wake', 'Aufwecken und Bedienung', 'bolt', '#ff9f0a'], ['look', 'Darstellung', 'paint', '#ff2d55'], ['pills', 'Live-Pillen', 'pulse', '#30d158']],
   [['status', 'Status und Bildschirmfoto', 'info', '#34c759'], ['manage', 'Vorlagen und Sicherung', 'copy', '#30b0c7']],
 ];
 // Zeile, die ⌘K beim Öffnen hervorheben soll: [Schlüssel, Name, Abschnitt]
 export const INDEX = [['bright', 'Helligkeit', 'brightness'], ['lux', 'Lichtsensor (Lux)', 'brightness'], ['perf', 'Leistungsmodus', 'brightness'], ['idle', 'Bildschirmschoner nach Inaktivität', 'saver'], ['saver', 'Bildschirmschoner: Ansicht', 'saver'], ['music', 'Musik statt Schoner', 'saver'], ['black', 'Ganz schwarz statt Ansicht', 'saver'], ['sched', 'Schoner-Zeitplan', 'saver'], ['hold', 'Schoner halten', 'saver'],
   ['dim', 'Nachts abdunkeln', 'night'], ['dim_level', 'Nachtmodus Stärke', 'night'], ['wake', 'Wake Word', 'voice'], ['wake_sens', 'Wake-Word-Empfindlichkeit', 'voice'], ['mute', 'Antworten stumm', 'voice'], ['volume', 'Lautstärke der Antworten', 'voice'], ['tts', 'Stimme für Ansagen', 'voice'], ['pipeline', 'Assist-Pipeline', 'voice'], ['micmute', 'Mikrofon stumm', 'voice'], ['guest', 'Gastmodus', 'voice'], ['dnd', 'Nicht stören', 'voice'], ['chime', 'Gong beim Klingeln', 'voice'],
-  ['presence', 'Bewegungs- und Präsenzmelder', 'wake'], ['kz', 'Kontrollzentrum', 'wake'], ['name', 'Name des Displays', 'general']];
+  ['presence', 'Bewegungs- und Präsenzmelder', 'wake'], ['kz', 'Kontrollzentrum', 'wake'], ['name', 'Name des Displays', 'general'], ['pills', 'Live-Pillen', 'pills']];
 const DEPS = { dim_from: s => s.dim, dim_to: s => s.dim, dim_level: s => s.dim, sched_from: s => s.sched, sched_to: s => s.sched, wake_sens: s => s.wake !== 'off', barge: s => s.wake !== 'off' };
 const G = (title, body, foot = '') => `<div class="sect">${title ? `<div class="group-h">${title}</div>` : ''}<div class="group">${body}</div>${foot ? `<div class="group-f">${foot}</div>` : ''}</div>`;
 const stack = (label, control) => `<div class="stack"><span class="s-label">${label}</span>${control}</div>`;
@@ -40,7 +41,7 @@ const liveRows = d => {
 export function mount(el, route) {
   const s = () => cur().settings, faces = () => S.cfg?.faces, cmd = (action, extra = {}) => guard(call('command', { display: S.sel, action, ...extra })).catch(() => {});
   const wide = matchMedia('(min-width:901px)'), edHash = () => `#/d/${encodeURIComponent(S.sel)}`;
-  const avail = k => k !== 'look' || !!S.cfg;
+  const avail = k => (k !== 'look' && k !== 'pills') || !!S.cfg;   // beide gehören zum Entwurf
   let dur = '', section = route.section || spot.section || '';
   spot.section = null;
   if (!avail(section) || !SECTIONS.flat().some(x => x[0] === section)) section = '';
@@ -64,6 +65,7 @@ export function mount(el, route) {
       + G('Antworten', switchRow('Antworten stumm', 'mute', x.mute, '', 'mute') + sliderRow('Lautstärke der Antworten', 'volume', 0, 100, 5, x.volume, '', ' %', 'volume') + numberRow('Aufnahme-Zeitlimit', 'listen', x.listen, { min: 3, max: 60, unit: ' s' }, '', 'listen') + selectRow('Stimme für Ansagen', 'tts', [['', 'Browser-Stimme'], ...S.ttss], x.tts, '', 'tts') + selectRow('Assist-Pipeline', 'pipeline', [['', 'Standard von Home Assistant'], ...S.pipelines], x.pipeline, '', 'pipeline'), 'Damit „Licht an“ den richtigen Raum trifft, dem Gerät des Displays in Home Assistant einen Bereich geben.')
       + G('Modi', switchRow('Mikrofon stumm', 'micmute', x.micmute, 'Assist per Tippen geht weiter', 'micmute') + switchRow('Gastmodus', 'guest', x.guest, 'Kalender, Info und Kameras zeigen ein Schloss', 'guest') + switchRow('Nicht stören', 'dnd', x.dnd, 'Kein Wake Word, keine Sprache, kein Gong', 'dnd') + switchRow('Gong beim Klingeln', 'chime', x.chime, 'Ton erst nach der ersten Berührung', 'chime')),
     wake: x => G('', entityRow('Bewegungs-/Präsenzmelder', 'presence', x.presence, { domains: ['binary_sensor'], dcs: ['motion', 'occupancy', 'presence'], none: 'Keiner', title: 'Melder' }, 'Solange „an“, bleibt das Display wach', 'presence') + switchRow('Kontrollzentrum', 'kz', x.kz, 'Wisch von oben rechts: Helligkeit, Lautstärke, Schalter', 'kz')),
+    pills: () => pillsHTML(S.cfg, G),
     look: () => G('Look', `<div class="stack">${seg2('look', THEMES, S.cfg.theme || 'liquid')}</div>`) + G('Modus', `<div class="stack">${seg2('mode', MODES, S.cfg.mode || 'dark')}</div>`)
       + G('Theme', `<div class="theme-grid">${THEME_SET.map(t => `<button data-theme="${t[0]}" aria-pressed="${themeCur(S.cfg) === t[0]}" title="${esc(t[1])}"><i style="background:${bgCss(t[2])}"></i><span>${esc(t[1])}</span></button>`).join('')}</div>`, 'Gehört zum Entwurf: „Senden“ schickt es ans Display. Ein Theme setzt Look, Hell/Dunkel und den Hintergrund aller Farb-Ansichten.'),
     status: () => `<div id="set-live">${liveRows(cur())}</div>` + G('Bildschirmfoto', `<div class="s-actions"><button class="btn quiet" data-cmd="shot" ${cur().connected ? '' : 'disabled'}>${ic('image')}Aufnehmen</button></div>${S.shots[S.sel] ? `<img class="shot" id="set-shot" src="${S.shots[S.sel]}" alt="">` : ''}`, 'Bilder von fremden Servern, Kamera-Video und WebGL fehlen im Foto.'),
@@ -105,11 +107,12 @@ export function mount(el, route) {
     const x = s();
     for (const [k, fn] of Object.entries(DEPS)) $(`[data-row=${k}]`, el)?.classList.toggle('inactive', !fn(x));
     const st = $('#set-status', el), c = cur();
-    if (st) { st.textContent = c.connected ? section === 'look' ? 'Look, Modus und Theme gehören zum Entwurf. „Senden“ schickt sie ans Display.' : 'Änderungen wirken sofort am Display.' : 'Das Display ist offline. Einstellungen gelten, sobald es wieder da ist.'; st.classList.toggle('warn', !c.connected); }
+    if (st) { st.textContent = c.connected ? section === 'look' ? 'Look, Modus und Theme gehören zum Entwurf. „Senden“ schickt sie ans Display.' : section === 'pills' ? 'Die Pillen gehören zum Entwurf. „Senden“ schickt sie ans Display.' : 'Änderungen wirken sofort am Display.' : 'Das Display ist offline. Einstellungen gelten, sobald es wieder da ist.'; st.classList.toggle('warn', !c.connected); }
   }
   const lists = { show: () => [['', 'Wählen …'], ...TYPES], saver: saverTypes, wake: () => WAKE, tts: () => [['', 'Browser-Stimme'], ...S.ttss], pipeline: () => [['', 'Standard von Home Assistant'], ...S.pipelines] };
   const setK = async (k, v, b, en, phase) => {
     if (phase === 'input') return;
+    if (k.startsWith('p.')) { const sc = $('#sm .scroller', el)?.scrollTop || 0; if (pillsSet(k, v)) { paintMain(); const n = $('#sm .scroller', el); if (n) n.scrollTop = sc; } return; }
     if (k === 'name') { v = String(v).trim(); if (!v) return; await guard(call('update', { display: S.sel, name: v })); cur().name = v; return emit('list'); }
     if (k === 'dur') { dur = v >= 1 ? String(Math.min(v, 3600)) : ''; return; }
     if (k === 'show') { if (v) cmd('face', { face: v, ...(+dur >= 1 && { duration: +dur }) }); b.querySelector('span').textContent = 'Wählen …'; return; }
@@ -119,7 +122,7 @@ export function mount(el, route) {
     deps();
   };
   html();
-  bind(el, { on: setK, listOf: k => lists[k]?.() || [], valueOf: k => k === 'show' ? '' : s()[k] ?? '' });
+  bind(el, { on: setK, listOf: k => k.startsWith('p.') ? PILL_LISTS[k.split('.')[2]] || [] : lists[k]?.() || [], valueOf: k => k.startsWith('p.') ? pillGet(k) : k === 'show' ? '' : s()[k] ?? '' });
   const themes = () => { const g = $('.theme-grid', el); if (g) [...g.children].forEach(b => b.setAttribute('aria-pressed', themeCur(S.cfg) === b.dataset.theme)); };
   el.addEventListener('click', async e => {
     const q = c => e.target.closest(c);
@@ -133,6 +136,8 @@ export function mount(el, route) {
       if (k === 'shot') { const img = await screenshot(c); if (img) { let t = $('#set-shot', el); if (!t) { t = Object.assign(document.createElement('img'), { className: 'shot', id: 'set-shot', alt: '' }); c.closest('.s-actions').after(t); } t.src = img; paintSide(); } return; }
       return cmd(k);
     }
+    const pe = q('[data-pill-add],[data-pill-del],[data-pill-up]');
+    if (pe && !pe.disabled) { const sc = $('#sm .scroller', el)?.scrollTop || 0, d = pe.dataset; if (d.pillAdd !== undefined) { if (!await pillsAdd()) return; } else if (d.pillDel !== undefined) pillsDel(+d.pillDel); else pillsUp(+d.pillUp); paintMain(); const n = $('#sm .scroller', el); if (n) n.scrollTop = sc; return; }
     const t = q('[data-theme]'); if (t) { mutate('Theme geändert', cfg => themeApply(cfg, t.dataset.theme)); return themes(); }
     const m = q('[data-m]');
     if (m && !m.disabled) {
@@ -154,7 +159,8 @@ export function mount(el, route) {
     $$('[data-cmd]', el).forEach(b => { if (b.dataset.cmd) b.disabled = !cur().connected; });
     deps(); const h = $('.set-hero', el); if (h) h.outerHTML = hero();
     const bk = $('#ss .back span', el); if (bk) bk.textContent = cur().name;
-  }), on('doc', () => {
+  }), on('doc', why => {
+    if (why === 'undo' && section === 'pills') paintMain();
     themes(); $$('.save-slot', el).forEach(x => { x.innerHTML = saveBtn(); });
     const row = (k, v) => el.querySelectorAll(`[data-k=${k}]`).forEach(b => b.setAttribute('aria-pressed', b.dataset.v === v)); if (S.cfg) { row('look', S.cfg.theme || 'liquid'); row('mode', S.cfg.mode || 'dark'); }
   })];
