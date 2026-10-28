@@ -1,7 +1,7 @@
 // Einstellungen eines Displays als Master/Detail wie die Systemeinstellungen: links die Abschnitte, rechts der gewählte (am Telefon nacheinander).
 // Alles wirkt sofort, außer dem Theme: das gehört zum Entwurf des Layouts und braucht „Senden“.
 import { $, $$, choose, esc, guard, ic, toast } from './ui.js';
-import { S, call, cur, dirty, emit, mutate, on, save, setSetting } from './state.js';
+import { S, call, cur, dirty, emit, mutate, on, redo, save, setSetting, undo } from './state.js';
 import { BG_SETS, THEME_LIST, MODES, TYPES, WAKE, bgAll, bgCss, bgCur, bgVal, faceName } from './meta.js';
 import { hueOf, wall } from '../wallpapers.js';
 import { TH } from '../themes.js';
@@ -81,12 +81,12 @@ export function mount(el, route) {
       + G(tx('Look'), thGrid(S.cfg.theme || 'liquid')) + `<div id="set-mode" ${TH(S.cfg.theme) ? 'hidden' : ''}>${G(tx('Modus'), `<div class="stack">${seg2('mode', MODES, S.cfg.mode || 'dark')}</div>`)}</div>`
       + BG_SETS.map(([n, l]) => G(n, `<div class="bg-grid">${l.map(([v, t]) => `<button type="button" class="bg-tile" data-bg="${esc(v)}" aria-pressed="${String(bgCur(S.cfg)) === String(v)}"><i data-w="${esc(v)}" style="background:${esc(thumb(v, S.cfg.mode === 'light'))}"></i><span>${esc(t)}</span></button>`).join('')}</div>`)).join('')
       + `<div class="sect"><div class="group-f">${tx('Die Vorschau zeigt alle Ansichten live. Der Hintergrund gilt für alle Ansichten außer Wetter, Musik, Kalender, Kameras, Fotos und Ansichten mit eigenem Foto.')}</div></div></div></div>`,
-    status: () => `<div id="set-live">${liveRows(cur())}</div>` + G(tx('Bildschirmfoto'), `<div class="s-actions"><button class="btn quiet" data-cmd="shot" ${cur().connected ? '' : 'disabled'}>${ic('image')}${tx('Aufnehmen')}</button></div>${S.shots[S.sel] ? `<img class="shot" id="set-shot" src="${S.shots[S.sel]}" alt="">` : ''}`, tx('Bilder von fremden Servern, Kamera-Video und WebGL fehlen im Foto.')),
+    status: () => `<div id="set-live">${liveRows(cur())}</div>` + G(tx('Bildschirmfoto'), `<div class="s-actions"><button class="btn quiet" data-cmd="shot" ${cur().connected ? '' : 'disabled'}>${ic('image')}${tx('Aufnehmen')}</button></div>${S.shots[S.sel] ? `<img class="shot" id="set-shot" src="${esc(S.shots[S.sel])}" alt="">` : ''}`, tx('Bilder von fremden Servern, Kamera-Video und WebGL fehlen im Foto.')),
     manage: () => {
       const b = (k, i, n, ok = S.cfg) => `<button class="row tap" data-m="${k}" ${ok ? '' : 'disabled'}>${ic(i)}<span class="t"><b>${n}</b></span>${ic('right')}</button>`;
       return G(tx('Kopieren'), b('copyl', 'copy', tx('Layout kopieren von …')) + b('copys', 'sliders', tx('Einstellungen übernehmen von …'), true) + b('apply', 'send', tx('Auf andere Displays anwenden …')), tx('Kopieren und Importieren legen nur den Entwurf an; „Senden“ schickt ihn.'))
         + G(tx('Sichern'), b('xjson', 'download', tx('Layout exportieren (JSON)')) + b('ximport', 'upload', tx('Layout importieren …')) + b('xesp', 'download', tx('Für ESP-Display exportieren')), tx('Die ESP-Datei enthält nur, was ein LVGL-Panel (480×480) darstellen kann; Fehlendes steht unter „skipped“.'))
-        + G('', `<button class="row danger" data-m="remove">${tx('Display entfernen')}</button>`, tx('Ansichten und Einstellungen gehen verloren. Das Gerät in Home Assistant danach unter Geräte löschen.'));
+        + G('', `<button class="row danger" data-m="remove">${tx('Display entfernen')}</button>`, tx('Ansichten und Einstellungen gehen verloren. Das Gerät und seine Entities in Home Assistant werden mit entfernt.'));
     },
   };
 
@@ -94,7 +94,7 @@ export function mount(el, route) {
   const saveBtn = () => `<button class="gpill tinted save-btn" ${dirty() ? '' : 'hidden'} ${S.busy ? 'disabled' : ''} title="${tx('Speichern und ans Display senden · ⌘S')}">${S.busy ? '<span class="spin small"></span>' : ic('send')}<span>${S.busy ? tx('Sendet …') : tx('Senden')}</span></button>`;
   const hero = () => {
     const d = cur(), l = ledOf(d);
-    return `<div class="set-hero">${S.shots[d.id] ? `<img src="${S.shots[d.id]}" alt="">` : `<span class="av lg" style="--c:#8e8e93">${ic('monitor')}</span>`}<span class="t"><b>${esc(d.name)}</b><small><i class="led ${l}"></i> ${l === 'ok' ? tx('Online') : l === 'update' ? tx('Alte Version') : tx('Offline')}${d.area ? ' · ' + esc(d.area) : ''}</small></span></div>`;
+    return `<div class="set-hero">${S.shots[d.id] ? `<img src="${esc(S.shots[d.id])}" alt="">` : `<span class="av lg" style="--c:#8e8e93">${ic('monitor')}</span>`}<span class="t"><b>${esc(d.name)}</b><small><i class="led ${l}"></i> ${l === 'ok' ? tx('Online') : l === 'update' ? tx('Alte Version') : tx('Offline')}${d.area ? ' · ' + esc(d.area) : ''}</small></span></div>`;
   };
   const sideBody = () => {
     return hero()
@@ -113,12 +113,12 @@ export function mount(el, route) {
     if (k === section) return;
     section = k;
     const h = `${edHash()}/settings${k ? '/' + k : ''}`;
-    if (push && location.hash !== h) history.pushState(null, '', h);   // ohne Neuaufbau der Ansicht; Zurück baut sie mit dem Abschnitt aus der Adresse neu auf
+    if (push && location.hash !== h) history.pushState({ hb: 1 }, '', h);   // ohne Neuaufbau der Ansicht; Zurück baut sie mit dem Abschnitt aus der Adresse neu auf
     paintSide(); paintMain(); const sc = $('#sm .scroller', el); if (sc) sc.scrollTop = 0;
   }
   function deps() {
     const x = s();
-    for (const [k, fn] of Object.entries(DEPS)) $(`[data-row=${k}]`, el)?.classList.toggle('inactive', !fn(x));
+    for (const [k, fn] of Object.entries(DEPS)) { const r = $(`[data-row=${k}]`, el); if (r) { r.classList.toggle('inactive', !fn(x)); r.inert = !fn(x); } }   // inert: auch per Tab/Tastatur nicht bedienbar
     const st = $('#set-status', el), c = cur();
     if (st) { st.textContent = c.connected ? section === 'look' ? tx('Look, Modus und Hintergrund gehören zum Entwurf. „Senden“ schickt sie ans Display.') : section === 'pills' ? tx('Die Pillen gehören zum Entwurf. „Senden“ schickt sie ans Display.') : tx('Änderungen wirken sofort am Display.') : tx('Das Display ist offline. Einstellungen gelten, sobald es wieder da ist.'); st.classList.toggle('warn', !c.connected); }
   }
@@ -126,8 +126,8 @@ export function mount(el, route) {
   const setK = async (k, v, b, en, phase) => {
     if (phase === 'input') return;
     if (k.startsWith('p.')) { const sc = $('#sm .scroller', el)?.scrollTop || 0; if (pillsSet(k, v)) { paintMain(); const n = $('#sm .scroller', el); if (n) n.scrollTop = sc; } return; }
-    if (k === 'name') { v = String(v).trim(); if (!v) return; await guard(call('update', { display: S.sel, name: v })); cur().name = v; return emit('list'); }
-    if (k === 'dur') { dur = v >= 1 ? String(Math.min(v, 3600)) : ''; return; }
+    if (k === 'name') { v = String(v).trim(); if (!v) { b.value = cur().name; return; } b.value = v; await guard(call('update', { display: S.sel, name: v })); cur().name = v; return emit('list'); }
+    if (k === 'dur') { dur = v >= 1 ? String(Math.min(v, 3600)) : ''; b.value = dur; return; }
     if (k === 'show') { if (v) cmd('face', { face: v, ...(+dur >= 1 && { duration: +dur }) }); b.querySelector('span').textContent = tx('Wählen …'); return; }
     if (k === 'say') return;
     if (k === 'lang') return setLang(v || null);
@@ -182,11 +182,19 @@ export function mount(el, route) {
       if (v) return k === 'copyl' ? copyLayoutFrom(v) : copySettingsFrom(v).then(ok => ok && paintMain());
     }
   });
-  const key = e => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') { e.preventDefault(); if (dirty() && !S.busy) $('.save-btn:not([hidden])', el)?.click(); } };
-  document.addEventListener('keydown', key);
+  const key = e => {
+    if (!(e.metaKey || e.ctrlKey) || document.querySelector('.alert,.palette-bg,.sheet')) return;
+    const k = e.key.toLowerCase();
+    if (k === 's') { e.preventDefault(); document.activeElement?.blur?.(); if (dirty() && !S.busy) $('.save-btn:not([hidden])', el)?.click(); }   // blur: ein getipptes Feld schreibt erst bei change
+    else if (k === 'z' && !e.altKey && !e.target.closest?.('input,textarea,select,[contenteditable=true]')) { e.preventDefault(); e.shiftKey ? redo() : undo(); }
+  };
+  const before = e => { if (dirty()) { e.preventDefault(); e.returnValue = ''; } };
+  document.addEventListener('keydown', key); addEventListener('beforeunload', before);
   const mqf = () => { if (wide.matches && !section) open('general', false); else $('.split', el).dataset.pane = section ? 'main' : 'side'; };
   wide.addEventListener('change', mqf);
-  const offs = [on('list', () => {
+  const offs = [on('list', why => {
+    if (!cur()) return;   // Display gerade von außen entfernt: app.js verlässt die Seite
+    if (why === 'ext' && section) { const sc = $('#sm .scroller', el)?.scrollTop || 0; paintMain(); const n = $('#sm .scroller', el); if (n) n.scrollTop = sc; }
     const l = $('#set-live', el); if (l) l.innerHTML = liveRows(cur());
     $$('[data-cmd]', el).forEach(b => { if (b.dataset.cmd) b.disabled = !cur().connected; });
     deps(); const h = $('.set-hero', el); if (h) h.outerHTML = hero();
@@ -197,5 +205,5 @@ export function mount(el, route) {
     const row = (k, v) => el.querySelectorAll(`[data-k=${k}]`).forEach(b => b.setAttribute('aria-pressed', b.dataset.v === v)); if (S.cfg) { row('look', S.cfg.theme || 'liquid'); row('mode', S.cfg.mode || 'dark'); }
   })];
   if (spot.key) { const r = $(`[data-row=${spot.key}]`, el); spot.key = null; if (r) requestAnimationFrame(() => { r.scrollIntoView({ block: 'center', behavior: 'smooth' }); r.classList.add('spotlit'); setTimeout(() => r.classList.remove('spotlit'), 1700); $('button,input', r)?.focus({ preventScroll: true }); }); }
-  return () => { offs.forEach(f => f()); removeEventListener('message', onFrame); document.removeEventListener('keydown', key); wide.removeEventListener('change', mqf); };
+  return () => { offs.forEach(f => f()); removeEventListener('message', onFrame); document.removeEventListener('keydown', key); removeEventListener('beforeunload', before); wide.removeEventListener('change', mqf); };
 }

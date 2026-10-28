@@ -1,7 +1,7 @@
 // Vollseiten: App-Einstellungen (alle Displays, Kameras & Türklingel), Benachrichtigungen (Spickzettel + Ausprobieren), Neues Display.
 import { tx } from '../i18n.js';
 import { $, $$, choose, esc, guard, ic, toast } from './ui.js';
-import { S, call, reload } from './state.js';
+import { S, call, on, reload } from './state.js';
 import { areasOf, entsOf } from './entities.js';
 import { FACE, SETUP, TYPES, setupConfig } from './meta.js';
 import { openHelp } from './layout.js';
@@ -36,7 +36,7 @@ export function settings(el) {
       <div class="group-f">${auto ? tx('Automatisch erkannt: alle Kameras von Home Assistant. Jede Änderung hier legt die Liste fest.') : tx('Die Ansicht „Kameras“ zeigt bis zu vier Kameras als 2×2-Raster, die Klingelkamera (sonst die erste) zuerst.')} ${tx('Das Bild läuft über Home Assistant (WebRTC, sonst HLS oder Standbilder).')}</div></div>`
       + G(tx('Türklingel'), sroww(tx('Klingel-Ereignis'), '', entityBtn('bell:event', c.bell?.event || '', { domains: ['event'], none: tx('Keine'), title: tx('Klingel-Ereignis') }, tx('Keine')))
         + sroww(tx('Kamera der Klingel'), '', selectBtn('bell:camera', bellCams, c.bell?.camera || '')) + sroww(tx('Schloss zum Öffnen'), '', entityBtn('bell:lock', c.bell?.lock || '', { domains: ['lock'], none: tx('Keins'), title: tx('Schloss') }, tx('Keins')))
-        + sroww(tx('Bild vorhalten'), tx('Hält eine Videoverbindung offen'), sw(!!c.bell?.warm, 'bell:warm')),
+        + sroww(tx('Bild vorhalten'), tx('Hält eine Videoverbindung offen'), sw(!!c.bell?.warm, 'bell:warm', `aria-label="${tx('Bild vorhalten')}"`)),
         tx('Klingeln weckt alle geöffneten Displays, spielt den Gong und zeigt diese Kamera. „Tür öffnen“ braucht einen zweiten Tipp. Sprechen geht nur, wenn die Kamera (go2rtc) einen Rückkanal hat und die Seite über https läuft. Über go2rtc ist das Bild nach ca. 0,3 s da. Gilt für alle Displays.'), 'bell');
   };
   const html = () => {
@@ -58,7 +58,7 @@ export function settings(el) {
   const redrawCams = () => { const h = $('#camhost', el); if (h) h.innerHTML = camsHTML(); };
   bind(el, {
     on: async (k, v, b, en, phase) => {
-      if (k === 'dur') { dur = v >= 1 ? String(v) : ''; return; }
+      if (k === 'dur') { dur = v >= 1 ? String(Math.min(v, 3600)) : ''; b.value = dur; return; }
       if (k === 'allface') { if (v) all('face', { face: v, ...durX() }); b.querySelector('span').textContent = tx('Wählen …'); return; }
       if (phase === 'input') return;
       const c = S.cams.cameras;
@@ -107,7 +107,7 @@ export function alerts(el) {
   const ex3 = yaml('homeblick.show_camera', { display: tx('Küche'), camera: 'camera.haustuer', duration: 60 }), ex4 = yaml('homeblick.hide_camera', { display: tx('Küche') });
   const ex5 = `action: notify.send_message\ntarget:\n  entity_id: notify.kueche_durchsage\ndata:\n  message: ${tx('Das Essen ist fertig')}\n`;
   const sec = (id, title, body) => G(title, body, '', `alerts-${id}`);
-  const pre = (id, t) => `<div class="copy-line"><pre id="${id}">${esc(t)}</pre><button class="btn quiet mini" data-copy="${id}">${ic('copy')}${tx('Kopieren')}</button></div>`;
+  const pre = (id, t) => `<div class="copy-line"><pre id="${id}">${esc(t)}</pre><button class="btn quiet mini" data-copy-pre="${id}">${ic('copy')}${tx('Kopieren')}</button></div>`;
   const ready = S.displays.filter(x => !x.new && x.connected);
   const nav = [['try', tx('Ausprobieren')], ['howto', tx('In einer Automation')], ['fields', tx('Felder')], ['camera', tx('Kamerabild')], ['say', tx('Ansagen')], ['behave', tx('Verhalten')], ['tips', tx('Tipps')]];
   frame(el, tx('Mitteilungen'), tx('Mit <code>homeblick.notify</code> erscheint eine Karte über dem ganzen Display, optional mit Bild und Button, auf einem oder mehreren Displays. Hier steht, wie es geht, und du kannst eine Karte gleich ausprobieren.'), `
@@ -125,7 +125,7 @@ export function alerts(el) {
     ${sec('tips', tx('Tipps'), `<ul class="list"><li>${tx('Kurzer Titel, höchstens etwa 20 Zeichen, bleibt lesbar.')}</li><li>${tx('Ein eigener Button-Text („Kommt“, „Okay“) ist klarer als der Standard.')}</li><li>${tx('Für alle Displays einer Etage: Bereich in Home Assistant setzen und die Geräte des Bereichs wählen.')}</li><li>${tx('Wiederkehrende Texte lassen sich am besten als Skript mit Feldern bauen.')}</li></ul>`)}`, 'mid');
   el.addEventListener('click', async e => {
     const j = e.target.closest('[data-jump]'); if (j) return $('#alerts-' + j.dataset.jump, el)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    const c = e.target.closest('[data-copy]'); if (c) return copy($('#' + c.dataset.copy, el).textContent, tx('YAML'));
+    const c = e.target.closest('[data-copy-pre]'); if (c) return copy($('#' + c.dataset.copyPre, el).textContent, tx('YAML'));
     const d = e.target.closest('#try-d');
     if (d) { const v = await choose(d, [['', tx('Alle offenen ({n})', { n: ready.length })], ...S.displays.filter(x => !x.new).map(x => [x.id, x.name, x.connected ? '' : tx('offline')])], d.dataset.v); if (v !== undefined) { d.dataset.v = v; d.querySelector('span').textContent = v ? S.displays.find(x => x.id === v).name : tx('Alle offenen ({n})', { n: ready.length }); } return; }
     if (e.target.closest('#try-send')) {
@@ -144,7 +144,7 @@ export function alerts(el) {
 // ================= Neues Display =================
 export function newDisplay(el, route) {
   const pending = () => S.displays.filter(x => x.new);
-  let id = route.id || pending()[0]?.id || '', area = '', tpl = 'std';
+  let id = route.id || pending()[0]?.id || '', area = '', tpl = 'std'; const names = {};   // getippte Namen je Display: bleiben beim Wechsel der Chips erhalten
   const note = () => { const c = setupConfig(tpl, area); return `${tx('Du bekommst: {list}.', { list: c.faces.map(f => FACE[f.type][0] + (f.type === 'grid' ? (f.tiles.length ? ' ' + tx('({n} Kacheln)', { n: f.tiles.length }) : ' ' + tx('(leer, Kacheln fügst du gleich hinzu)')) : f.type === 'energy' ? (f.ents ? ' ' + tx('({n} Werte erkannt)', { n: Object.keys(f.ents).length - 1 }) : ' ' + tx('(nichts erkannt, Werte wählst du im Editor)')) : '')).join(' · ') })}${c.off.length ? ' ' + tx('Bereit, aber versteckt, weil dein Haus dafür nichts hat: {list}.', { list: c.off.map(f => FACE[f.type][0]).join(', ') }) : ''}`; };
   const chip = (attr, on_, text) => `<button class="chip pick ${on_ ? 'on' : ''}" ${attr}>${esc(text)}</button>`;
   const draw = () => {
@@ -153,24 +153,28 @@ export function newDisplay(el, route) {
     if (!d) id = list[0].id;
     const cur_ = S.displays.find(x => x.id === id);
     frame(el, tx('Neues Display'), tx('Name, Bereich und Vorlage wählen, fertig.'), `${list.length > 1 ? G(tx('Display'), `<div class="quick">${list.map(x => chip(`data-d="${esc(x.id)}"`, x.id === id, x.name + (x.connected ? '' : ' · ' + tx('nicht verbunden')))).join('')}</div>`) : ''}
-      ${G(tx('1 · Name'), `<div class="srow"><input id="wn" class="wide" value="${esc(cur_.name)}" maxlength="60" autocomplete="off"></div>`)}
+      ${G(tx('1 · Name'), `<div class="srow"><input id="wn" class="wide" value="${esc(names[id] ?? cur_.name)}" maxlength="60" autocomplete="off"></div>`)}
       ${G(tx('2 · Bereich'), `<div class="quick">${[['', tx('Keiner')], ...areasOf().map(a => [a, a])].map(([a, t]) => chip(`data-a="${esc(a)}"`, a === area, t)).join('')}</div>`)}
       ${G(tx('3 · Vorlage'), `<div class="tpls">${SETUP.map(([k, n, t]) => `<button class="tpl ${k === tpl ? 'on' : ''}" data-t="${k}"><span class="t"><b>${n}</b><small>${t}</small></span>${ic('check', 'ck')}</button>`).join('')}</div>`, '<span id="tpl-note"></span>')}
       <div class="actions"><button class="btn big" id="go">${ic('check')}${tx('Einrichten')}</button><button class="btn quiet big" data-goto="#/">${tx('Später')}</button></div>`);
   };
   const paintNote = () => { const n = $('#tpl-note', el); if (n) n.textContent = note(); };
   draw(); paintNote();
+  // 5-s-Aktualisierung: neu angemeldetes Display erscheint von selbst; das angezeigte Formular bleibt unangetastet, solange sein Display noch wartet
+  let busy = false;
+  const off = on('list', () => { if (busy) return; const form = !!$('#go', el); if (form !== pending().length > 0 || (form && !pending().some(x => x.id === id))) { draw(); paintNote(); } });
   el.addEventListener('click', async e => {
     const x = e.target.closest('[data-d]'), a = e.target.closest('[data-a]'), t = e.target.closest('[data-t]');
-    if (x) { id = x.dataset.d; draw(); return paintNote(); }
+    if (x) { names[id] = $('#wn', el).value; id = x.dataset.d; draw(); return paintNote(); }
     if (a) { area = a.dataset.a; $$('[data-a]', el).forEach(b => b.classList.toggle('on', b === a)); return paintNote(); }
     if (t) { tpl = t.dataset.t; $$('[data-t]', el).forEach(b => b.classList.toggle('on', b === t)); return paintNote(); }
     if (!e.target.closest('#go')) return;
     const d = S.displays.find(v => v.id === id), name = $('#wn', el).value.trim() || d.name;
     const config = setupConfig(tpl, area), wx = entsOf('weather'), w = wx.find(v => v.id === 'weather.home') || wx[0];
-    try { await guard(call('setup', { display: id, name, ...(area && { area }), config, settings: config.faces.some(f => f.type === 'weather') && w ? { weather: w.id } : {} })); } catch { return; }
+    busy = true;   // nach dem Einrichten ist das Display nicht mehr „neu“: kein Zurückspringen auf die Anleitung vor dem Seitenwechsel
+    try { await guard(call('setup', { display: id, name, ...(area && { area }), config, settings: config.faces.some(f => f.type === 'weather') && w ? { weather: w.id } : {} })); } catch { busy = false; return; }
     await reload(); location.hash = `#/d/${encodeURIComponent(id)}`;
     try { if (!localStorage.getItem('hb-admin.tour')) { localStorage.setItem('hb-admin.tour', '1'); setTimeout(openHelp, 700); } else toast(tx('Display eingerichtet'), { action: tx('So funktioniert es'), run: openHelp }); } catch { /* Speicher gesperrt */ }
   });
-  return () => {};
+  return off;
 }

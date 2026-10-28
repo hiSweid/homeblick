@@ -1,6 +1,6 @@
 // Aktionen auf einem Display, die mehrere Ansichten brauchen: Layout kopieren/importieren/exportieren, Vorlage auf andere, Umbenennen, Entfernen, Bildschirmfoto.
 import { tx } from '../i18n.js';
-import { normFaces } from '../faces.js';
+import { FACE_TYPES, normFaces } from '../faces.js';
 import { ESP_FORMAT, FORMAT, espExport, remapConfig } from '../share.js';
 import { ask, esc, guard, ic, modal, prompt, toast } from './ui.js';
 import { S, byId, call, cur, emit, mutate, reload, snap, closeDoc } from './state.js';
@@ -29,7 +29,7 @@ export function importLayout() {
   inp.onchange = async () => {
     let j;
     try { j = JSON.parse(await inp.files[0].text()); } catch { return toast(tx('Keine gültige JSON-Datei'), { bad: true }); }
-    if (j?.format !== FORMAT || !Array.isArray(j.config?.faces) || !j.config.faces.length) return toast(tx('Das ist keine Homeblick-Sicherung'), { bad: true });
+    if (j?.format !== FORMAT || !Array.isArray(j.config?.faces) || !j.config.faces.some(f => FACE_TYPES.includes(f?.type))) return toast(tx('Das ist keine Homeblick-Sicherung'), { bad: true });
     if (S.saved !== sameCfg(S.cfg) && !await ask(tx('Der nicht gesendete Entwurf wird durch das importierte Layout ersetzt.'), { ok: tx('Layout ersetzen'), danger: true })) return;
     replaceDraft(tx('Layout importiert'), j.config);
     toast(tx('Layout importiert. Mit „Senden“ geht es ans Display.'));
@@ -77,8 +77,8 @@ export async function renameDisplay() {
 }
 export async function removeDisplay() {
   const d = cur();
-  if (!await ask(tx('„{name}“ entfernen? Ansichten und Einstellungen gehen verloren. Das Gerät in Home Assistant bitte danach unter Geräte löschen.', { name: d.name }), { ok: tx('Entfernen‖Remove'), danger: true })) return false;
-  await guard(call('remove', { display: d.id })).catch(() => { throw 0; });
+  if (!await ask(tx('„{name}“ entfernen? Ansichten und Einstellungen gehen verloren. Das Gerät und seine Entities in Home Assistant werden mit entfernt.', { name: d.name }), { ok: tx('Entfernen‖Remove'), danger: true })) return false;
+  try { await guard(call('remove', { display: d.id })); } catch { return false; }   // guard zeigt den Fehler
   S.sel && (S.sel = null, S.cfg = null, S.saved = '');
   location.hash = '#/'; await reload(); toast(tx('Display entfernt')); return true;
 }

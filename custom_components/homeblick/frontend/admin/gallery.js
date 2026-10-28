@@ -83,7 +83,7 @@ export function openGallery() {
     inp.addEventListener('keydown', e => { if (e.key === 'Enter' && q.trim()) { e.preventDefault(); const b = $('.ent[data-i]', d); b && add(b); } });
     d.addEventListener('click', e => {
       const t = s => e.target.closest(s);
-      if (t('[data-nav]')) { view = null; return draw('back'); }
+      if (t('[data-nav]')) { view = null; return draw('pback'); }
       const c = t('[data-cat]'); if (c) { view = { k: 'cat', id: c.dataset.cat }; return draw('fwd'); }
       const r = t('[data-room]'); if (r) { view = { k: 'room', id: r.dataset.room }; return draw('fwd'); }
       if (t('[data-newpage]')) { addPage('grid'); return draw(); }

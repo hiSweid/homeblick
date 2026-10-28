@@ -6,8 +6,9 @@ import { entOf, pickEntity } from './entities.js';
 
 export const sw = (on, k, extra = '') => `<button type="button" class="switch" role="switch" aria-checked="${!!on}" data-k="${esc(k)}" ${extra}></button>`;
 export const sroww = (label, hint, control, id = '') => `<div class="srow" ${id ? `data-row="${esc(id)}"` : ''}><span><span class="s-label">${label}</span>${hint ? `<small>${hint}</small>` : ''}</span>${control}</div>`;
-export const switchRow = (label, k, on, hint, id) => sroww(label, hint, sw(on, k), id);
-export const sliderRow = (label, k, lo, hi, step, v, hint, unit = ' %', id) => sroww(label, hint, `<span class="slider" data-unit="${esc(unit)}"><input type="range" data-k="${k}" min="${lo}" max="${hi}" step="${step}" value="${v}"><output>${v}${unit}</output></span>`, id);
+const nm = label => `aria-label="${esc(String(label).replace(/<[^>]*>/g, ''))}"`;   // Etikett (kann Markup enthalten) als zugänglicher Name
+export const switchRow = (label, k, on, hint, id) => sroww(label, hint, sw(on, k, nm(label)), id);
+export const sliderRow = (label, k, lo, hi, step, v, hint, unit = ' %', id) => sroww(label, hint, `<span class="slider" data-unit="${esc(unit)}"><input type="range" ${nm(label)} data-k="${k}" min="${lo}" max="${hi}" step="${step}" value="${v}"><output>${v}${unit}</output></span>`, id);
 export const numberRow = (label, k, v, { min, max, step = 1, unit = '' } = {}, hint, id) => sroww(label, hint, `<span class="stepper"><output data-min="${min}" data-max="${max}" data-stp="${step}" data-unit="${esc(unit)}">${v}${unit}</output><span class="pm"><button type="button" data-step="-1" data-k="${k}" aria-label="${tx('Weniger')}">${ic('minus')}</button><button type="button" data-step="1" data-k="${k}" aria-label="${tx('Mehr')}">${ic('plus')}</button></span></span>`, id);
 export const timeRow = (label, k, v, hint, id) => sroww(label, hint, `<input type="time" data-k="${k}" value="${esc(String(v || '').slice(0, 5))}">`, id);
 export const textRow = (label, k, v, { ph = '', max = 80, type = 'text' } = {}, hint, id) => sroww(label, hint, `<input type="${type}" data-k="${k}" value="${esc(v)}" placeholder="${esc(ph)}" maxlength="${max}" autocomplete="off" autocapitalize="off" spellcheck="false">`, id);
@@ -57,7 +58,7 @@ export function bind(root, { on, listOf = () => [], valueOf = () => '' }) {
   root.addEventListener('change', e => {
     const t = e.target;
     if (!t.dataset?.k) return;
-    if (t.type === 'time') on(t.dataset.k, t.value + ':00', t);
+    if (t.type === 'time') { if (!t.value) { t.value = t.defaultValue; return; } t.defaultValue = t.value; on(t.dataset.k, t.value + ':00', t); }   // geleertes Feld: alter Wert bleibt (Server lehnt ':00' ab)
     else if (t.type === 'range') on(t.dataset.k, +t.value, t, null, 'change');
     else if (t.type === 'text' || t.type === 'search' || t.type === 'url') on(t.dataset.k, t.value, t, null, 'change');
     else if (t.type === 'number') on(t.dataset.k, +t.value, t);

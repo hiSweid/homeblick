@@ -253,7 +253,7 @@ export function pageMenu(anchor, i) {
   const f = S.cfg.faces[i], n = S.cfg.faces.length, d = byId(S.sel);
   menu(anchor, [
     { label: tx('Ansicht anpassen'), icon: 'sliders', run: () => select({ k: 'page', f: f.id }) },
-    { label: tx('Auf dem Display zeigen'), icon: 'monitor-eye', disabled: !d?.connected, title: d?.connected ? '' : tx('Das Display ist offline'), run: () => call('command', { display: S.sel, action: 'face', face: f.type }).then(() => toast(tx('Gesendet'))).catch(e => toast(e?.message || tx('Fehler'), { bad: true })) },
+    { label: tx('Auf dem Display zeigen'), icon: 'monitor-eye', disabled: !d?.connected, title: !d?.connected ? tx('Das Display ist offline') : '', run: () => call('command', { display: S.sel, action: 'face', face: f.id }).then(() => toast(tx('Gesendet'))).catch(e => toast(e?.message || tx('Fehler'), { bad: true })) },
     '-', { group: tx('Reihenfolge') },
     { label: tx('Nach links'), icon: 'arrow-left', disabled: i === 0, run: () => movePage(i, i - 1) },
     { label: tx('Nach rechts'), icon: 'arrow-right', disabled: i === n - 1, run: () => movePage(i, i + 1) },

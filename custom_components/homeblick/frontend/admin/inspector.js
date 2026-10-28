@@ -37,7 +37,7 @@ export function mount(ed) {
   function tileRoot(f, t) {
     const en = entOf(t.e), clock = t.kind === 'clock', wx = t.kind === 'wx', enk = t.kind === 'en', mk = t.kind === 'multi', ent = !clock && !wx && !enk && !mk, sv = svOf(t, S.states), sz = `${t.w || 1}x${t.h || 1}`, vals = SUB_VALS(en);
     const vv = t.val && !vals.some(x => x[0] === t.val) ? [...vals, [t.val, t.val]] : vals;
-    const act = k => { const a = t[k]; return a?.do ? ACTS(en).find(x => x[0] === a.do)?.[1] || a.do : tx('Standard'); };
+    const act = k => { const a = t[k]; return a?.do ? a.do === 'service' && !a.service ? tx('Dienst fehlt') : ACTS(en).find(x => x[0] === a.do)?.[1] || a.do : tx('Standard'); };
     let h = `<div class="insp-id"><button class="av" style="--c:${colorOf(t)}" data-push="icon" aria-label="${tx('Symbol ändern')}">${xi(tileIcon(t))}</button></div>`;
     h += grp(tx('Name auf dem Display'), `<div class="srow"><input class="name-in" id="tile-name" data-k="t.title" value="${esc(t.title || '')}" maxlength="60" placeholder="${esc(ent ? (en ? autoTitle(en) : tx('Name')) : clock ? tx('Uhr') : wx ? tx('Wetter') : mk ? tx('Gruppe') : EN_NAMES[t.k])}" autocomplete="off"></div>`);
     if (ent) h += grp(tx('Entität'), `<button class="ent-row" data-pick-ent><span class="av" style="--c:${colorOf(t)}">${xi(tileIcon(t))}</span><span class="t"><b class="${t.e && !en ? 'bad' : ''}">${esc(en?.name || t.e || tx('Wählen …'))}</b><small>${esc(t.e && !en ? tx('in Home Assistant nicht gefunden') : t.e || '')}</small></span>${ic('right')}</button>`);
@@ -98,7 +98,7 @@ export function mount(ed) {
     if (hasTiles(f)) h += grp(tx('Kacheln · {n}', { n: tilesOf(f).length }), (tilesOf(f).map(tile).join('') || `<div class="srow"><span class="s-label muted">${tx('Noch keine Kacheln')}</span></div>`) + `<button class="row accent" data-lib>${ic('plus')}${tx('Kachel hinzufügen')}</button>`, n ? `<span class="warn">${n > 1 ? tx('{n} Kacheln passen nicht mehr ins Raster und werden nicht angezeigt.', { n }) : tx('1 Kachel passt nicht mehr ins Raster und wird nicht angezeigt.')}</span>` : '');
     if (f.type === 'weather') h += grp(tx('Wetter'), sroww(tx('Wetter-Entität'), '', entityBtn('s.weather', s.weather, { domains: ['weather'], title: tx('Wetter-Entität') })) + sroww(tx('Ortsname'), '', `<input data-k="s.place" value="${esc(s.place || '')}" maxlength="40" autocomplete="off">`), tx('Gilt sofort für alle Wetter-Anzeigen dieses Displays.'));
     if (f.type === 'energy') h += grp('', navRow(tx('Entitäten'), `${Object.keys(f.ents || {}).filter(k => k !== 'carName').length || tx('Standard')}`, 'energy', `<span class="av" style="--c:${meta[1]}">${ic('bolt')}</span>`), tx('Ohne Auswahl liest die Ansicht die Standard-Entitäten (evcc, Kostal, Solcast).'));
-    if (f.type === 'calendar' || f.type === 'info') { const cs = entsOf('calendar'); h += grp(tx('Kalender'), cs.map(e => sroww(esc(e.name), '', sw(!f.cals || f.cals.includes(e.id), 'cal:' + e.id))).join('') || `<div class="srow"><span class="s-label muted">${tx('Keine Kalender in Home Assistant')}</span></div>`); }
+    if (f.type === 'calendar' || f.type === 'info') { const cs = entsOf('calendar'); h += grp(tx('Kalender'), cs.map(e => sroww(esc(e.name), '', sw(!f.cals || f.cals.includes(e.id), 'cal:' + e.id, `aria-label="${esc(e.name)}"`))).join('') || `<div class="srow"><span class="s-label muted">${tx('Keine Kalender in Home Assistant')}</span></div>`); }
     if (f.type === 'todo') h += grp(tx('Liste'), sroww(tx('Liste'), '', entityBtn('f.todo', f.todo || '', { domains: ['todo'], none: tx('Erste Liste'), title: tx('Liste wählen') }, tx('Erste Liste'))), tx('Ohne Auswahl zeigt die Ansicht die erste Liste, bei mehreren kann man am Display wechseln.'));
     if (f.type === 'photos') h += grp(tx('Quelle'), textRow(tx('Medienquelle'), 'f.src', f.src || '', { ph: 'media-source://immich/…', max: 300 }, tx('Medien-ID eines Immich-Albums oder Ordners aus „Medien“ in Home Assistant (Seitenleiste → Medien → Ordner öffnen → „Medien-ID kopieren“)')), tx('Bis zu 300 Bilder (JPEG, PNG, WebP) aus der Quelle und ihren Unterordnern, gemischt. Im Bildschirmschoner wählbar: Einstellungen → Bildschirmschoner → Ansicht „Fotos“.'))
       + grp(tx('Wechsel'), stack(tx('Bild alle'), segB('f.sec', [['10', '10 s'], ['20', '20 s'], ['60', '1 min'], ['300', '5 min']], String(f.sec || 20))));
@@ -137,12 +137,13 @@ export function mount(ed) {
     for (const b of el.querySelectorAll('[data-k="f.bg"]')) b.setAttribute('aria-pressed', String(b.dataset.v === String(f.bg)));
     fr.contentWindow?.postMessage({ hb: 'preview', states: S.states, designs: { list: designs(f), bg: f.bg, acc: f.acc, cur: designCur(f) } }, location.origin);
   };
-  addEventListener('message', e => {
+  const onMsg = e => {
     const fr = $('.dz', el), m = e.data; if (!fr || e.source !== fr.contentWindow || e.origin !== location.origin) return;
     if (m?.hb === 'preview-ready') designSync(cfgFace()); else if (m?.hb === 'design-h') fr.style.height = m.h + 'px'; else if (m?.hb === 'design') mt(tx('Stil geändert'), g => { Object.assign(g, withDesign(S.cfg, g, m.v)); });
-  });
+  };
+  addEventListener('message', onMsg);
   const push = view => { path.push(view); draw({ anim: 'fwd', keep: true }); };
-  const back = () => { if (!path.length) return false; path.pop(); draw({ anim: 'back', keep: true }); return true; };
+  const back = () => { if (!path.length) return false; path.pop(); draw({ anim: 'pback', keep: true }); return true; };
 
   // ---- Änderungen ----
   const onChange = async (k, v, b, en, phase) => {
@@ -171,7 +172,7 @@ export function mount(ed) {
     if (ns === 't' || ns === 'tap' || ns === 'hold') {
       const t = curTile(); if (!t) return;
       if (ns === 't' && p === 'size') { const [w, h] = v.split('x').map(Number); if (!resizeTile(sel.f, sel.j, w, h)) draw({ keep: true }); return; }
-      if (ns === 't' && p === 'title') return mt(tx('Name geändert'), (g, x) => { x.title = v; }, `tile:${sel.f}:${sel.j}:title`);
+      if (ns === 't' && p === 'title') return mt(tx('Name geändert'), (g, x) => { x.title = v.trim(); }, `tile:${sel.f}:${sel.j}:title`);
       if (ns === 't' && p === 'sub') return mt(tx('Untertitel geändert'), (g, x) => { if (v) x.sub = v; else delete x.sub; }, `tile:${sel.f}:${sel.j}:sub`);
       if (ns === 't' && p === 'motion') return mt(tx('Bewegungssensor geändert'), (g, x) => { v ? x.motion = v : delete x.motion; });
       if (ns === 't') { mt(tx('Kachel geändert'), (g, x) => { v ? x[p] = v : delete x[p]; }); return p === 'val' ? draw({ keep: true }) : undefined; }
@@ -238,7 +239,7 @@ export function mount(ed) {
       if (act === 'rm') return rapidTap(e) || removeTiles(id, [sel.j]);
       if (act === 'hide') return hidePage(id);
       if (act === 'del') return rapidTap(e) || removePage(id);
-      if (act === 'show') return call('command', { display: S.sel, action: 'face', face: f.type }).then(() => toast(tx('Gesendet'))).catch(er => toast(er?.message || tx('Fehler'), { bad: true }));
+      if (act === 'show') return call('command', { display: S.sel, action: 'face', face: f.id }).then(() => toast(tx('Gesendet'))).catch(er => toast(er?.message || tx('Fehler'), { bad: true }));
       if (act === 'mrm') return rapidTap(e) || removeTiles(id, sel.js);
       if (act === 'mcopy') return copyTiles(id, sel.js);
       if (act === 'mcut') return copyTiles(id, sel.js, true);
@@ -264,5 +265,5 @@ export function mount(ed) {
   const offs = [on('sel', () => draw()), on('doc', () => { const a = document.activeElement; if (el.contains(a) && /^(INPUT|TEXTAREA)$/.test(a.tagName)) return soft(); draw({ keep: true }); }),
     on('states', () => { if (path.at(-1) === 'data') draw({ keep: true }); })];
   draw();
-  return { back, unmount() { offs.forEach(f => f()); el.remove(); ed.classList.remove('has-insp'); } };
+  return { back, unmount() { offs.forEach(f => f()); removeEventListener('message', onMsg); el.remove(); ed.classList.remove('has-insp'); } };
 }

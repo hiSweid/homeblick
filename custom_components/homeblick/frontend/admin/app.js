@@ -10,7 +10,7 @@ import { collapse, gbtn, page } from './nav.js';
 
 // ---- Adresse: #/ · #/d/<id>[/settings[/<abschnitt>]] · #/new[/<id>] · #/settings · #/alerts ----
 export function parse() {
-  const [a, b, c, d] = location.hash.replace(/^#\/?/, '').split('/').map(decodeURIComponent);
+  const [a, b, c, d] = location.hash.replace(/^#\/?/, '').split('/').map(s => { try { return decodeURIComponent(s); } catch { return s; } });   // kaputter %-Code (von Hand getippt) darf die Seite nicht kippen
   if (a === 'd' && b) return { name: 'screen', id: b, tab: c === 'settings' ? 'settings' : 'layout', section: d || '' };
   if (a === 'new') return { name: 'new', id: b || '' };
   if (a === 'settings' || a === 'alerts') return { name: a };
@@ -47,7 +47,7 @@ function home(el) {
     if (found) { toast(tx('„{name}“ hat sich gemeldet', { name: found.name })); return go({ name: 'new', id: found.id }); }
     const card = d => {
       const w = issues(d)[0], sub = w ? w : [[d.area, d.connected ? tx('Online') : tx('Offline · {t}', { t: ago(d.seen) })].filter(Boolean).join(' · '), ''];
-      return `<button class="home-card ${d.connected ? '' : 'off'}" data-goto="${esc(href({ name: 'screen', id: d.id, tab: 'layout' }))}"><span class="home-shot">${S.shots[d.id] ? `<img src="${S.shots[d.id]}" alt="">` : `<span class="none">${ic('layout')}<span>${tx('Noch kein Bild')}</span></span>`}</span><span class="home-meta"><strong>${esc(d.name)}</strong><small class="${sub[1] === 'down' ? 'd' : sub[1] ? 'w' : ''}"><i class="led ${ledOf(d)}"></i>${esc(sub[0])}</small></span></button>`;
+      return `<button class="home-card ${d.connected ? '' : 'off'}" data-goto="${esc(href({ name: 'screen', id: d.id, tab: 'layout' }))}"><span class="home-shot">${S.shots[d.id] ? `<img src="${esc(S.shots[d.id])}" alt="">` : `<span class="none">${ic('layout')}<span>${tx('Noch kein Bild')}</span></span>`}</span><span class="home-meta"><strong>${esc(d.name)}</strong><small class="${sub[1] === 'down' ? 'd' : sub[1] ? 'w' : ''}"><i class="led ${ledOf(d)}"></i>${esc(sub[0])}</small></span></button>`;
     };
     const newCard = d => `<button class="home-card fresh" data-goto="${esc(href({ name: 'new', id: d.id }))}"><span class="home-shot">${ic('plus')}</span><span class="home-meta"><strong>${esc(d.name)}</strong><small>${d.connected ? tx('Wartet auf die Einrichtung') : tx('Nicht verbunden')}</small></span></button>`;
     const sc = $('.scroller', el)?.scrollTop || 0;
@@ -72,10 +72,14 @@ function home(el) {
 
 // ---- Wechsel der Ansicht ----
 const VIEWS = { home, screen: screen.mount, settings: panels.settings, alerts: panels.alerts, new: panels.newDisplay };
-async function navigate() {
+// Wechsel laufen nacheinander: ein zweiter Hash-Wechsel mitten im await der ersten Ansicht ließe sonst deren Abbau und Listener verwaisen
+let queue = Promise.resolve();
+const navigate = () => (queue = queue.catch(() => {}).then(doNavigate));
+async function doNavigate() {
   const next = parse(), leaving = route.name === 'screen' && (next.name !== 'screen' || next.id !== route.id);
   if (leaving && dirty()) {
-    const stay = () => history.replaceState(null, '', lastHash || '#/'), online = S.displays.find(d => d.id === S.sel)?.connected;
+    const stay = () => history[history.state?.hb ? 'pushState' : 'replaceState']({ hb: 1 }, '', lastHash || '#/'),   // Zurück/Vor: Eintrag behalten und den Bildschirm neu davor setzen; Link-Klick: den neuen Eintrag ersetzen
+      online = S.displays.find(d => d.id === S.sel)?.connected;
     const r = await ask(tx('Es gibt Änderungen, die noch nicht an das Display gesendet sind.'), { ok: tx('Verwerfen'), danger: true, alt: tx('Senden') });
     if (!r) return stay();
     if (r === 'alt') { await save(); if (dirty()) return stay(); toast(online ? tx('Gesendet. Dein Display wird aktualisiert.') : tx('Gespeichert. Das Display übernimmt es beim nächsten Öffnen.')); }   // Senden fehlgeschlagen: bleiben, guard zeigt den Fehler
@@ -84,14 +88,20 @@ async function navigate() {
   unmount?.(); unmount = null;   // erst die Ansicht abbauen, dann den Entwurf schließen (sonst zeichnet sie auf leerem Stand)
   if (leaving) closeDoc();
   lastHash = location.hash; route = next;
+  history.replaceState({ hb: 1 }, '', location.hash);   // Eintrag als besucht markieren (stay)
   try { sessionStorage.setItem('hb-admin.route', location.hash); } catch { /* Speicher gesperrt */ }
   try { const o = window.top; if (o && o !== window && o.location.origin === location.origin) o.history.replaceState(o.history.state, '', `${o.location.pathname}${o.location.search}${location.hash}`); } catch { /* fremdes Fenster */ }
   app.dataset.view = next.name; renderTabs();
-  const main = $('#main'); main.innerHTML = '';
+  const old = $('#main'), main = old.cloneNode(false); old.replaceWith(main);   // frisches Element: Listener der letzten Ansicht (click/input/change auf #main) fallen mit weg
   main.classList.remove('view-in'); void main.offsetWidth; main.classList.add('view-in');
   unmount = (await VIEWS[next.name](main, next)) || null;
   if (next.name !== 'home') queueMicrotask(() => collapse(main));
 }
+// Display von außen entfernt (anderer Admin, Dienst): Editor/Einstellungen eines toten Displays verlassen
+on('list', () => {
+  if (route.name !== 'screen' || S.sel !== route.id || S.displays.some(d => d.id === route.id && !d.new)) return;
+  S.cfg = null; S.saved = ''; toast(tx('Dieses Display gibt es nicht (mehr)'), { bad: true }); location.hash = '#/';
+});
 addEventListener('hashchange', navigate);
 addEventListener('keydown', e => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k' && !$('.alert')) { e.preventDefault(); openPalette(); } });
 enhance();
