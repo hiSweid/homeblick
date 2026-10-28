@@ -1,6 +1,7 @@
 // Haus-Check: ein Blick, ob alles zu ist — offene Türen/Fenster/Garage, entriegelte Schlösser, Wassermelder, schwache Batterien, ausgefallene Melder.
 // Liest nur die Zustände der Entitäten (kein Ersatz für Rauchmelder oder Alarmanlage). Unbekannt/nicht erreichbar gilt nie als „zu“, sondern steht unter „Nicht erreichbar“.
 // Tippen auf ein Schloss oder Tor schließt es (nur Schließen, nie Öffnen). Eigener Entwurf, keine Apple-Vorlage.
+import { tx, LOC } from './i18n.js';
 const OPENING = new Set(['door', 'window', 'opening', 'garage_door']);   // binary_sensor-Geräteklassen: an = offen
 const COVERS = new Set(['garage', 'gate', 'door', 'window']);            // Rollläden/Jalousien gehören nicht dazu
 const BAD_LOCK = new Set(['unlocked', 'unlocking', 'open', 'opening', 'jammed']);
@@ -8,7 +9,7 @@ const GONE = new Set(['unavailable', 'unknown']);
 const NOISE = /handy|phone|iphone|ipad|tablet|pixel|galaxy|watch|uhr\b|auto\b|car\b|golf|tesla|display|laptop|airpods|kopfh/i;   // Geräte mit Akku, die man nicht „leer“ im Haus sucht
 const LOW = 20;   // % Batterie
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => `&#${c.charCodeAt(0)};`);
-const TEXT = { on: 'Offen', open: 'Offen', opening: 'Öffnet', closing: 'Schließt', stopped: 'Offen', unlocked: 'Entriegelt', unlocking: 'Entriegelt', jammed: 'Klemmt' };
+const TEXT = { on: tx('Offen‖Zustand'), open: tx('Offen‖Zustand'), opening: tx('Öffnet'), closing: tx('Schließt'), stopped: tx('Offen‖Zustand'), unlocked: tx('Entriegelt'), unlocking: tx('Entriegelt'), jammed: tx('Klemmt') };
 let api;   // { ents(), call(domain, service, data) }
 export function checkInit(o) { api = o; }
 
@@ -37,7 +38,7 @@ export function scan(ents, skip = []) {
     const bad = kind === 'door' ? s.state === 'on' : kind === 'lock' ? BAD_LOCK.has(s.state) : kind === 'cover' ? s.state !== 'closed' : s.state === 'on';
     if (bad) out[kind === 'water' ? 'water' : 'open'].push({ id, name, kind, state: s.state });
   }
-  for (const k of ['open', 'water', 'bat', 'off']) out[k].sort((a, b) => a.name.localeCompare(b.name, 'de'));
+  for (const k of ['open', 'water', 'bat', 'off']) out[k].sort((a, b) => a.name.localeCompare(b.name, LOC));
   return out;
 }
 
@@ -48,11 +49,11 @@ const ICO = {   // Symbole 24×24, Strich
 const COL = { door: '#ff9f0a', lock: '#ff9f0a', cover: '#ff9f0a', water: '#0a84ff', bat: '#ffd60a', off: '#8e8e93' };
 const ico = n => `<svg class="i" viewBox="0 0 24 24">${ICO[n]}</svg>`;
 const section = (title, rows) => rows.length ? `<h4>${title}</h4>${rows.join('')}` : '';
-const row = (x, detail, act) => `<div class="crow" style="--c:${COL[x.kind]}"><i>${ico(x.kind)}</i><span>${esc(x.name)}</span><em>${esc(detail)}</em>${act ? `<button data-close="${esc(x.id)}">Schließen</button>` : ''}</div>`;
+const row = (x, detail, act) => `<div class="crow" style="--c:${COL[x.kind]}"><i>${ico(x.kind)}</i><span>${esc(x.name)}</span><em>${esc(detail)}</em>${act ? `<button data-close="${esc(x.id)}">${tx('Schließen')}</button>` : ''}</div>`;
 
 export function checkFace(el, f) {
   el.dataset.skip = (f.skip || '').toString();
-  el.innerHTML = '<header>Haus-Check</header><div class="chero"></div><div class="cbody"></div>';
+  el.innerHTML = `<header>${tx('Haus-Check')}</header><div class="chero"></div><div class="cbody"></div>`;
   el.addEventListener('click', e => {
     const b = e.target.closest('[data-close]'); if (!b) return;
     const id = b.dataset.close, dom = id.split('.')[0];
@@ -62,13 +63,13 @@ export function checkFace(el, f) {
 export function checkSync(els) {
   for (const el of els) {
     const r = scan(api.ents(), el.dataset.skip.split(',')), bad = r.open.length + r.water.length;
-    const hero = r.water.length ? ['water', 'Wasser erkannt', r.water.map(x => x.name).join(', ')] : r.open.length ? ['warn', `${r.open.length} offen`, r.open.map(x => x.name).join(', ')]
-      : r.checked ? ['ok', 'Alles zu', ''] : ['off', 'Keine Melder', 'Der Check liest Tür- und Fenstersensoren, Schlösser, Garagentore und Wassermelder.'];
-    const foot = r.checked ? `${r.checked} Melder geprüft${r.off.length ? ` · ${r.off.length} nicht erreichbar` : ''}` : '';
+    const hero = r.water.length ? ['water', tx('Wasser erkannt'), r.water.map(x => x.name).join(', ')] : r.open.length ? ['warn', tx('{n} offen', { n: r.open.length }), r.open.map(x => x.name).join(', ')]
+      : r.checked ? ['ok', tx('Alles zu'), ''] : ['off', tx('Keine Melder'), tx('Der Check liest Tür- und Fenstersensoren, Schlösser, Garagentore und Wassermelder.')];
+    const foot = r.checked ? tx('{n} Melder geprüft', { n: r.checked }) + (r.off.length ? ' · ' + tx('{n} nicht erreichbar', { n: r.off.length }) : '') : '';
     const head = `<div class="chero ${bad ? 'bad' : r.checked ? 'good' : ''}"><i>${ico(hero[0])}</i><span><b>${esc(hero[1])}</b><small>${esc(hero[2])}</small></span></div>`;
-    const body = section('Offen', r.open.map(x => row(x, TEXT[x.state] || x.state, (x.kind === 'lock' || x.kind === 'cover') && x.state !== 'jammed')))
-      + section('Wasser', r.water.map(x => row(x, 'Nass'))) + section('Batterie schwach', r.bat.map(x => row(x, x.pct == null ? 'Schwach' : x.pct + ' %')))
-      + section('Nicht erreichbar', r.off.map(x => row(x, 'Keine Daten'))) + (foot ? `<p class="cfoot">${esc(foot)}</p>` : '');
+    const body = section(tx('Offen‖Abschnitt'), r.open.map(x => row(x, TEXT[x.state] || x.state, (x.kind === 'lock' || x.kind === 'cover') && x.state !== 'jammed')))
+      + section(tx('Wasser'), r.water.map(x => row(x, tx('Nass')))) + section(tx('Batterie schwach'), r.bat.map(x => row(x, x.pct == null ? tx('Schwach') : x.pct + ' %')))
+      + section(tx('Nicht erreichbar'), r.off.map(x => row(x, tx('Keine Daten')))) + (foot ? `<p class="cfoot">${esc(foot)}</p>` : '');
     const html = head + '\u0001' + body;   // Hash: nur bei Änderung neu zeichnen
     if (el._h === html) continue;
     el._h = html; el.querySelector('.chero').outerHTML = head; el.querySelector('.cbody').innerHTML = body;

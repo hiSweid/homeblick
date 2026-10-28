@@ -1,9 +1,10 @@
 // Wetter-Face (Video t ≈ 8,6 s) + -Himmel für alle 15 HA-Wetterzustände × Tag/Dämmerung/Nacht.
 // Wolken, Regen, Schnee, Hagel, Sterne werden einmal per Canvas gerastert und nur per transform/opacity bewegt (Compositor).
+import { tx, LOC } from './i18n.js';
 
 const Q = new URLSearchParams(location.search), DEMO = !Q.has('live');
 
-export const COND = { 'clear-night': 'Klar', cloudy: 'Bewölkt', exceptional: 'Unwetter', fog: 'Nebel', hail: 'Hagel', lightning: 'Gewitter', 'lightning-rainy': 'Gewitter', partlycloudy: 'Teilweise bewölkt', pouring: 'Starkregen', rainy: 'Regen', snowy: 'Schnee', 'snowy-rainy': 'Schneeregen', sunny: 'Sonnig', windy: 'Windig', 'windy-variant': 'Windig, bewölkt' };
+export const COND = { 'clear-night': tx('Klar'), cloudy: tx('Bewölkt'), exceptional: tx('Unwetter'), fog: tx('Nebel'), hail: tx('Hagel'), lightning: tx('Gewitter'), 'lightning-rainy': tx('Gewitter'), partlycloudy: tx('Teilweise bewölkt'), pouring: tx('Starkregen'), rainy: tx('Regen'), snowy: tx('Schnee'), 'snowy-rainy': tx('Schneeregen'), sunny: tx('Sonnig'), windy: tx('Windig'), 'windy-variant': tx('Windig, bewölkt') };
 
 // ---------- Paletten: Himmel oben/Mitte/unten, Wolken Licht/Schatten ----------
 const SKY = {
@@ -244,7 +245,7 @@ export function weatherFace(el, f, place = '') {
 <header><div class="wc"><i class="wi" data-wxi></i><span data-bind="wxc"></span></div><div data-bind="wxhl"></div></header>
 <time data-bind="time"></time>
 <div class="wt" data-wxt></div>
-<footer><div><i data-wxsi></i><b data-bind="wxsun"></b><span data-bind="wxsunl"></span></div><div>${FOOT.wind}<b data-bind="wxw"></b><span>Wind</span></div><div>${FOOT.hum}<b data-bind="wxh"></b><span>Feuchte</span></div><div>${FOOT.uv}<b data-bind="wxuv"></b><span>UV</span></div></footer>`;
+<footer><div><i data-wxsi></i><b data-bind="wxsun"></b><span data-bind="wxsunl"></span></div><div>${FOOT.wind}<b data-bind="wxw"></b><span>${tx('Wind')}</span></div><div>${FOOT.hum}<b data-bind="wxh"></b><span>${tx('Feuchte')}</span></div><div>${FOOT.uv}<b data-bind="wxuv"></b><span>UV</span></div></footer>`;
   io.observe(el.firstChild); ro.observe(el.firstChild);
   if (DEMO) el.addEventListener('click', () => {   // Demo: Tippen zeigt der Reihe nach alle Wetter-Szenen
     if (el.closest('.gallery,.custom')) return;
@@ -255,7 +256,7 @@ export function weatherFace(el, f, place = '') {
 // Stil „Bedingungen“ (Vorlage product-viewer/display_endframe, frames/pv-display_1…5): Ort, große Temperatur, Zustand, H/T mittig;
 // darunter Glaskarte mit Segment Temperatur/Niederschlag/Wind und horizontal scrollender Stundenleiste (HA-Vorhersage hourly).
 // Abweichung: Vorlage lässt die Karte unten aus dem Bild laufen → hier ganz sichtbar (Rand 4,3 cqw wie seitlich, Werte unter den Icons), Ort/Temperatur/Zustand dafür 3 cqw höher
-const MODES = { t: ['Temperatur (°C)', `<svg viewBox="0 2 28 24">${behind('<circle cx="20" cy="11.3" r="4.2"/>', CL(0, 3.5, 1))}</svg>`], p: ['Niederschlag (%)', '<svg viewBox="0 0 28 24"><path d="M14 2.5s-6.5 8-6.5 12.6a6.5 6.5 0 0 0 13 0C20.5 10.5 14 2.5 14 2.5z"/></svg>'], w: ['Wind (km/h)', FOOT.wind] };
+const MODES = { t: [tx('Temperatur (°C)'), `<svg viewBox="0 2 28 24">${behind('<circle cx="20" cy="11.3" r="4.2"/>', CL(0, 3.5, 1))}</svg>`], p: [tx('Niederschlag (%)'), '<svg viewBox="0 0 28 24"><path d="M14 2.5s-6.5 8-6.5 12.6a6.5 6.5 0 0 0 13 0C20.5 10.5 14 2.5 14 2.5z"/></svg>'], w: [tx('Wind (km/h)'), FOOT.wind] };
 let hours = [], far = false;   // far: Fern-Ansicht (nur Text), sonst Nah mit Karte
 const setFar = (el, v) => { if (el.closest('.gallery,.custom')) return; el.toggleAttribute('data-far', v); };
 // Aus index.html: Präsenzmelder an → Nah, aus → Fern; ohne Melder bleibt Nah (Tipp wechselt immer)
@@ -265,8 +266,8 @@ function condFace(el, place) {
   el.addEventListener('click', e => { if (!e.target.closest('.wcard,.wlist,.wpl')) setFar(el, !el.hasAttribute('data-far')); });
   el.innerHTML = `<div class="wsky"></div><time data-bind="time"></time>
 <div class="wtop"><b>${place.replace(/[&<>"]/g, c => `&#${c.charCodeAt(0)};`)}</b><div data-bind="wxt"></div><span data-bind="wxc"></span><span data-bind="wxhl"></span></div>
-<button class="wlist" aria-label="Orte"><svg viewBox="0 0 24 24"><path d="M4 7h1.6M9 7h11M4 12h1.6M9 12h11M4 17h1.6M9 17h11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button><div class="wpl"></div>
-<section class="wcard"><header><div><b>Bedingungen</b><span class="wsub">${MODES.t[0]}</span></div>
+<button class="wlist" aria-label="${tx('Orte')}"><svg viewBox="0 0 24 24"><path d="M4 7h1.6M9 7h11M4 12h1.6M9 12h11M4 17h1.6M9 17h11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button><div class="wpl"></div>
+<section class="wcard"><header><div><b>${tx('Bedingungen')}</b><span class="wsub">${MODES.t[0]}</span></div>
 <div class="wseg">${Object.entries(MODES).map(([k, [, ic]], i) => `<button data-m="${k}"${i ? '' : ' class="on"'}><i class="wi">${ic}</i></button>`).join('')}</div></header>
 <div class="whours"></div></section>`;
   io.observe(el.firstChild); ro.observe(el.firstChild);
@@ -305,7 +306,7 @@ function fillHours(row, anim) {
   row.innerHTML = list.map((h, i) => {
     const t = Date.parse(h.datetime), n = nightAt(t), c = h.condition === 'sunny' && n ? 'clear-night' : h.condition;
     const v = m === 't' ? Math.round(h.temperature) + '°' : m === 'p' ? (h.precipitation_probability ?? 0) + '<small> %</small>' : h.wind_speed == null ? '–' : Math.round(h.wind_speed) + '';
-    return `<div><b>${i ? new Date(t).getHours() + '<small> Uhr</small>' : 'Jetzt'}</b><i class="wi">${icon(c in ICON ? c : 'cloudy', n, 1)}</i><span>${v}</span></div>`;
+    return `<div><b>${i ? new Date(t).getHours() + '<small>' + tx(' Uhr‖Stunde') + '</small>' : tx('Jetzt')}</b><i class="wi">${icon(c in ICON ? c : 'cloudy', n, 1)}</i><span>${v}</span></div>`;
   }).join('');
   if (anim) row.querySelectorAll('span').forEach((x, i) => x.animate([{ opacity: 0, transform: 'translateY(40%)' }, { opacity: 1, transform: 'none' }], { duration: 500, delay: i * 25, easing: getComputedStyle(document.documentElement).getPropertyValue('--spring') || 'ease-out', fill: 'backwards' }));
 }
@@ -323,7 +324,7 @@ if (Object.hasOwn(COND, Q.get('wx'))) {   // ?wx=&tod= erzwingt jede Kombination
 
 const $$ = s => document.querySelectorAll(s);
 const bind = (k, v) => { v = String(v); for (const e of $$(`[data-bind=${k}]`)) if (e.textContent !== v) e.textContent = v; };
-const hm = d => d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+const hm = d => d.toLocaleTimeString(LOC, { hour: '2-digit', minute: '2-digit' });
 function tod(sun) {
   if (['day', 'dusk', 'night'].includes(Q.get('tod'))) return Q.get('tod');   // Test-Parameter ?tod= gilt wie bei den Home-Faces überall
   const e = sun?.attributes?.elevation;
@@ -355,14 +356,14 @@ export function weather(ws, sun, fc) {
   const temp = w.temperature == null ? '–' : Math.round(w.temperature) + '°';
   bind('wxt', temp);
   bind('wxc', pick != null || known ? COND[cond] : '–');   // umgemappten Zustand beschriften (sunny nachts = Klar)
-  bind('wxhl', fc ? [['H', fc.temperature], ['T', fc.templow]].filter(([, v]) => v != null).map(([k, v]) => `${k}:${Math.round(v)}°`).join(' ') : '');
+  bind('wxhl', fc ? [[tx('H‖Höchsttemperatur'), fc.temperature], [tx('T‖Tiefsttemperatur'), fc.templow]].filter(([, v]) => v != null).map(([k, v]) => `${k}:${Math.round(v)}°`).join(' ') : '');
   bind('wxw', w.wind_speed == null ? '–' : `${Math.round(w.wind_speed)} ${w.wind_speed_unit || 'km/h'}`);
   bind('wxh', w.humidity == null ? '–' : Math.round(w.humidity) + ' %');
   bind('wxuv', w.uv_index == null ? '–' : Math.round(w.uv_index));
   const next = sun?.attributes?.[up ? 'next_setting' : 'next_rising'];
   const nd = next && new Date(next);   // Festzeit nur in der Demo (ohne sun.sun); echte Entity ohne gültige Zeit → –
   bind('wxsun', nd && !isNaN(nd) ? hm(nd) : sun ? '–' : up ? '18:26' : '07:46');
-  bind('wxsunl', up ? 'Untergang' : 'Aufgang');
+  bind('wxsunl', up ? tx('Untergang') : tx('Aufgang'));
   for (const e of $$('[data-wxsi]')) if (e.dataset.v !== String(up)) { e.dataset.v = up; e.outerHTML = FOOT.set(up).replace('<svg', `<svg data-wxsi data-v="${up}"`); }
   const ik = cond + (t === 'night');
   for (const e of $$('[data-wxi]')) if (e.dataset.v !== ik) { e.dataset.v = ik; e.innerHTML = icon(cond, t === 'night'); }

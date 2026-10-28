@@ -2,6 +2,7 @@
 // Tippen hakt ab (Feder, sofort sichtbar, bei Fehler zurück), „+“ öffnet die Eingabe, „Entfernen“ löscht die Erledigten. Die Liste kommt live per todo/item/subscribe
 // (HA schickt bei jeder Änderung die ganze Liste, auch wenn Handy oder Assist etwas ändern). Ohne f.todo gilt die erste Liste, bei mehreren wählt man per Chip.
 // Funktionsumfang laut supported_features der Entität: 1 anlegen, 2 löschen, 4 ändern.
+import { tx } from './i18n.js';
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => `&#${c.charCodeAt(0)};`);
 const CREATE = 1, DELETE = 2, UPDATE = 4;
 const lists = new Map();   // Entität → { items: Server-Stand, pend: { uid: Status } (lokal, bis zur nächsten Meldung), tmp: [] (neu angelegt), un: Promise | null, err }
@@ -9,7 +10,7 @@ let api;                   // { conn, live, ents, down } aus index.html
 let faces = new Set();
 
 // Demo (ohne ?live): zwei Listen im Speicher; die Dienste verändern sie wie HA
-const DEMO = { 'todo.einkaufsliste': ['Milch', 'Brot', 'Äpfel', 'Waschmittel', ['Nudeln', 1]], 'todo.aufgaben': ['Reifen wechseln', 'Steuererklärung', ['Paket abholen', 1]] };
+const DEMO = { 'todo.einkaufsliste': [tx('Milch'), tx('Brot'), tx('Äpfel'), tx('Waschmittel'), [tx('Nudeln'), 1]], 'todo.aufgaben': [tx('Reifen wechseln'), tx('Steuererklärung'), [tx('Paket abholen'), 1]] };
 const demoItems = id => (DEMO[id] || []).map((x, i) => ({ uid: id + i, summary: [].concat(x)[0], status: [].concat(x)[1] ? 'completed' : 'needs_action' }));
 
 export function todoInit(o) { api = o; }
@@ -61,17 +62,17 @@ function paintFace(el) {
   el.classList.toggle('multi', all.length > 1 && !el.dataset.todo);
   el.querySelector('.tplus').hidden = !(sf & CREATE) || !id;
   if (!(sf & CREATE)) el.classList.remove('adding');
-  el.querySelector('.tn').textContent = id ? a?.friendly_name || id : 'Aufgaben';
+  el.querySelector('.tn').textContent = id ? a?.friendly_name || id : tx('Aufgaben');
   const list = items(id), open = list.filter(x => x.status !== 'completed').length;
-  el.querySelector('.ts').textContent = !id || !L?.got ? '' : open ? `${open} offen` : list.length ? 'Alles erledigt' : 'Leer';
+  el.querySelector('.ts').textContent = !id || !L?.got ? '' : open ? tx('{n} offen', { n: open }) : list.length ? tx('Alles erledigt') : tx('Leer');
   const chips = all.length > 1 && !el.dataset.todo ? all.map(i => `<button class="tchip${i === id ? ' on' : ''}" data-list="${esc(i)}">${esc(api.ents()[i].attributes.friendly_name || i)}</button>`).join('') : '';
-  const body = !id ? '<p class="tnone">Keine Liste in Home Assistant<small>Füge die Integration „Einkaufsliste“ oder „Lokale Aufgaben“ hinzu</small></p>'
-    : L?.err ? '<p class="tnone">Liste nicht lesbar<small>Home Assistant hat das Abonnement abgelehnt</small></p>'
-    : !L?.got ? '<p class="tnone">Lädt …</p>'
-    : !list.length ? '<p class="tnone">Nichts auf der Liste<small>Mit + etwas hinzufügen</small></p>'
+  const body = !id ? `<p class="tnone">${tx('Keine Liste in Home Assistant')}<small>${tx('Füge die Integration „Einkaufsliste“ oder „Lokale Aufgaben“ hinzu')}</small></p>`
+    : L?.err ? `<p class="tnone">${tx('Liste nicht lesbar')}<small>${tx('Home Assistant hat das Abonnement abgelehnt')}</small></p>`
+    : !L?.got ? `<p class="tnone">${tx('Lädt …')}</p>`
+    : !list.length ? `<p class="tnone">${tx('Nichts auf der Liste')}<small>${tx('Mit + etwas hinzufügen')}</small></p>`
     : list.map((x, i) => {
       const done = x.status === 'completed', first = done && (i === 0 || list[i - 1].status !== 'completed');
-      return (first ? `<div class="tsep"><span>Erledigt</span>${sf & DELETE ? '<button data-clear>Entfernen</button>' : ''}</div>` : '')
+      return (first ? `<div class="tsep"><span>${tx('Erledigt')}</span>${sf & DELETE ? `<button data-clear>${tx('Entfernen')}</button>` : ''}</div>` : '')
         + `<button class="trow${done ? ' done' : ''}" data-u="${esc(x.uid)}"${sf & UPDATE ? '' : ' disabled'}><i class="tck"></i><span>${esc(x.summary)}</span></button>`;
     }).join('');
   const html = chips + '\u0001' + body;   // Hash: nur bei Änderung neu zeichnen, sonst bricht die Feder-Animation des Hakens ab
@@ -81,9 +82,9 @@ function paintFace(el) {
 
 export function todoFace(el, f) {
   if (f.todo) el.dataset.todo = f.todo;
-  el.innerHTML = `<header><b class="tn">Aufgaben</b><small class="ts"></small></header><button class="tplus" aria-label="Hinzufügen" hidden><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+  el.innerHTML = `<header><b class="tn">${tx('Aufgaben')}</b><small class="ts"></small></header><button class="tplus" aria-label="${tx('Hinzufügen')}" hidden><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
 <div class="tchips"></div><div class="tbody"></div>
-<form class="tadd"><input maxlength="255" placeholder="Neuer Eintrag" autocomplete="off" enterkeyhint="done"><button aria-label="Hinzufügen"><svg class="i" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></svg></button></form>`;
+<form class="tadd"><input maxlength="255" placeholder="${tx('Neuer Eintrag')}" autocomplete="off" enterkeyhint="done"><button aria-label="${tx('Hinzufügen')}"><svg class="i" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></svg></button></form>`;
   const inp = el.querySelector('input');
   el.addEventListener('click', e => {
     const id = pick(el), L = lists.get(id), t = e.target;

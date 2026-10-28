@@ -369,7 +369,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     frontend.async_register_built_in_panel(
         hass,
         component_name="iframe",
-        sidebar_title="Homeblick Einstellungen",
+        sidebar_title="Homeblick Einstellungen" if hass.config.language.startswith("de") else "Homeblick Settings",
         sidebar_icon="mdi:tune-variant",
         frontend_url_path=f"{DOMAIN}-settings",
         config={"url": f"{URL}/admin.html"},

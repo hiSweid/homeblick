@@ -1,4 +1,5 @@
 // ⌘K: Displays, Seiten, Einstellungen und Aktionen suchen; im Layout auch Entitäten hinzufügen.
+import { tx } from '../i18n.js';
 import { $, esc, fold, ic } from './ui.js';
 import { S, dirty, redo, select, undo } from './state.js';
 import { INDEX, spot } from './settings.js';
@@ -15,24 +16,24 @@ export function openPalette() {
   const go = h => () => { location.hash = h; };
   const all = [];
   const add = (group, label, icon, run, sub = '') => all.push({ group, label, icon, run, sub, k: fold(label + ' ' + sub) });
-  for (const d of S.displays.filter(x => !x.new)) add('Displays', d.name, 'monitor', go(`#/d/${encodeURIComponent(d.id)}`), d.area || '');
+  for (const d of S.displays.filter(x => !x.new)) add(tx('Displays'), d.name, 'monitor', go(`#/d/${encodeURIComponent(d.id)}`), d.area || '');
   if (onScreen) {
-    S.cfg.faces.forEach((f, i) => add('Ansichten', faceName(f), 'pages', () => { if (!layout) location.hash = `#/d/${encodeURIComponent(S.sel)}`; setTimeout(() => select({ k: 'page', f: f.id }), 60); }, `Ansicht ${i + 1}`));
-    for (const [k, n, sec] of INDEX) add('Einstellungen', n, 'sliders', () => { spot.key = k; spot.section = sec; const h = `#/d/${encodeURIComponent(S.sel)}/settings/${sec}`; if (location.hash === h) { location.hash = '#/'; setTimeout(() => (location.hash = h), 0); } else location.hash = h; }, 'Einstellung');
-    if (layout) { add('Aktionen', 'Ansicht hinzufügen', 'page-add', addPageFlow); add('Aktionen', 'Vorschau', 'play', () => openPreview(0)); add('Aktionen', 'Rückgängig', 'undo', undo); add('Aktionen', 'Wiederholen', 'redo', redo); add('Aktionen', 'Ansicht löschen', 'trash', () => removePage(S.ui.page || S.cfg.faces[0]?.id)); }
-    add('Aktionen', 'Display umbenennen', 'pencil', renameDisplay); add('Aktionen', 'Display entfernen', 'trash', removeDisplay);
+    S.cfg.faces.forEach((f, i) => add(tx('Ansichten'), faceName(f), 'pages', () => { if (!layout) location.hash = `#/d/${encodeURIComponent(S.sel)}`; setTimeout(() => select({ k: 'page', f: f.id }), 60); }, tx('Ansicht {n}', { n: i + 1 })));
+    for (const [k, n, sec] of INDEX) add(tx('Einstellungen'), n, 'sliders', () => { spot.key = k; spot.section = sec; const h = `#/d/${encodeURIComponent(S.sel)}/settings/${sec}`; if (location.hash === h) { location.hash = '#/'; setTimeout(() => (location.hash = h), 0); } else location.hash = h; }, tx('Einstellung'));
+    if (layout) { add(tx('Aktionen'), tx('Ansicht hinzufügen'), 'page-add', addPageFlow); add(tx('Aktionen'), tx('Vorschau'), 'play', () => openPreview(0)); add(tx('Aktionen'), tx('Rückgängig'), 'undo', undo); add(tx('Aktionen'), tx('Wiederholen‖Redo'), 'redo', redo); add(tx('Aktionen'), tx('Ansicht löschen'), 'trash', () => removePage(S.ui.page || S.cfg.faces[0]?.id)); }
+    add(tx('Aktionen'), tx('Display umbenennen'), 'pencil', renameDisplay); add(tx('Aktionen'), tx('Display entfernen'), 'trash', removeDisplay);
   }
-  add('Aktionen', 'Neues Display einrichten', 'plus', go('#/new')); add('Aktionen', 'Einstellungen: Kameras und Türklingel', 'cog', go('#/settings')); add('Aktionen', 'Mitteilungen', 'bell', go('#/alerts'));
-  const bg = Object.assign(document.createElement('div'), { className: 'palette-bg', innerHTML: `<div class="palette" role="dialog" aria-label="Suchen"><div class="pq">${ic('search')}<input type="search" placeholder="Display, Ansicht, Einstellung oder Entität suchen" autocomplete="off" spellcheck="false" aria-label="Suchen"></div><div class="list" role="listbox"></div><div class="foot"><span>↑↓ wählen</span><span>↵ öffnen</span><span>esc schließen</span></div></div>` });
+  add(tx('Aktionen'), tx('Neues Display einrichten'), 'plus', go('#/new')); add(tx('Aktionen'), tx('Einstellungen: Kameras und Türklingel'), 'cog', go('#/settings')); add(tx('Aktionen'), tx('Mitteilungen'), 'bell', go('#/alerts'));
+  const bg = Object.assign(document.createElement('div'), { className: 'palette-bg', innerHTML: `<div class="palette" role="dialog" aria-label="${tx('Suchen')}"><div class="pq">${ic('search')}<input type="search" placeholder="${tx('Display, Ansicht, Einstellung oder Entität suchen')}" autocomplete="off" spellcheck="false" aria-label="${tx('Suchen')}"></div><div class="list" role="listbox"></div><div class="foot"><span>${tx('↑↓ wählen')}</span><span>${tx('↵ öffnen')}</span><span>${tx('esc schließen')}</span></div></div>` });
   const q = $('input', bg), list = $('.list', bg);
   let items = [], hi = 0;
   const draw = () => {
     const w = fold(q.value).split(/\s+/).filter(Boolean);
     let hits = all.filter(x => w.every(t => x.k.includes(t))).slice(0, w.length ? 30 : 12);
-    if (layout && q.value.trim().length >= 2) hits = hits.concat(findEnts(q.value, TILE_DOM).slice(0, 8).map(e => ({ group: 'Entität hinzufügen', label: e.name, icon: null, ent: e, sub: e.area || e.id, run: () => addEntity(e) })));
+    if (layout && q.value.trim().length >= 2) hits = hits.concat(findEnts(q.value, TILE_DOM).slice(0, 8).map(e => ({ group: tx('Entität hinzufügen'), label: e.name, icon: null, ent: e, sub: e.area || e.id, run: () => addEntity(e) })));
     items = hits; hi = Math.min(hi, Math.max(items.length - 1, 0));
     let last = '';
-    list.innerHTML = items.map((x, i) => `${x.group !== last ? `<div class="grp">${esc(last = x.group)}</div>` : ''}<div class="pitem ${i === hi ? 'hi' : ''}" role="option" data-i="${i}">${x.ent ? avatar(x.ent.domain) : ic(x.icon)}<span class="t"><span>${esc(x.label)}</span></span>${x.sub ? `<small>${esc(x.sub)}</small>` : ''}</div>`).join('') || '<div class="hint" style="padding:18px;text-align:center">Nichts gefunden</div>';
+    list.innerHTML = items.map((x, i) => `${x.group !== last ? `<div class="grp">${esc(last = x.group)}</div>` : ''}<div class="pitem ${i === hi ? 'hi' : ''}" role="option" data-i="${i}">${x.ent ? avatar(x.ent.domain) : ic(x.icon)}<span class="t"><span>${esc(x.label)}</span></span>${x.sub ? `<small>${esc(x.sub)}</small>` : ''}</div>`).join('') || `<div class="hint" style="padding:18px;text-align:center">${tx('Nichts gefunden')}</div>`;
     $('.hi', list)?.scrollIntoView({ block: 'nearest' });
   };
   const close = () => { bg.remove(); document.removeEventListener('keydown', key, true); };

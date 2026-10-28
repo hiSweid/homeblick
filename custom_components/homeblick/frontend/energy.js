@@ -1,4 +1,5 @@
 import { EN_NAMES } from './faces.js';
+import { tx, LOC } from './i18n.js';
 import { bins, smooth } from './curve.js';
 import { sources, ids as statIds, startOf, sums } from './energy-stats.js';
 // Energie-Face. Vorlage = Entwurf 1 des Users (statt Apple-Bildern; Bild scratchpad en/Entwurf1.png, Mockup en/m5.html Abschnitt #d1, Maße dort in cqw bei 784 px).
@@ -36,7 +37,7 @@ const SYM = {
   bat: '<rect x="6.5" y="4.5" width="11" height="17" rx="2.4"/><path d="M10 2.5h4M9.5 14.5l2.5-4v3h2.5l-2.5 4v-3z" stroke-width="1.4"/>',
   car: '<path d="M3.5 15.5v-3l2-5.2A2 2 0 0 1 7.4 6h9.2a2 2 0 0 1 1.9 1.3l2 5.2v3M3.5 15.5h17M3.5 15.5V18h2.6v-2.5M20.5 15.5V18h-2.6v-2.5M3.8 12.5h16.4"/>',
 };
-const de = (v, d = 1) => v.toLocaleString('de-DE', { minimumFractionDigits: d, maximumFractionDigits: d });
+const de = (v, d = 1) => v.toLocaleString(LOC, { minimumFractionDigits: d, maximumFractionDigits: d });
 const kw = w => de(Math.abs(w) / 1000);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const root = document.documentElement;
@@ -64,12 +65,12 @@ export function energyTile(t) {
     pv: () => `${ttl('sun', nm, 'y')}${val('pv', ' kW')}
   <div class="cw"><div class="ci"><svg viewBox="0 0 100 30" preserveAspectRatio="none"><defs><linearGradient id="${g}" x2="0" y2="1"><stop offset="0" stop-color="#ffd60a" stop-opacity=".6"/><stop offset="1" stop-color="#ffd60a" stop-opacity="0"/></linearGradient></defs>
     <path class="ar" fill="url(#${g})"/><path class="ln"/><path class="fc"/></svg></div></div>`,
-    aut: () => `<svg class="rg" viewBox="-50 -50 100 100"><circle r="44"/><circle class="on" r="44" pathLength="100" transform="rotate(-90)"/></svg>${val('aut', '%')}<div class="sub">${esc(t.title || 'autark')}</div>`,
+    aut: () => `<svg class="rg" viewBox="-50 -50 100 100"><circle r="44"/><circle class="on" r="44" pathLength="100" transform="rotate(-90)"/></svg>${val('aut', '%')}<div class="sub">${esc(t.title || tx('autark'))}</div>`,
     use: () => `${ttl('home', nm)}${val('home', ' kW')}<div class="bar g mid"><div class="cl l"><i></i></div><div class="cl r"><i></i></div></div><div class="sub gl" data-bind="e_gl"></div>`,
     bat: () => `${ttl('bat', nm, 'gr')}${val('soc', '%')}${bar('soc')}<div class="sub" data-bind="e_batl"></div>`,
     car: () => `${ttl('car', nm, 'bl')}${val('carSoc', '%')}${bar('carSoc')}<div class="sub" data-bind="e_carl"></div>`,
     day: () => `${ttl('sun', nm, 'y')}${val('today')}<div class="sub dim" data-bind="e_todayl"></div>${bar('today')}`,
-    tmr: () => `${ttl('sun', nm)}${val('tomorrow')}<div class="sub dim">kWh Prognose</div><div class="sub pk" data-bind="e_peak"></div>`,
+    tmr: () => `${ttl('sun', nm)}${val('tomorrow')}<div class="sub dim">${tx('kWh Prognose')}</div><div class="sub pk" data-bind="e_peak"></div>`,
   }[k]();
   const sz = `${t.w || 1}x${t.h || 1}`, z = k !== 'pv' && sz === '2x2' ? 2 : 1;
   return { cls: `tile et${k === 'bat' || k === 'car' ? ' on' : ''} ${k}`, z, html: `<div class="ez" style="--z:${z}">${html}</div>` };
@@ -179,7 +180,7 @@ const rb = (k, t) => { for (const el of $$(`[data-bind="${k}"]`)) {
   const a = parseFloat(o?.textContent.replace(',', '.')), b = parseFloat(t.replace(',', '.'));
   R(el, t, !o || still() || isNaN(a) || isNaN(b) ? 0 : b < a ? -1 : 1);
 } };
-const hhmm = s => { const d = new Date(s); return isNaN(d) ? '' : d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }); };
+const hhmm = s => { const d = new Date(s); return isNaN(d) ? '' : d.toLocaleTimeString(LOC, { hour: '2-digit', minute: '2-digit' }); };
 
 // Aus index.html bei jedem render(); roll = Zahlen-Roll (index.html)
 export function energy(ents, roll) {
@@ -209,12 +210,12 @@ export function energy(ents, roll) {
   const aut = ok.home && ok.grid ? (all > 0 ? Math.round(100 * (1 - Math.min(1, (imp ? grid : 0) / all))) : 100) : null;   // Autarkie = 1 − Netzbezug / Verbrauch (Haus + Auto)
   rb('e_aut', aut == null ? '–' : String(aut));
   // „Bezug“ statt „aus dem Netz“: passt auch bei ≥ 10 kW (Wallbox) in die 1×1-Kachel (3 cqw), sonst abgeschnitten
-  bd('e_gl', !ok.grid ? '' : imp ? `↓ ${kw(grid)} kW Bezug` : exp ? `↑ ${kw(grid)} kW ins Netz` : '0,0 kW Netz');
-  bd('e_batl', !ok.bat ? '' : bat < -50 ? `lädt · ${kw(bat)} kW` : bat > 50 ? `entlädt · ${kw(bat)} kW` : 'bereit');
-  bd('e_carl', ok.car && car > 50 ? `lädt · ${kw(car)} kW` : ok.range ? `${Math.round(range)} km` : '');
-  bd('e_todayl', ok.todayFc ? `kWh von ${de(todayFc)}` : 'kWh');
+  bd('e_gl', !ok.grid ? '' : imp ? tx('↓ {v} kW Bezug', { v: kw(grid) }) : exp ? tx('↑ {v} kW ins Netz', { v: kw(grid) }) : tx('{v} kW Netz', { v: de(0) }));
+  bd('e_batl', !ok.bat ? '' : bat < -50 ? tx('lädt · {v} kW', { v: kw(bat) }) : bat > 50 ? tx('entlädt · {v} kW', { v: kw(bat) }) : tx('bereit'));
+  bd('e_carl', ok.car && car > 50 ? tx('lädt · {v} kW', { v: kw(car) }) : ok.range ? `${Math.round(range)} km` : '');
+  bd('e_todayl', ok.todayFc ? tx('kWh von {v}', { v: de(todayFc) }) : 'kWh');
   const pk = hhmm(st('tomorrowPeak')?.state);
-  bd('e_peak', pk ? `☀︎ Spitze ${pk}` : '');
+  bd('e_peak', pk ? tx('☀︎ Spitze {t}', { t: pk }) : '');
   const c01 = x => Math.min(1, Math.max(0, x));
   for (const f of faces) {
     const set = (s, k, x, show = true) => { for (const b of f.querySelectorAll(s)) { b.style.setProperty(k, x); b.style.visibility = show ? '' : 'hidden'; } };
@@ -234,11 +235,11 @@ export function energy(ents, roll) {
 // Vorlagen: Kopf (✕, Titel, Uhr) und Zahl Medium = Vollbild Klima/Licht (_Tbq 01260, y-MO 00005, Maße wie #climate/#dimmer);
 // Aufbau „Werte mittig, darunter Glaskarte mit Titel, Untertitel, Segment und Stundenleiste“ = Wetter-Detail y-MO 08900 (Klassen .wcard/.wsub/.wseg/.whours aus weather.js, gleiche Maße).
 // Hintergrund = Wallpaper-Blur des Face, also das Kachelglas im Großen. Ohne Vorlage (Annahme): Karteninhalte (Kurven, Stundenbalken, Anteile, Ladesteuerung), Wisch runter / Escape.
-const DT = { pv: 'Solar', aut: 'Autarkie', use: 'Verbrauch', bat: 'Akku', get car() { return CAR; }, day: 'Heute', tmr: 'Morgen' };
-const MODE = { off: 'Aus', now: 'Sofort', minpv: 'Min+PV', pv: 'PV' };
-const WD = { Monday: 'Mo', Tuesday: 'Di', Wednesday: 'Mi', Thursday: 'Do', Friday: 'Fr', Saturday: 'Sa', Sunday: 'So' };   // Solcast dayname (englisch)
+const DT = { pv: tx('Solar'), aut: tx('Autarkie'), use: tx('Verbrauch'), bat: tx('Akku'), get car() { return CAR; }, day: tx('Heute'), tmr: tx('Morgen') };
+const MODE = { off: tx('Aus'), now: tx('Sofort'), minpv: tx('Min+PV'), pv: tx('PV') };
+const WD = { Monday: tx('Mo‖Tag'), Tuesday: tx('Di‖Tag'), Wednesday: tx('Mi‖Tag'), Thursday: tx('Do‖Tag'), Friday: tx('Fr‖Tag'), Saturday: tx('Sa‖Tag'), Sunday: tx('So‖Tag') };   // Solcast dayname (englisch)
 const BOLT = '<path d="M13.5 2.5 5.5 13.5h5.8l-1.3 8 8-11h-5.8z" fill="currentColor" stroke="none"/>';
-const SP = { now: 'Jetzt', day: 'Heute', week: 'Woche', month: 'Monat' }, SPL = { day: 'heute', week: 'diese Woche', month: 'diesen Monat' };
+const SP = { now: tx('Jetzt'), day: tx('Heute'), week: tx('Woche'), month: tx('Monat') }, SPL = { day: tx('Autarkie heute'), week: tx('Autarkie diese Woche'), month: tx('Autarkie diesen Monat') };
 let dk = null, sg = 'home', sp = 'now', hold = {}, drag = null;   // offenes Detail, Segment Verbrauch, lokale Werte bis HA nachzieht (Modus/Limit), Limit-Ziehen
 const $d = () => document.getElementById('edet');
 const hx = (v, s) => `${v}<small> ${s}</small>`;
@@ -252,17 +253,17 @@ function body(k, g) {
   const u = { pv: 'kW', aut: '%', use: 'kW', bat: '%', car: '%', day: 'kWh', tmr: 'kWh' }[k], b = { bat: 'gr', car: 'bl', day: 'y' }[k];
   const hero = `<div class="dh${b ? ' wb' : ''}"><div class="dl" data-bind="d_l"></div><div class="dv"><b class="num" data-bind="d_v" data-digits></b><small>${u}</small></div>`
     + (b ? `<div class="dbr ${b}"><div class="cl"><i></i></div>${k === 'car' ? '<b class="lm"></b>' : ''}</div>` : '') + '<div class="dm m1" data-bind="d_m1"></div><div class="dm m2" data-bind="d_m2"></div></div>';
-  const lt = '<div class="t"><span>Ladelimit</span><b data-bind="d_lim"></b></div>';
+  const lt = `<div class="t"><span>${tx('Ladelimit')}</span><b data-bind="d_lim"></b></div>`;
   return hero + {
-    pv: () => card('Tagesverlauf', chart(g, '<path class="bd"/>' + area + '<path class="fc"/>') + strip()),
-    aut: () => card('Verbrauch', `<div class="wseg emode">${Object.entries(SP).map(([p, l]) => `<button data-sp="${p}">${l}</button>`).join('')}</div><div class="sb"><i class="so"></i><i class="ak"></i><i class="nz"></i></div>${strip('ecol')}`),
-    use: () => card('Tagesverlauf', chart(g, `<g class="hh">${area}</g><clipPath id="${g}a"><rect class="ka" width="100"/></clipPath><clipPath id="${g}b"><rect class="kb" width="100"/></clipPath>`
+    pv: () => card(tx('Tagesverlauf'), chart(g, '<path class="bd"/>' + area + '<path class="fc"/>') + strip()),
+    aut: () => card(tx('Verbrauch'), `<div class="wseg emode">${Object.entries(SP).map(([p, l]) => `<button data-sp="${p}">${l}</button>`).join('')}</div><div class="sb"><i class="so"></i><i class="ak"></i><i class="nz"></i></div>${strip('ecol')}`),
+    use: () => card(tx('Tagesverlauf'), chart(g, `<g class="hh">${area}</g><clipPath id="${g}a"><rect class="ka" width="100"/></clipPath><clipPath id="${g}b"><rect class="kb" width="100"/></clipPath>`
       + `<g class="gg ex" clip-path="url(#${g}a)"><path class="ar"/><path class="ln"/></g><g class="gg im" clip-path="url(#${g}b)"><path class="ar"/><path class="ln"/></g><path class="gg z"/>`),
-      `<div class="wseg">${[['home', SYM.home], ['grid', BOLT]].map(([s, p]) => `<button data-sg="${s}" aria-label="${s === 'home' ? 'Haus' : 'Netz'}"><i class="wi"><svg viewBox="0 0 24 24">${p}</svg></i></button>`).join('')}</div>`),
-    bat: () => card('Ladestand heute', chart(g, area) + strip('ecol')),
-    car: () => card('Laden', `<div class="wseg emode"></div><div class="sl" role="slider" tabindex="0" aria-label="Ladelimit">${lt}<div class="f"><div class="in">${lt}</div></div></div>${strip('ecol')}`),
-    day: () => card('Stunden heute', strip('ebars')),
-    tmr: () => card('Stunden morgen', strip('ebars')),
+      `<div class="wseg">${[['home', SYM.home], ['grid', BOLT]].map(([s, p]) => `<button data-sg="${s}" aria-label="${s === 'home' ? tx('Haus') : tx('Netz')}"><i class="wi"><svg viewBox="0 0 24 24">${p}</svg></i></button>`).join('')}</div>`),
+    bat: () => card(tx('Ladestand heute'), chart(g, area) + strip('ecol')),
+    car: () => card(tx('Laden‖Ladevorgang'), `<div class="wseg emode"></div><div class="sl" role="slider" tabindex="0" aria-label="${tx('Ladelimit')}">${lt}<div class="f"><div class="in">${lt}</div></div></div>${strip('ecol')}`),
+    day: () => card(tx('Stunden heute'), strip('ebars')),
+    tmr: () => card(tx('Stunden morgen'), strip('ebars')),
   }[k]();
 }
 export function energyDetail(k, tile) {
@@ -349,13 +350,14 @@ function hourly(s) {
   return [...m];
 }
 const hr = t => new Date(t).getHours();
-const wdOf = (k, n) => WD[V.st(k)?.attributes.dayname] || new Date(day0() + n * 864e5 + 432e5).toLocaleDateString('de-DE', { weekday: 'short' }).slice(0, 2);
+const wds = d => d.toLocaleDateString(LOC, { weekday: 'short' }).replace('.', '').slice(0, 3);   // „Mi“ / „Wed“
+const wdOf = (k, n) => WD[V.st(k)?.attributes.dayname] || wds(new Date(day0() + n * 864e5 + 432e5));
 const setD = (p, d) => { if (p && p.getAttribute('d') !== d) p.setAttribute('d', d); };
 const setH = (el, h) => { if (el && el._h !== h) { el._h = h; el.innerHTML = h; } };
 // Tagesachse: Beschriftung alle `every` Stunden innerhalb t0…t1
 function axis(view, t0, t1, every) {
   let h = '';
-  for (let t = new Date(t0).setMinutes(0, 0, 0) + 36e5; t < t1; t += 36e5) if (hr(t) % every === 0 && t - t0 > 18e5 && t1 - t > 18e5) h += `<span style="left:${(100 * (t - t0) / (t1 - t0)).toFixed(2)}%">${hx(hr(t), 'Uhr')}</span>`;
+  for (let t = new Date(t0).setMinutes(0, 0, 0) + 36e5; t < t1; t += 36e5) if (hr(t) % every === 0 && t - t0 > 18e5 && t1 - t > 18e5) h += `<span style="left:${(100 * (t - t0) / (t1 - t0)).toFixed(2)}%">${hx(hr(t), tx('Uhr‖Zeit'))}</span>`;
   setH($('.ax', view), h);
 }
 // Tagesverlauf 0–24 Uhr als Kurve (15-min-Mittel); y: lo…hi → 30…2
@@ -378,44 +380,44 @@ function detail(force) {
   bd('d_l', '');
   if (k === 'pv') {
     n(kw(x.pv), ok.pv);
-    bd('d_l', !ok.pv ? '' : x.pv > 50 ? 'Erzeugt gerade' : 'Keine Erzeugung');
+    bd('d_l', !ok.pv ? '' : x.pv > 50 ? tx('Erzeugt gerade') : tx('Keine Erzeugung'));
     const pt = hhmm(st('pvPeakAt')?.state);
-    m(ok.today ? `Heute ${de(x.today)} kWh${ok.todayFc ? ` von ${de(x.todayFc)}` : ''}` : '', ok.pvPeak ? `Spitze heute ${kw(x.pvPeak)} kW${pt ? ` um ${pt}` : ''}` : '');
+    m(ok.today ? (ok.todayFc ? tx('Heute {v} kWh von {f}', { v: de(x.today), f: de(x.todayFc) }) : tx('Heute {v} kWh', { v: de(x.today) })) : '', ok.pvPeak ? (pt ? tx('Spitze heute {v} kW um {t}', { v: kw(x.pvPeak), t: pt }) : tx('Spitze heute {v} kW', { v: kw(x.pvPeak) })) : '');
     const cv = ok.pv ? curve(true) : null;
-    sub(cv?.fc ? 'Leistung (kW) · gestrichelt: Prognose' : 'Leistung (kW)');
+    sub(cv?.fc ? tx('Leistung (kW) · gestrichelt: Prognose') : tx('Leistung (kW)'));
     for (const q of ['ln', 'ar', 'fc', 'bd']) setD($('.cvi .' + q, view), cv?.[q] || '');
     if (cv) axis(view, cv.t0, cv.t1, 3);
     const l = [...hourly(st('todayFc')), ...hourly(st('tomorrow'))].filter(([t, w]) => t + 36e5 > now && t < now + 864e5 && w >= 50).slice(0, 12);   // Schwelle wie hv()
     const nd = l.findIndex(([t]) => t >= day0() + 864e5);   // erste Stunde von morgen mit Wochentag (Spalte 14 cqw fasst nur „Do 7 Uhr“)
-    setH($('[data-h]', view), l.map(([t, w], i) => col(t <= now ? 'Jetzt' : (i === nd ? new Date(t).toLocaleDateString('de-DE', { weekday: 'short' }).slice(0, 2) + ' ' : '') + hx(hr(t), 'Uhr'), hx(t <= now && ok.pv ? kw(x.pv) : de(w / 1000), 'kW'), i)).join(''));   // „Jetzt“ = Live-Wert wie die große Zahl
+    setH($('[data-h]', view), l.map(([t, w], i) => col(t <= now ? tx('Jetzt') : (i === nd ? wds(new Date(t)) + ' ' : '') + hx(hr(t), tx('Uhr‖Zeit')), hx(t <= now && ok.pv ? kw(x.pv) : de(w / 1000), 'kW'), i)).join(''));   // „Jetzt“ = Live-Wert wie die große Zahl
   } else if (k === 'aut') {
     const live = sp === 'now', P = live ? null : SUM[sp]?.v;
     for (const b of $$('[data-sp]', view)) b.classList.toggle('on', b.dataset.sp === sp);
     $('.emode', view).style.display = SRC === false ? 'none' : '';
     const H0 = live ? Math.max(0, x.home) + x.car : P?.use || 0, net = live ? (ok.grid && x.grid > 50 ? Math.min(H0, x.grid) : 0) : P?.share.net || 0, akku = live ? (ok.bat && x.bat > 50 ? Math.min(H0 - net, x.bat) : 0) : P?.share.akku || 0, sol = live ? Math.max(0, H0 - net - akku) : P?.share.sol || 0;
     const aut = live ? (ok.home && ok.grid ? (H0 > 0 ? Math.round(100 * (1 - net / H0)) : 100) : null) : P?.aut ?? null;   // wie die Kachel: 1 − Netzbezug / (Haus + Auto)
-    const u = v => hx(de(v), 'kWh'), eur = c => `${de(c, 2)} €`;
-    n(String(aut), aut != null); bd('d_l', live ? 'Autarkie jetzt' : `Autarkie ${SPL[sp]}`);
-    if (live) m(ok.solarPct ? `Solaranteil gesamt ${Math.round(x.solarPct)} %` : '');
-    else m(P ? `Verbrauch ${de(P.use)} kWh · PV-Ertrag ${de(P.pv)} kWh` : SUM[sp] ? 'Noch keine Werte aufgezeichnet' : 'Lädt …', P ? [`Einspeisung ${de(P.to)} kWh`, P.cost != null && `Kosten ${P.approx ? 'ca. ' : ''}${eur(P.cost)}`].filter(Boolean).join(' · ') : '');
-    sub(live ? (ok.home ? `Anteile an ${kw(H0)} kW Verbrauch` : '') : P ? `Anteile an ${de(H0)} kWh Verbrauch` : '');
-    const sh = [['so', 'Solar', sol], ['ak', 'Akku', akku], ['nz', 'Netz', net]], f = v => H0 > 0 ? v / H0 : 0;
+    const u = v => hx(de(v), 'kWh'), eur = c => tx('{v} €', { v: de(c, 2) });
+    n(String(aut), aut != null); bd('d_l', live ? tx('Autarkie jetzt') : SPL[sp]);
+    if (live) m(ok.solarPct ? tx('Solaranteil gesamt {v} %', { v: Math.round(x.solarPct) }) : '');
+    else m(P ? tx('Verbrauch {u} kWh · PV-Ertrag {p} kWh', { u: de(P.use), p: de(P.pv) }) : SUM[sp] ? tx('Noch keine Werte aufgezeichnet') : tx('Lädt …'), P ? [tx('Einspeisung {v} kWh', { v: de(P.to) }), P.cost != null && tx(P.approx ? 'Kosten ca. {v}' : 'Kosten {v}', { v: eur(P.cost) })].filter(Boolean).join(' · ') : '');
+    sub(live ? (ok.home ? tx('Anteile an {v} kW Verbrauch', { v: kw(H0) }) : '') : P ? tx('Anteile an {v} kWh Verbrauch', { v: de(H0) }) : '');
+    const sh = [['so', tx('Solar'), sol], ['ak', tx('Akku'), akku], ['nz', tx('Netz'), net]], f = v => H0 > 0 ? v / H0 : 0;
     let acc = 0;
     for (const [c, , v] of sh) { const e = $('.sb .' + c, view); e.style.setProperty('--x', acc); e.style.setProperty('--w', f(v)); acc += f(v); }
     $('.sb', view).style.visibility = live ? (ok.home ? '' : 'hidden') : P ? '' : 'hidden';
-    setH($('[data-h]', view), (live ? ok.home : P) ? sh.map(([c, l, v], i) => col(`<i class="dot ${c}"></i>${l}`, live ? hx(kw(v), 'kW') : u(v), i, '', `<em>${Math.round(100 * f(v))} %</em>`)).join('') : '');
+    setH($('[data-h]', view), (live ? ok.home : P) ? sh.map(([c, l, v], i) => col(`<i class="dot ${c}"></i>${l}`, live ? hx(kw(v), 'kW') : u(v), i, '', `<em>${tx('{v} %', { v: Math.round(100 * f(v)) })}</em>`)).join('') : '');
   } else if (k === 'use') {
-    n(kw(x.home), ok.home); bd('d_l', 'Hausverbrauch');
+    n(kw(x.home), ok.home); bd('d_l', tx('Hausverbrauch'));
     const imp = x.grid > 50, exp = x.grid < -50;
-    m(!ok.grid ? '' : imp ? `↓ ${kw(x.grid)} kW Bezug aus dem Netz` : exp ? `↑ ${kw(x.grid)} kW ins Netz` : '0,0 kW Netz');
+    m(!ok.grid ? '' : imp ? tx('↓ {v} kW Bezug aus dem Netz', { v: kw(x.grid) }) : exp ? tx('↑ {v} kW ins Netz', { v: kw(x.grid) }) : tx('{v} kW Netz', { v: de(0) }));
     $('.m1', view).className = 'dm m1' + (imp ? ' imp' : exp ? ' exp' : '');
     for (const b of $$('.wseg button', view)) b.classList.toggle('on', b.dataset.sg === sg);
     if (sg === 'home') {
-      sub('Hausverbrauch (kW)');
+      sub(tx('Hausverbrauch (kW)'));
       const s = HD.home, hi = Math.max(1000, ...s.filter(p => p[0] >= day0()).map(p => p[1])), p = dayPath(s, 0, hi, 30);
       setD($('.hh .ln', view), p.ln); setD($('.hh .ar', view), p.ar);
     } else {
-      sub('Netz (kW) · ↑ Einspeisung ↓ Bezug');
+      sub(tx('Netz (kW) · ↑ Einspeisung ↓ Bezug'));
       const s = HD.grid.map(([t, w]) => [t, -w]), d = s.filter(p => p[0] >= day0()).map(p => p[1]);
       const up = Math.max(300, ...d), dn = Math.max(300, ...d.map(v => -v)), Z = 2 + 26 * up / (up + dn);
       const p = dayPath(s, -dn, up, Z);
@@ -427,45 +429,45 @@ function detail(force) {
     axis(view, day0(), day0() + 864e5, 6);
   } else if (k === 'bat') {
     n(String(Math.round(x.soc)), ok.soc); ebar(ok.soc ? x.soc / 100 : NaN);
-    bd('d_l', !ok.bat ? '' : x.bat < -50 ? `Lädt mit ${kw(x.bat)} kW` : x.bat > 50 ? `Entlädt mit ${kw(x.bat)} kW` : 'Bereit');
-    m(ok.cap && ok.soc ? `${de(x.cap * x.soc / 100)} von ${de(x.cap)} kWh gespeichert` : '');
-    sub('Ladestand (%)');
+    bd('d_l', !ok.bat ? '' : x.bat < -50 ? tx('Lädt mit {v} kW', { v: kw(x.bat) }) : x.bat > 50 ? tx('Entlädt mit {v} kW', { v: kw(x.bat) }) : tx('Bereit'));
+    m(ok.cap && ok.soc ? tx('{a} von {b} kWh gespeichert', { a: de(x.cap * x.soc / 100), b: de(x.cap) }) : '');
+    sub(tx('Ladestand (%)'));
     const p = dayPath(HD.soc, 0, 100, 30);
     setD($('.ln', view), p.ln); setD($('.ar', view), p.ar);
     axis(view, day0(), day0() + 864e5, 6);
     const sum = ks => ks.some(q => ok[q]) ? de(ks.reduce((a, q) => a + (ok[q] ? x[q] : 0), 0)) : null;
-    const io = [['Heute geladen', sum(['batIn1', 'batIn2'])], ['Heute entladen', sum(['batOut1', 'batOut2'])]].filter(e => e[1] != null);
+    const io = [[tx('Heute geladen'), sum(['batIn1', 'batIn2'])], [tx('Heute entladen'), sum(['batOut1', 'batOut2'])]].filter(e => e[1] != null);
     setH($('[data-h]', view), io.map(([l, v], i) => col(l, hx(v, 'kWh'), i)).join(''));
   } else if (k === 'car') {
     const conn = st('carConn')?.state === 'on', chg = st('carChg')?.state === 'on' || ok.car && x.car > 50, a = limA(), lim = held('lim') ?? a?.v;
     n(String(Math.round(x.carSoc)), ok.carSoc); ebar(ok.carSoc ? x.carSoc / 100 : NaN);
     const lm = $('.lm', view); lm.style.visibility = a ? '' : 'hidden'; if (a) lm.style.setProperty('--l', c01(lim / 100));
-    bd('d_l', chg ? `Lädt mit ${kw(x.car)} kW` : conn ? 'Verbunden' : st('carConn') ? 'Nicht verbunden' : '');
+    bd('d_l', chg ? tx('Lädt mit {v} kW', { v: kw(x.car) }) : conn ? tx('Verbunden') : st('carConn') ? tx('Nicht verbunden') : '');
     const rs = st('carRem'), ru = rs?.attributes.unit_of_measurement, rm = ok.carRem && x.carRem > 0 ? x.carRem * ({ s: 1 / 60, min: 1, h: 60, d: 1440 }[ru] ?? 1 / 60) : 0;   // ponytail: ohne Einheit Sekunden (evcc)
-    m([ok.range && `${Math.round(x.range)} km`, chg && rm >= 1 && `noch ${rm >= 60 ? `${Math.floor(rm / 60)}:${String(Math.round(rm % 60)).padStart(2, '0')} h` : `${Math.round(rm)} min`}`].filter(Boolean).join(' · '));
-    sub(a || st('carMode') ? 'Lademodus und Ladelimit' : '');
+    m([ok.range && `${Math.round(x.range)} km`, chg && rm >= 1 && tx('noch {v}', { v: rm >= 60 ? `${Math.floor(rm / 60)}:${String(Math.round(rm % 60)).padStart(2, '0')} h` : `${Math.round(rm)} min` })].filter(Boolean).join(' · '));
+    sub(a || st('carMode') ? tx('Lademodus und Ladelimit') : '');
     const ms = st('carMode'), md = held('mode') ?? ms?.state, op = ms?.attributes.options || [];
     const sg2 = $('.emode', view); sg2.style.display = op.length ? '' : 'none';
     setH(sg2, op.map(o => `<button data-mode="${o}"${o === md ? ' class="on"' : ''}>${MODE[o] || o}</button>`).join(''));
     const sl = $('.sl', view); sl.style.display = a ? '' : 'none';
-    if (a) { sl.style.setProperty('--f', c01((lim - a.min) / (a.max - a.min))); sl.setAttribute('aria-valuenow', lim); bd('d_lim', `${Math.round(lim)} %`); }
+    if (a) { sl.style.setProperty('--f', c01((lim - a.min) / (a.max - a.min))); sl.setAttribute('aria-valuenow', lim); bd('d_lim', tx('{v} %', { v: Math.round(lim) })); }
     const pu = st('sesPrice')?.attributes.unit_of_measurement || '€';
-    const ss = [['Geladen', ok.sesE && hx(de(x.sesE), 'kWh')], ['Solaranteil', ok.sesSol && hx(Math.round(x.sesSol), '%')], ['Kosten', ok.sesPrice && hx(de(x.sesPrice, 2), /eur/i.test(pu) ? '€' : pu.replace(/\/.*/, ''))]].filter(e => e[1]);
+    const ss = [[tx('Geladen'), ok.sesE && hx(de(x.sesE), 'kWh')], [tx('Solaranteil'), ok.sesSol && hx(Math.round(x.sesSol), '%')], [tx('Kosten'), ok.sesPrice && hx(de(x.sesPrice, 2), /eur/i.test(pu) ? '€' : pu.replace(/\/.*/, ''))]].filter(e => e[1]);
     setH($('[data-h]', view), ss.map(([l, v], i) => col(l, v, i)).join(''));
     $('.wcard', view).style.visibility = op.length || a || ss.length ? '' : 'hidden';   // nichts zu steuern/zeigen → keine leere Karte
   } else {   // Heute / Morgen: Stundenbalken (Prognose blass, heute Ist gelb davor)
     const td = k === 'day', fk = td ? 'todayFc' : 'tomorrow', d = day0() + (td ? 0 : 864e5);
     n(de(td ? x.today : x.tomorrow), td ? ok.today : ok.tomorrow);
-    bd('d_l', td ? 'Erzeugt heute' : 'Prognose morgen');
+    bd('d_l', td ? tx('Erzeugt heute') : tx('Prognose morgen'));
     if (td) ebar(ok.today && ok.todayFc && x.todayFc > 0 ? x.today / x.todayFc : NaN);
     let l = hourly(st(fk)).filter(([t]) => t >= d && t < d + 864e5);
     if (!l.length && td) l = Array.from({ length: 24 }, (_, i) => [d + i * 36e5, 0]);   // ohne Prognose: nur Ist-Stunden
     const ist = t => { const e = Math.min(36e5, now - t); return td && e > 0 && H.length ? bins(H, t, t + e, e)[0][1] * e / 36e5 : null; };
     const rows = l.map(([t, w]) => [t, w, ist(t)]).filter(([, w, a]) => w >= 50 || a >= 50), max = Math.max(100, ...rows.flatMap(r => [r[1], r[2] || 0]));
     const pk = l.reduce((a, p) => p[1] > a[1] ? p : a, [0, 0]), pt = hhmm(st('tomorrowPeak')?.state) || (pk[1] ? hhmm(pk[0]) : '');
-    m(td ? (ok.todayFc ? `von ${de(x.todayFc)} kWh Prognose` : '') : pk[1] ? `Spitze ${kw(pk[1])} kW um ${pt}` : '', days());
-    sub(td ? 'kWh je Stunde · gelb: erzeugt' : 'kWh je Stunde (Prognose)');
-    setH($('[data-h]', view), rows.map(([t, w, a], i) => col(t <= now && now < t + 36e5 ? 'Jetzt' : hx(hr(t), 'Uhr'),
+    m(td ? (ok.todayFc ? tx('von {v} kWh Prognose', { v: de(x.todayFc) }) : '') : pk[1] ? tx('Spitze {v} kW um {t}', { v: kw(pk[1]), t: pt }) : '', days());
+    sub(td ? tx('kWh je Stunde · gelb: erzeugt') : tx('kWh je Stunde (Prognose)'));
+    setH($('[data-h]', view), rows.map(([t, w, a], i) => col(t <= now && now < t + 36e5 ? tx('Jetzt') : hx(hr(t), tx('Uhr‖Zeit')),
       de((a ?? w) / 1000), i, `<i class="hb">${hv(w, max, 'p')}${a != null ? hv(a, max, 'a') : ''}</i>`)).join(''));
     const hs = $('[data-h]', view);
     $('.wcard', view).style.visibility = rows.length ? '' : 'hidden';

@@ -10,11 +10,12 @@
 // Tippen auf die Pille klappt ihn wieder auf; nach BACK ms ohne Berührung springt er von selbst zurück.
 // Läuft dabei Musik, zeigt der Vollbild-Timer unten einen Mini-Player.
 // Sprach-Timer (Assist, am Display gestartet) sind keine Entities: der Server schickt sie (voiceTimers) und sie laufen wie ein timer.*-Helper; angezeigt wird der nächste fällige.
+import { tx } from './i18n.js';
 const DEMO = !new URLSearchParams(location.search).has('live');
 const sec = s => String(s || 0).split(':').reduce((a, v) => a * 60 + +v, 0) || 0;   // NaN (kaputte Daten) → 0
 const pad = n => String(n).padStart(2, '0');
 const hms = t => { t = Number.isFinite(t) ? Math.max(0, Math.ceil(t)) : 0; const h = t / 3600 | 0; return (h ? h + ':' + pad(t / 60 % 60 | 0) : pad(t / 60 | 0)) + ':' + pad(t % 60); };   // Vorlage „09:55“ / „00:55“, ab 1 h „1:05:30“
-const total = t => { t = Math.round(t); const h = t / 3600 | 0, m = t / 60 % 60 | 0, s = t % 60; return h ? `${h} STD${m ? ' ' + m + ' MIN' : ''}` : m ? `${m} MIN${s ? ' ' + s + ' SEK' : ''}` : t + ' SEK'; };
+const total = t => { t = Math.round(t); const h = t / 3600 | 0, m = t / 60 % 60 | 0, s = t % 60; return h ? tx('{n} STD', { n: h }) + (m ? ' ' + tx('{n} MIN', { n: m }) : '') : m ? tx('{n} MIN', { n: m }) + (s ? ' ' + tx('{n} SEK', { n: s }) : '') : tx('{n} SEK', { n: t }); };
 const css = n => getComputedStyle(document.documentElement).getPropertyValue(n);
 const spring = () => ({ duration: +css('--sd').replace('ms', '') || 640, easing: css('--spring') || 'ease-out' });
 
@@ -80,9 +81,9 @@ const ringStop = () => { clearInterval(ring); ring = 0; };
 export function timerInit(screen, callFn, voiceFn, soundFn, wakeFn) {
   call = callFn; voiceCall = voiceFn; sound = soundFn; wake = wakeFn;
   screen.insertAdjacentHTML('beforeend', `<div id="tmr"><svg class="ring" viewBox="0 0 100 100">${TICKS}</svg><span class="tn"></span><b class="tt"></b><span class="tl"></span>
-    <button class="tb tbg" aria-label="Timer wechseln">${GLYPH}</button><button class="tof" hidden aria-label="Nächster Timer"><b></b><small></small></button>
-    <button class="tb tx" aria-label="Abbrechen">${ico('x')}</button><button class="tb tp" aria-label="Pause">${ico('pause')}</button>
-    <div class="tmp" hidden><i></i><span><b></b><small></small></span><button aria-label="Abspielen/Pause"><svg class="i" viewBox="0 0 24 24"><path/></svg></button></div></div>`);
+    <button class="tb tbg" aria-label="${tx('Timer wechseln')}">${GLYPH}</button><button class="tof" hidden aria-label="${tx('Nächster Timer')}"><b></b><small></small></button>
+    <button class="tb tx" aria-label="${tx('Abbrechen')}">${ico('x')}</button><button class="tb tp" aria-label="${tx('Pause')}">${ico('pause')}</button>
+    <div class="tmp" hidden><i></i><span><b></b><small></small></span><button aria-label="${tx('Abspielen/Pause')}"><svg class="i" viewBox="0 0 24 24"><path/></svg></button></div></div>`);
   T = screen.querySelector('#tmr'); PR = screen.querySelector('#tps'); M = T.querySelector('.tmp');   // PR: Timer-Pillen in der Kopfzeile (#hud in index.html), eine je laufendem Timer
   const on = (el, fn) => el.addEventListener('click', e => { e.stopPropagation(); fn(); });
   T.addEventListener('click', () => done ? finishOff() : (hidden = true, show(false)));
@@ -207,7 +208,7 @@ let skew = 0;   // HA-Uhr minus Display-Uhr (ms): Tablets ohne NTP gehen oft Sek
 const left = s => s.state === 'active' ? (Date.parse(s.attributes.finishes_at) - Date.now() - skew) / 1000 || 0 : sec(s.attributes.remaining ?? s.attributes.duration);
 // Strich i (ab 12 Uhr im Uhrzeigersinn) leuchtet, solange er im Rest-Anteil liegt
 const ticks = f => T.querySelectorAll('line').forEach((l, i) => l.classList.toggle('on', i < Math.ceil(f * N - .001)));
-const name = s => s.attributes.friendly_name || 'Timer';
+const name = s => s.attributes.friendly_name || tx('Timer');
 const setIco = (b, id) => { const u = b.querySelector('use'); if (u.getAttribute('href') !== '#' + id) u.setAttribute('href', '#' + id); };
 
 // Ansicht (z. B. Klingel) geöffnet → Vollbild-Timer wird Pille, in Ansichten klein, damit er deren Titel nicht verdeckt
@@ -227,7 +228,7 @@ function draw() {
   T.classList.toggle('tlong', r > 3599.5);
   ticks(f);
   paintPills();
-  const tp = T.querySelector('.tp'); setIco(tp, cur.state === 'paused' ? 'play' : 'pause'); tp.ariaLabel = cur.state === 'paused' ? 'Fortsetzen' : 'Pause';
+  const tp = T.querySelector('.tp'); setIco(tp, cur.state === 'paused' ? 'play' : 'pause'); tp.ariaLabel = cur.state === 'paused' ? tx('Fortsetzen') : tx('Pause');
   iv = setTimeout(draw, cur.state === 'active' && r > 0 ? ((r % 1) || 1) * 1000 + 15 : 500);
 }
 
@@ -250,7 +251,7 @@ export function timers(ents) {
   sel = cur?.entity_id || '';   // Anzeige bleibt beim Timer (springt nicht bei Pause oder Zeitvergleich); neu gestartete übernehmen sie
   syncPills();
   const o = T.querySelector('.tof'), k = cur ? run.indexOf(cur) + 1 : 0;
-  o.hidden = run.length < 2 || !!done; o.firstChild.textContent = 'Timer ' + k; o.lastChild.textContent = ' von ' + run.length;
+  o.hidden = run.length < 2 || !!done; o.firstChild.textContent = tx('Timer {n}', { n: k }); o.lastChild.textContent = tx(' von {m}', { m: run.length });
   if (done) return fin;
   if (!cur) { key = ''; clearInterval(iv); iv = 0; pill(false); show(false); return fin; }
   guard(); const vis = !hidden && (pinned || !blocked()); show(vis); if (!vis && !T.getAnimations().length) pill(true);
@@ -281,7 +282,7 @@ export function voiceTimers(list, fin) {
 function finished(s) {
   done = s; clearInterval(iv); iv = 0; key = '';
   T.classList.add('fin');
-  T.querySelector('.tn').textContent = 'Zeit abgelaufen';
+  T.querySelector('.tn').textContent = tx('Zeit abgelaufen');
   T.querySelector('.tl').textContent = total(sec(s.attributes.duration));
   rollTxt(T.querySelector('.tt'), '00:00'); T.classList.remove('tlong'); ticks(0); pill(false); T.querySelector('.tof').hidden = true; show(true);
   clearTimeout(doneT); doneT = setTimeout(finishOff, 60000);

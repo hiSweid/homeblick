@@ -8,17 +8,18 @@ import { FACE, GROUP, faceName } from './meta.js';
 import { ago } from './util.js';
 import { addPage, cells, duplicatePage, faceBy, hidePage, lost, movePage, pageTypes, removePage, removeTiles, resizeTile, showPage, tilesOf, used } from './edit.js';
 import { openGallery } from './gallery.js';
+import { tx } from '../i18n.js';
 
 const SC = [1, .7, .52, .42], GAP = 26, OP = [1, .62, .3, 0];
 const xOf = (d, S_) => { let x = 0; for (let k = 0; k < Math.min(Math.abs(d), 4); k++) x += S_ * (SC[k] ?? .4) / 2 + GAP + S_ * (SC[k + 1] ?? .4) / 2; return Math.sign(d) * x; };
-const PAGE_SUB = { grid: 'Kacheln für Lampen, Szenen und Geräte', music: 'Wiedergabe und Cover', bigclock: 'Große Uhr', analog: 'Analoge Uhr', weather: 'Wetter und Vorhersage', energy: 'Solar, Netz, Batterie, Auto', calendar: 'Termine', date: 'Datum groß', cams: 'Kameras und Türklingel', people: 'Wer ist zuhause', todo: 'Einkaufsliste und Aufgaben', check: 'Offen, Leck, schwache Batterien', photos: 'Diashow aus Immich oder Medienordner', info: 'Info' };
+const PAGE_SUB = { grid: tx('Kacheln für Lampen, Szenen und Geräte'), music: tx('Wiedergabe und Cover'), bigclock: tx('Große Uhr'), analog: tx('Analoge Uhr'), weather: tx('Wetter und Vorhersage'), energy: tx('Solar, Netz, Batterie, Auto'), calendar: tx('Termine'), date: tx('Datum groß'), cams: tx('Kameras und Türklingel'), people: tx('Wer ist zuhause'), todo: tx('Einkaufsliste und Aufgaben'), check: tx('Offen, Leck, schwache Batterien'), photos: tx('Diashow aus Immich oder Medienordner'), info: 'Info' };
 
 export function mount(ed) {
   let mode = 'deck', slots = new Map(), ghosts = new Map(), offs = [], drag = null, lastIx = 0;
   ed.insertAdjacentHTML('beforeend', `<div class="notices" id="notices"></div>
     <div class="ed-main" id="edmain"><div class="deck-wrap"><div class="deck" id="deck"></div></div>
       <div class="deck-meta" id="meta"></div></div>
-    <nav class="dock" id="dock" aria-label="Werkzeuge"></nav>`);
+    <nav class="dock" id="dock" aria-label="${tx('Werkzeuge')}"></nav>`);
   const main = $('#edmain', ed), deck = $('#deck', ed), meta = $('#meta', ed), dock = $('#dock', ed), notices = $('#notices', ed);
 
   const dev = () => byId(S.sel);
@@ -65,7 +66,7 @@ export function mount(ed) {
     for (const f of faces()) {
       if (slots.has(f.id)) continue;
       const el = Object.assign(document.createElement('section'), { className: 'slot' });
-      el.innerHTML = `<div class="dev"><iframe title="" tabindex="-1" src="index.html?preview"></iframe></div><div class="veil"></div><div class="cap"><span class="cap-name"></span><button class="chk" data-chk aria-label="Ansicht zeigen oder ausblenden">${ic('check')}</button></div><button class="gbtn sm more" data-more aria-label="Mehr">${ic('dots')}</button><button class="gbtn sm del" data-del aria-label="Ansicht löschen">${ic('minus')}</button>`;
+      el.innerHTML = `<div class="dev"><iframe title="" tabindex="-1" src="index.html?preview"></iframe></div><div class="veil"></div><div class="cap"><span class="cap-name"></span><button class="chk" data-chk aria-label="${tx('Ansicht zeigen oder ausblenden')}">${ic('check')}</button></div><button class="gbtn sm more" data-more aria-label="${tx('Mehr')}">${ic('dots')}</button><button class="gbtn sm del" data-del aria-label="${tx('Ansicht löschen')}">${ic('minus')}</button>`;
       set(el, { x: dims().W / 2 - dims().S / 2, y: 0, s: .5, o: 0, z: 1 });
       deck.append(el);
       slots.set(f.id, { el, frame: el.querySelector('iframe'), ready: false, sent: '', sel: '', edit: undefined, id: f.id });
@@ -79,7 +80,7 @@ export function mount(ed) {
       const meta_ = f ? FACE[f.type] || [f.type, '#8e8e93', 'grid'] : null;
       const el = Object.assign(document.createElement('section'), { className: f ? 'slot hidden-pg' : 'slot addpg' });
       el.dataset.ghost = id;
-      el.innerHTML = f ? `<div class="dev" role="button" tabindex="0">${ic(meta_[2])}</div><div class="cap"><span class="cap-name">${esc(faceName(f))} · ausgeblendet</span><button class="chk off" data-show="${esc(f.id)}" aria-label="Ansicht einblenden">${ic('check')}</button></div>` : `<div class="dev" role="button" tabindex="0" aria-label="Ansicht hinzufügen">${ic('plus')}</div><div class="cap"><span class="cap-name">Neue Ansicht</span></div>`;
+      el.innerHTML = f ? `<div class="dev" role="button" tabindex="0">${ic(meta_[2])}</div><div class="cap"><span class="cap-name">${esc(tx('{name} · ausgeblendet', { name: faceName(f) }))}</span><button class="chk off" data-show="${esc(f.id)}" aria-label="${tx('Ansicht einblenden')}">${ic('check')}</button></div>` : `<div class="dev" role="button" tabindex="0" aria-label="${tx('Ansicht hinzufügen')}">${ic('plus')}</div><div class="cap"><span class="cap-name">${tx('Neue Ansicht')}</span></div>`;
       set(el, { x: dims().W / 2 - dims().S / 2, y: 0, s: .5, o: 0, z: 1 });
       deck.append(el); void el.offsetWidth; ghosts.set(id, { el });
     }
@@ -105,13 +106,13 @@ export function mount(ed) {
   function page_meta() {
     const fs = faces(), a = activeIx(), f = fs[a], n = fs.length, tiles = f && tilesOf(f).length;
     meta.hidden = mode !== 'deck';
-    if (f) meta.innerHTML = `<button class="page-title" data-ptitle title="Ansicht anpassen">${esc(faceName(f))}${ic('right')}</button>
-      <small>${hasTiles(f) ? `${tiles} Kachel${tiles === 1 ? '' : 'n'} · ${used(f)} von ${cells(f)} Plätzen` : esc(PAGE_SUB[f.type] || '')}</small>
-      <div class="pager"><button class="gbtn sm" id="pl" aria-label="Vorherige Ansicht" ${a === 0 ? 'disabled' : ''}>${ic('left')}</button><div class="dots" role="tablist" aria-label="Ansichten">${fs.map((x, i) => `<button role="tab" data-i="${i}" class="${i === a ? 'on' : ''}" aria-selected="${i === a}" aria-label="Ansicht ${i + 1}: ${esc(faceName(x))}"></button>`).join('')}<button class="add" data-addpage aria-label="Ansicht hinzufügen">${ic('plus')}</button></div><button class="gbtn sm" id="pr" aria-label="Nächste Ansicht" ${a >= n - 1 ? 'disabled' : ''}>${ic('right')}</button></div>`;
+    if (f) meta.innerHTML = `<button class="page-title" data-ptitle title="${tx('Ansicht anpassen')}">${esc(faceName(f))}${ic('right')}</button>
+      <small>${hasTiles(f) ? `${esc(tiles === 1 ? tx('1 Kachel · {used} von {cells} Plätzen', { used: used(f), cells: cells(f) }) : tx('{n} Kacheln · {used} von {cells} Plätzen', { n: tiles, used: used(f), cells: cells(f) }))}` : esc(PAGE_SUB[f.type] || '')}</small>
+      <div class="pager"><button class="gbtn sm" id="pl" aria-label="${tx('Vorherige Ansicht')}" ${a === 0 ? 'disabled' : ''}>${ic('left')}</button><div class="dots" role="tablist" aria-label="${tx('Ansichten')}">${fs.map((x, i) => `<button role="tab" data-i="${i}" class="${i === a ? 'on' : ''}" aria-selected="${i === a}" aria-label="${esc(tx('Ansicht {n}: {name}', { n: i + 1, name: faceName(x) }))}"></button>`).join('')}<button class="add" data-addpage aria-label="${tx('Ansicht hinzufügen')}">${ic('plus')}</button></div><button class="gbtn sm" id="pr" aria-label="${tx('Nächste Ansicht')}" ${a >= n - 1 ? 'disabled' : ''}>${ic('right')}</button></div>`;
     dock.dataset.mode = mode;
     dock.innerHTML = mode === 'deck'
-      ? `<button class="dock-i main" data-d="add" ${S.cfg.faces.some(hasTiles) ? '' : 'title="Kacheln gibt es auf Smart-Home-Ansichten"'}>${ic('plus')}<span>Hinzufügen</span></button><button class="dock-i" data-d="pages">${ic('pages')}<span>Ansichten</span></button><button class="dock-i" data-d="preview">${ic('play')}<span>Vorschau</span></button><button class="dock-i" data-d="settings">${ic('cog')}<span>Einstellungen</span></button>`
-      : `<button class="dock-i" data-d="newpage">${ic('page-add')}<span>Neue Ansicht</span></button><button class="dock-i main" data-d="pages">${ic('check')}<span>Fertig</span></button>`;
+      ? `<button class="dock-i main" data-d="add" ${S.cfg.faces.some(hasTiles) ? '' : `title="${tx('Kacheln gibt es auf Smart-Home-Ansichten')}"`}>${ic('plus')}<span>${tx('Hinzufügen')}</span></button><button class="dock-i" data-d="pages">${ic('pages')}<span>${tx('Ansichten')}</span></button><button class="dock-i" data-d="preview">${ic('play')}<span>${tx('Vorschau')}</span></button><button class="dock-i" data-d="settings">${ic('cog')}<span>${tx('Einstellungen')}</span></button>`
+      : `<button class="dock-i" data-d="newpage">${ic('page-add')}<span>${tx('Neue Ansicht')}</span></button><button class="dock-i main" data-d="pages">${ic('check')}<span>${tx('Fertig')}</span></button>`;
     main.classList.toggle('pages', mode === 'pages');
     $$('[data-chk]', deck).forEach(b => { b.classList.remove('off'); });
     chrome();
@@ -119,13 +120,13 @@ export function mount(ed) {
   function chrome() {
     if (!S.cfg) return;
     const w = [], lostF = faces().filter(f => hasTiles(f) && lost(f));
-    if (S.draftOffer) w.push(['draft', `Ungesendeter Entwurf von ${ago(S.draftOffer.at)} gefunden.`, 'undo']);
-    if (dev() && !dev().connected) w.push(['info', 'Das Display ist offline. Änderungen werden gespeichert und beim nächsten Öffnen übernommen.']);
-    for (const f of lostF) w.push(['warn', `${lost(f)} Kachel${lost(f) > 1 ? 'n passen' : ' passt'} auf „${faceName(f)}“ nicht mehr ins Raster und ${lost(f) > 1 ? 'werden' : 'wird'} nicht angezeigt.`]);
-    if (!faces().some(hasTiles)) w.push(['info', 'Kacheln gibt es auf Smart-Home-Ansichten: lege über „Ansichten“ eine an.']);
-    else if (!faces().some(f => tilesOf(f).length)) w.push(['info', 'Tippe auf „Hinzufügen“, um die erste Lampe, Szene oder das erste Gerät auf die Ansicht zu legen.', 'plus']);
+    if (S.draftOffer) w.push(['draft', tx('Ungesendeter Entwurf von {ago} gefunden.', { ago: ago(S.draftOffer.at) }), 'undo']);
+    if (dev() && !dev().connected) w.push(['info', tx('Das Display ist offline. Änderungen werden gespeichert und beim nächsten Öffnen übernommen.')]);
+    for (const f of lostF) w.push(['warn', lost(f) > 1 ? tx('{n} Kacheln passen auf „{name}“ nicht mehr ins Raster und werden nicht angezeigt.', { n: lost(f), name: faceName(f) }) : tx('1 Kachel passt auf „{name}“ nicht mehr ins Raster und wird nicht angezeigt.', { name: faceName(f) })]);
+    if (!faces().some(hasTiles)) w.push(['info', tx('Kacheln gibt es auf Smart-Home-Ansichten: lege über „Ansichten“ eine an.')]);
+    else if (!faces().some(f => tilesOf(f).length)) w.push(['info', tx('Tippe auf „Hinzufügen“, um die erste Lampe, Szene oder das erste Gerät auf die Ansicht zu legen.'), 'plus']);
     const nt0 = ed.style.getPropertyValue('--nt');
-    notices.innerHTML = w.slice(0, 2).map(([k, t, i]) => `<div class="notice ${k === 'warn' ? 'warn' : ''}" role="status">${ic(i || (k === 'warn' ? 'alert' : 'info'))}<span>${esc(t)}</span>${k === 'draft' ? '<span class="n-acts"><button data-draft="restore">Wiederherstellen</button><button data-draft="drop">Verwerfen</button></span>' : ''}</div>`).join('');
+    notices.innerHTML = w.slice(0, 2).map(([k, t, i]) => `<div class="notice ${k === 'warn' ? 'warn' : ''}" role="status">${ic(i || (k === 'warn' ? 'alert' : 'info'))}<span>${esc(t)}</span>${k === 'draft' ? `<span class="n-acts"><button data-draft="restore">${tx('Wiederherstellen')}</button><button data-draft="drop">${tx('Verwerfen')}</button></span>` : ''}</div>`).join('');
     const nt = notices.offsetHeight ? notices.offsetHeight + 6 + 'px' : '0px';
     if (nt !== nt0) { ed.style.setProperty('--nt', nt); place(); }
   }
@@ -150,7 +151,7 @@ export function mount(ed) {
     else if (m.hb === 'empty') { select(null, { f: f.id, cell: m.cell }); openGallery(); }
     else if (m.hb === 'move') {
       const t = f.tiles[m.j];
-      mutate('Kachel verschoben', () => { const g = faceBy(f.id); g.tiles = moveTo(g.tiles, m.j, m.cell, rows(g)); });
+      mutate(tx('Kachel verschoben'), () => { const g = faceBy(f.id); g.tiles = moveTo(g.tiles, m.j, m.cell, rows(g)); });
       select({ k: 'tile', f: f.id, j: faceBy(f.id).tiles.indexOf(t) });
     }
     else if (m.hb === 'resize') { if (!resizeTile(f.id, m.j, m.w, m.h)) { s.sent = ''; syncSlot(s, f, activeIx(), activeIx()); } }
@@ -251,14 +252,14 @@ export function mount(ed) {
 export function pageMenu(anchor, i) {
   const f = S.cfg.faces[i], n = S.cfg.faces.length, d = byId(S.sel);
   menu(anchor, [
-    { label: 'Ansicht anpassen', icon: 'sliders', run: () => select({ k: 'page', f: f.id }) },
-    { label: 'Auf dem Display zeigen', icon: 'monitor-eye', disabled: !d?.connected, title: d?.connected ? '' : 'Das Display ist offline', run: () => call('command', { display: S.sel, action: 'face', face: f.type }).then(() => toast('Gesendet')).catch(e => toast(e?.message || 'Fehler', { bad: true })) },
-    '-', { group: 'Reihenfolge' },
-    { label: 'Nach links', icon: 'arrow-left', disabled: i === 0, run: () => movePage(i, i - 1) },
-    { label: 'Nach rechts', icon: 'arrow-right', disabled: i === n - 1, run: () => movePage(i, i + 1) },
-    '-', { label: 'Ansicht duplizieren', icon: 'copy', disabled: !!GROUP[f.type], title: GROUP[f.type] ? 'Uhr, Kalender und Datum gibt es je Display nur einmal' : '', run: () => duplicatePage(f.id) },
-    { label: 'Ansicht ausblenden', icon: 'eye-off', run: () => hidePage(f.id) },
-    '-', { label: 'Ansicht löschen', icon: 'trash', danger: true, end: tilesOf(f).length ? `${tilesOf(f).length} Kacheln` : '', run: () => removePage(f.id) },
+    { label: tx('Ansicht anpassen'), icon: 'sliders', run: () => select({ k: 'page', f: f.id }) },
+    { label: tx('Auf dem Display zeigen'), icon: 'monitor-eye', disabled: !d?.connected, title: d?.connected ? '' : tx('Das Display ist offline'), run: () => call('command', { display: S.sel, action: 'face', face: f.type }).then(() => toast(tx('Gesendet'))).catch(e => toast(e?.message || tx('Fehler'), { bad: true })) },
+    '-', { group: tx('Reihenfolge') },
+    { label: tx('Nach links'), icon: 'arrow-left', disabled: i === 0, run: () => movePage(i, i - 1) },
+    { label: tx('Nach rechts'), icon: 'arrow-right', disabled: i === n - 1, run: () => movePage(i, i + 1) },
+    '-', { label: tx('Ansicht duplizieren'), icon: 'copy', disabled: !!GROUP[f.type], title: GROUP[f.type] ? tx('Uhr, Kalender und Datum gibt es je Display nur einmal') : '', run: () => duplicatePage(f.id) },
+    { label: tx('Ansicht ausblenden'), icon: 'eye-off', run: () => hidePage(f.id) },
+    '-', { label: tx('Ansicht löschen'), icon: 'trash', danger: true, end: tilesOf(f).length ? (tilesOf(f).length > 1 ? tx('{n} Kacheln', { n: tilesOf(f).length }) : tx('1 Kachel')) : '', run: () => removePage(f.id) },
   ], { width: 270 });
 }
 
@@ -266,9 +267,9 @@ export function pageMenu(anchor, i) {
 export async function addPageFlow() {
   const hidden = S.cfg.off || [], types = pageTypes();
   const row = (k, v, name, sub, m) => `<button class="pgc" data-r="${k}:${esc(v)}"><span class="av" style="--c:${m[1]}">${ic(m[2])}</span><span class="t"><b>${esc(name)}</b><small>${esc(sub)}</small></span>${ic('right')}</button>`;
-  const r = await modal(`<div class="sheet-bar"><span class="l"><button class="done" data-r="">Abbrechen</button></span><h2>Neue Ansicht</h2></div><div class="sheet-body">
-    ${hidden.length ? `<div class="sect"><div class="group-h">Ausgeblendet · wieder einblenden</div><div class="group pgl">${hidden.map(f => row('show', f.id, faceName(f), 'behält ihre Einstellungen', FACE[f.type] || [f.type, '#8e8e93', 'grid'])).join('')}</div></div>` : ''}
-    <div class="sect"><div class="group-h">${hidden.length ? 'Neue Ansicht' : 'Art der Ansicht'}</div><div class="group pgl">${types.map(t => row('new', t, { grid: 'Smart Home', music: 'Musik' }[t] || (GROUP[t] ? ({ clock: 'Uhr', calendar: 'Kalender', date: 'Datum' })[GROUP[t]] : FACE[t][0]), PAGE_SUB[t] || '', FACE[t])).join('')}</div></div></div>`, { label: 'Ansicht hinzufügen' });
+  const r = await modal(`<div class="sheet-bar"><span class="l"><button class="done" data-r="">${tx('Abbrechen')}</button></span><h2>${tx('Neue Ansicht')}</h2></div><div class="sheet-body">
+    ${hidden.length ? `<div class="sect"><div class="group-h">${tx('Ausgeblendet · wieder einblenden')}</div><div class="group pgl">${hidden.map(f => row('show', f.id, faceName(f), tx('behält ihre Einstellungen'), FACE[f.type] || [f.type, '#8e8e93', 'grid'])).join('')}</div></div>` : ''}
+    <div class="sect"><div class="group-h">${hidden.length ? tx('Neue Ansicht') : tx('Art der Ansicht')}</div><div class="group pgl">${types.map(t => row('new', t, { grid: 'Smart Home', music: tx('Musik') }[t] || (GROUP[t] ? ({ clock: tx('Uhr'), calendar: tx('Kalender'), date: tx('Datum') })[GROUP[t]] : FACE[t][0]), PAGE_SUB[t] || '', FACE[t])).join('')}</div></div></div>`, { label: tx('Ansicht hinzufügen') });
   if (!r) return;
   const [k, v] = [r.slice(0, r.indexOf(':')), r.slice(r.indexOf(':') + 1)];
   if (k === 'show') showPage(v); else addPage(v);
@@ -276,14 +277,14 @@ export async function addPageFlow() {
 
 // ---- Hilfe ----
 export function openHelp() {
-  modal(`<div class="sheet-bar"><span class="l"></span><h2>So funktioniert es</h2><span class="r"><button class="done" data-r="">Fertig</button></span></div><div class="sheet-body"><div class="group"><div class="help-pop" style="padding:16px">${[
-    ['pencil', 'Ändern', 'Tippe auf eine Kachel: rechts öffnen sich ihre Einstellungen. Tippe auf den Titel der Ansicht für deren Einstellungen.'],
-    ['plus', 'Hinzufügen', 'Tippe unten auf „Hinzufügen“ oder in der Vorschau auf eine leere Stelle. Das Blatt zeigt Vorschläge für den Raum.'],
-    ['grip', 'Verschieben', 'Kachel kurz halten, dann ziehen; ein Wisch blättert die Ansicht. Der Griff unten rechts ändert die Größe; „−“ entfernt sie.'],
-    ['pages', 'Ansichten', 'Zeigt alle Ansichten als Raster: ziehen sortiert, „−“ löscht, der Haken blendet aus.'],
-    ['play', 'Wechseln und Auswählen', 'Wische zur nächsten Ansicht, oder nutze Punkte und Pfeiltasten. Umschalt oder ⌘ plus Klick wählt mehrere Kacheln, Entf entfernt sie.'],
-    ['copy', 'Kopieren', 'Kachel wählen, dann ⌘C und ⌘V auf einer anderen Ansicht oder einem anderen Display.'],
-    ['send', 'Senden', 'Änderungen bleiben ein Entwurf, bis du „Senden“ drückst.']].map(([i, t, d]) => `<div class="help-tip-row"><span class="hi">${ic(i)}</span><span><b>${t}</b><br>${d}</span></div>`).join('')}</div></div></div>`, { label: 'Hilfe' });
+  modal(`<div class="sheet-bar"><span class="l"></span><h2>${tx('So funktioniert es')}</h2><span class="r"><button class="done" data-r="">${tx('Fertig')}</button></span></div><div class="sheet-body"><div class="group"><div class="help-pop" style="padding:16px">${[
+    ['pencil', tx('Ändern'), tx('Tippe auf eine Kachel: rechts öffnen sich ihre Einstellungen. Tippe auf den Titel der Ansicht für deren Einstellungen.')],
+    ['plus', tx('Hinzufügen'), tx('Tippe unten auf „Hinzufügen“ oder in der Vorschau auf eine leere Stelle. Das Blatt zeigt Vorschläge für den Raum.')],
+    ['grip', tx('Verschieben'), tx('Kachel kurz halten, dann ziehen; ein Wisch blättert die Ansicht. Der Griff unten rechts ändert die Größe; „−“ entfernt sie.')],
+    ['pages', tx('Ansichten'), tx('Zeigt alle Ansichten als Raster: ziehen sortiert, „−“ löscht, der Haken blendet aus.')],
+    ['play', tx('Wechseln und Auswählen'), tx('Wische zur nächsten Ansicht, oder nutze Punkte und Pfeiltasten. Umschalt oder ⌘ plus Klick wählt mehrere Kacheln, Entf entfernt sie.')],
+    ['copy', tx('Kopieren'), tx('Kachel wählen, dann ⌘C und ⌘V auf einer anderen Ansicht oder einem anderen Display.')],
+    ['send', tx('Senden'), tx('Änderungen bleiben ein Entwurf, bis du „Senden“ drückst.')]].map(([i, t, d]) => `<div class="help-tip-row"><span class="hi">${ic(i)}</span><span><b>${t}</b><br>${d}</span></div>`).join('')}</div></div></div>`, { label: tx('Hilfe') });
 }
 
 // ---- Vorschau: durch die Seiten wischen wie am Display ----
@@ -294,10 +295,10 @@ export function openPreview(start = 0) {
   const dots = d => { $$('.pv-dots i', d).forEach((x, k) => x.classList.toggle('on', k === i)); $('.pv-name', d).textContent = faceName(fs[i]); };
   const go = (d, n) => { if (n < 0 || n >= fs.length || n === i) return; i = n; send(true, false); dots(d); };
   const onMsg = (d, e, done) => { if (e.origin !== location.origin || e.source !== frame.contentWindow) return; if (e.data?.hb === 'preview-ready') { ready = true; send(); } else if (e.data?.hb === 'swipe') go(d, i + e.data.dir); else if (e.data?.hb === 'menu') { done(null); e.data.item === 'add' ? openGallery() : select({ k: 'page', f: fs[i].id }); } };   // Langdruck-Menü: Widget hinzufügen / Anpassen / Hintergrund
-  modal(`<div class="sheet-bar"><span class="l"></span><h2 class="pv-name"></h2><span class="r"><button class="done" data-r="">Fertig</button></span></div>
-    <div class="sheet-body"><div class="pv-device"><iframe title="Vorschau" src="index.html?preview"></iframe></div>
-    <div class="pv-bar"><button class="gbtn sm" data-d="-1" aria-label="Vorherige Ansicht">${ic('left')}</button><span class="pv-dots">${fs.map(() => '<i></i>').join('')}</span><button class="gbtn sm" data-d="1" aria-label="Nächste Ansicht">${ic('right')}</button></div>
-    <p class="hint center">Nur zum Ausprobieren: Wische durch die Ansichten. Es wird nichts geschaltet.</p></div>`, { cls: 'pv', label: 'Vorschau', init: (d, done) => {
+  modal(`<div class="sheet-bar"><span class="l"></span><h2 class="pv-name"></h2><span class="r"><button class="done" data-r="">${tx('Fertig')}</button></span></div>
+    <div class="sheet-body"><div class="pv-device"><iframe title="${tx('Vorschau')}" src="index.html?preview"></iframe></div>
+    <div class="pv-bar"><button class="gbtn sm" data-d="-1" aria-label="${tx('Vorherige Ansicht')}">${ic('left')}</button><span class="pv-dots">${fs.map(() => '<i></i>').join('')}</span><button class="gbtn sm" data-d="1" aria-label="${tx('Nächste Ansicht')}">${ic('right')}</button></div>
+    <p class="hint center">${tx('Nur zum Ausprobieren: Wische durch die Ansichten. Es wird nichts geschaltet.')}</p></div>`, { cls: 'pv', label: tx('Vorschau'), init: (d, done) => {
     frame = $('iframe', d); dots(d);
     const h = e => onMsg(d, e, done), k = e => { if (e.key === 'ArrowLeft') go(d, i - 1); else if (e.key === 'ArrowRight') go(d, i + 1); };
     addEventListener('message', h); document.addEventListener('keydown', k);

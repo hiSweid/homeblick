@@ -1,19 +1,22 @@
 // Kleine Hilfen: Zeitangaben, Hinweise zu einem Display, Download.
-export const ago = iso => {
+import { tx } from '../i18n.js';
+export const ago = (iso, off) => {   // off = für „Offline seit …“ (eigene Sätze statt Textschnipsel)
   if (!iso) return '–';
   const s = (Date.now() - new Date(iso)) / 1000;
-  return s < 90 ? 'gerade eben' : s < 3600 ? `vor ${Math.round(s / 60)} Min` : s < 86400 ? `vor ${Math.round(s / 3600)} Std` : `vor ${Math.round(s / 86400)} Tagen`;
+  return off
+    ? s < 90 ? tx('Offline seit gerade eben') : s < 3600 ? tx('Offline seit {n} Min', { n: Math.round(s / 60) }) : s < 86400 ? tx('Offline seit {n} Std', { n: Math.round(s / 3600) }) : tx('Offline seit {n} Tagen', { n: Math.round(s / 86400) })
+    : s < 90 ? tx('gerade eben') : s < 3600 ? tx('vor {n} Min', { n: Math.round(s / 60) }) : s < 86400 ? tx('vor {n} Std', { n: Math.round(s / 3600) }) : tx('vor {n} Tagen', { n: Math.round(s / 86400) });
 };
 // Was an einem Display gerade nicht stimmt: [Text, Art] (down = rot, warn = gelb)
 export const issues = d => {
   const i = d.info || {}, day = Date.now() - 864e5, err = (d.logs || []).filter(m => m.level === 'error' && new Date(m.t) > day).length;
-  return [!d.connected && d.seen && [`Offline seit ${ago(d.seen).replace(/^vor /, '')}`, 'down'],
-    d.connected && i.secure === false && ['Ohne https: kein Mikrofon, Bildschirm geht aus', 'warn'],
-    d.connected && i.visible === false && ['Fenster verdeckt', 'warn'],
-    d.connected && i.perf && [i.perfAuto ? 'Leistungsmodus aktiv (automatisch, Bildrate zu niedrig)' : 'Leistungsmodus aktiv, Animationen aus', 'warn'],
-    d.windows > 1 && [`${d.windows} Fenster mit derselben Display-ID offen (jedes Gerät braucht eine eigene, ?display=)`, 'warn'],
-    d.connected && d.outdated && ['Alte Version geladen, Seite neu laden', 'warn'],
-    err && [`${err} Fehler in den letzten 24 Std`, 'warn']].filter(Boolean);
+  return [!d.connected && d.seen && [ago(d.seen, true), 'down'],
+    d.connected && i.secure === false && [tx('Ohne https: kein Mikrofon, Bildschirm geht aus'), 'warn'],
+    d.connected && i.visible === false && [tx('Fenster verdeckt'), 'warn'],
+    d.connected && i.perf && [i.perfAuto ? tx('Leistungsmodus aktiv (automatisch, Bildrate zu niedrig)') : tx('Leistungsmodus aktiv, Animationen aus'), 'warn'],
+    d.windows > 1 && [tx('{n} Fenster mit derselben Display-ID offen (jedes Gerät braucht eine eigene, ?display=)', { n: d.windows }), 'warn'],
+    d.connected && d.outdated && [tx('Alte Version geladen, Seite neu laden'), 'warn'],
+    err && [tx('{n} Fehler in den letzten 24 Std', { n: err }), 'warn']].filter(Boolean);
 };
 export const ledOf = d => !d.connected ? 'down' : d.outdated ? 'update' : 'ok';
 export const dl = (name, obj) => { const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' })), download: name }); a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1e4); };

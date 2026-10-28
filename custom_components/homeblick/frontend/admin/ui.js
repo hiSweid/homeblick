@@ -1,4 +1,5 @@
 // Kleine UI-Bausteine des Admins: Symbole, Hinweis-Pille, Alerts, Popover/Menü, Auswahl, Sheets und die kleinen Feinheiten (Segment-Schieber, Regler-Füllung).
+import { tx } from '../i18n.js';
 export const $ = (s, r = document) => r.querySelector(s);
 export const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 export const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -23,7 +24,7 @@ export function toast(text, o = {}) {
   document.body.append(el); tt = setTimeout(off, o.action ? 8000 : 5000);
 }
 // Speichern mit Rückmeldung: Fehler als Hinweis, danach wieder werfen
-export const guard = (p, ok) => p.then(r => (ok && toast(ok), r), e => (toast(e?.message || 'Fehler', { bad: true }), Promise.reject(e)));
+export const guard = (p, ok) => p.then(r => (ok && toast(ok), r), e => (toast(e?.message || tx('Fehler'), { bad: true }), Promise.reject(e)));
 
 // ---- Rückfragen als Alert: erst Abbrechen im Fokus, Escape bricht ab, Klick daneben tut nichts ----
 const queue = [];
@@ -34,7 +35,7 @@ function pump() {
   const { text, o, res } = queue.shift(), prompt = o.value !== undefined;
   const dim = Object.assign(document.createElement('div'), { className: 'dim' });
   const dlg = Object.assign(document.createElement('div'), { className: 'alert', role: 'alertdialog' });
-  dlg.innerHTML = `<p>${esc(text)}</p>${prompt ? `<input maxlength="${o.max || 60}" value="${esc(o.value)}">` : ''}${o.alt ? `<div class="acts three"><button class="pri" data-r="alt">${esc(o.alt)}</button><button class="${o.danger ? 'bad' : ''}" data-r="1">${esc(o.ok || 'OK')}</button><button data-r="">Abbrechen</button></div>` : `<div class="acts"><button data-r="">Abbrechen</button><button class="${o.danger ? 'bad' : ''}" data-r="1">${esc(o.ok || 'OK')}</button></div>`}`;
+  dlg.innerHTML = `<p>${esc(text)}</p>${prompt ? `<input maxlength="${o.max || 60}" value="${esc(o.value)}">` : ''}${o.alt ? `<div class="acts three"><button class="pri" data-r="alt">${esc(o.alt)}</button><button class="${o.danger ? 'bad' : ''}" data-r="1">${esc(o.ok || tx('OK'))}</button><button data-r="">${tx('Abbrechen')}</button></div>` : `<div class="acts"><button data-r="">${tx('Abbrechen')}</button><button class="${o.danger ? 'bad' : ''}" data-r="1">${esc(o.ok || tx('OK'))}</button></div>`}`;
   const back = document.activeElement, inp = dlg.querySelector('input');
   const done = v => { dim.remove(); dlg.remove(); document.removeEventListener('keydown', key, true); busy = false; back?.focus?.(); res(v); pump(); };
   const key = e => { if (e.key === 'Escape') { e.stopPropagation(); done(prompt ? null : false); } else if (e.key === 'Enter' && prompt && e.target === inp) done(inp.value); };
@@ -81,8 +82,8 @@ export function menu(anchor, items, o = {}) {
 // Auswahl wie ein Menü-Picker: options = [[wert, text, hinweis?]] → Promise<wert|undefined>
 export function choose(anchor, options, current, { search = false, width } = {}) {
   return new Promise(res => {
-    const draw = q => options.filter(([, t]) => !q || fold(t).includes(fold(q))).map(([v, t, s]) => `<button class="mi ${String(v) === String(current) ? 'hi' : ''}" data-v="${esc(v)}"><span class="t">${esc(t)}${s ? `<small>${esc(s)}</small>` : ''}</span>${String(v) === String(current) ? ic('check', 'ok') : ''}</button>`).join('') || '<div class="hint" style="padding:10px 12px">Nichts gefunden</div>';
-    const el = popover(anchor, `${search ? '<input class="pq" placeholder="Suchen" style="margin-bottom:6px">' : ''}<div class="pl">${draw('')}</div>`, { cls: 'same', width: width || Math.max(anchor.getBoundingClientRect().width, 220) });
+    const draw = q => options.filter(([, t]) => !q || fold(t).includes(fold(q))).map(([v, t, s]) => `<button class="mi ${String(v) === String(current) ? 'hi' : ''}" data-v="${esc(v)}"><span class="t">${esc(t)}${s ? `<small>${esc(s)}</small>` : ''}</span>${String(v) === String(current) ? ic('check', 'ok') : ''}</button>`).join('') || `<div class="hint" style="padding:10px 12px">${tx('Nichts gefunden')}</div>`;
+    const el = popover(anchor, `${search ? `<input class="pq" placeholder="${tx('Suchen')}" style="margin-bottom:6px">` : ''}<div class="pl">${draw('')}</div>`, { cls: 'same', width: width || Math.max(anchor.getBoundingClientRect().width, 220) });
     const pl = el.querySelector('.pl');
     let done = false;
     const fin = v => { if (done) return; done = true; closePop(); res(v); };

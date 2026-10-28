@@ -2,6 +2,7 @@
 // Die Bibliothek meldet „disconnected“ nur bei sauberem Abbruch; ein WLAN-Wechsel oder Router-Neustart hinterlässt oft einen toten Socket ohne Meldung
 // → alle PING_MS ein Ping (Timeout PING_TO); scheitert er, gilt das Display als offline und der Socket wird neu aufgebaut (die Bibliothek verbindet dann selbst).
 // Dienstaufrufe während des Ausfalls werden vom Aufrufer verworfen (call() in index.html), sonst feuerte ein alter Tipp (Schloss, Rollladen) Minuten später.
+import { tx, LOC } from './i18n.js';
 export const PING_MS = 20000, PING_TO = 10000;
 export const SHOW_AFTER = 4000;          // Pille erst nach 4 s: kurze Aussetzer (Reconnect) sollen nicht aufblitzen
 export const RELOAD_AFTER = 180000;      // so lange offline, obwohl der Server per HTTP antwortet → Seite neu laden
@@ -14,7 +15,7 @@ export const bannerDue = (since, now) => since != null && now - since >= SHOW_AF
 export const reloadDue = (since, now, last) => since != null && now - since >= RELOAD_AFTER && now - last >= RELOAD_GAP;
 export const nightDue = (now, last, inSched, idleMs) => inSched && idleMs >= NIGHT_IDLE && now - last >= NIGHT_GAP;
 
-const hm = t => new Date(t).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+const hm = t => new Date(t).toLocaleTimeString(LOC, { hour: '2-digit', minute: '2-digit' });
 const css = n => getComputedStyle(document.documentElement).getPropertyValue(n);
 const spring = () => ({ duration: +css('--sd').replace('ms', '') || 640, easing: css('--spring') || 'ease-out' });
 const KEY = 'hbReloadAt';   // sessionStorage: überlebt das Neuladen, so greifen die Bremsen auch danach
@@ -31,7 +32,7 @@ export function netwatchInit(screen, conn, { down: onDown, canReload = true, nig
 
   const paint = () => {
     const on = bannerDue(since, Date.now());
-    if (on) txt.innerHTML = `Keine Verbindung <small>seit ${hm(since)}</small>`;
+    if (on) txt.innerHTML = `${tx('Keine Verbindung')} <small>${tx('seit {t}', { t: hm(since) })}</small>`;
     if (on === shown) return;
     shown = on; screen.classList.toggle('offline', on);
     el.getAnimations().forEach(a => a.cancel());

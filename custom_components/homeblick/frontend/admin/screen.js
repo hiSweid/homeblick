@@ -1,5 +1,6 @@
 // Ansicht eines Displays: Editor (schwebende Leiste, Seiten-Karussell, Dock, Inspector-Karte) oder Einstellungen (Master/Detail).
 // Der Entwurf wird laufend im Browser gesichert; nach einem Absturz oder Neuladen bietet eine Zeile an, ihn wiederherzustellen.
+import { tx } from '../i18n.js';
 import { $, choose, esc, ic, menu, toast } from './ui.js';
 import { S, byId, call, cur, dirty, discard, emit, openDoc, redo, save, select, on, undo } from './state.js';
 import { ledOf } from './util.js';
@@ -18,12 +19,12 @@ const mem = { get: k => { try { return localStorage.getItem(k); } catch { return
 
 export async function mount(el, route) {
   const id = route.id, d0 = byId(id);
-  if (!d0 || d0.new) { toast('Dieses Display gibt es nicht (mehr)', { bad: true }); location.hash = '#/'; return; }
+  if (!d0 || d0.new) { toast(tx('Dieses Display gibt es nicht (mehr)'), { bad: true }); location.hash = '#/'; return; }
   el.innerHTML = '<div class="empty" style="padding-top:34vh"><span class="spin"></span></div>';
   if (S.sel !== id) await openDoc(id);
   if (route.tab === 'settings') return settings.mount(el, route);
   if (!S.cfg) {
-    el.innerHTML = page({ title: cur().name, left: backBtn('#/', 'Displays'), right: gbtn(`data-goto="#/d/${encodeURIComponent(id)}/settings"`, 'cog', 'Einstellungen') }, `<div class="empty"><div class="ico48">${ic('monitor')}</div><h2>Noch keine Konfiguration</h2><p>Öffne Homeblick einmal auf dem Gerät, dann erscheinen hier seine Ansichten.</p></div>`);
+    el.innerHTML = page({ title: cur().name, left: backBtn('#/', tx('Displays')), right: gbtn(`data-goto="#/d/${encodeURIComponent(id)}/settings"`, 'cog', tx('Einstellungen')) }, `<div class="empty"><div class="ico48">${ic('monitor')}</div><h2>${tx('Noch keine Konfiguration')}</h2><p>${tx('Öffne Homeblick einmal auf dem Gerät, dann erscheinen hier seine Ansichten.')}</p></div>`);
     return;
   }
 
@@ -33,9 +34,9 @@ export async function mount(el, route) {
   if (raw) { try { const o = JSON.parse(raw); if (o.base === S.saved && o.json !== S.saved) S.draftOffer = o; else mem.del(DK); } catch { mem.del(DK); } }
 
   el.innerHTML = `<div class="ed" id="ed"><div class="ed-bar">
-    <div class="ed-l"><button class="back" data-goto="#/" aria-label="Zurück zu den Displays">${ic('left')}<span>Displays</span></button><span class="gpill group"><button class="icon-btn" id="undo" aria-label="Rückgängig">${ic('undo')}</button><button class="icon-btn" id="redo" aria-label="Wiederholen">${ic('redo')}</button></span></div>
-    <button class="ed-title" id="title" aria-label="Display-Menü"><b><span id="screen-name"></span>${ic('down')}</b><span class="st" id="status"></span></button>
-    <div class="ed-r"><span id="dirty"></span><button class="gpill tinted" id="save"></button><button class="gbtn" id="search" aria-label="Suchen" title="Suchen · ⌘K">${ic('search')}</button><button class="gbtn" id="more" aria-label="Mehr">${ic('dots')}</button></div></div></div>`;
+    <div class="ed-l"><button class="back" data-goto="#/" aria-label="${tx('Zurück zu den Displays')}">${ic('left')}<span>${tx('Displays')}</span></button><span class="gpill group"><button class="icon-btn" id="undo" aria-label="${tx('Rückgängig')}">${ic('undo')}</button><button class="icon-btn" id="redo" aria-label="${tx('Wiederholen‖Redo')}">${ic('redo')}</button></span></div>
+    <button class="ed-title" id="title" aria-label="${tx('Display-Menü')}"><b><span id="screen-name"></span>${ic('down')}</b><span class="st" id="status"></span></button>
+    <div class="ed-r"><span id="dirty"></span><button class="gpill tinted" id="save"></button><button class="gbtn" id="search" aria-label="${tx('Suchen')}" title="${tx('Suchen · ⌘K')}">${ic('search')}</button><button class="gbtn" id="more" aria-label="${tx('Mehr')}">${ic('dots')}</button></div></div></div>`;
   const ed = $('#ed', el);
   const lay = layout.mount(ed), insp = inspector.mount(ed);
 
@@ -44,24 +45,24 @@ export async function mount(el, route) {
     const d = cur(); if (!d) return;
     $('#screen-name', el).textContent = d.name;
     const l = ledOf(d);
-    $('#status', el).innerHTML = `<i class="led ${l}"></i>${l === 'ok' ? 'Online' : l === 'update' ? 'Alte Version' : 'Offline'}`;
-    $('#title', el).title = d.connected ? 'Das Display ist geöffnet und verbunden' : 'Offline: Änderungen werden gespeichert und beim nächsten Öffnen übernommen';
+    $('#status', el).innerHTML = `<i class="led ${l}"></i>${l === 'ok' ? tx('Online') : l === 'update' ? tx('Alte Version') : tx('Offline')}`;
+    $('#title', el).title = d.connected ? tx('Das Display ist geöffnet und verbunden') : tx('Offline: Änderungen werden gespeichert und beim nächsten Öffnen übernommen');
     const u = $('#undo', el), r = $('#redo', el);
     u.disabled = !S.undo.length; r.disabled = !S.redo.length;
-    u.title = S.undo.length ? `Rückgängig: ${S.undo.at(-1).label} · ⌘Z` : 'Rückgängig · ⌘Z'; r.title = S.redo.length ? `Wiederholen: ${S.redo.at(-1).label} · ⇧⌘Z` : 'Wiederholen · ⇧⌘Z';
+    u.title = S.undo.length ? tx('Rückgängig: {label} · ⌘Z', { label: S.undo.at(-1).label }) : tx('Rückgängig · ⌘Z'); r.title = S.redo.length ? tx('Wiederholen: {label} · ⇧⌘Z', { label: S.redo.at(-1).label }) : tx('Wiederholen · ⇧⌘Z');
     const dt = $('#dirty', el), sv = $('#save', el);
-    dt.innerHTML = dirty() ? '<span class="chip dirty">Nicht gesendet</span>' : `<span class="saved-note ${S.justSaved ? 'sent' : ''}">${ic('check')}${S.justSaved ? 'Gesendet' : 'Alles gesendet'}</span>`;
-    sv.hidden = !dirty(); sv.disabled = S.busy; sv.title = 'Speichern und ans Display senden · ⌘S';
-    sv.innerHTML = S.busy ? '<span class="spin small"></span><span>Sendet …</span>' : `${ic('send')}<span>Senden</span>`;
+    dt.innerHTML = dirty() ? `<span class="chip dirty">${tx('Nicht gesendet')}</span>` : `<span class="saved-note ${S.justSaved ? 'sent' : ''}">${ic('check')}${S.justSaved ? tx('Gesendet') : tx('Alles gesendet')}</span>`;
+    sv.hidden = !dirty(); sv.disabled = S.busy; sv.title = tx('Speichern und ans Display senden · ⌘S');
+    sv.innerHTML = S.busy ? `<span class="spin small"></span><span>${tx('Sendet …')}</span>` : `${ic('send')}<span>${tx('Senden')}</span>`;
   };
   paint();
   let pt, warned = false;
   const persist = () => { clearTimeout(pt); pt = setTimeout(flush, 400); };
   const flush = () => { clearTimeout(pt); if (dirty()) mem.set(DK, JSON.stringify({ base: S.saved, json: JSON.stringify(S.cfg), at: Date.now() })); else if (!S.draftOffer) mem.del(DK); };
   const offs = [on('doc', paint), on('doc', persist), on('list', paint)];
-  const stor = e => { if (e.key === DK && e.newValue && !warned && dirty()) { warned = true; toast('Dieses Display wird auch in einem anderen Tab bearbeitet. Wer zuletzt sendet, überschreibt.', { bad: true }); } };
+  const stor = e => { if (e.key === DK && e.newValue && !warned && dirty()) { warned = true; toast(tx('Dieses Display wird auch in einem anderen Tab bearbeitet. Wer zuletzt sendet, überschreibt.'), { bad: true }); } };
   addEventListener('storage', stor);
-  const doSave = async () => { if (!dirty() || S.busy) return; await save(); if (!dirty()) toast(cur().connected ? 'Gesendet. Dein Display wird aktualisiert.' : 'Gespeichert. Das Display übernimmt es beim nächsten Öffnen.'); };
+  const doSave = async () => { if (!dirty() || S.busy) return; await save(); if (!dirty()) toast(cur().connected ? tx('Gesendet. Dein Display wird aktualisiert.') : tx('Gespeichert. Das Display übernimmt es beim nächsten Öffnen.')); };
   el.addEventListener('click', e => {
     const q = c => e.target.closest(c);
     if (q('#save')) return doSave();
@@ -71,25 +72,25 @@ export async function mount(el, route) {
     const dr = q('[data-draft]');
     if (dr) {
       const o = S.draftOffer; S.draftOffer = null;
-      if (dr.dataset.draft === 'restore' && o) { replaceDraft('Entwurf wiederhergestellt', JSON.parse(o.json)); toast('Entwurf wiederhergestellt', { action: 'Rückgängig', run: undo }); }
+      if (dr.dataset.draft === 'restore' && o) { replaceDraft(tx('Entwurf wiederhergestellt'), JSON.parse(o.json)); toast(tx('Entwurf wiederhergestellt'), { action: tx('Rückgängig'), run: undo }); }
       else { mem.del(DK); emit('doc'); }
     }
   });
   function moreMenu(a) {
     const d = cur(), others = S.displays.filter(x => x.id !== id && !x.new);
     menu(a, [
-      { group: d.name }, { label: 'Umbenennen', icon: 'pencil', run: renameDisplay },
-      { label: 'Neu laden', icon: 'refresh', end: 'am Gerät', disabled: !d.connected, title: d.connected ? '' : 'Das Display ist offline', run: () => call('command', { display: id, action: 'reload' }).then(() => toast('Gesendet')).catch(er => toast(er?.message || 'Fehler', { bad: true })) },
-      { label: 'Bildschirmfoto', icon: 'image', disabled: !d.connected, run: async () => { const img = await screenshot(); img && toast('Bildschirmfoto aktualisiert'); } },
-      { label: 'Änderungen verwerfen', icon: 'undo', disabled: !dirty(), run: () => { discard(); toast('Änderungen verworfen'); } },
-      '-', { group: 'Layout' },
-      { label: 'Layout kopieren von …', icon: 'copy', end: String(others.length), disabled: !others.length, run: async () => { const v = await choose(a, others.map(x => [x.id, x.name, x.area]), '', { width: 260 }); if (v) copyLayoutFrom(v); } },
-      { label: 'Layout exportieren', icon: 'download', end: 'JSON', run: exportLayout },
-      { label: 'Layout importieren …', icon: 'upload', end: 'JSON', run: importLayout },
-      { label: 'Auf andere anwenden …', icon: 'send', disabled: !others.length, run: applyToOthers },
-      { label: 'Für ESP-Display exportieren', icon: 'download', run: exportEsp },
-      '-', { label: 'So funktioniert es', icon: 'help', run: layout.openHelp },
-      { label: 'Display entfernen', icon: 'trash', danger: true, run: removeDisplay },
+      { group: d.name }, { label: tx('Umbenennen'), icon: 'pencil', run: renameDisplay },
+      { label: tx('Neu laden'), icon: 'refresh', end: tx('am Gerät'), disabled: !d.connected, title: d.connected ? '' : tx('Das Display ist offline'), run: () => call('command', { display: id, action: 'reload' }).then(() => toast(tx('Gesendet'))).catch(er => toast(er?.message || tx('Fehler'), { bad: true })) },
+      { label: tx('Bildschirmfoto'), icon: 'image', disabled: !d.connected, run: async () => { const img = await screenshot(); img && toast(tx('Bildschirmfoto aktualisiert')); } },
+      { label: tx('Änderungen verwerfen'), icon: 'undo', disabled: !dirty(), run: () => { discard(); toast(tx('Änderungen verworfen')); } },
+      '-', { group: tx('Layout') },
+      { label: tx('Layout kopieren von …'), icon: 'copy', end: String(others.length), disabled: !others.length, run: async () => { const v = await choose(a, others.map(x => [x.id, x.name, x.area]), '', { width: 260 }); if (v) copyLayoutFrom(v); } },
+      { label: tx('Layout exportieren'), icon: 'download', end: 'JSON', run: exportLayout },
+      { label: tx('Layout importieren …'), icon: 'upload', end: 'JSON', run: importLayout },
+      { label: tx('Auf andere anwenden …'), icon: 'send', disabled: !others.length, run: applyToOthers },
+      { label: tx('Für ESP-Display exportieren'), icon: 'download', run: exportEsp },
+      '-', { label: tx('So funktioniert es'), icon: 'help', run: layout.openHelp },
+      { label: tx('Display entfernen'), icon: 'trash', danger: true, run: removeDisplay },
     ], { width: 330 });
   }
 

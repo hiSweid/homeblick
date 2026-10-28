@@ -1,6 +1,7 @@
 // Sammelkachel (kind „multi“): eine Kachel für mehrere Lichter/Schalter/Rollläden, z. B. „Wohnzimmer Lichter · 3 an“.
 // Tippen: alles aus (bei 0 an: alles an), Rollläden: alles zu (bei 0 offen: alles auf); Halten: Blatt mit den Einzelnen.
 // Die Mitglieder stehen in der Konfiguration (t.ents, vom Editor aus dem Raum aufgelöst): das Display braucht keine Registry-Rechte.
+import { tx } from './i18n.js';
 const OPENS = ['open', 'opening'];
 const isOn = s => s.attributes && (s.state === 'on' || OPENS.includes(s.state));
 const dom = id => id.split('.')[0];
@@ -11,7 +12,7 @@ export function count(ents, st) {
   const ok = (ents || []).filter(id => { const s = st(id); return s && !['unavailable', 'unknown'].includes(s.state); });
   return { n: ok.filter(id => isOn(st(id))).length, total: ok.length, all: ents?.length || 0 };
 }
-export const textOf = (d, c) => !c.total ? 'nicht erreichbar' : d === 'cover' ? (c.n ? (c.n === c.total ? 'alle offen' : `${c.n} offen`) : 'alle zu') : c.n ? (c.n === c.total ? 'alle an' : `${c.n} an`) : 'alle aus';
+export const textOf = (d, c) => !c.total ? tx('nicht erreichbar') : d === 'cover' ? (c.n ? (c.n === c.total ? tx('alle offen') : tx('{n} offen', { n: c.n })) : tx('alle zu')) : c.n ? (c.n === c.total ? tx('alle an') : tx('{n} an', { n: c.n })) : tx('alle aus');
 // Dienste je Domain (eine Liste je Aufruf): [domain, service, entity_ids][]
 export function plan(ents, st, c = count(ents, st)) {
   const by = {};
@@ -45,14 +46,14 @@ export function multiTap(t) {
 function paintSheet() {
   const ents = OPEN.t._t?.ents || [], h = ents.map(id => {
     const s = api.st(id), off = ['unavailable', 'unknown'].includes(s.state), cov = dom(id) === 'cover';
-    return `<button data-id="${esc(id)}"${isOn(s) ? ' class="on"' : ''}${off ? ' disabled' : ''}><span>${esc(api.name(id))}</span><em>${off ? 'nicht erreichbar' : cov ? (isOn(s) ? 'offen' : 'zu') : isOn(s) ? 'an' : 'aus'}</em></button>`;
+    return `<button data-id="${esc(id)}"${isOn(s) ? ' class="on"' : ''}${off ? ' disabled' : ''}><span>${esc(api.name(id))}</span><em>${off ? tx('nicht erreichbar') : cov ? (isOn(s) ? tx('offen') : tx('zu‖Rollladen')) : isOn(s) ? tx('an') : tx('aus')}</em></button>`;
   }).join('');
   if (OPEN.h !== h) { OPEN.h = h; OPEN.el.querySelector('.msl').innerHTML = h; }
 }
 export function multiSheet(t) {
   if (OPEN) return;
   const el = document.createElement('div');
-  el.id = 'msheet'; el.innerHTML = `<div class="msp"><div class="msh">${esc(t._t?.title || 'Gruppe')}</div><div class="msl"></div></div>`;
+  el.id = 'msheet'; el.innerHTML = `<div class="msp"><div class="msh">${esc(t._t?.title || tx('Gruppe'))}</div><div class="msl"></div></div>`;
   (api.root || document.body).append(el);
   OPEN = { t, el };
   paintSheet();

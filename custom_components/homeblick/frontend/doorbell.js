@@ -6,6 +6,7 @@
 // Klingeln weckt das Display und spielt einen Gong (Einstellung „Gong beim Klingeln“, Lautstärke = Antworten).
 
 import { live, talk } from './camplay.js';
+import { tx } from './i18n.js';
 
 // Kameras kommen aus der Konfiguration (Einstellungsseite → Face „Kameras“, sonst automatisch erkannt): camConfig({ list: [{ entity, name, light }], bell: { event, camera } })
 let LIST = [], RING = '', DOOR = '', LOCK = '', WARM = false;
@@ -21,10 +22,10 @@ const ico = (id, cls = '') => `<svg class="i ${cls}"><use href="#${id}"/></svg>`
 function mjpeg(box, e, s, cb) {
   const { access_token: tok, entity_picture: pic } = s.attributes;
   const u = tok ? `${HASS}/api/camera_proxy_stream/${e}?token=${tok}` : pic?.startsWith('/') ? HASS + pic : pic;
-  if (!u) { box.replaceChildren(); return cb('Kein Bild'); }
+  if (!u) { box.replaceChildren(); return cb(tx('Kein Bild')); }
   // neues Bild über das alte legen (bis zum ersten Frame durchsichtig), altes erst danach weg → kein Aufblitzen
   const img = new Image(), old = [...box.children], drop = () => old.forEach(o => o.remove());
-  img.alt = ''; img.onload = () => { drop(); cb('Live'); }; setTimeout(drop, 10000);
+  img.alt = ''; img.onload = () => { drop(); cb(tx('Live')); }; setTimeout(drop, 10000);
   img.onerror = () => { const t = box._tag; setTimeout(() => box._tag === t && box.isConnected && !document.hidden && feed(box, e, ents[e] || s, cb), 5000); };   // Verbindung weg → später neu
   img.src = u;
   box.append(img);
@@ -46,16 +47,16 @@ async function feed(box, e, s, cb) {
   box.replaceChildren();
   // Vorschau sofort: letztes Bild dieser Kamera (zuletzt gesehener Frame, höchstens 10 min alt), sonst das HA-Standbild (kann bei manchen Kameras Sekunden dauern)
   const still = STILL[e] && Date.now() - STILL[e].t < 6e5 ? STILL[e].u : pic?.startsWith('/') ? HASS + pic : '';
-  if (still) { const i = Object.assign(new Image(), { alt: '', src: still }); i.onerror = () => i.remove(); i.onload = () => cb('Verbinde …', true); box.append(i); }
+  if (still) { const i = Object.assign(new Image(), { alt: '', src: still }); i.onerror = () => i.remove(); i.onload = () => cb(tx('Verbinde …'), true); box.append(i); }
   v.style.opacity = 0; box.append(v);
-  cb('Verbinde …');
+  cb(tx('Verbinde …'));
   let real;
   const end = () => { clearInterval(w); clearTimeout(t); try { real?.(); } catch {} real = null; };
   const fallback = why => { if (!alive()) return; console.warn('Kamera', e, why?.message || why); end(); v.remove(); mjpeg(box, e, ents[e] || s, cb); };
   box._stop = end;
   const w = setInterval(() => { if (box._tag !== tag || !box.isConnected) end(); }, 3000);   // Box verschwunden (Face neu gebaut, Ansicht zu) → Stream beenden
   const t = setTimeout(() => fallback('kein Bild nach 15 s'), 15000);
-  v.addEventListener('playing', () => { clearTimeout(t); v.style.opacity = ''; box.querySelectorAll('img').forEach(i => i.remove()); cb('Live'); setTimeout(() => alive() && grab(e, v), 800); });
+  v.addEventListener('playing', () => { clearTimeout(t); v.style.opacity = ''; box.querySelectorAll('img').forEach(i => i.remove()); cb(tx('Live')); setTimeout(() => alive() && grab(e, v), 800); });
   try { real = await live(conn, e, v, HASS, fallback, o); } catch (err) { return fallback(err); }
   if (box._tag !== tag) end();
 }
@@ -74,12 +75,12 @@ export function camInit(view, fns) {
   V = view; api = fns; HASS = fns.hass;
   V.innerHTML = `<div class="feed"></div><i class="veil"></i><i class="live-pill"><i></i>LIVE</i>
 <div class="ctop"><b class="cname"></b><span class="cst"></span></div>
-<button class="rb end" data-act="close" aria-label="Beenden">${ico('xthin')}</button>
-<button class="rb mic" aria-label="Sprechen">${ico('mic')}</button>
-<button class="rb all" aria-label="Steuerebene">${ico('cams')}</button>
-<button class="cb spk" aria-label="Lautsprecher">${ico('vol')}</button>
-<button class="acc" data-act="toggle" aria-label="Licht"><span class="ai">${ico('bulb')}</span><span class="at"><b></b><span></span></span></button>
-<button class="acc lk" data-act="toggle" aria-label="Tür" hidden><span class="ai">${ico('lock')}</span><span class="at"><b></b><span></span></span></button>`;
+<button class="rb end" data-act="close" aria-label="${tx('Beenden')}">${ico('xthin')}</button>
+<button class="rb mic" aria-label="${tx('Sprechen')}">${ico('mic')}</button>
+<button class="rb all" aria-label="${tx('Steuerebene')}">${ico('cams')}</button>
+<button class="cb spk" aria-label="${tx('Lautsprecher')}">${ico('vol')}</button>
+<button class="acc" data-act="toggle" aria-label="${tx('Licht')}"><span class="ai">${ico('bulb')}</span><span class="at"><b></b><span></span></span></button>
+<button class="acc lk" data-act="toggle" aria-label="${tx('Tür')}" hidden><span class="ai">${ico('lock')}</span><span class="at"><b></b><span></span></span></button>`;
   // Klingeln: Ansicht fliegt aus der Kamera-Notch oben mittig
   notch = document.createElement('i');
   notch.id = 'notch'; notch.className = 'notch';
@@ -107,7 +108,7 @@ export function camInit(view, fns) {
     try {
       await talk(V._e, on);
       mic.classList.toggle('on', on); const vid = $('video', V); if (vid) vid.muted = !on;
-      showStat(on ? 'Sprechen …' : 'Live');
+      showStat(on ? tx('Sprechen …') : tx('Live'));
     } catch (err) { const old = stat; showStat(err.message); mic.animate([{ translate: '0' }, { translate: '-1.2cqw' }, { translate: '1.2cqw' }, { translate: '0' }], { duration: 280 }); setTimeout(() => showStat(old), 3000); }
   });
 }
@@ -121,8 +122,8 @@ export function camShow(tile, e, s) {
   if (tile === notch) ringT = setTimeout(api.close, 60000);   // unbeantwortet → nach 1 min zu
   $('.cname', V).textContent = cam.name || s.attributes.friendly_name || e;
   $('.rb.mic', V).classList.remove('on'); talk(e, false).catch(() => {});
-  const lk = $('.acc.lk', V), lkOn = e === DOOR && !!LOCK; lk.hidden = !lkOn; if (lkOn) { lk.dataset.e = LOCK; $('.at b', lk).textContent = ents[LOCK]?.attributes.friendly_name || 'Tür'; } else delete lk.dataset.e;
-  const acc = $('.acc:not(.lk)', V); acc.hidden = !cam.light; $('.at b', acc).textContent = ents[cam.light]?.attributes.friendly_name || 'Licht'; accSub();
+  const lk = $('.acc.lk', V), lkOn = e === DOOR && !!LOCK; lk.hidden = !lkOn; if (lkOn) { lk.dataset.e = LOCK; $('.at b', lk).textContent = ents[LOCK]?.attributes.friendly_name || tx('Tür'); } else delete lk.dataset.e;
+  const acc = $('.acc:not(.lk)', V); acc.hidden = !cam.light; $('.at b', acc).textContent = ents[cam.light]?.attributes.friendly_name || tx('Licht'); accSub();
   if (cam.light) acc.dataset.e = cam.light; else delete acc.dataset.e;
   $('.feed', V).classList.add('drag'); pan(0, V.classList.contains('bell') ? Z : 1);   // ohne Animation zurück auf „füllen“ (Klingel) bzw. 16:9-Fenster (Kamera-Detail)
   requestAnimationFrame(() => $('.feed', V).classList.remove('drag'));
@@ -131,8 +132,8 @@ export function camShow(tile, e, s) {
 export function camHide() { talk(V._e, false).catch(() => {}); $('.rb.mic', V).classList.remove('on'); clearTimeout(ringT); V.classList.remove('ctl'); const f = $('.feed', V); f._stop?.(); f._stop = null; f._tag = null; f.replaceChildren(); }
 
 const accSub = () => {
-  const l = V?._e && camOf(V._e).light; if (l) put($('.acc:not(.lk) .at span', V), ents[l]?.state === 'on' ? 'Ein' : ents[l]?.state === 'unavailable' ? 'Offline' : 'Aus');
-  if (V && LOCK) { const st = ents[LOCK]?.state; put($('.acc.lk .at span', V), st === 'locked' ? 'Verriegelt' : st === 'unlocked' ? 'Entriegelt' : st === 'unavailable' ? 'Offline' : st || ''); $('.acc.lk', V).classList.toggle('on', st === 'unlocked'); }
+  const l = V?._e && camOf(V._e).light; if (l) put($('.acc:not(.lk) .at span', V), ents[l]?.state === 'on' ? tx('Ein') : ents[l]?.state === 'unavailable' ? tx('Offline') : tx('Aus'));
+  if (V && LOCK) { const st = ents[LOCK]?.state; put($('.acc.lk .at span', V), st === 'locked' ? tx('Verriegelt') : st === 'unlocked' ? tx('Entriegelt') : st === 'unavailable' ? tx('Offline') : st || ''); $('.acc.lk', V).classList.toggle('on', st === 'unlocked'); }
 };
 export const camRinging = () => api.view() === V && V.classList.contains('ring');
 
@@ -186,7 +187,7 @@ export function ring() {
 // ---------- Kamera-Face: randloses 2×2-Raster ohne UI (Vorlage y-MODo3Hye4 04200 s, _TbqCPIIe8g 94,9 s): bis zu vier Kameras live, hauchdünne Trennlinie (≈ 0,4 % Breite), Tippen = Kamera-Detail ----------
 // ponytail: weniger als vier Kameras → leere Zellen bleiben schwarz (Vorlage zeigt immer vier); mehr als vier: die ersten vier
 export function camFace(el) {
-  if (!LIST.length) { el.innerHTML = `<div class="ctile"><div><b>Keine Kamera</b><span>In den Einstellungen wählen</span></div></div>`; return; }
+  if (!LIST.length) { el.innerHTML = `<div class="ctile"><div><b>${tx('Keine Kamera')}</b><span>${tx('In den Einstellungen wählen')}</span></div></div>`; return; }
   const main = LIST.find(c => c.entity === DOOR) || LIST[0], cams = [main, ...LIST.filter(c => c !== main)].slice(0, 4);   // Klingelkamera zuerst
   el.innerHTML = cams.map(c => `<button class="cc" data-act="cam" data-e="${esc(c.entity)}" aria-label="${esc(c.name || ents[c.entity]?.attributes.friendly_name || c.entity)}"><div class="feed"></div></button>`).join('');
 }
@@ -197,7 +198,7 @@ export function camFace(el) {
 const vis = new IntersectionObserver(es => es.forEach(en => {
   const box = en.target, c = box._cam;
   clearTimeout(box._off);
-  if (en.isIntersecting) { if (!box._on) { box._on = true; feed(box, c.e, ents[c.e] || c.s, (st, still) => c.tile.classList.toggle('live', st === 'Live' || !!still)); } }
+  if (en.isIntersecting) { if (!box._on) { box._on = true; feed(box, c.e, ents[c.e] || c.s, (st, still) => c.tile.classList.toggle('live', st === tx('Live') || !!still)); } }
   else box._off = setTimeout(() => { if (!box._on) return; box._on = false; box._stop?.(); box._stop = null; box._tag = null; box.replaceChildren(); c.tile.classList.remove('live'); }, 1500);
 }), { threshold: .01 });
 export function camTile(tile, e, s) {
@@ -294,7 +295,7 @@ cam-rtc video{object-fit:cover}
 #cam.bell .acc.lk{opacity:1;pointer-events:auto}   /* Klingel-Ansicht: „Tür öffnen“ immer erreichbar, sonst nur in der Steuerebene */
 .acc.lk[data-arm]{background:#ff3b30cc}
 .acc.lk[data-arm] .at span{display:none}
-.acc.lk[data-arm] .at::after{content:"Nochmal tippen";font-size:3.2cqw}
+.acc.lk[data-arm] .at::after{content:"${tx('Nochmal tippen')}";font-size:3.2cqw}
 #cam .rb.mic.on{background:#fff;color:#1c1c1e}
 .acc.on .ai{color:#ffd60a}
 .acc .at{display:flex;flex-direction:column;font-size:3.8cqw;line-height:1.3;min-width:0}

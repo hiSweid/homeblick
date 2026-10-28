@@ -1,5 +1,6 @@
 // Assist im Browser: Mikro (16 kHz, PCM16) → HA-Pipeline (STT → Absicht → TTS) → Antwort abspielen.
 import { playSpeech } from './speak.js';
+import { tx } from './i18n.js';
 // Braucht einen Secure Context (https oder localhost) für getUserMedia; voiceOK() prüft das.
 export const voiceOK = () => !!navigator.mediaDevices?.getUserMedia;
 
@@ -29,13 +30,13 @@ export async function openMic(onFrame) {
 
 // HA-Fehlercodes → Klartext fürs Display (unbekannte Codes: HA-Meldung durchreichen)
 const ERR = {
-  'stt-no-text-recognized': 'Ich habe nichts verstanden.', 'stt-stream-failed': 'Die Spracherkennung hat nicht geklappt.', 'stt-provider-missing': 'Keine Spracherkennung eingerichtet.',
-  'pipeline-not-found': 'Die Assist-Pipeline wurde nicht gefunden.', 'intent-failed': 'Das habe ich nicht verstanden.', 'tts-failed': 'Die Sprachausgabe hat nicht geklappt.',
-  timeout: 'Keine Antwort von Home Assistant.', empty: 'Ich habe keine Antwort bekommen.', NotAllowedError: 'Mikrofon-Zugriff verweigert.', NotFoundError: 'Kein Mikrofon gefunden.',
+  'stt-no-text-recognized': tx('Ich habe nichts verstanden.'), 'stt-stream-failed': tx('Die Spracherkennung hat nicht geklappt.'), 'stt-provider-missing': tx('Keine Spracherkennung eingerichtet.'),
+  'pipeline-not-found': tx('Die Assist-Pipeline wurde nicht gefunden.'), 'intent-failed': tx('Das habe ich nicht verstanden.'), 'tts-failed': tx('Die Sprachausgabe hat nicht geklappt.'),
+  timeout: tx('Keine Antwort von Home Assistant.'), empty: tx('Ich habe keine Antwort bekommen.'), NotAllowedError: tx('Mikrofon-Zugriff verweigert.'), NotFoundError: tx('Kein Mikrofon gefunden.'),
 };
 // Stoppwörter: sagt man nur eins davon, wird der Lauf abgebrochen (kein Befehl, keine Antwort)
-export const isStop = t => /^(?:(?:ok(?:ay)?|na|ja|nein|bitte|jetzt|schon)\s+)*(?:stopp?|halt(?:\s+stopp?)?|abbrechen?|abbruch|schluss|ruhe|still|leise|vergiss\s+(?:es|das)|lass\s+(?:es|gut)|nicht\s+mehr|(?:ok(?:ay)?\s+)?(?:danke|dankeschön)|cancel|never\s?mind)(?:\s+(?:bitte|danke|jetzt|mal))*$/i.test((t || '').trim().replace(/[.!?,;:]+/g, ' ').replace(/\s+/g, ' ').trim());
-const errText = (code, msg) => ERR[code] || 'Das hat nicht geklappt' + (msg ? ': ' + msg : '.');
+export const isStop = t => /^(?:(?:ok(?:ay)?|na|ja|nein|bitte|jetzt|schon|please|now)\s+)*(?:stopp?|halt(?:\s+stopp?)?|abbrechen?|abbruch|schluss|ruhe|still|leise|vergiss\s+(?:es|das)|lass\s+(?:es|gut)|nicht\s+mehr|(?:ok(?:ay)?\s+)?(?:danke|dankeschön)|cancel|never\s?mind|thank(?:s|\s+you)|enough|quiet|forget\s+(?:it|that))(?:\s+(?:bitte|danke|jetzt|mal|please|thanks|now))*$/i.test((t || '').trim().replace(/[.!?,;:]+/g, ' ').replace(/\s+/g, ' ').trim());
+const errText = (code, msg) => ERR[code] || (msg ? tx('Das hat nicht geklappt: {msg}', { msg }) : tx('Das hat nicht geklappt.'));
 
 // h: { wake? (Wake-Word-Modell, für HAs Doppelwecken-Sperre), onThink(text?), onAnswer(text, response_type), onEnd(next?), onError(msg), base, pipeline?, device?, conversation? } → { stop() }
 // device = HA-Geräte-ID des Displays (Raum für „Licht an“); next = { conversation } wenn der Agent eine Rückfrage stellt

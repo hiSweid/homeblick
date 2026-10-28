@@ -2,6 +2,7 @@
 // Auch als Bildschirmschoner wählbar (Einstellungen → Bildschirmschoner → Ansicht „Fotos“; Wecken und Musik-Vorrang macht kiosk.js).
 // Quelle: f.src = Medieninhalts-ID (media-source://…), f.sec = Sekunden je Bild. Die Liste wird einmal per media_source/browse_media geholt (Ordner bis Tiefe 2),
 // jedes Bild erst kurz vor der Anzeige per media_source/resolve_media aufgelöst (signierte Adressen laufen ab). Es liegen höchstens zwei Bilder im DOM; keine Bilder in der Konfiguration.
+import { tx } from './i18n.js';
 const MAX = 300, DIRS = 25, DEPTH = 2, SEC = 20;
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
@@ -44,7 +45,7 @@ async function load(el, f) {
     else if (p.src) p.list = shuffle(await collect(id => api.send({ type: 'media_source/browse_media', media_content_id: id }), p.src));
   } catch (e) { console.warn('Fotos', e); }
   p.busy = false;
-  msg(el, p.list.length ? '' : p.src ? 'Keine Bilder in dieser Quelle gefunden' : 'Medienquelle im Editor wählen (Ansicht → Quelle)');
+  msg(el, p.list.length ? '' : p.src ? tx('Keine Bilder in dieser Quelle gefunden') : tx('Medienquelle im Editor wählen (Ansicht → Quelle)'));
 }
 async function url(id) {
   if (api.demo) return id;

@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Homeblick",
-        "description": "Adds the Homeblick wall display to the sidebar.\n\nNext: open **Homeblick** on your tablet (sidebar, or `/homeblick/index.html?live` in its browser). It reports itself, then **Homeblick Einstellungen** (administrators) walks you through name, room and template."
+        "description": "Adds the Homeblick wall display to the sidebar.\n\nNext: open **Homeblick** on your tablet (sidebar, or `/homeblick/index.html?live` in its browser). It reports itself, then **Homeblick Settings** (administrators) walks you through name, room and template."
       }
     },
     "abort": {

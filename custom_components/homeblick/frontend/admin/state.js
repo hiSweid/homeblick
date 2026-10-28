@@ -1,4 +1,5 @@
 // Gemeinsamer Zustand des Admins: Verbindung, Displays, Entwurf der Konfiguration (mit Rückgängig) und Speichern.
+import { tx, LOC } from '../i18n.js';
 import { normFaces } from '../faces.js';
 import { loadEntities } from './entities.js';
 import { guard, sleep, toast } from './ui.js';
@@ -35,7 +36,7 @@ export async function start() {
   const [states, pl, cs] = await Promise.all([S.conn.sendMessagePromise({ type: 'get_states' }), S.conn.sendMessagePromise({ type: 'assist_pipeline/pipeline/list' }).catch(() => null), call('cameras').catch(() => null)]);
   if (cs) S.cams = cs;
   const nameOf = x => x.attributes.friendly_name || x.entity_id;
-  S.camEnts = states.filter(x => x.entity_id.startsWith('camera.')).map(x => [x.entity_id, nameOf(x)]).sort((a, b) => a[1].localeCompare(b[1], 'de'));
+  S.camEnts = states.filter(x => x.entity_id.startsWith('camera.')).map(x => [x.entity_id, nameOf(x)]).sort((a, b) => a[1].localeCompare(b[1], LOC));
   await loadEntities(S.conn, states);
   S.states = Object.fromEntries(states.map(x => [x.entity_id, x]));
   S.ttss = states.filter(x => x.entity_id.startsWith('tts.')).map(x => [x.entity_id, nameOf(x)]);
@@ -61,7 +62,7 @@ function perfNotice() {
     if (!d.connected || !d.info?.perf) { perfSeen.delete(d.id); continue; }
     if (perfSeen.has(d.id)) continue;
     perfSeen.add(d.id);
-    toast(`${d.name}: Leistungsmodus aktiv${d.info.perfAuto ? ', automatisch erkannt' : ''}. Animationen sind aus.`, { action: 'Deaktivieren', run: () => setSetting(d.id, { perf: false, perfauto: false }).then(() => toast('Leistungsmodus aus, automatische Erkennung aus')) });
+    toast(d.info.perfAuto ? tx('{name}: Leistungsmodus aktiv, automatisch erkannt. Animationen sind aus.', { name: d.name }) : tx('{name}: Leistungsmodus aktiv. Animationen sind aus.', { name: d.name }), { action: tx('Deaktivieren'), run: () => setSetting(d.id, { perf: false, perfauto: false }).then(() => toast(tx('Leistungsmodus aus, automatische Erkennung aus'))) });
   }
 }
 export async function poll() {   // Status nachführen, ohne Formulare neu zu zeichnen
@@ -110,7 +111,7 @@ export function mutate(label, fn, merge) {
 export function undo() {
   const u = S.undo.pop(); if (!u) return;
   S.redo.push({ label: u.label, json: snapOf(S.cfg) }); S.cfg = JSON.parse(u.json); lastKey = ''; S.justSaved = false; emit('doc', 'undo');
-  toast(`Rückgängig: ${u.label}`, { action: 'Wiederholen', run: redo });
+  toast(tx('Rückgängig: {label}', { label: u.label }), { action: tx('Wiederholen‖Redo'), run: redo });
 }
 export function redo() {
   const r = S.redo.pop(); if (!r) return;

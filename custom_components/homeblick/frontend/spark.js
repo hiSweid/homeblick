@@ -1,6 +1,7 @@
 // Verlaufs-Kachel (Stil „spark“ für Sensor-Kacheln): Wert groß, darunter weiche 24-h-Kurve mit Fläche und Endpunkt.
 // Eine gebündelte History-Abfrage für alle Spark-Kacheln (Cache 10 min), Kurve aus bins()/smooth() von energy.js, der aktuelle Wert hängt live am Ende.
 import { bins, smooth } from './curve.js';
+import { tx } from './i18n.js';
 
 const SPAN = 864e5, STEP = 18e5, TTL = 6e5, REPAINT = 6e4;   // 24 h in 30-min-Schritten = 48 Punkte
 const C = new Map();   // Entität → { at, pts: [[ms, Wert]] }
@@ -32,7 +33,7 @@ function paint(t, now = Date.now()) {
   t._sp = now;
   if (w._k === key) return;
   w._k = key;
-  if (!g) { w.innerHTML = c ? '<em>Kein Verlauf</em>' : ''; return; }
+  if (!g) { w.innerHTML = c ? `<em>${tx('Kein Verlauf')}</em>` : ''; return; }
   w.innerHTML = `<svg class="sa" viewBox="0 0 100 30" preserveAspectRatio="none"><path d="${g.ar}"/></svg><svg class="sl" viewBox="0 0 100 30" preserveAspectRatio="none"><path d="${g.ln}" vector-effect="non-scaling-stroke"/></svg><i style="top:${(g.y / 30 * 100).toFixed(1)}%"></i>`;
 }
 // Vom Zustandslauf je Kachel gerufen: höchstens jede Minute neu zeichnen, Daten fehlen/veraltet → bündelig nachladen

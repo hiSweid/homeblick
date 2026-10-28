@@ -4,6 +4,7 @@
 //   left = Sensor für die Anzeige rechts (Zeitstempel → Restzeit, Dauer/Min → „42 Min“, % → „63 %“), ohne Angabe der Wert von e, falls numerisch
 //   done = 'card' (Standard: bei Ende „fertig“-Karte, bleibt bis Wegwischen), 'pill' (nur die Pille zeigt 10 min „fertig“) oder 'none'
 // Ende = läuft → aus für OFF_MS am Stück (Waschmaschinen pausieren zwischen den Phasen kurz); nach dem Start gibt es kein falsches Ende (erste Auswertung stumm, unavailable zählt nicht).
+import { tx, LOC } from './i18n.js';
 const OFF_MS = 60000, DONE_MS = 600000, MAX = 3;   // MAX: so viele Live-Pillen gleichzeitig (Priorität = Reihenfolge der Regeln), mehr verdrängen sonst die Timer
 const ON = { binary_sensor: 'on', switch: 'on', input_boolean: 'on', light: 'on', fan: 'on', humidifier: 'on', siren: 'on', vacuum: 'cleaning', lawn_mower: 'mowing', media_player: 'playing', timer: 'active', climate: 'heating', water_heater: 'on', valve: 'open' };
 export const defOn = e => ON[e.split('.')[0]] || '';   // Standard-Zustände je Domain (für den Editor)
@@ -18,7 +19,7 @@ export function running(rule, s) {
   const n = parseFloat(s.state);
   return spec.some(x => { const m = /^(>=|<=|>|<)\s*(-?\d+(?:[.,]\d+)?)$/.exec(x); if (!m) return x === s.state; const v = +m[2].replace(',', '.'); return isFinite(n) && (m[1] === '>' ? n > v : m[1] === '<' ? n < v : m[1] === '>=' ? n >= v : n <= v); });
 }
-const dur = t => t >= 3600 ? `${t / 3600 | 0}:${pad(Math.ceil(t % 3600 / 60) % 60)} h` : t >= 60 ? `${Math.ceil(t / 60)} Min` : `${Math.max(1, Math.ceil(t))} s`;
+const dur = t => t >= 3600 ? `${t / 3600 | 0}:${pad(Math.ceil(t % 3600 / 60) % 60)} h` : t >= 60 ? tx('{n} Min', { n: Math.ceil(t / 60) }) : `${Math.max(1, Math.ceil(t))} s`;
 // Anzeige rechts aus einem Sensor
 export function detail(s, now = Date.now()) {
   if (!s || GONE.has(s.state)) return '';
@@ -28,7 +29,8 @@ export function detail(s, now = Date.now()) {
   if (u === 's') return n > 0 ? dur(n) : '';
   if (u === 'min') return n > 0 ? dur(n * 60) : '';
   if (u === 'h') return n > 0 ? dur(n * 3600) : '';
-  return `${Math.round(n * 10) / 10}`.replace('.', ',') + (u ? (u === '%' ? ' %' : ' ' + u) : '');
+  const q = (Math.round(n * 10) / 10).toLocaleString(LOC, { useGrouping: false, maximumFractionDigits: 1 });
+  return u === '%' ? tx('{v} %', { v: q }) : q + (u ? ' ' + u : '');
 }
 
 // Fortschritt 0–100 für den Ring: Prozent-Sensor direkt, Restzeit relativ zur größten gesehenen Restzeit (m.tot); null = unbekannt → Ring dreht sich
@@ -45,7 +47,7 @@ export function progress(s, m, now) {
 
 const ICONS = { wash: '<rect x="5" y="3.5" width="14" height="17" rx="2.5"/><circle cx="12" cy="13.5" r="3.6"/><path d="M8.5 7h.01M11.5 7h.01"/>', bolt: '<path d="M13 3 6 13.5h5L10 21l8-11h-5z"/>',
   mow: '<path d="M4 15h13l2-6h-5"/><circle cx="7" cy="17.8" r="2"/><circle cx="16" cy="17.8" r="2"/>', vac: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2.4"/>', dot: '<circle cx="12" cy="12" r="4" fill="currentColor"/>', ok: '<path d="m5 12.5 4.5 4.5L19 7.5"/>' };
-export const PILL_ICONS = { wash: 'Waschmaschine', bolt: 'Laden', mow: 'Mäher', vac: 'Sauger', dot: 'Punkt' };
+export const PILL_ICONS = { wash: tx('Waschmaschine'), bolt: tx('Laden‖Ladevorgang'), mow: tx('Mäher'), vac: tx('Sauger'), dot: tx('Punkt') };
 const COLOR = { wash: '#64d2ff', bolt: '#30d158', mow: '#a8e063', vac: '#bf5af2', dot: '#ffd60a', ok: '#30d158' };
 const iconOf = r => ICONS[r.icon] ? r.icon : r.e.startsWith('lawn_mower.') ? 'mow' : r.e.startsWith('vacuum.') ? 'vac' : 'dot';
 
@@ -74,7 +76,7 @@ export function pillsInit(screen, o) {
   const spring = () => { const c = n => getComputedStyle(document.documentElement).getPropertyValue(n); return { duration: +c('--sd').replace('ms', '') || 640, easing: c('--spring') || 'ease-out' }; };
   function eval1(rule, i, now) {
     const key = keyOf(rule, i), s = o.ents()[rule.e], m = mem.get(key) || (mem.set(key, { on: null, off: 0, done: 0 }), mem.get(key)), mode = rule.done || 'card', k = step(m, running(rule, s), mode, now), x = { rule, key, s, m };
-    if (k === 'end') { if (mode === 'card' && !o.quiet?.()) o.done?.(rule, `${rule.text || s.attributes.friendly_name || rule.e} ist fertig`); return { ...x, fin: true, pulse: true }; }
+    if (k === 'end') { if (mode === 'card' && !o.quiet?.()) o.done?.(rule, tx('{name} ist fertig', { name: rule.text || s.attributes.friendly_name || rule.e })); return { ...x, fin: true, pulse: true }; }
     if (k !== 'live') m.tot = 0;   // nächster Lauf zählt neu
     return k && { ...x, fin: k === 'fin' };
   }
@@ -97,7 +99,7 @@ export function pillsInit(screen, o) {
         }
       }
       if (host.children[i] !== el) host.insertBefore(el, host.children[i] || null);
-      const ic = x.fin ? 'ok' : iconOf(x.rule), name = x.rule.text || x.s?.attributes?.friendly_name || x.rule.e, d = x.fin ? 'fertig' : detail(o.ents()[x.rule.left] || (isFinite(parseFloat(x.s?.state)) ? x.s : null), now);
+      const ic = x.fin ? 'ok' : iconOf(x.rule), name = x.rule.text || x.s?.attributes?.friendly_name || x.rule.e, d = x.fin ? tx('fertig') : detail(o.ents()[x.rule.left] || (isFinite(parseFloat(x.s?.state)) ? x.s : null), now);
       el._r = x.rule; el.classList.toggle('fin', !!x.fin); el.style.cssText = tint(x.fin ? 'ok' : iconOf(x.rule)) + (el._v == null ? '' : `;--v:${el._v}`);
       const pr = x.fin ? 100 : progress(o.ents()[x.rule.left] || (isFinite(parseFloat(x.s?.state)) ? x.s : null), x.m, now);
       el.classList.toggle('ind', pr == null); if (pr != null) {   // Ring: Fortschritt oder, wenn unbekannt, ein kreisender Bogen; nur ab 1 % Sprung neu setzen (jede Änderung startet eine 0,9-s-Übergangsanimation auf dem Main-Thread, bei 1-s-Takt wäre sie Dauerlast)

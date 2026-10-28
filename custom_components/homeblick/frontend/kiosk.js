@@ -20,7 +20,7 @@ export function kioskInit({ faces, conf, busy, touched, onState, onWake, music, 
     const r = document.documentElement; r.classList.add('vt-blur');
     document.startViewTransition(() => goto(i, 'instant')).finished.catch(() => {}).finally(() => r.classList.remove('vt-blur'));
   };
-  let last = Date.now(), back = -1, st = {};   // back = Face vor dem Screensaver
+  let last = Date.now(), back = -1, st = {}, urlFace;   // back = Face vor dem Screensaver
 
   // Display wach halten (braucht https/localhost; unter http gibt es kein wakeLock → still ignorieren)
   // System gibt die Sperre frei (Energiesparen, Tab-Wechsel) → bei Sichtbarkeit neu anfordern; Tippen versucht es erneut
@@ -63,6 +63,7 @@ export function kioskInit({ faces, conf, busy, touched, onState, onWake, music, 
       const s = saver(); if (s >= 0 && s !== idx()) fade(s);
     }
     const face = faces.children[idx()]?.className.match(/f-(\w+)/)?.[1] ?? null;
+    if (back < 0 && face && face !== urlFace) { urlFace = face; if (location.hash.slice(1) !== face) history.replaceState(null, '', '#' + face); }   // Adresse folgt dem Face (Wischen/Tippen) → jede Ansicht ist per URL #<typ> direkt aufrufbar; replaceState löst kein hashchange aus
     if (onState && (face !== st.face || (back >= 0) !== st.saver)) onState(st = { face, saver: back >= 0 });
     paint();
   }, 1000);

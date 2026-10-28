@@ -1,3 +1,4 @@
+import { tx } from './i18n.js';
 // conf.faces = angezeigte Faces in der Reihenfolge des Displays (frei, in der Live-Bearbeitung der Einstellungsseite änderbar), conf.off = ausgeblendete mit ihrer Konfiguration (bleibt erhalten).
 // Jedes Face hat eine eindeutige id (Typ, bei weiteren desselben Typs mit Zähler: grid, grid2, …).
 const ids = list => { const n = {}; for (const f of list) f.id ||= (n[f.type] = (n[f.type] || 0) + 1) > 1 ? f.type + n[f.type] : f.type; };
@@ -21,7 +22,7 @@ const cleanTile = t => { for (const k of ['e', 'title', 'sub', 'icon', 'kind', '
 // Kacheln haben „Smart Home“ und „Energie“; Energie ohne gespeicherte Kacheln startet mit den bisherigen acht (ENERGY_TILES), ein leeres Feld bleibt leer
 export const hasTiles = f => f.type === 'grid' || f.type === 'energy';
 export const ENERGY_TILES = [{ kind: 'en', k: 'pv', w: 2 }, { kind: 'en', k: 'aut' }, { kind: 'en', k: 'use' }, { kind: 'en', k: 'bat' }, { kind: 'en', k: 'car' }, { kind: 'en', k: 'day' }, { kind: 'en', k: 'tmr' }, { kind: 'clock' }];
-export const EN_NAMES = { pv: 'Solar jetzt', aut: 'Autarkie', use: 'Verbrauch', bat: 'Akku', car: 'Auto', day: 'Heute', tmr: 'Morgen' };   // kind 'en': k = Schlüssel; title überschreibt den Namen
+export const EN_NAMES = { pv: tx('Solar jetzt'), aut: tx('Autarkie'), use: tx('Verbrauch'), bat: tx('Akku'), car: tx('Auto'), day: tx('Heute'), tmr: tx('Morgen') };   // kind 'en': k = Schlüssel; title überschreibt den Namen
 export const enSizes = k => k === 'pv' ? ['2x1', '2x2'] : k === 'aut' ? ['1x1', '2x2'] : ['1x1', '2x1', '2x2'];   // Ring (autark) und Solarkurve sind nur für diese Maße gezeichnet
 const goodTile = t => t && typeof t === 'object' && (t.kind !== 'en' || t.k in EN_NAMES);
 const cleanFaces = l => (Array.isArray(l) ? l : []).filter(f => f && FACE_TYPES.includes(f.type)).map(f => { if (hasTiles(f)) f.tiles = Array.isArray(f.tiles) ? f.tiles.filter(t => goodTile(t) && (t.kind !== 'en' || f.type === 'energy')).map(cleanTile) : f.type === 'energy' ? structuredClone(ENERGY_TILES) : []; return f; });

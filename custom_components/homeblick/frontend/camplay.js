@@ -1,3 +1,4 @@
+import { tx } from './i18n.js';
 // Livebild einer HA-Kamera über die Verbindung des Displays: WebRTC (camera/webrtc/*), sonst HLS (camera/stream).
 // Löst mit stop() auf, sobald der Stream angefordert ist; wirft, wenn die Kamera keinen Stream anbietet (Aufrufer fällt auf MJPEG zurück).
 // Das Bild erscheint im übergebenen <video> (Ereignis „playing“). fail() meldet einen späteren Abbruch (ICE/HLS).
@@ -23,7 +24,7 @@ export async function live(conn, e, video, hass = '', fail = () => {}, o = {}) {
     try { return await open((n, die) => webrtc(conn, e, video, die, n.ms)); } catch (err) { console.warn('WebRTC', e, err?.message || err); }
   }
   if (caps.includes('hls')) return hls(conn, e, video, hass, fail);
-  throw new Error('Kamera bietet keinen Stream');
+  throw new Error(tx('Kamera bietet keinen Stream'));
 }
 
 // go2rtc-WHEP: Angebot (ohne Trickle, LAN) per POST, Antwort kommt als SDP; n.tr = Audio-Transceiver (Sprechen)
@@ -32,7 +33,7 @@ async function whep(g, video, die, n, talk) {
   let dead = false;
   const stop = () => { dead = true; pc.close(); video.srcObject = null; };
   pc.ontrack = ev => { n.ms.addTrack(ev.track); video.srcObject = n.ms; };
-  pc.onconnectionstatechange = () => { if (!dead && pc.connectionState === 'failed') { stop(); die(new Error('WebRTC-Verbindung fehlgeschlagen')); } };
+  pc.onconnectionstatechange = () => { if (!dead && pc.connectionState === 'failed') { stop(); die(new Error(tx('WebRTC-Verbindung fehlgeschlagen'))); } };
   try {
     pc.addTransceiver('video', { direction: 'recvonly' });
     n.g = g; n.tr = pc.addTransceiver('audio', { direction: talk ? 'sendrecv' : 'recvonly' });
@@ -49,11 +50,11 @@ async function whep(g, video, die, n, talk) {
 export async function talk(e, on) {
   const n = shared.get(e);
   if (!on) { n?.tr?.sender.replaceTrack(null); n?.mic?.getTracks().forEach(t => t.stop()); if (n) n.mic = null; return; }
-  if (!n?.tr) throw new Error('Kamera nicht verbunden');
-  if (!navigator.mediaDevices?.getUserMedia) throw new Error('Mikrofon braucht https');
+  if (!n?.tr) throw new Error(tx('Kamera nicht verbunden'));
+  if (!navigator.mediaDevices?.getUserMedia) throw new Error(tx('Mikrofon braucht https'));
   // go2rtc nimmt „sendrecv“ immer an; ein Rückkanal besteht nur, wenn die Quelle selbst Audio empfängt (Producer-Medien „audio, sendonly“)
   const back = n.g ? await fetch(`${n.g.url.replace(/\/$/, '')}/api/streams?src=${encodeURIComponent(n.g.stream)}`).then(r => r.json()).then(j => j.producers?.some(p => p.medias?.some(m => /^audio, sendonly/.test(m)))).catch(() => false) : /send/.test(n.tr.currentDirection || '');
-  if (!back) throw new Error('Kamera hat keinen Rückkanal');
+  if (!back) throw new Error(tx('Kamera hat keinen Rückkanal'));
   n.mic = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
   await n.tr.sender.replaceTrack(n.mic.getAudioTracks()[0]);
 }
@@ -66,7 +67,7 @@ async function webrtc(conn, e, video, fail, ms) {
   const die = err => { if (dead) return; stop(); fail(err); };
   const send = candidate => conn.sendMessagePromise({ type: 'camera/webrtc/candidate', entity_id: e, session_id: sid, candidate }).catch(() => {});
   pc.ontrack = ev => { ms.addTrack(ev.track); video.srcObject = ms; };
-  pc.onconnectionstatechange = () => pc.connectionState === 'failed' && die(new Error('WebRTC-Verbindung fehlgeschlagen'));
+  pc.onconnectionstatechange = () => pc.connectionState === 'failed' && die(new Error(tx('WebRTC-Verbindung fehlgeschlagen')));
   pc.onicecandidate = ev => ev.candidate && (sid ? send(ev.candidate.toJSON()) : queue.push(ev.candidate.toJSON()));
   try {
     pc.addTransceiver('video', { direction: 'recvonly' });
@@ -90,7 +91,7 @@ async function hls(conn, e, video, hass, fail) {
   if (video.canPlayType('application/vnd.apple.mpegurl')) { video.src = src; return () => (video.removeAttribute('src'), video.load()); }
   // ponytail: hls.js vom CDN (wie js-websocket); lokal bündeln, wenn Displays ohne Internet laufen sollen (F124)
   const { default: Hls } = await import('https://cdn.jsdelivr.net/npm/hls.js@1/dist/hls.mjs');
-  if (!Hls.isSupported()) throw new Error('HLS nicht unterstützt');
+  if (!Hls.isSupported()) throw new Error(tx('HLS nicht unterstützt'));
   const h = new Hls({ lowLatencyMode: true });
   h.on(Hls.Events.ERROR, (_, d) => d.fatal && fail(new Error('HLS: ' + d.details)));
   h.loadSource(src); h.attachMedia(video);

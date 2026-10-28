@@ -1,6 +1,7 @@
 // Apple-Watch-artige Zifferblätter: analog „chrono“, „utility“, „meridian“; digital „typo“, „rings“.
 // Farbe folgt dem Hintergrund des Face: Farbton (Zahl) = getönt, Schwarz = dunkel, Weiß = hell; „auto“ nachts = dunkel.
 // Zeiger sind eigene SVG-Ebenen (.wh, data-per = Umlaufzeit in s) und werden in index.html per WAAPI animiert (GPU, wie die übrigen Uhren).
+import { tx, LOC } from './i18n.js';
 export const WF = { chrono: 'analog', utility: 'analog', meridian: 'analog', typo: 'bigclock', rings: 'bigclock', solar: 'bigclock', moon: 'bigclock', modular: 'bigclock' };
 const DARK = { chrono: 1, rings: 1 };   // Standard je Stil; Schwarz/Weiß am Face überschreibt
 
@@ -49,11 +50,12 @@ const layer = (cls, per, body, pos) => `<svg class="wh ${cls}" data-per="${per}"
 const bar = (len, w, tail = 0) => `<rect x="${50 - w / 2}" y="${50 - len}" width="${w}" height="${len + tail}" rx="${w / 2}" fill="var(--ink)"/><rect x="${50 - w * .2}" y="${50 - len + w * .7}" width="${w * .4}" height="${len * .46}" rx="${w * .2}" fill="var(--hole)"/>`;
 const secHand = (len, tail, w = .8, ring = 1.9) => `<rect x="${50 - w / 2}" y="${50 - len}" width="${w}" height="${len + tail}" rx="${w / 2}" fill="var(--acc)"/><circle cx="50" cy="${50 + tail - 1.6}" r="${w * 2.6}" fill="var(--acc)"/><circle cx="50" cy="50" r="${ring}" fill="var(--acc)"/><circle cx="50" cy="50" r="${ring * .38}" fill="var(--hole)"/>`;
 
+const SUBL = { SEK: tx('SEK'), MIN: tx('MIN'), STD: tx('STD') };   // Teilzifferblätter: Schlüssel bleibt deutsch (Logik), nur die Anzeige wird übersetzt
 function chrono() {
   const subs = [[30, 50, 11.4, 'SEK', 60], [70, 50, 11.4, 'MIN', 1800], [50, 71.5, 11.4, 'STD', 43200]];
   const dial = `<g stroke="var(--ink)" stroke-linecap="round">${tk(60, 48.4, 45.8, .28, i => i % 5 === 0, .55)}${tk(12, 48.4, 43.2, 1.5, null)}</g>
 ${txt(50, 20.6, '12', 9.4, 'font-weight="500" fill="var(--ink)"')}${txt(50, 36.6, 'HOMEBLICK', 2.7, 'font-weight="600" letter-spacing=".5" fill="var(--dim)"')}`
-    + subs.map(([x, y, r, l]) => `<circle cx="${x}" cy="${y}" r="${r}" fill="var(--sub)"/><circle cx="${x}" cy="${y}" r="${r}" fill="none" stroke="var(--ink)" stroke-opacity=".14" stroke-width=".35"/><g stroke="var(--ink)" stroke-linecap="round" opacity=".7">${tk(l === 'MIN' ? 30 : 12, r - .9, r - 2.6, .35, null, 1, x - 50, y - 50)}</g>${txt(x, y + 6.6, l, 2.5, 'font-weight="600" letter-spacing=".3" fill="var(--dim)"')}`).join('');
+    + subs.map(([x, y, r, l]) => `<circle cx="${x}" cy="${y}" r="${r}" fill="var(--sub)"/><circle cx="${x}" cy="${y}" r="${r}" fill="none" stroke="var(--ink)" stroke-opacity=".14" stroke-width=".35"/><g stroke="var(--ink)" stroke-linecap="round" opacity=".7">${tk(l === 'MIN' ? 30 : 12, r - .9, r - 2.6, .35, null, 1, x - 50, y - 50)}</g>${txt(x, y + 6.6, SUBL[l], 2.5, 'font-weight="600" letter-spacing=".3" fill="var(--dim)"')}`).join('');
   const sh = (x, y, r, per) => layer('wh-sub', per, `<rect x="-.45" y="${-r + 1.6}" width=".9" height="${r - 1.6 + 2.4}" rx=".45" fill="var(--acc)"/><circle r="1.15" fill="var(--acc)"/><circle r=".42" fill="var(--hole)"/>`, [x, y, r]);
   return { svg: `<svg class="wd" viewBox="0 0 100 100">${dial}</svg>`, hands: subs.map(([x, y, r, , per]) => sh(x, y, r, per)).join('') + layer('wh-h', 43200, `<g class="sd">${bar(26, 3.6)}</g>`) + layer('wh-m', 3600, `<g class="sd">${bar(40, 2.7)}</g>`) + layer('wh-s', 60, `<g class="sd">${secHand(45, 12)}</g>`) + `<svg class="wh cap" viewBox="0 0 100 100"><circle cx="50" cy="50" r="2.7" fill="var(--ink)"/><circle cx="50" cy="50" r="1.5" fill="var(--acc)"/></svg>` };
 }
@@ -74,7 +76,7 @@ function meridian() {
   const leaf = (len, w) => `<path d="M50 ${50 - len} L${50 + w} 51.5 L50 55.5 L${50 - w} 51.5Z" fill="var(--gold)"/><path d="M50 ${50 - len} L${50 + w} 51.5 L50 55.5Z" fill="var(--gold2)"/><path d="M50 ${50 - len} L${50 + w} 51.5 L50 55.5 L${50 - w} 51.5Z" fill="none" stroke="var(--ink)" stroke-opacity=".28" stroke-width=".25" stroke-linejoin="round"/>`;
   return { svg: `<svg class="wd" viewBox="0 0 100 100"><circle cx="50" cy="50" r="46.6" fill="none" stroke="var(--gold)" stroke-width=".35" opacity=".7"/><circle cx="50" cy="50" r="40.6" fill="none" stroke="var(--gold)" stroke-width=".2" opacity=".45"/>
 <g stroke="var(--ink)" stroke-linecap="round">${tk(60, 46.6, 44.2, .26, i => i % 5 === 0, .65)}${tk(12, 46.6, 41.6, .9, i => i % 3 === 0)}${tk(4, 46.6, 41.6, 1.4, null)}</g>${nums}
-${txt(50, 66.4, 'AUTOMATIK', 2.7, 'font-family="Georgia,serif" letter-spacing=".9" fill="var(--dim)"')}</svg>`,
+${txt(50, 66.4, tx('AUTOMATIK'), 2.7, 'font-family="Georgia,serif" letter-spacing=".9" fill="var(--dim)"')}</svg>`,
     hands: layer('wh-h', 43200, `<g class="sd">${leaf(30, 3.5)}</g>`) + layer('wh-m', 3600, `<g class="sd">${leaf(42, 2.7)}</g>`) + layer('wh-s', 60, `<g class="sd"><rect x="49.75" y="8" width=".5" height="52" fill="var(--acc)"/><circle cx="50" cy="55" r="1.4" fill="none" stroke="var(--acc)" stroke-width=".5"/></g>`) + `<svg class="wh cap" viewBox="0 0 100 100"><circle cx="50" cy="50" r="2.4" fill="var(--gold)" stroke="var(--gold2)" stroke-width=".4"/><circle cx="50" cy="50" r=".9" fill="var(--acc)"/></svg>` };
 }
 
@@ -95,8 +97,8 @@ const solar = () => { const id = 'sl' + ++SN; return { html: `<svg class="wd" vi
 <line x1="0" y1="62" x2="100" y2="62" stroke="var(--hz)" stroke-width=".4"/><g stroke="var(--hz)" stroke-width=".4">${[0, 6, 12, 18, 24].map(h => `<line x1="${h / 24 * 100}" y1="62" x2="${h / 24 * 100}" y2="${h % 12 ? 64 : 65}"/>`).join('')}</g>
 <g class="wfsun"><circle r="9" fill="url(#${id}s)"/><circle r="2.4" fill="#fff8d6"/></g>
 <text data-bind="hm" x="50" y="34" font-size="20" font-weight="300" text-anchor="middle" fill="var(--ink)" letter-spacing="-.5"></text><text data-bind="dsh" x="50" y="12" font-size="4.4" font-weight="600" text-anchor="middle" fill="var(--dim)" letter-spacing=".5" style="text-transform:uppercase"></text>
-<text x="18" y="79" font-size="3.2" font-weight="600" text-anchor="middle" fill="var(--dim)" letter-spacing=".4">AUFGANG</text><text class="wsr" x="18" y="88" font-size="7" font-weight="500" text-anchor="middle" fill="var(--ink)">–</text>
-<text x="82" y="79" font-size="3.2" font-weight="600" text-anchor="middle" fill="var(--dim)" letter-spacing=".4">UNTERGANG</text><text class="wss" x="82" y="88" font-size="7" font-weight="500" text-anchor="middle" fill="var(--ink)">–</text></svg>
+<text x="18" y="79" font-size="3.2" font-weight="600" text-anchor="middle" fill="var(--dim)" letter-spacing=".4">${tx('AUFGANG')}</text><text class="wsr" x="18" y="88" font-size="7" font-weight="500" text-anchor="middle" fill="var(--ink)">–</text>
+<text x="82" y="79" font-size="3.2" font-weight="600" text-anchor="middle" fill="var(--dim)" letter-spacing=".4">${tx('UNTERGANG')}</text><text class="wss" x="82" y="88" font-size="7" font-weight="500" text-anchor="middle" fill="var(--ink)">–</text></svg>
 <div class="wswx"><i class="wi" data-wxi></i><span data-bind="wxt"></span></div>` }; };
 // Mond: Phase aus dem Datum (synodischer Monat ab Neumond 2000-01-06 18:14 UTC)
 const moon = () => { const id = 'mn' + ++SN, st = Array.from({ length: 34 }, (_, i) => { const r = n => { const x = Math.sin(i * 97.13 + n * 31.7) * 43758.5453; return x - Math.floor(x); }; return `<circle cx="${(r(1) * 100).toFixed(1)}" cy="${(r(2) * 100).toFixed(1)}" r="${(.2 + r(3) * .5).toFixed(2)}" opacity="${(.25 + r(4) * .6).toFixed(2)}"/>`; }).join(''); return { html: `<svg class="wd" viewBox="0 0 100 100"><defs><radialGradient id="${id}g" cx=".38" cy=".34"><stop offset="0" stop-color="#fffdf2"/><stop offset=".7" stop-color="#dad7c7"/><stop offset="1" stop-color="#a09e90"/></radialGradient><radialGradient id="${id}h"><stop offset=".6" stop-color="var(--halo)"/><stop offset="1" stop-color="#cfd8ff" stop-opacity="0"/></radialGradient><clipPath id="${id}c"><circle cx="50" cy="40" r="22"/></clipPath></defs>
@@ -106,9 +108,9 @@ const moon = () => { const id = 'mn' + ++SN, st = Array.from({ length: 34 }, (_,
 const mring = c => `<svg class="wmr" viewBox="-10 -10 20 20"><circle r="7.6" fill="none" stroke="var(--${c})" stroke-opacity=".25" stroke-width="2.4"/><circle class="wmp" r="7.6" fill="none" stroke="var(--${c})" stroke-width="2.4" stroke-linecap="round" pathLength="1" stroke-dasharray="var(--p,0) 1" transform="rotate(-90)"/>`;
 const modular = () => ({ html: `<div class="wmt" data-bind="hm"></div><div class="wmd" data-bind="dsh"></div>
 <div class="wmg"><div class="wmc wmw"><div class="wmwt"><i class="wi" data-wxi></i><b data-bind="wxt"></b></div><small data-bind="wxc"></small></div>
-<div class="wmc wme"><em class="wet">–</em><b class="wen">Keine Termine</b><small class="wer"></small></div>
-<div class="wmc wms">${mring('yel')}<g fill="none" stroke="var(--yel)" stroke-width="1.2" stroke-linecap="round"><circle r="2"/><path d="M0-4.6v1.4M0 3.2v1.4M-4.6 0h1.4M3.2 0h1.4M-3.3-3.3l1 1M2.3 2.3l1 1M3.3-3.3l-1 1M-2.3 2.3l-1 1"/></g></svg><span><b class="wpv">–</b><small>kW Solar</small></span></div>
-<div class="wmc wmbat">${mring('grn')}<path d="M1.2-4.4L-2.2 .6h2.6l-1 3.8L2.4-.8H-.2z" fill="var(--grn)"/></svg><span><b class="wsoc">–</b><small>% Akku</small></span></div></div>` });
+<div class="wmc wme"><em class="wet">–</em><b class="wen">${tx('Keine Termine')}</b><small class="wer"></small></div>
+<div class="wmc wms">${mring('yel')}<g fill="none" stroke="var(--yel)" stroke-width="1.2" stroke-linecap="round"><circle r="2"/><path d="M0-4.6v1.4M0 3.2v1.4M-4.6 0h1.4M3.2 0h1.4M-3.3-3.3l1 1M2.3 2.3l1 1M3.3-3.3l-1 1M-2.3 2.3l-1 1"/></g></svg><span><b class="wpv">–</b><small>${tx('kW Solar')}</small></span></div>
+<div class="wmc wmbat">${mring('grn')}<path d="M1.2-4.4L-2.2 .6h2.6l-1 3.8L2.4-.8H-.2z" fill="var(--grn)"/></svg><span><b class="wsoc">–</b><small>${tx('% Akku')}</small></span></div></div>` });
 
 const PARTS = { chrono, utility, meridian, typo, rings, solar, moon, modular };
 
@@ -146,14 +148,14 @@ export function wfTick(d, sun) {
   for (const r of document.querySelectorAll('.wf-moon')) {
     const syn = 29.530588853, p = (((d - Date.UTC(2000, 0, 6, 18, 14)) / 864e5 % syn) + syn) % syn / syn, w = p < .5, pp = w ? p : 1 - p, rx = 22 * Math.abs(Math.cos(2 * Math.PI * pp));
     const l = r.querySelector('.wfmlit'); l.setAttribute('d', `M50,18A22,22 0 0 1 50,62A${rx.toFixed(2)},22 0 0 ${pp < .25 ? 0 : 1} 50,18Z`); l.setAttribute('transform', w ? '' : 'translate(100 0) scale(-1 1)');
-    r.querySelector('.wmph').textContent = `${Math.round((1 - Math.cos(2 * Math.PI * p)) / 2 * 100)} % BELEUCHTET · ${p < .03 || p > .97 ? 'NEUMOND' : p < .47 ? 'ZUNEHMEND' : p < .53 ? 'VOLLMOND' : 'ABNEHMEND'}`;
+    r.querySelector('.wmph').textContent = `${tx('{p} % BELEUCHTET', { p: Math.round((1 - Math.cos(2 * Math.PI * p)) / 2 * 100) })} · ${p < .03 || p > .97 ? tx('NEUMOND') : p < .47 ? tx('ZUNEHMEND') : p < .53 ? tx('VOLLMOND') : tx('ABNEHMEND')}`;
   }
 }
 // Modular: Solar und Akku aus der Energie-Auswertung (energyNow), nächster Termin aus der Terminliste
 export function wfEnergy(en) {
   for (const r of document.querySelectorAll('.wf-modular')) {
     const pv = en?.okPv ? en.pv / 1000 : null, soc = en?.okSoc ? en.soc : null;
-    r.querySelector('.wpv').textContent = pv == null ? '–' : pv.toLocaleString('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+    r.querySelector('.wpv').textContent = pv == null ? '–' : pv.toLocaleString(LOC, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
     r.querySelector('.wms .wmp').style.setProperty('--p', pv == null ? 0 : Math.min(1, pv / 7));   // ponytail: Ring voll bei 7 kW (Anlagengröße), später aus Einstellung
     r.querySelector('.wsoc').textContent = soc == null ? '–' : Math.round(soc);
     r.querySelector('.wmbat .wmp').style.setProperty('--p', soc == null ? 0 : Math.min(1, soc / 100));
@@ -162,9 +164,9 @@ export function wfEnergy(en) {
 export function wfEvent(list, now = new Date()) {
   const e = list?.find(x => !x.allDay && x.end > now), min = e && Math.round((e.start - now) / 6e4);
   for (const r of document.querySelectorAll('.wf-modular .wme')) {
-    r.querySelector('.wet').textContent = e ? e.start.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : '';
-    r.querySelector('.wen').textContent = e ? e.title : list ? 'Keine Termine' : '–';
-    r.querySelector('.wer').textContent = !e ? '' : min <= 0 ? 'läuft' : min < 60 ? `in ${min} Min.` : min < 1440 ? `in ${Math.round(min / 60)} Std.` : e.start.toLocaleDateString('de-DE', { weekday: 'long' });
+    r.querySelector('.wet').textContent = e ? e.start.toLocaleTimeString(LOC, { hour: '2-digit', minute: '2-digit' }) : '';
+    r.querySelector('.wen').textContent = e ? e.title : list ? tx('Keine Termine') : '–';
+    r.querySelector('.wer').textContent = !e ? '' : min <= 0 ? tx('läuft') : min < 60 ? tx('in {n} Min.', { n: min }) : min < 1440 ? tx('in {n} Std.', { n: Math.round(min / 60) }) : e.start.toLocaleDateString(LOC, { weekday: 'long' });
   }
 }
 

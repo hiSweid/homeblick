@@ -12,6 +12,7 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="preload" href="fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
 <!-- Modulgraph parallel zum HTML laden statt erst nach dem Parsen des Skripts (tests/preload.test.mjs prüft Vollständigkeit) -->
+<link rel="modulepreload" href="i18n.js">
 <link rel="modulepreload" href="weather.js">
 <link rel="modulepreload" href="energy.js">
 <link rel="modulepreload" href="faces.js">
@@ -119,7 +120,7 @@ svg.i{width:1em;height:1em;flex:none;fill:none;stroke:currentColor;stroke-width:
 .tile[data-size="2x2"] .ico{font-size:20cqw}
 .tile[data-size="2x2"] :is(.ttl,.sub){font-size:4.4cqw}
 /* nach den Größenregeln: sonst überstimmt font-size der 2x2-Kachel die ausgeblendete Zeile */
-.tile[data-arm] .sub{font-size:0}.tile[data-arm] .sub::after{content:"Nochmal tippen";font-size:3cqw}.tile[data-arm=hold] .sub::after{content:"Halten zum Öffnen"}
+.tile[data-arm] .sub{font-size:0}.tile[data-arm] .sub::after{content:var(--t-again);font-size:3cqw}.tile[data-arm=hold] .sub::after{content:var(--t-hold)}
 .tile[data-size="2x1"]:not(.thermo){flex-direction:row;justify-content:flex-start;gap:4cqw;padding:0 5cqw;text-align:left}
 /* Stil-Varianten (Ideen-Galerie), im Layout der Apple-Vorlage (Website highlights/dashboard): zentriert wie die Thermostat-Zahl 68 mit Titel/Untertitel darunter, Glas, weiße An-Fläche, Ring/Kreis nur als dünne weiße Linie.
    value = Messwert groß statt Symbol (Sensor), circle = Symbol im Kreis (Szene, Schalter, Ventilator …), fill = Licht als Dimmer (weiße Fläche steigt) */
@@ -1067,6 +1068,7 @@ input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:tr
 </div>
 
 <script type="module">
+import { tx, LOC, LANG } from './i18n.js';
 import { weatherFace, weather, weatherHours, weatherNear, weatherPlaces, COND } from './weather.js';
 import { energyFace, energyTile, energy, energyDemo, energyInit, energyEnts, energyDetail, energyNow } from './energy.js';
 import { kioskInit, KIOSK_DEF, luxLevel, inWindow, mins } from './kiosk.js';
@@ -1156,7 +1158,7 @@ if (PREVIEW) {
   const showMenu = (x, y) => {
     closeMenu();
     const r = screen.getBoundingClientRect();
-    menu = Object.assign(document.createElement('div'), { id: 'pvmenu', innerHTML: [['add', 'Widget hinzufügen'], ['edit', 'Anpassen'], ['bg', 'Hintergrund ändern']].map(([k, t]) => `<button data-pm="${k}">${t}</button>`).join('') });
+    menu = Object.assign(document.createElement('div'), { id: 'pvmenu', innerHTML: [['add', tx('Widget hinzufügen')], ['edit', tx('Anpassen')], ['bg', tx('Hintergrund ändern')]].map(([k, t]) => `<button data-pm="${k}">${t}</button>`).join('') });
     screen.append(menu);
     menu.style.left = Math.max(2, Math.min(x - r.left, r.width - menu.offsetWidth - 2)) + 'px'; menu.style.top = Math.max(2, Math.min(y - r.top, r.height - menu.offsetHeight - 2)) + 'px';
   };
@@ -1306,6 +1308,7 @@ function spring(response = .5, damping = .86, n = 48) {
 const [SPRING, SD] = spring(.3);   // response .30 statt .5: Apple-Gesten dauern 130–330 ms (STEUERUNG.md P1-2)
 root.style.setProperty('--spring', SPRING);
 root.style.setProperty('--sd', SD + 'ms');
+root.style.setProperty('--t-again', JSON.stringify(tx('Nochmal tippen'))); root.style.setProperty('--t-hold', JSON.stringify(tx('Halten zum Öffnen')));   // Texte der CSS-Hinweise (.sub::after)
 const [FLY, FD] = spring(.18, 1);   // Kachel → Vollbild: kritisch gedämpft, 98 % nach ≈ 165 ms (hkrYiZ_g9tw 111,52–111,65 s: 125 ms, mit Nachsetzen ≈ 170 ms)
 const [UP, UD] = spring(.28, 1);   // Kamera von unten ≈ 270 ms (v3wcg4Vi4u0 252,37–252,63 s, QFRp7dbxciE 300,4 s)
 
@@ -1337,27 +1340,27 @@ function applyBg(el, bg) {
 // ---------- Konfiguration (localStorage) ----------
 // night: Variante der Kachel nach Sonnenuntergang; bg 'auto' = Farbe nach Tageszeit
 // Nachts: „Gute Nacht“ am Kameraplatz, Intercom an der Stelle von „Guten Morgen“; noop = Tippen ohne Funktion
-const NIGHT_SCENE = { e: 'scene.gute_nacht', icon: 'moon', title: 'Gute Nacht', sub: 'Szene' };
-const NIGHT_INTERCOM = { e: '', noop: true, icon: 'intercom', title: 'Intercom', sub: 'Überall' };
+const NIGHT_SCENE = { e: 'scene.gute_nacht', icon: 'moon', title: tx('Gute Nacht'), sub: tx('Szene') };
+const NIGHT_INTERCOM = { e: '', noop: true, icon: 'intercom', title: 'Intercom', sub: tx('Überall') };
 const DEF = { cams: 1, energy: 1, dyn: 2, faces: [   // Flags: Migrationen unten gelten nur für ältere gespeicherte Konfigurationen
   { type: 'grid', bg: 'auto', tiles: [
-    { kind: 'thermo', e: 'climate.wohnzimmer_ac_mqtt_hvac', title: 'Thermostat', sub: 'Wohnzimmer', w: 2, h: 2 },
+    { kind: 'thermo', e: 'climate.wohnzimmer_ac_mqtt_hvac', title: 'Thermostat', sub: tx('Wohnzimmer'), w: 2, h: 2 },
     { kind: 'clock' },
-    { e: 'camera.turklingel', title: 'Türklingel', sub: 'Haustür', night: NIGHT_SCENE },
-    { e: 'scene.guten_morgen', icon: 'sun', title: 'Guten Morgen', sub: 'Szene', night: NIGHT_INTERCOM },
-    { e: 'lock.eingangstur', title: 'Türschloss', sub: 'Haustür' },
-    { e: 'light.flur', icon: 'pendant', title: 'Licht', sub: 'Flur' },
+    { e: 'camera.turklingel', title: tx('Türklingel'), sub: tx('Haustür'), night: NIGHT_SCENE },
+    { e: 'scene.guten_morgen', icon: 'sun', title: tx('Guten Morgen'), sub: tx('Szene'), night: NIGHT_INTERCOM },
+    { e: 'lock.eingangstur', title: tx('Türschloss'), sub: tx('Haustür') },
+    { e: 'light.flur', icon: 'pendant', title: tx('Licht'), sub: tx('Flur') },
   ] },
   { type: 'music', bg: 'black' },
   { type: 'bigclock', bg: 150 },
   { type: 'grid', bg: 228, tiles: [
-    { e: 'light.wohnzimmer', title: 'Licht', sub: 'Wohnzimmer' },
-    { e: 'light.kuche', title: 'Licht', sub: 'Küche' },
+    { e: 'light.wohnzimmer', title: tx('Licht'), sub: tx('Wohnzimmer') },
+    { e: 'light.kuche', title: tx('Licht'), sub: tx('Küche') },
     { kind: 'clock' },
-    { e: 'cover.garagentor', title: 'Tor', sub: 'Garage' },
-    { e: 'timer.kuche', title: 'Timer', sub: 'Küche' },
-    { e: 'lock.eingangstur', title: 'Türschloss', sub: 'Haustür' },
-    { kind: 'thermo', e: 'climate.wohnzimmer_ac_mqtt_hvac', title: 'Thermostat', sub: 'Wohnzimmer' },
+    { e: 'cover.garagentor', title: tx('Tor'), sub: 'Garage' },
+    { e: 'timer.kuche', title: 'Timer', sub: tx('Küche') },
+    { e: 'lock.eingangstur', title: tx('Türschloss'), sub: tx('Haustür') },
+    { kind: 'thermo', e: 'climate.wohnzimmer_ac_mqtt_hvac', title: 'Thermostat', sub: tx('Wohnzimmer') },
   ] },
   { type: 'weather', bg: 212 },
   { type: 'energy', bg: 'auto' },   // Glas auf Wallpaper wie das Home-Face (Tag/Nacht)
@@ -1427,7 +1430,7 @@ function place(el, f) {
 
 // ---------- Ansichten bauen ----------
 const svg = (id, cls = '') => `<svg class="i ${cls}"><use href="#${esc(id)}"/></svg>`;
-const chev = d => `<button class="chev" data-act="${d}" aria-label="${d === 'up' ? 'Wärmer' : 'Kälter'}">${svg(d)}</button>`;
+const chev = d => `<button class="chev" data-act="${d}" aria-label="${d === 'up' ? tx('Wärmer') : tx('Kälter')}">${svg(d)}</button>`;
 const kindOf = t => t.kind || (t.e?.startsWith('climate.') ? 'thermo' : 'tile');
 const iconOf = t => { const d = t.e?.split('.')[0]; return t.icon || (t.kind === 'multi' && (t.dom === 'cover' ? 'blind' : ICON[t.dom])) || (d === 'cover' && st(t.e).attributes.device_class !== 'garage' ? 'blind' : ICON[d]) || 'house'; };
 function tileEl(c) {
@@ -1452,18 +1455,19 @@ function tileEl(c) {
   else if (kind === 'thermo') { el.className = 'tile thermo'; el.innerHTML = `<div class="num" data-temp="${esc(t.e)}"></div><div class="foot">${chev('down')}${label}${chev('up')}</div>`; }
   else {
     el.className = 'tile';
-    el.innerHTML = (t.e?.startsWith('camera.') ? '<div class="feed"></div>' + (t.sv === 'live' ? '<div class="lvp"></div><div class="mch">Bewegung</div>' : '') : '') + (t.sv === 'fill' || t.sv === 'blind' ? '<div class="fill"></div><div class="pct"></div>' : t.sv === 'cover' ? `<div class="art"></div><div class="pill">${esc(t.title)}</div><div class="pct"></div><div class="cvr"><button data-act="tmp" aria-label="Zurück">${svg('prev')}</button><button class="pp" data-act="tmt" aria-label="Abspielen/Pause"></button><button data-act="tmn" aria-label="Weiter">${svg('next')}</button></div>` : '') + svg(iconOf(t), 'ico') + (t.sv === 'value' ? '<div class="big"></div>' : t.sv === 'spark' ? '<div class="big"></div><div class="spw"></div>' : '') + label;
+    el.innerHTML = (t.e?.startsWith('camera.') ? '<div class="feed"></div>' + (t.sv === 'live' ? `<div class="lvp"></div><div class="mch">${tx('Bewegung')}</div>` : '') : '') + (t.sv === 'fill' || t.sv === 'blind' ? '<div class="fill"></div><div class="pct"></div>' : t.sv === 'cover' ? `<div class="art"></div><div class="pill">${esc(t.title)}</div><div class="pct"></div><div class="cvr"><button data-act="tmp" aria-label="${tx('Zurück')}">${svg('prev')}</button><button class="pp" data-act="tmt" aria-label="${tx('Abspielen/Pause')}"></button><button data-act="tmn" aria-label="${tx('Weiter')}">${svg('next')}</button></div>` : '') + svg(iconOf(t), 'ico') + (t.sv === 'value' ? '<div class="big"></div>' : t.sv === 'spark' ? '<div class="big"></div><div class="spw"></div>' : '') + label;
   }   // Livebild: camTile in render()
   return el;
 }
+const WKN = Array.from({ length: 7 }, (_, i) => new Date(2024, 0, 1 + i).toLocaleDateString(LOC, { weekday: 'narrow' }));   // Wochentags-Initialen Mo–So
 const CAL_ST = ['plain', 'week', 'sheet'];   // face.style; sonst „Monat“ (Vorlage)
 const isoKw = d => { const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())); t.setUTCDate(t.getUTCDate() + 4 - (t.getUTCDay() || 7)); return Math.ceil(((t - Date.UTC(t.getUTCFullYear(), 0, 1)) / 864e5 + 1) / 7); };
 function calHTML(st) {
-  const d = new Date(), y = d.getFullYear(), m = d.getMonth(), first = (new Date(y, m, 1).getDay() + 6) % 7, L = o => d.toLocaleDateString('de-DE', o);
+  const d = new Date(), y = d.getFullYear(), m = d.getMonth(), first = (new Date(y, m, 1).getDay() + 6) % 7, L = o => d.toLocaleDateString(LOC, o);
   if (st === 'week') {
     const wd = (d.getDay() + 6) % 7;
-    return `<header><b>${L({ month: 'long', year: 'numeric' })}</b><time data-bind="time"></time></header><div class="wkb">${Array.from({ length: 7 }, (_, i) => `<span class="${i === wd ? 't' : ''}"><i>${'MDMDFSS'[i]}</i>${new Date(y, m, d.getDate() - wd + i).getDate()}</span>`).join('')}</div>`
-      + `<div class="wkt"><b>${L({ weekday: 'long' })}</b><span>${L({ day: 'numeric', month: 'long' })}</span><small>Kalenderwoche ${isoKw(d)}</small></div>`;
+    return `<header><b>${L({ month: 'long', year: 'numeric' })}</b><time data-bind="time"></time></header><div class="wkb">${Array.from({ length: 7 }, (_, i) => `<span class="${i === wd ? 't' : ''}"><i>${WKN[i]}</i>${new Date(y, m, d.getDate() - wd + i).getDate()}</span>`).join('')}</div>`
+      + `<div class="wkt"><b>${L({ weekday: 'long' })}</b><span>${L({ day: 'numeric', month: 'long' })}</span><small>${tx('Kalenderwoche {n}', { n: isoKw(d) })}</small></div>`;
   }
   if (st === 'sheet') return `<div class="sb"><b>${L({ month: 'long' })}</b><time data-bind="time"></time></div><div class="sd">${d.getDate()}</div><div class="sw">${L({ weekday: 'long' })}</div>`;
   const n = 42;   // Vorlage: immer 6 Wochen
@@ -1472,7 +1476,7 @@ function calHTML(st) {
     return `<span class="${x.getMonth() !== m ? 'o' : x.getDate() === d.getDate() ? 't' : ''}">${x.getDate()}</span>`;
   }).join('');
   return `<div class="big">${d.getDate()}</div><header><b>${L({ month: 'long' })} <small>${y}</small></b><time data-bind="time"></time></header>
-<div class="days">${'MDMDFSS'.split('').map(c => `<i>${c}</i>`).join('')}${days}</div>`;
+<div class="days">${WKN.map(c => `<i>${c}</i>`).join('')}${days}</div>`;
 }
 // Tiefe (Video 15,4 s): Glasziffern = verwischtes Hintergrundbild in die Ziffern geclippt + heller Rand; freigestellte Person davor
 let dN = 0;
@@ -1635,18 +1639,18 @@ const FACE = {
   music: el => el.innerHTML = `<div class="mbg"></div>
 <div class="lyrics"><div class="ll"></div></div>
 <div class="qlist"></div>
-<button class="mb" data-act="lib" aria-label="Musikauswahl">${svg('note', 'std')}${svg('podg', 'pod')}</button>
-<div class="mpill"><button class="po" data-act="outs" aria-label="Ausgabe">${svg('cast')}<span data-bind="npn"></span></button><div class="vs"><input type="range" min="0" max="100" value="0" aria-label="Lautstärke"></div><button class="pv" data-act="vol" aria-label="Lautstärke">${svg('vol', 'v1')}${svg('volx', 'v0')}</button></div>
+<button class="mb" data-act="lib" aria-label="${tx('Musikauswahl')}">${svg('note', 'std')}${svg('podg', 'pod')}</button>
+<div class="mpill"><button class="po" data-act="outs" aria-label="${tx('Ausgabe')}">${svg('cast')}<span data-bind="npn"></span></button><div class="vs"><input type="range" min="0" max="100" value="0" aria-label="${tx('Lautstärke')}"></div><button class="pv" data-act="vol" aria-label="${tx('Lautstärke')}">${svg('vol', 'v1')}${svg('volx', 'v0')}</button></div>
 <div class="cover">${svg('note')}</div>
 <div class="minfo"><b data-bind="npt"></b><span data-bind="npa" data-act="artist"></span></div>
-<button class="more" data-act="menu" aria-label="Mehr">${svg('more')}</button>
+<button class="more" data-act="menu" aria-label="${tx('Mehr')}">${svg('more')}</button>
 <div class="prog"><b><i></i></b></div>
 <div class="times"><span data-bind="npe"></span><span data-bind="npr"></span></div>
-<button class="c lyr" data-act="lyrics" aria-label="Liedtext">${svg('quote')}</button>
-<button class="c prev" data-act="prev" aria-label="Zurück">${svg('prev', 'std')}${svg('back15', 'pod')}</button>
-<button class="c play" data-act="play" aria-label="Abspielen/Pause">${svg('play')}</button>
-<button class="c next" data-act="next" aria-label="Weiter">${svg('next', 'std')}${svg('fwd30', 'pod')}</button>
-<button class="c queue" data-act="queue" aria-label="Warteschlange">${svg('queue')}</button>
+<button class="c lyr" data-act="lyrics" aria-label="${tx('Liedtext')}">${svg('quote')}</button>
+<button class="c prev" data-act="prev" aria-label="${tx('Zurück')}">${svg('prev', 'std')}${svg('back15', 'pod')}</button>
+<button class="c play" data-act="play" aria-label="${tx('Abspielen/Pause')}">${svg('play')}</button>
+<button class="c next" data-act="next" aria-label="${tx('Weiter')}">${svg('next', 'std')}${svg('fwd30', 'pod')}</button>
+<button class="c queue" data-act="queue" aria-label="${tx('Warteschlange')}">${svg('queue')}</button>
 <div class="pop outs"></div><div class="pop menu"></div>`,
   bigclock: (el, f) => {
     if (WF[f.style] === 'bigclock') return wfFace(el, f);
@@ -1688,7 +1692,7 @@ const FACE = {
   },
   cams: el => camFace(el),
   people: el => {
-    el.innerHTML = '<div class="pmap"></div><button class="plb" aria-label="Personen"><svg viewBox="0 0 24 24"><path d="M4 7h1.6M9 7h11M4 12h1.6M9 12h11M4 17h1.6M9 17h11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button><div class="ppop"></div><header>Personen</header><div class="plist"></div>';
+    el.innerHTML = `<div class="pmap"></div><button class="plb" aria-label="${tx('Personen')}"><svg viewBox="0 0 24 24"><path d="M4 7h1.6M9 7h11M4 12h1.6M9 12h11M4 17h1.6M9 17h11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button><div class="ppop"></div><header>${tx('Personen')}</header><div class="plist"></div>`;
     const pop = $('.ppop', el);
     $('.plb', el).onclick = () => pop.classList.toggle('open');
     pop.onclick = e => { const b = e.target.closest('button'); if (!b) return; pop.classList.remove('open'); el._foc = b.dataset.id; el._map?.focus(el._foc); popOn(el); };   // Tipp auf eine Person zoomt hin, „Alle“ zeigt wieder alle
@@ -1735,13 +1739,13 @@ function peopleFill() {
   const html = Object.keys(ents).filter(i => i.startsWith('person.')).sort().map(id => {
     const s = ents[id], a = s.attributes, name = a.friendly_name || id, bat = ents[a.source]?.attributes.battery_level;
     const away = s.state === 'not_home', d = away && a.latitude != null && home?.latitude != null ? kmBetween(a.latitude, a.longitude, home.latitude, home.longitude) : null;
-    const where = s.state === 'home' ? 'Zuhause' : away ? 'Unterwegs' + (d != null ? ` • ${d < 10 ? d.toFixed(1).replace('.', ',') : Math.round(d)} km` : '') : s.state === 'unknown' || s.state === 'unavailable' ? 'Unbekannt' : s.state;
+    const where = s.state === 'home' ? tx('Zuhause') : away ? tx('Unterwegs') + (d != null ? ` • ${d < 10 ? d.toLocaleString(LOC, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : Math.round(d)} km` : '') : s.state === 'unknown' || s.state === 'unavailable' ? tx('Unbekannt') : s.state;
     const av = `<div class="pav">${a.entity_picture ? `<img src="${esc(abs(a.entity_picture))}" alt="">` : esc(name.trim()[0] || '?').toUpperCase()}</div>`;
     const at = a.latitude != null ? a : s.state === 'home' && home?.latitude != null ? home : null;   // ohne GPS steht, wer „Zuhause“ ist, auf der Home-Zone
     if (at) pts.push({ id, lat: at.latitude, lon: at.longitude, html: `${av}<div class="lb"><b>${esc(name)}</b><span>${esc(where)}</span></div>`, row: `${av}<span><b>${esc(name)}</b><small>${esc(where)}</small></span>` });
     return `<div class="prow${s.state === 'home' ? ' home' : ''}">${av}<div class="pt"><b>${esc(name)}</b><span>${esc(where)}</span></div>${bat != null ? `<div class="pb">${Math.round(bat)} %</div>` : ''}</div>`;
-  }).join('') || '<p class="pnone">Keine Personen in Home Assistant</p>';
-  const pk = JSON.stringify(pts), ph = '<button data-id="">Alle Personen</button>' + pts.map(p => `<button data-id="${esc(p.id)}">${p.row}</button>`).join('');
+  }).join('') || `<p class="pnone">${tx('Keine Personen in Home Assistant')}</p>`;
+  const pk = JSON.stringify(pts), ph = `<button data-id="">${tx('Alle Personen')}</button>` + pts.map(p => `<button data-id="${esc(p.id)}">${p.row}</button>`).join('');
   for (const f of fs) {
     if (f._h !== html) { f._h = html; $('.plist', f).innerHTML = html; }
     if (f._ph !== ph) { f._ph = ph; if (f._foc && !pts.some(p => p.id === f._foc)) f._foc = ''; $('.ppop', f).innerHTML = ph; popOn(f); }
@@ -1757,7 +1761,7 @@ function buildFace(f) {
   initDials(el);
   if (f.type === 'music') musicIO.observe(el);
   actIO.observe(el);
-  if (CONF.kiosk?.guest && GUEST_HIDES.has(f.type) && !PREVIEW) el.insertAdjacentHTML('beforeend', `<div class="guestlock">${svg('lock', 'gl')}<b>Persönlich</b><span>Gastmodus</span></div>`);
+  if (CONF.kiosk?.guest && GUEST_HIDES.has(f.type) && !PREVIEW) el.insertAdjacentHTML('beforeend', `<div class="guestlock">${svg('lock', 'gl')}<b>${tx('Persönlich')}</b><span>${tx('Gastmodus')}</span></div>`);
   return el;
 }
 
@@ -1848,16 +1852,16 @@ function tick() {
   const d = new Date(), s = wallS(d);
   hands = hands.filter(([, a]) => a.effect.target.isConnected || a.cancel());
   for (const [per, a] of hands) a.currentTime = (s % per) * 1000;
-  const hm = d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
-  bind('time', hm); bind('hm', `${d.getHours()}:${hm.slice(3)}`); bind('th', d.getHours()); bind('tmn', hm.slice(3)); bind('dsh', `${d.toLocaleDateString('de-DE', { weekday: 'short' }).replace('.', '')} ${d.getDate()}. ${d.toLocaleDateString('de-DE', { month: 'short' }).replace('.', '')}`); wfTick(d, ents['sun.sun']); glassSlots(hm); flowSlots(hm); [...hm.slice(0, 2)].forEach((c, i) => bind('dh' + i, !i && c === '0' ? '\u2007' : c)); [...hm.slice(3, 5)].forEach((c, i) => bind('dm' + i, c));
-  bind('wd', d.toLocaleDateString('de-DE', { weekday: 'short' }));
-  bind('mo', d.toLocaleDateString('de-DE', { month: 'short' }));
+  const hm = d.toLocaleTimeString(LOC, { hour: '2-digit', minute: '2-digit' });
+  bind('time', hm); bind('hm', `${d.getHours()}:${hm.slice(3)}`); bind('th', d.getHours()); bind('tmn', hm.slice(3)); bind('dsh', tx('{wd} {d}. {mo}', { wd: d.toLocaleDateString(LOC, { weekday: 'short' }).replace('.', ''), d: d.getDate(), mo: d.toLocaleDateString(LOC, { month: 'short' }).replace('.', '') })); wfTick(d, ents['sun.sun']); glassSlots(hm); flowSlots(hm); [...hm.slice(0, 2)].forEach((c, i) => bind('dh' + i, !i && c === '0' ? '\u2007' : c)); [...hm.slice(3, 5)].forEach((c, i) => bind('dm' + i, c));
+  bind('wd', d.toLocaleDateString(LOC, { weekday: 'short' }));
+  bind('mo', d.toLocaleDateString(LOC, { month: 'short' }));
   bind('day', d.getDate());
-  bind('wdl', d.toLocaleDateString('de-DE', { weekday: 'long' }).toUpperCase());
-  bind('kzd', d.toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'short' }).toUpperCase());   // „DIENSTAG, 13. OKT.“ (Vorlage „TUESDAY, OCT 13“)
-  bind('wdd', `${d.toLocaleDateString('de-DE', { weekday: 'short' }).replace('.', '').toUpperCase()} ${d.getDate()}`);   // „DI 20“ (Vorlage „WED 1“, „TUE 13“)
+  bind('wdl', d.toLocaleDateString(LOC, { weekday: 'long' }).toUpperCase());
+  bind('kzd', d.toLocaleDateString(LOC, { weekday: 'long', day: 'numeric', month: 'short' }).toUpperCase());   // „DIENSTAG, 13. OKT.“ (Vorlage „TUESDAY, OCT 13“)
+  bind('wdd', `${d.toLocaleDateString(LOC, { weekday: 'short' }).replace('.', '').toUpperCase()} ${d.getDate()}`);   // „DI 20“ (Vorlage „WED 1“, „TUE 13“)
   const h = d.getHours();
-  bind('greet', h < 5 ? 'Hallo,' : h < 11 ? 'Guten Morgen,' : h < 18 ? 'Guten Tag,' : 'Guten Abend,');
+  bind('greet', h < 5 ? tx('Hallo,') : h < 11 ? tx('Guten Morgen,') : h < 18 ? tx('Guten Tag,') : tx('Guten Abend,'));
   if (lastDay !== d.toDateString()) {
     const first = lastDay === undefined;
     lastDay = d.toDateString();
@@ -1873,13 +1877,13 @@ const st = id => ent(id) || { state: 'unavailable', attributes: {} };
 const abs = u => u && (u.startsWith('/') ? HASS + u : u);
 const hold = {}, holdT = {}, held = id => hold[id] > Date.now();   // lokale Eingabe gewinnt kurz gegen HA-Echo
 const holdFor = (id, ms) => { hold[id] = Date.now() + ms; clearTimeout(holdT[id]); holdT[id] = setTimeout(schedule, ms + 50); };   // nach Ablauf einmal abgleichen (render überspringt Gehaltenes)
-const fmt = v => v == null ? '–' : (+v).toLocaleString('de-DE', { maximumFractionDigits: 1 });
+const fmt = v => v == null ? '–' : (+v).toLocaleString(LOC, { maximumFractionDigits: 1 });
 const FILL = /^(fill|blind)$/, closedPct = s => s.state === 'closed' ? 100 : s.attributes.current_position != null ? 100 - s.attributes.current_position : 0;   // Rollo: Schließgrad 0–100
 const pct = s => s.state === 'on' ? Math.max(1, Math.round((s.attributes.brightness ?? 255) / 2.55)) : 0;   // brightness 1 ist an, nicht 0 %
 const mmss = s => { s = Math.max(0, s); const z = n => String(n).padStart(2, '0'), h = Math.floor(s / 3600); return (h ? h + ':' + z(Math.floor(s / 60) % 60) : Math.floor(s / 60)) + ':' + z(Math.floor(s % 60)); };   // negativ → 0, ab 1 h h:mm:ss
 const cu = u => `url("${String(u).replace(/["\\()\n\r]/g, c => '%' + c.charCodeAt(0).toString(16).padStart(2, '0'))}")`;   // URL für CSS url("…"): Ausbruchszeichen prozent-kodieren
 const ON = { climate: s => /^(heating|cooling)$/.test(s.attributes.hvac_action), /* Ruhezustand = Glas, an nur bei aktivem Heizen/Kühlen oder kurz nach Bedienung */ light: s => s.state === 'on', fan: s => s.state === 'on', lock: s => s.state !== 'locked', cover: s => s.state !== 'closed', media_player: s => s.state === 'playing', timer: s => s.state === 'active', switch: s => s.state === 'on', input_boolean: s => s.state === 'on', binary_sensor: s => s.state === 'on' };
-const MODES = { heat: ['Heizen auf', '#ff9500'], cool: ['Kühlen auf', '#009efc'], heat_cool: ['Automatisch', '#30b0c7'], dry: ['Entfeuchten', '#5ac8fa'], fan_only: ['Lüften', '#34c759'], off: ['Aus', '#636366'], auto: ['Automatisch', '#30b0c7'], unavailable: ['Nicht verfügbar', '#636366'], unknown: ['Nicht verfügbar', '#636366'] };
+const MODES = { heat: [tx('Heizen auf'), '#ff9500'], cool: [tx('Kühlen auf'), '#009efc'], heat_cool: [tx('Automatisch'), '#30b0c7'], dry: [tx('Entfeuchten'), '#5ac8fa'], fan_only: [tx('Lüften'), '#34c759'], off: [tx('Aus'), '#636366'], auto: [tx('Automatisch'), '#30b0c7'], unavailable: [tx('Nicht verfügbar'), '#636366'], unknown: [tx('Nicht verfügbar'), '#636366'] };
 
 // ---------- Demo-Bibliothek (erfundene Titel, generierte Cover) ----------
 const coverArt = (h, k) => svgData(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><linearGradient id="a" x2="1" y2="1"><stop stop-color="hsl(${h},75%,62%)"/><stop offset="1" stop-color="hsl(${h + 40},70%,24%)"/></linearGradient></defs><rect width="100" height="100" fill="url(#a)"/>${[
@@ -1909,14 +1913,14 @@ const ALBUMS = [
   return node('alb:' + k, title, artist, art, { tracks: ts.split(',').map((t, j) => ({ title: t, artist, album: title, art, dur: j || k ? 160 + (k * 37 + j * 53) % 100 : 221 })) });
 });
 const SONGS = ALBUMS.flatMap(a => LIB[a].tracks);
-const PLAYL = ['Morgenkaffee', 'Fokus', 'Abendessen', 'Workout'].map((t, k) => node('pl:' + k, t, 'Playlist', coverArt(200 + k * 40, k + 2), { tracks: SONGS.filter((_, j) => j % 4 === k) }));
-const RADIO = ['Radio Pop', 'Radio Jazz', 'Radio Klassik', 'Radio Rock'].map((t, k) => { const art = coverArt(330 + k * 25, 5); return node('radio:' + k, t, 'Live', art, { tracks: [{ title: t, artist: 'Live-Radio', art }] }); });
-node('pls', 'Playlists', `${PLAYL.length} Playlists`, LIB[PLAYL[0]].art, { kids: PLAYL });
-node('albs', 'Alben', `${ALBUMS.length} Alben`, LIB[ALBUMS[1]].art, { kids: ALBUMS });
-node('radio', 'Radio', `${RADIO.length} Sender`, LIB[RADIO[0]].art, { kids: RADIO });
-node('recent', 'Zuletzt gespielt', 'Verlauf', coverArt(20, 3), { tracks: [SONGS[4], SONGS[9], SONGS[1], SONGS[12], SONGS[6]] });
-node('fav', 'Favoriten', 'Lieblingstitel', coverArt(300, 4), { kids: [ALBUMS[0], RADIO[1], PLAYL[2], ALBUMS[3]] });
-node('root', 'Musik', '', null, { kids: ['recent', 'fav', 'pls', 'albs', 'radio', ALBUMS[0], PLAYL[0], ALBUMS[2], RADIO[0], PLAYL[1], ALBUMS[4]] });
+const PLAYL = [tx('Morgenkaffee'), tx('Fokus'), tx('Abendessen'), 'Workout'].map((t, k) => node('pl:' + k, t, 'Playlist', coverArt(200 + k * 40, k + 2), { tracks: SONGS.filter((_, j) => j % 4 === k) }));
+const RADIO = ['Radio Pop', 'Radio Jazz', tx('Radio Klassik'), 'Radio Rock'].map((t, k) => { const art = coverArt(330 + k * 25, 5); return node('radio:' + k, t, 'Live', art, { tracks: [{ title: t, artist: tx('Live-Radio'), art }] }); });
+node('pls', 'Playlists', tx('{n} Playlists', { n: PLAYL.length }), LIB[PLAYL[0]].art, { kids: PLAYL });
+node('albs', tx('Alben'), tx('{n} Alben', { n: ALBUMS.length }), LIB[ALBUMS[1]].art, { kids: ALBUMS });
+node('radio', 'Radio', tx('{n} Sender', { n: RADIO.length }), LIB[RADIO[0]].art, { kids: RADIO });
+node('recent', tx('Zuletzt gespielt'), tx('Verlauf'), coverArt(20, 3), { tracks: [SONGS[4], SONGS[9], SONGS[1], SONGS[12], SONGS[6]] });
+node('fav', tx('Favoriten'), tx('Lieblingstitel'), coverArt(300, 4), { kids: [ALBUMS[0], RADIO[1], PLAYL[2], ALBUMS[3]] });
+node('root', tx('Musik'), '', null, { kids: ['recent', 'fav', 'pls', 'albs', 'radio', ALBUMS[0], PLAYL[0], ALBUMS[2], RADIO[0], PLAYL[1], ALBUMS[4]] });
 const track = (q, i, pos = 0) => {
   const t = q[i];
   return { _q: q, _i: i, media_title: t.title, media_artist: t.artist, media_album_name: t.album, entity_picture: t.art, media_duration: t.dur,
@@ -1980,7 +1984,7 @@ energyInit((ids, start) => LIVE && conn ? conn.sendMessagePromise({ type: 'histo
   rows: (ids, start) => LIVE && conn ? conn.sendMessagePromise({ type: 'recorder/statistics_during_period', start_time: new Date(start).toISOString(), statistic_ids: ids, period: 'day', types: ['change'], units: { energy: 'kWh' } }) : null } });   // Detail: Lademodus/-limit live über call (Demo ruft nie), Wisch runter/Escape schließt
 
 // Modus-Menü der Klima-Ansicht: Reihenfolge wie im Video (Off, Cool, Heat, Auto), weitere HA-Modi dahinter
-const HVAC = { off: 'Aus', cool: 'Kühlen', heat: 'Heizen', heat_cool: 'Auto', auto: 'Auto', dry: 'Entfeuchten', fan_only: 'Lüften' };
+const HVAC = { off: tx('Aus'), cool: tx('Kühlen'), heat: tx('Heizen'), heat_cool: 'Auto', auto: 'Auto', dry: tx('Entfeuchten'), fan_only: tx('Lüften') };
 function fillModes(c) {
   const m = Object.keys(HVAC), l = (c.attributes.hvac_modes || []).filter(k => HVAC[k]).sort((a, b) => m.indexOf(a) - m.indexOf(b)), mm = $('#climate .hm');
   const html = l.map(k => `<button role="menuitemradio" data-act="hvacset" data-v="${k}"${k === c.state ? ' class="on" aria-checked="true"' : ''}><svg class="i"><use href="#check"/></svg>${HVAC[k]}</button>`).join('');
@@ -2067,8 +2071,8 @@ function avatars() {
 // Statuszeile (Vorlage y-MO 02750/03050/03200): nach einem Zustandswechsel steht kurz „Locking …/Locked“ bzw. „100 %/Off“ als Untertitel, danach wieder der Raum.
 // Dauer 2,5 s = Schätzung (Vorlage nur Standbilder); Zwischenzustände (locking/unlocking/jammed) stehen, solange sie dauern
 const STATUS = {
-  lock: s => ({ locking: 'Wird verriegelt …', unlocking: 'Wird entriegelt …', jammed: 'Blockiert', locked: 'Verriegelt', unlocked: 'Entriegelt', open: 'Geöffnet' })[s.state],
-  fan: s => s.state === 'on' ? (s.attributes.percentage != null ? `${Math.round(s.attributes.percentage)} %` : 'An') : s.state === 'off' ? 'Aus' : '',
+  lock: s => ({ locking: tx('Wird verriegelt …'), unlocking: tx('Wird entriegelt …'), jammed: tx('Blockiert'), locked: tx('Verriegelt'), unlocked: tx('Entriegelt'), open: tx('Geöffnet') })[s.state],
+  fan: s => s.state === 'on' ? (s.attributes.percentage != null ? `${Math.round(s.attributes.percentage)} %` : tx('An')) : s.state === 'off' ? tx('Aus') : '',
 };
 function liveTile(t, s) {   // Kamera-Livebild: Pille (Live/Offline) + Bewegungs-Chip (binary_sensor.<kamera>…motion|person|bewegung)
   const na = s.state === 'unavailable', n = Object.keys(ents).length, slug = t.dataset.e.split('.')[1];
@@ -2091,7 +2095,7 @@ function statusSub(t, d, s) {
   if (t._ls && t._ls !== 'unavailable' && s.state !== 'unavailable') { t._flash = Date.now() + 2500; setTimeout(schedule, 2600); }
   t._ls = s.state;
 }
-const SDE = { on: 'An', off: 'Aus', locked: 'Verriegelt', unlocked: 'Entriegelt', open: 'Offen', closed: 'Zu', opening: 'Öffnet', closing: 'Schließt', playing: 'Spielt', paused: 'Pausiert', idle: 'Bereit', active: 'Läuft', home: 'Zuhause', not_home: 'Abwesend', heat: 'Heizen', cool: 'Kühlen', auto: 'Auto', heat_cool: 'Auto', dry: 'Trocknen', fan_only: 'Lüften', standby: 'Standby', unknown: '', unavailable: '' };
+const SDE = { on: tx('An'), off: tx('Aus'), locked: tx('Verriegelt'), unlocked: tx('Entriegelt'), open: tx('Offen'), closed: tx('Zu‖Zustand'), opening: tx('Öffnet'), closing: tx('Schließt'), playing: tx('Spielt'), paused: tx('Pausiert'), idle: tx('Bereit'), active: tx('Läuft'), home: tx('Zuhause'), not_home: tx('Abwesend'), heat: tx('Heizen'), cool: tx('Kühlen'), auto: 'Auto', heat_cool: 'Auto', dry: tx('Trocknen'), fan_only: tx('Lüften'), standby: 'Standby', unknown: '', unavailable: '' };
 const ATTR_U = [[/temperature$/, '°'], [/humidity$|^battery|percentage$/, ' %']];
 function valText(s, k) {
   const v = k === 'state' ? s.state : s.attributes[k];
@@ -2187,10 +2191,10 @@ function render() {
     f.classList.toggle('nocov', !pic);
   }
   timerMusic(np, HASS);
-  bind('npt', netDown ? 'Keine Verbindung' : title || (np?.state === 'unavailable' ? 'Nicht verfügbar' : off ? 'Aus' : 'Nichts läuft'));
-  bind('npa', netDown ? 'Home Assistant nicht erreichbar' : title ? a.media_artist || a.media_series_title || a.media_channel || a.media_album_name || '' : a.friendly_name || '');
+  bind('npt', netDown ? tx('Keine Verbindung') : title || (np?.state === 'unavailable' ? tx('Nicht verfügbar') : off ? tx('Aus') : tx('Nichts läuft')));
+  bind('npa', netDown ? tx('Home Assistant nicht erreichbar') : title ? a.media_artist || a.media_series_title || a.media_channel || a.media_album_name || '' : a.friendly_name || '');
   bind('npn', (a.friendly_name || '').replace(/^Sonos\s+(?=\S)/i, ''));   // Herstellerpräfix nur in der Pille weglassen, damit der Raum lesbar bleibt
-  bind('npb', busy ? 'Pause' : 'Abspielen');
+  bind('npb', busy ? 'Pause' : tx('Abspielen'));
   const icon = busy ? '#pause' : '#play';
   for (const u of $$('[data-act=play] use')) if (u.getAttribute('href') !== icon) u.setAttribute('href', icon);
   const art = pic ? cu(abs(pic)) : 'none';
@@ -2241,7 +2245,7 @@ async function loadLyrics(a) {
 }
 function fillLyrics() {
   const L = lyr.lines, plain = L?.[0]?.t === null;
-  const rest = L === null ? '<p>Liedtext wird geladen …</p>' : !L.length ? (lyr.title ? `<p>${lyr.msg || 'Kein Liedtext gefunden'}</p>` : '')
+  const rest = L === null ? `<p>${tx('Liedtext wird geladen …')}</p>` : !L.length ? (lyr.title ? `<p>${lyr.msg || tx('Kein Liedtext gefunden')}</p>` : '')
     : plain ? L.map(l => `<p>${esc(l.s) || '&nbsp;'}</p>`).join('')
     : L.map((l, k) => l.s ? `<p data-act="seek" data-t="${l.t}"><span class="lw">${esc(l.s)}</span></p>`
       : `<p class="gap" data-act="seek" data-t="${l.t}" style="--gd:${((L[k + 1]?.t ?? l.t + 4) - l.t).toFixed(2)}s"><i></i><i></i><i></i></p>`).join('');
@@ -2304,7 +2308,7 @@ document.addEventListener('wheel', e => { const ll = e.target.closest('.ly .lyri
 // Ablauf wie im Video: Tropfen (Goo-SVG, 0,2 s) → Glaskugel hört zu → denkt → weiße Antwortkarte, Kugel wandert nach oben.
 // Demo: feste Wetter-Antwort aus den aktuellen Daten. ponytail: HA-Voice-Anbindung (assist_satellite-Zustand, Antworttext) fehlt noch
 // Kernfakten fett: Zahlen mit Einheit (Grad, %, Uhr, Minuten …) und Uhrzeiten
-const rich = t => esc(t).replace(/\b\d{1,2}:\d{2}\b|\d+(?:[.,]\d+)?(?:\s?(?:°C?|Grad|%|Prozent|Uhr|Minuten?|Sekunden?|Stunden?|Euro|€|km\/h|kWh|Watt|W))?/g, '<b>$&</b>');
+const rich = t => esc(t).replace(/\b\d{1,2}:\d{2}\b|\d+(?:[.,]\d+)?(?:\s?(?:°C?|Grad|degrees?|%|Prozent|percent|Uhr|Minuten?|minutes?|Sekunden?|seconds?|Stunden?|hours?|Euro|€|km\/h|kWh|Watt|W))?/g, '<b>$&</b>');
 const AS = $('#assist'), ORB = $('.orb', AS), BLOOM = $('.bloom', AS), INK = $('.ink', AS), DROPC = $('circle', AS);
 const goo = (k, ms, ease) => DROPC.animate(k.map(([y, sx, sy = sx]) => ({ transform: `translate(0px,${y}px) scale(${sx},${sy})` })), { duration: ms, easing: ease });
 let asT = [], asEv = null;
@@ -2335,21 +2339,21 @@ function assistStart(k = '') {
     if (asEsc) return assistEnd();
     // Live nie die Demo-Antwort: ohne Mikrofon (http) bzw. Verbindung nur ein Hinweis
     if (!LIVE && ASIM) return assistVoice();
-    if (LIVE) return conn && voiceOK() ? assistVoice() : assistHint(conn ? isSecureContext ? 'Kein Mikrofon verfügbar.' : 'Sprachsteuerung braucht https.' : 'Keine Verbindung zu Home Assistant.');
-    asT = [setTimeout(() => { AS.className = 'think'; transcript(k === 'cal' ? 'Was steht in meinem Kalender?' : 'Wie wird das Wetter heute?'); }, 2400), setTimeout(assistAnswer, 3600)];
+    if (LIVE) return conn && voiceOK() ? assistVoice() : assistHint(conn ? isSecureContext ? tx('Kein Mikrofon verfügbar.') : tx('Sprachsteuerung braucht https.') : tx('Keine Verbindung zu Home Assistant.'));
+    asT = [setTimeout(() => { AS.className = 'think'; transcript(k === 'cal' ? tx('Was steht in meinem Kalender?') : tx('Wie wird das Wetter heute?')); }, 2400), setTimeout(assistAnswer, 3600)];
   };
 }
 async function assistAnswer() {
   if (asEv) {
     const mine = asEv, all = await Promise.race([mine, new Promise(r => setTimeout(r, 8000, null))]), list = all?.filter(e => e.end > Date.now());   // nur Kommendes (ganztägig von heute endet erst um 0:00)
     if (mine !== asEv || !AS.classList.contains('think')) return;   // inzwischen abgebrochen / neue Sitzung
-    $('.atxt', AS).textContent = !list ? 'Ich erreiche deinen Kalender gerade nicht.' : list.length ? 'Das sind deine nächsten Termine:' : 'In deinem Kalender steht nichts an.';
+    $('.atxt', AS).textContent = !list ? tx('Ich erreiche deinen Kalender gerade nicht.') : list.length ? tx('Das sind deine nächsten Termine:') : tx('In deinem Kalender steht nichts an.');
     $('.acal', AS).innerHTML = list?.length ? eventsHTML(list, 4) : '';
   } else {
     const w = st(CFG.weather), a = w.attributes, ok = a.temperature != null && !/^(unavailable|unknown)$/.test(w.state), c = $('[data-bind=wxc]', AS).textContent || w.state,
-      cond = /^(exceptional|fog|hail|lightning(-rainy)?|pouring|rainy|snowy(-rainy)?)$/.test(w.state) ? ' bei ' + c : ', ' + c.toLowerCase();   // Nomen („bei Regen“) bleiben groß, Adjektive klein
-    $('.atxt', AS).innerHTML = rich(!ok ? 'Wetterdaten sind gerade nicht verfügbar.' : `Draußen sind es ${Math.round(a.temperature)} Grad${cond}.`
-      + (ok && forecast?.temperature != null ? ` Heute wird es bis zu ${Math.round(forecast.temperature)} Grad warm.` : ''));
+      cond = /^(exceptional|fog|hail|lightning(-rainy)?|pouring|rainy|snowy(-rainy)?)$/.test(w.state) ? tx(' bei {c}', { c: LANG === 'de' ? c : c.toLowerCase() }) : tx(', {c}', { c: c.toLowerCase() });   // Nomen („bei Regen“) bleiben groß, Adjektive klein
+    $('.atxt', AS).innerHTML = rich(!ok ? tx('Wetterdaten sind gerade nicht verfügbar.') : tx('Draußen sind es {t} Grad{c}.', { t: Math.round(a.temperature), c: cond })
+      + (ok && forecast?.temperature != null ? ' ' + tx('Heute wird es bis zu {t} Grad warm.', { t: Math.round(forecast.temperature) }) : ''));
     $('.ainfo b', AS).textContent = CFG.place;
   }
   assistShow();
@@ -2373,7 +2377,7 @@ function announce(m, title) {
 }
 function speak(t, fin) {
   if (!window.speechSynthesis) return fin();
-  const u = new SpeechSynthesisUtterance(t); u.lang = 'de-DE'; u.volume = CFG.volume / 100;
+  const u = new SpeechSynthesisUtterance(t); u.lang = LOC; u.volume = CFG.volume / 100;
   u.onend = u.onerror = fin;
   speechSynthesis.speak(u);
 }
@@ -2414,7 +2418,7 @@ async function assistVoice(conversation) {
     listen: conversation ? Math.min(CFG.listen, 8) : CFG.listen,   // Rückfrage: kürzer warten
     base: location.origin === 'null' ? '' : location.origin,
     onThink: t => { if (!live()) return; if (AS.className === 'listen') AS.className = 'think'; if (t && AS.classList.contains('think')) transcript(t); },
-    onAnswer: (t, type) => { if (!live()) return; say(t || (type === 'error' ? 'Das habe ich nicht verstanden.' : 'Erledigt.')); assistShow(60000); },   // schließt beim TTS-Ende (onEnd); 60 s nur als Sicherung
+    onAnswer: (t, type) => { if (!live()) return; say(t || (type === 'error' ? tx('Das habe ich nicht verstanden.') : tx('Erledigt.'))); assistShow(60000); },   // schließt beim TTS-Ende (onEnd); 60 s nur als Sicherung
     onError: m => { if (!live()) return; say(m); assistShow(6000); },   // m = fertiger Klartext aus voice.js
     onEnd: next => {
       if (!live()) return;
@@ -2452,11 +2456,11 @@ document.addEventListener('keydown', e => {
 });
 
 // ---------- Musikauswahl, Ausgabe, Menü, Warteschlange ----------
-const STATE = { playing: 'Spielt', paused: 'Pausiert', idle: 'Bereit', off: 'Aus', on: 'An', unavailable: 'Nicht verfügbar' };
+const STATE = { playing: tx('Spielt'), paused: tx('Pausiert'), idle: tx('Bereit'), off: tx('Aus'), on: tx('An'), unavailable: tx('Nicht verfügbar') };
 const players = () => Object.values(ents).filter(e => e.entity_id.startsWith('media_player.') && e.attributes.device_class !== 'tv');
 const cssUrl = u => cu(u).replace(/"/g, '&quot;');
 // HA: media_player/browse_media (Spotify, Sonos, Music Assistant …) – gleiche Form wie die Demo-Bibliothek. Favoriten, Playlists, „Zuletzt gespielt“ liefert die Integration selbst als Wurzelordner
-const MCLS = { album: 'Album', artist: 'Künstler', playlist: 'Playlist', track: 'Titel', podcast: 'Podcast', episode: 'Folge', genre: 'Genre', channel: 'Sender', radio: 'Radio' };
+const MCLS = { album: 'Album', artist: tx('Künstler'), playlist: 'Playlist', track: tx('Titel‖Lied'), podcast: 'Podcast', episode: tx('Folge'), genre: 'Genre', channel: tx('Sender'), radio: 'Radio' };
 const searchOK = () => !LIVE || !!(st(NP).attributes.supported_features & 4194304);   // SEARCH_MEDIA
 const enqOK = () => !LIVE || !!(st(NP).attributes.supported_features & 2097152);      // MEDIA_ENQUEUE
 const kidsOf = n => n.kids ? n.kids.map(k => LIB[k]) : n.tracks.map((t, j) => ({ id: `trk:${n.id}:${j}`, title: t.title, sub: t.artist, art: t.art, trk: 1 }));
@@ -2490,13 +2494,13 @@ function showLib(dir = 0) {
   L.classList.toggle('hasnp', !!st(NP).attributes.media_title);
   bind('libt', n.title);
   $('#lib .x use').setAttribute('href', libRoot() ? '#x' : '#back');
-  const rows = !n.children ? '<p class="lnone">Lädt …</p>' : !n.children.length ? `<p class="lnone">${n.search ? 'Nichts gefunden' : 'Keine Einträge'}</p>` : null;
+  const rows = !n.children ? `<p class="lnone">${tx('Lädt …')}</p>` : !n.children.length ? `<p class="lnone">${n.search ? tx('Nichts gefunden') : tx('Keine Einträge')}</p>` : null;
   if (det) {
     // Playlist-/Album-Seite (Vorlage _Tbq 01400): Cover randlos oben, Titel + Untertitel mittig, runder Play-Knopf rechts; Seite scrollt, Mini-Player bleibt unten
     L.style.setProperty('--lt', '');
     domColor(n.thumb && abs(n.thumb)).then(c => { if (libStack.at(-1) === n && c) L.style.setProperty('--lt', `color-mix(in srgb,${c} 72%,#4c5568)`); });
     g.innerHTML = `<div class="ldh"><div class="cover" style="--art:${n.thumb ? cssUrl(abs(n.thumb)) : 'none'}">${n.thumb ? '' : svg('note')}</div></div>`
-      + `<div class="ldt"><div><b>${esc(n.title)}</b><small>${esc(n.sub)}</small></div><button class="ldp" data-act="libplay" aria-label="Abspielen">${svg('play')}</button></div>`
+      + `<div class="ldt"><div><b>${esc(n.title)}</b><small>${esc(n.sub)}</small></div><button class="ldp" data-act="libplay" aria-label="${tx('Abspielen')}">${svg('play')}</button></div>`
       + `<div class="ldl">${rows ?? n.children.map((c, k) => libRow(c, k, n)).join('')}</div>`;
   } else g.innerHTML = rows ?? n.children.map((c, k) => `<button class="li" data-act="libgo" data-v="${k}"><span class="cover" style="--art:${c.thumbnail ? cssUrl(abs(c.thumbnail)) : 'linear-gradient(135deg,#aeaeb2,#636366)'}">${c.thumbnail ? '' : svg(c.can_expand ? 'queue' : 'note')}</span><b>${esc(c.title)}</b><small>${esc(itemSub(c))}</small></button>`).join('');
   if (dir) { g.scrollTop = 0; g.animate([{ transform: `translateX(${dir * 25}%)`, opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: SD, easing: SPRING }); }
@@ -2507,7 +2511,7 @@ async function libLoad(n, item) {
   if (libStack.at(-1) === n) showLib();
 }
 function openLib(btn) {
-  libStack = [{ title: 'Musik', children: null }];
+  libStack = [{ title: tx('Musik'), children: null }];
   $('#lib .lsr input').value = '';
   showLib(); open(btn, 'lib'); libLoad(libStack[0]);
 }
@@ -2527,7 +2531,7 @@ function libSearch(q) {
   q = q.trim();
   if (!q) { libStack.length = 1; return showLib(); }
   libST = setTimeout(async () => {
-    const my = ++libQ, n = { title: 'Suche', search: true, children: null };
+    const my = ++libQ, n = { title: tx('Suche'), search: true, children: null };
     libStack.length = 1; libStack.push(n); showLib();
     try { n.children = await search(q); } catch (e) { n.children = []; console.warn('Suche', e); }
     if (my === libQ && libStack.at(-1) === n) showLib();
@@ -2540,14 +2544,14 @@ const canGroup = id => !!(st(id).attributes.supported_features & JOIN);
 function fillOuts(p) {
   const xf = p.dataset.xfer === '1', mem = members(NP), grp = !xf && canGroup(NP);
   const gv = !xf && mem.length ? Math.round([NP, ...mem].reduce((x, m) => x + (st(m).attributes.volume_level ?? 0), 0) / (mem.length + 1) * 100) : null;
-  const h = `<h4>${xf ? 'Übertragen auf' : 'Wiedergabe auf'}</h4>`
-    + (gv == null ? '' : `<div class="orow"><small>Gruppe · ${mem.length + 1} Lautsprecher</small><input type="range" min="0" max="100" value="${gv}" data-gvol style="--v:${gv}%" aria-label="Gruppenlautstärke"></div>`)
+  const h = `<h4>${xf ? tx('Übertragen auf') : tx('Wiedergabe auf')}</h4>`
+    + (gv == null ? '' : `<div class="orow"><small>${tx('Gruppe · {n} Lautsprecher', { n: mem.length + 1 })}</small><input type="range" min="0" max="100" value="${gv}" data-gvol style="--v:${gv}%" aria-label="${tx('Gruppenlautstärke')}"></div>`)
     + players().map(e => {
       const v = Math.round((e.attributes.volume_level ?? 0) * 100), on = e.entity_id === NP, inG = mem.includes(e.entity_id), nm = esc(e.attributes.friendly_name || e.entity_id);
       if (xf) return on ? '' : `<div class="orow"><button data-act="xfer" data-v="${e.entity_id}">${svg('vol')}<span>${nm}<small>${STATE[e.state] || esc(e.state)}</small></span></button></div>`;
-      return `<div class="orow"><button data-act="pick" data-v="${e.entity_id}">${svg('vol')}<span>${nm}<small>${inG ? 'In der Gruppe · ' : ''}${STATE[e.state] || esc(e.state)}</small></span>${grp && !on ? `<i class="ck${inG ? ' on' : ''}" data-act="grp" data-v="${e.entity_id}" role="checkbox" aria-checked="${inG}" aria-label="Zur Gruppe">${inG ? svg('check') : ''}</i>` : `<i class="ck${on ? ' on' : ''}">${on ? svg('check') : ''}</i>`}</button>`
-        + (e.attributes.volume_level == null ? '' : `<input type="range" min="0" max="100" value="${v}" data-vol="${e.entity_id}" style="--v:${v}%" aria-label="Lautstärke ${nm}">`) + '</div>';
-    }).join('') + (xf && players().length < 2 ? '<p class="qnone">Kein weiterer Lautsprecher</p>' : '');
+      return `<div class="orow"><button data-act="pick" data-v="${e.entity_id}">${svg('vol')}<span>${nm}<small>${inG ? tx('In der Gruppe · ') : ''}${STATE[e.state] || esc(e.state)}</small></span>${grp && !on ? `<i class="ck${inG ? ' on' : ''}" data-act="grp" data-v="${e.entity_id}" role="checkbox" aria-checked="${inG}" aria-label="${tx('Zur Gruppe')}">${inG ? svg('check') : ''}</i>` : `<i class="ck${on ? ' on' : ''}">${on ? svg('check') : ''}</i>`}</button>`
+        + (e.attributes.volume_level == null ? '' : `<input type="range" min="0" max="100" value="${v}" data-vol="${e.entity_id}" style="--v:${v}%" aria-label="${tx('Lautstärke {name}', { name: nm })}">`) + '</div>';
+    }).join('') + (xf && players().length < 2 ? `<p class="qnone">${tx('Kein weiterer Lautsprecher')}</p>` : '');
   if (p._h !== h) { p._h = h; p.innerHTML = h; }   // nur bei Änderung neu bauen
 }
 // Lautstärke-Pille (oben rechts): Regler wächst nach links aus der Pille. Kein Überschwingen (ref/steuerung/medien/NOTIZEN.md 1–2): 140 ms auf, 125 ms zu, 2,25 s offen
@@ -2590,11 +2594,11 @@ async function transfer(dst) {
 }
 function fillMenu(m) {
   const a = st(NP).attributes;
-  m.innerHTML = `<button class="mi" data-act="shuffle">${svg('shuffle')}<span>Zufallswiedergabe</span><small>${a.shuffle ? 'Ein' : 'Aus'}</small></button>
-<button class="mi" data-act="repeat">${svg('repeat')}<span>Wiederholen</span><small>${{ all: 'Alle', one: 'Titel' }[a.repeat] || 'Aus'}</small></button>
-<button class="mi" data-act="lib">${svg('note')}<span>Musikauswahl</span></button>
-${players().length > 1 && a.media_title ? `<button class="mi" data-act="xferopen">${svg('cast')}<span>Übertragen auf …</span></button>` : ''}
-<button class="mi" data-act="stop">${svg('stop')}<span>Wiedergabe stoppen</span></button>`;
+  m.innerHTML = `<button class="mi" data-act="shuffle">${svg('shuffle')}<span>${tx('Zufallswiedergabe')}</span><small>${a.shuffle ? tx('Ein') : tx('Aus')}</small></button>
+<button class="mi" data-act="repeat">${svg('repeat')}<span>${tx('Wiederholen')}</span><small>${{ all: tx('Alle'), one: tx('Titel‖Wiederholen') }[a.repeat] || tx('Aus')}</small></button>
+<button class="mi" data-act="lib">${svg('note')}<span>${tx('Musikauswahl')}</span></button>
+${players().length > 1 && a.media_title ? `<button class="mi" data-act="xferopen">${svg('cast')}<span>${tx('Übertragen auf …')}</span></button>` : ''}
+<button class="mi" data-act="stop">${svg('stop')}<span>${tx('Wiedergabe stoppen')}</span></button>`;
 }
 function openPop(b, sel, fill, xfer = '') {
   const p = $(sel, b.closest('.face'));
@@ -2622,10 +2626,10 @@ async function fillQueue(face) {
   if (id !== NP || box._g !== g) return;   // Player wechselte während der Abfrage
   const art = x => x.art || x.album_art || x.album_art_uri || x.thumbnail, row = (x, k) => { const u = art(x); return `<button class="qi" data-act="qplay" data-v="${k}"><span class="cover" style="${u ? '--art:' + cssUrl(abs(u)) : ''}"></span><div><b>${esc(x.title)}</b><small>${esc(x.artist || x.creator)}</small></div></button>`; };
   const rest = items.map((x, k) => [x, k]).filter(([, k]) => k > i);
-  box.innerHTML = `<div class="qhead"><span>Als Nächstes</span><button class="tg${a.shuffle ? ' on' : ''}" data-act="shuffle" aria-label="Zufallswiedergabe">${svg('shuffle')}</button>`
-    + `<button class="tg${a.repeat && a.repeat !== 'off' ? ' on' : ''}" data-act="repeat" aria-label="Wiederholen">${svg('repeat')}${a.repeat === 'one' ? '<small>1</small>' : ''}</button></div>`
-    + (items.length ? rest.length ? rest.map(([x, k]) => row(x, k)).join('') : '<p class="qnone">Ende der Warteschlange</p>'
-      : `${a.media_title ? `<div class="qi"><span class="cover" style="${a.entity_picture ? '--art:' + cssUrl(abs(a.entity_picture)) : ''}"></span><div><b>${esc(a.media_title)}</b><small>${esc(a.media_artist || a.friendly_name)}</small></div></div>` : ''}<p class="qnone">Dieser Player meldet keine Warteschlange.</p>`);
+  box.innerHTML = `<div class="qhead"><span>${tx('Als Nächstes')}</span><button class="tg${a.shuffle ? ' on' : ''}" data-act="shuffle" aria-label="${tx('Zufallswiedergabe')}">${svg('shuffle')}</button>`
+    + `<button class="tg${a.repeat && a.repeat !== 'off' ? ' on' : ''}" data-act="repeat" aria-label="${tx('Wiederholen')}">${svg('repeat')}${a.repeat === 'one' ? '<small>1</small>' : ''}</button></div>`
+    + (items.length ? rest.length ? rest.map(([x, k]) => row(x, k)).join('') : `<p class="qnone">${tx('Ende der Warteschlange')}</p>`
+      : `${a.media_title ? `<div class="qi"><span class="cover" style="${a.entity_picture ? '--art:' + cssUrl(abs(a.entity_picture)) : ''}"></span><div><b>${esc(a.media_title)}</b><small>${esc(a.media_artist || a.friendly_name)}</small></div></div>` : ''}<p class="qnone">${tx('Dieser Player meldet keine Warteschlange.')}</p>`);
 }
 let volT, volV = {};
 function sendVol(id, v) {   // max. alle 200 ms, letzter Wert je Player gewinnt
@@ -2824,9 +2828,9 @@ async function infoEv() {
 }
 async function openEvents(face) {
   const l = $('#events .evl');
-  l.innerHTML = '<p class="evnone">Lädt …</p>';
+  l.innerHTML = `<p class="evnone">${tx('Lädt …')}</p>`;
   open(face, 'events');
-  const list = await events(), html = list ? eventsHTML(list) : '<p class="evnone">Kalender nicht erreichbar</p>';
+  const list = await events(), html = list ? eventsHTML(list) : `<p class="evnone">${tx('Kalender nicht erreichbar')}</p>`;
   if (cur?.view.id === 'events') { l.innerHTML = html; l.scrollTop = 0; }
 }
 
@@ -3033,13 +3037,13 @@ document.addEventListener('click', e => {
   else if (act === 'libplay') { libPlay(libStack.at(-1).item); close(); }
   else if (act === 'libmore') {
     const m = $('#lib .lmenu');
-    m.innerHTML = `<button class="mi" data-act="libshuf">${svg('shuffle')}<span>Zufällig abspielen</span></button>`
-      + (enqOK() ? `<button class="mi" data-act="libenq" data-v="next">${svg('play')}<span>Als Nächstes</span></button><button class="mi" data-act="libenq" data-v="add">${svg('queue')}<span>Zur Warteschlange</span></button>` : '');
+    m.innerHTML = `<button class="mi" data-act="libshuf">${svg('shuffle')}<span>${tx('Zufällig abspielen')}</span></button>`
+      + (enqOK() ? `<button class="mi" data-act="libenq" data-v="next">${svg('play')}<span>${tx('Als Nächstes')}</span></button><button class="mi" data-act="libenq" data-v="add">${svg('queue')}<span>${tx('Zur Warteschlange')}</span></button>` : '');
     m.classList.add('open');
   }
   else if (act === 'libshuf') { const it = libStack.at(-1).item; call('media_player', 'shuffle_set', { entity_id: NP, shuffle: true }); libPlay(it); pop?.classList.remove('open'); close(); }
   else if (act === 'libenq') {   // Wiedergabe läuft weiter; kurze Bestätigung im Menü, dann zu
-    libPlay(libStack.at(-1).item, { enqueue: b.dataset.v }); $('span', b).textContent = 'Hinzugefügt'; setTimeout(() => pop?.classList.remove('open'), 700);
+    libPlay(libStack.at(-1).item, { enqueue: b.dataset.v }); $('span', b).textContent = tx('Hinzugefügt'); setTimeout(() => pop?.classList.remove('open'), 700);
   }
   else if (act === 'outs') openPop(b, '.outs', fillOuts);
   else if (act === 'vol') {
@@ -3098,15 +3102,15 @@ let kzOn = false, kzHold = 0, kzDrag = null, kzAn = [], kzQ = {}, kzTm = 0;
 kz.innerHTML = `<div class="kzb"></div><div class="kzw">
   <div class="kzh"><div data-bind="kzd"></div><b data-bind="time"></b></div>
   <div class="kznp" data-act="kz" data-v="music"><div class="kzcv"></div><b class="kzt" data-bind="npt"></b><span class="kza" data-bind="npa"></span>
-    <button class="kzap" data-act="kz" data-v="music" aria-label="Ausgabe">${svg('cast')}</button><div class="kzp"><i></i></div>
-    <button class="kzn pv" data-act="prev" aria-label="Zurück">${svg('prev')}</button><button class="kzn pp" data-act="play" aria-label="Abspielen/Pause">${svg('play')}</button><button class="kzn nx" data-act="next" aria-label="Weiter">${svg('next')}</button></div>
-  <div class="kzsl b" data-k="bright" role="slider" tabindex="0" aria-label="Helligkeit" aria-valuemin="10" aria-valuemax="100"><div class="ic"><i class="dot"></i></div><div class="fill"><div class="in"><div class="ic"><i class="dot"></i></div></div></div></div>
-  <div class="kzsl v" data-k="vol" role="slider" tabindex="0" aria-label="Lautstärke" aria-valuemin="0" aria-valuemax="100"><div class="ic">${svg('vol')}</div><div class="fill"><div class="in"><div class="ic">${svg('vol')}</div></div></div></div>
-  <button class="kzr" style="--i:0" data-act="kz" data-v="dnd" aria-label="Nicht stören" aria-pressed="false">${svg('moon')}</button>
-  <button class="kzr sw" style="--i:1" data-act="kz" data-v="mute" aria-label="Antworten stumm" aria-pressed="false">${svg('vol', 'b')}${svg('volx', 'a')}</button>
-  <button class="kzr sw" style="--i:2" data-act="kz" data-v="micmute" aria-label="Mikrofon stumm" aria-pressed="false">${svg('mic', 'b')}${svg('micx', 'a')}</button>
-  <button class="kzr" style="--i:3" data-act="kz" data-v="hold" aria-label="Schoner halten" aria-pressed="false">${svg('sun')}</button>
-  <button class="kzr" style="--i:4" data-act="kz" data-v="sleep" aria-label="Ruhemodus">${svg('scr')}</button>
+    <button class="kzap" data-act="kz" data-v="music" aria-label="${tx('Ausgabe')}">${svg('cast')}</button><div class="kzp"><i></i></div>
+    <button class="kzn pv" data-act="prev" aria-label="${tx('Zurück')}">${svg('prev')}</button><button class="kzn pp" data-act="play" aria-label="${tx('Abspielen/Pause')}">${svg('play')}</button><button class="kzn nx" data-act="next" aria-label="${tx('Weiter')}">${svg('next')}</button></div>
+  <div class="kzsl b" data-k="bright" role="slider" tabindex="0" aria-label="${tx('Helligkeit')}" aria-valuemin="10" aria-valuemax="100"><div class="ic"><i class="dot"></i></div><div class="fill"><div class="in"><div class="ic"><i class="dot"></i></div></div></div></div>
+  <div class="kzsl v" data-k="vol" role="slider" tabindex="0" aria-label="${tx('Lautstärke')}" aria-valuemin="0" aria-valuemax="100"><div class="ic">${svg('vol')}</div><div class="fill"><div class="in"><div class="ic">${svg('vol')}</div></div></div></div>
+  <button class="kzr" style="--i:0" data-act="kz" data-v="dnd" aria-label="${tx('Nicht stören')}" aria-pressed="false">${svg('moon')}</button>
+  <button class="kzr sw" style="--i:1" data-act="kz" data-v="mute" aria-label="${tx('Antworten stumm')}" aria-pressed="false">${svg('vol', 'b')}${svg('volx', 'a')}</button>
+  <button class="kzr sw" style="--i:2" data-act="kz" data-v="micmute" aria-label="${tx('Mikrofon stumm')}" aria-pressed="false">${svg('mic', 'b')}${svg('micx', 'a')}</button>
+  <button class="kzr" style="--i:3" data-act="kz" data-v="hold" aria-label="${tx('Schoner halten')}" aria-pressed="false">${svg('sun')}</button>
+  <button class="kzr" style="--i:4" data-act="kz" data-v="sleep" aria-label="${tx('Ruhemodus')}">${svg('scr')}</button>
   <div class="kzs"><div class="kzg"></div></div><div id="kzx"></div></div>`;
 const kzCfg = () => ({ ...KIOSK_DEF, ...CONF.kiosk });
 const kzAllowed = () => kzCfg().kz !== false && !cur && !AS.className && !timerOn() && !kzOn;
@@ -3290,7 +3294,7 @@ if (!LIVE) {
   const MP = new URLSearchParams(location.search).get('mp'), mp = ents['media_player.wohnzimmer_2'], mpa = { ...mp.attributes };
   if (MP) ents['media_player.wohnzimmer_2'] = { ...mp, ...{
     nocover: {}, buffering: { state: 'buffering' },
-    radio: { attributes: { ...mpa, media_title: 'Radio Pop', media_artist: 'Live-Radio', media_duration: undefined, media_position: undefined, media_content_type: 'music', _q: undefined } },
+    radio: { attributes: { ...mpa, media_title: 'Radio Pop', media_artist: tx('Live-Radio'), media_duration: undefined, media_position: undefined, media_content_type: 'music', _q: undefined } },
     pod: { attributes: { ...mpa, media_title: 'Folge 142: Über die Äußerste Gelassenheit des Seins in Öffentlichen Verkehrsmitteln', media_artist: 'Der Tägliche Müßiggang', media_content_type: 'podcast', media_duration: 3600, media_position: 1500, _q: undefined } },
     long: { attributes: { ...mpa, media_title: 'Überall Äpfel und Öl: Die sehr lange Geschichte vom Straßenfest in Schwäbisch Gmünd', media_artist: 'Die Größten Künstler Ünd Gäste Süddeutschlands' } },
     off: { state: 'off', attributes: { friendly_name: mpa.friendly_name, device_class: 'speaker' } },
@@ -3408,23 +3412,23 @@ if (!LIVE) {   // Demo/Test: ?nb → Karte mit Bild und Button, ?nb=2 zwei hinte
   const q = new URLSearchParams(location.search).get('nb'), pic = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 9"><defs><linearGradient id="a" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9fb4c8"/><stop offset="1" stop-color="#5d6b5a"/></linearGradient></defs><rect width="16" height="9" fill="url(#a)"/><rect x="9" y="3" width="4" height="4" fill="#e8ecef"/></svg>');
   window.nbPush = nbPush; window.__nb = { nb, ents: () => ents };
   if (q !== null) setTimeout(() => {
-    if (q === 'text') nbPush({ title: 'Wäsche', message: 'Die Waschmaschine ist fertig.', duration: 0 });
-    else { nbPush({ title: 'Paket', message: 'Du solltest bis 10:42 Uhr zum Training losfahren, um pünktlich anzukommen.', image: pic, button: 'Kameras öffnen', face: 'cams', duration: 0 }); if (q === '2') nbPush({ message: 'Zweite Meldung ohne Titel.', button: 'Licht an', entity: 'light.flur', duration: 0 }); }
+    if (q === 'text') nbPush({ title: tx('Wäsche'), message: tx('Die Waschmaschine ist fertig.'), duration: 0 });
+    else { nbPush({ title: tx('Paket'), message: tx('Du solltest bis 10:42 Uhr zum Training losfahren, um pünktlich anzukommen.'), image: pic, button: tx('Kameras öffnen'), face: 'cams', duration: 0 }); if (q === '2') nbPush({ message: tx('Zweite Meldung ohne Titel.'), button: tx('Licht an'), entity: 'light.flur', duration: 0 }); }
   }, 800);
 }
 timerInit(screen, call, (timer, action) => LIVE && conn.sendMessagePromise({ type: 'homeblick/timer', display: DISPLAY, timer, action }).catch(e => console.warn('Timer', action, e)), () => CFG.chime ? CFG.volume / 100 : 0, () => kiosk.wake());
 // Live-Pillen (pills.js): Regeln in CONF.pills; Tippen springt zum Face mit der Kachel, Ende → „fertig“-Karte (nachts im Dimm-Fenster keine, damit das Display nicht aufwacht)
-const DEMO_PILLS = [{ e: 'binary_sensor.waschmaschine', text: 'Waschmaschine', left: 'sensor.waschmaschine_restzeit', icon: 'wash' }, { e: 'binary_sensor.golf_laedt', text: 'Golf lädt', left: 'sensor.golf_ladestand', icon: 'bolt' }];
+const DEMO_PILLS = [{ e: 'binary_sensor.waschmaschine', text: tx('Waschmaschine'), left: 'sensor.waschmaschine_restzeit', icon: 'wash' }, { e: 'binary_sensor.golf_laedt', text: tx('Golf lädt'), left: 'sensor.golf_ladestand', icon: 'bolt' }];
 pillsInit(screen, {
   ents: () => ents, conf: () => CONF.pills || (LIVE || PREVIEW ? [] : DEMO_PILLS), hidden: () => !!CONF.kiosk?.guest,
   go: r => { const i = CONF.faces.findIndex(f => f.tiles?.some(t => t.e === r.e)); if (i < 0) return; faces.go(i); setTimeout(() => $$(`.tile[data-e="${r.e}"]`).forEach(t => t.animate([{ scale: '1' }, { scale: '1.06' }, { scale: '1' }], { duration: 600, easing: 'ease-out' })), 450); },
-  done: (r, text) => nbPush({ title: text.replace(/ ist fertig$/, ''), message: 'ist fertig', duration: 0, entity: r.e }),
+  done: r => nbPush({ title: r.text || st(r.e).attributes.friendly_name || r.e, message: tx('ist fertig'), duration: 0, entity: r.e }),
   quiet: () => { const d = CONF.kiosk?.dim, n = new Date(); return !!d && inWindow(n.getHours() * 60 + n.getMinutes(), mins(d.from), mins(d.to)); },
 });
 const kiosk = kioskInit({ faces, onWake: replayAct, conf: () => CONF, lux: () => { const e = CONF.kiosk?.lux, v = e ? parseFloat(st(e).state) : NaN; return isNaN(v) ? null : luxLevel(v); }, busy: () => cur || AS.className || timerOn() || kzOn || nbOn(), touched: () => touched,
   music: () => NP && st(NP).state === 'playing' && !/video|movie|tvshow|channel/.test(st(NP).attributes.media_content_type),   // Filme/TV ohne device_class tv nicht als Musik
   onState: st => conn?.sendMessagePromise({ type: 'homeblick/report', display: DISPLAY, ...st, info: info() }).catch(() => {}) });
-if (!LIVE) camConfig({ list: [{ entity: 'camera.turklingel', name: 'Haustür', light: 'light.eingang' }, { entity: 'camera.cx410w_color_x_standardauflosung', name: 'Garten' }, { entity: 'camera.demo_veranda', name: 'Veranda' }, { entity: 'camera.demo_wohnzimmer', name: 'Wohnzimmer' }], bell: { event: 'event.turklingel_doorbell', camera: 'camera.turklingel' } });
+if (!LIVE) camConfig({ list: [{ entity: 'camera.turklingel', name: tx('Haustür'), light: 'light.eingang' }, { entity: 'camera.cx410w_color_x_standardauflosung', name: tx('Garten') }, { entity: 'camera.demo_veranda', name: 'Veranda' }, { entity: 'camera.demo_wohnzimmer', name: tx('Wohnzimmer') }], bell: { event: 'event.turklingel_doorbell', camera: 'camera.turklingel' } });
 // Präsenzmelder je Display (Einstellung presence): solange „an“, weckt das Display aus dem Ruhemodus
 let near;   // Wetter-Face „Bedingungen“: Melder an = Nah (Karte), aus = Fern (nur Text); ohne Melder bleibt Nah
 setInterval(() => { const p = CONF.kiosk?.presence, on = p && st(p).state === 'on'; if (on) kiosk.wake(); if (p && on !== near) weatherNear(near = on); }, 1000);
@@ -3478,7 +3482,7 @@ if (LIVE) {
     // Wartebild: Administratoren kommen mit einem Tipp in die Einrichtung (im HA-Panel die Einstellungsseite, sonst admin.html), alle anderen sehen, wer es tun kann
     const waiting = async name => {
       const admin = await conn.sendMessagePromise({ type: 'auth/current_user' }).then(u => u.is_admin, () => false), to = `#/new/${encodeURIComponent(DISPLAY)}`;
-      $('#screen').insertAdjacentHTML('beforeend', `<div id="setup"><small>Willkommen bei Homeblick</small><b>${esc(name)}</b><span>Dieses Display hat sich angemeldet. Es fehlt nur noch die Einrichtung: Name, Bereich und Vorlage.</span>${admin ? '<button id="setup-go">Jetzt einrichten</button>' : `<span>Ein Administrator richtet es in den Homeblick-Einstellungen ein:<br>${esc(location.origin)}/homeblick-settings</span>`}</div>`);
+      $('#screen').insertAdjacentHTML('beforeend', `<div id="setup"><small>${tx('Willkommen bei Homeblick')}</small><b>${esc(name)}</b><span>${tx('Dieses Display hat sich angemeldet. Es fehlt nur noch die Einrichtung: Name, Bereich und Vorlage.')}</span>${admin ? `<button id="setup-go">${tx('Jetzt einrichten')}</button>` : `<span>${tx('Ein Administrator richtet es in den Homeblick-Einstellungen ein:')}<br>${esc(location.origin)}/homeblick-settings</span>`}</div>`);
       $('#setup-go')?.addEventListener('click', () => {
         if (parent !== window) try { parent.history.pushState(null, '', '/homeblick-settings' + to); parent.dispatchEvent(new CustomEvent('location-changed', { detail: { replace: false } })); return; } catch {}   // HA-Panel: der iframe darf nicht selbst nach oben navigieren, also die HA-Oberfläche umschalten (gleicher Origin)
         location.assign('admin.html' + to);
@@ -3574,7 +3578,7 @@ if (LIVE) {
     hello.then(subWx);   // Stundenleiste (Stil „Bedingungen“); Wetter ohne hourly → Fehler, Leiste bleibt leer
   } catch (err) {
     // In KS heißt ERR_INVALID_AUTH: Teilen aus / keine Custom Page. Kein Reload, sonst Endlosschleife.
-    if (!ha) $('#screen').insertAdjacentHTML('beforeend', '<div id="setup"><small>Homeblick</small><b>Start nicht möglich</b><span>Die Verbindungsbibliothek konnte nicht geladen werden.</span><button onclick="location.reload()">Erneut versuchen</button></div>');
+    if (!ha) $('#screen').insertAdjacentHTML('beforeend', `<div id="setup"><small>Homeblick</small><b>${tx('Start nicht möglich')}</b><span>${tx('Die Verbindungsbibliothek konnte nicht geladen werden.')}</span><button onclick="location.reload()">${tx('Erneut versuchen')}</button></div>`);
     else if (KS) console.error('KS: „Share Home Assistant connection“ einschalten bzw. Seite als Custom Page eintragen', err);
     // Neustart ohne auth_callback/code/state in der URL, sonst Schleife; einmal pro Sitzung, danach nur Fehler
     else if (err === ha.ERR_INVALID_AUTH && !(() => { try { return sessionStorage.hbAuthRetry; } catch { return 1; } })()) {

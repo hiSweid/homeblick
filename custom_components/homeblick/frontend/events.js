@@ -3,13 +3,15 @@
 // mit Uhrzeit: Farbbalken links, Titel, darunter Uhr + Zeitspanne. Farbe je Kalender (sortierte calendar.*-Entities).
 // Nicht in der (Annahme): Tipp aufs Kalender-Face öffnet die Liste als Vollbild (#events).
 
+import { tx, LOC } from './i18n.js';
+
 const COLORS = ['#007aff', '#ff9500', '#34c759', '#af52de', '#ff2d55', '#5ac8fa'];
 const DAYS = 30;
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => `&#${c.charCodeAt(0)};`);
 const local = d => d.toLocaleString('sv-SE');   // „2026-10-19 00:00:00“ = HA-Ortszeit
 const ymd = d => local(d).slice(0, 10);
 const parse = s => new Date(s.length === 10 ? s + 'T00:00' : s);   // ganztägig = Datum ohne Zeit
-const hm = d => d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+const hm = d => d.toLocaleTimeString(LOC, { hour: '2-digit', minute: '2-digit' });
 
 // HA: calendar.get_events (Antwort { 'calendar.x': { events: [{ start, end, summary }] } }); ohne ask → Demo.
 // Je Kalender einzeln: ein Fehler in einem Aufruf mit mehreren Entities bricht in HA den ganzen Aufruf ab
@@ -33,15 +35,15 @@ function demo(t0) {
   const day = d => ymd(new Date(t0.getFullYear(), t0.getMonth(), t0.getDate() + d));
   const ev = (summary, start, end) => ({ summary, start, end });
   return {
-    'calendar.familie': { events: [ev('Elternabend', at(0, 19), at(0, 20, 30)), ev('Telefonat mit Oma', at(0, 20, 45), at(0, 21)), ev('Yoga', at(0, 21, 15), at(0, 22)), ev('Lesen', at(0, 22, 15), at(0, 22, 45)), ev('Zahnarzt', at(3, 10, 30), at(3, 11, 15)), ev('Kinoabend', at(9, 20), at(9, 22, 30))] },
-    'calendar.geburtstage': { events: [ev('Weltkindertag', day(0), day(1)), ev('Omas Geburtstag', day(1), day(2)), ev('Leons Geburtstag', day(12), day(13))] },
-    'calendar.mullabfuhr': { events: [ev('Gelber Sack', day(0), day(1)), ev('Papiertonne', day(2), day(3)), ev('Restmüll', day(6), day(7))] },
+    'calendar.familie': { events: [ev(tx('Elternabend'), at(0, 19), at(0, 20, 30)), ev(tx('Telefonat mit Oma'), at(0, 20, 45), at(0, 21)), ev(tx('Yoga'), at(0, 21, 15), at(0, 22)), ev(tx('Lesen'), at(0, 22, 15), at(0, 22, 45)), ev(tx('Zahnarzt'), at(3, 10, 30), at(3, 11, 15)), ev(tx('Kinoabend'), at(9, 20), at(9, 22, 30))] },
+    'calendar.geburtstage': { events: [ev(tx('Weltkindertag'), day(0), day(1)), ev(tx('Omas Geburtstag'), day(1), day(2)), ev(tx('Leons Geburtstag'), day(12), day(13))] },
+    'calendar.mullabfuhr': { events: [ev(tx('Gelber Sack'), day(0), day(1)), ev(tx('Papiertonne'), day(2), day(3)), ev(tx('Restmüll'), day(6), day(7))] },
   };
 }
 
 // Zeitspanne; über Mitternacht (Ende 00:00 exakt zählt noch zum Starttag) beide Enden mit Datum
 function when(e, d) {
-  const dm = x => x.toLocaleDateString('de-DE', { day: 'numeric', month: 'short' });
+  const dm = x => x.toLocaleDateString(LOC, { day: 'numeric', month: 'short' });
   return ymd(e.start) === ymd(new Date(e.end - (e.end > e.start))) ? `${dm(d)}, ${hm(e.start)}–${hm(e.end)}` : `${dm(e.start)}, ${hm(e.start)} – ${dm(e.end)}, ${hm(e.end)}`;
 }
 
@@ -49,15 +51,15 @@ const st = n => n < 10 ? n : 0;   // Stagger nur für die ersten 10 Zeilen (35 m
 
 // Liste als HTML; Termine, die vor heute begonnen haben, stehen unter heute
 export function eventsHTML(list, max = Infinity) {
-  if (!list.length) return `<p class="evnone">Keine Termine in den nächsten ${DAYS} Tagen</p>`;
+  if (!list.length) return `<p class="evnone">${tx('Keine Termine in den nächsten {n} Tagen', { n: DAYS })}</p>`;
   const t0 = new Date(); t0.setHours(0, 0, 0, 0);
   let last = '', i = 0, html = '';
   for (const e of list.slice(0, max)) {
-    const d = e.start < t0 ? t0 : e.start, day = d.toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' });
+    const d = e.start < t0 ? t0 : e.start, day = d.toLocaleDateString(LOC, { weekday: 'long', day: 'numeric', month: 'long' });
     if (day !== last) html += `<h4 style="--i:${st(i++)}">${day}</h4>`;
     last = day;
     html += e.allDay
-      ? `<div class="ev ad" style="--c:${e.color};--i:${st(i++)}"><svg class="i"><use href="#evcal"/></svg><b>${esc(e.title)}</b><span>ganztägig</span></div>`
+      ? `<div class="ev ad" style="--c:${e.color};--i:${st(i++)}"><svg class="i"><use href="#evcal"/></svg><b>${esc(e.title)}</b><span>${tx('ganztägig')}</span></div>`
       : `<div class="ev" style="--c:${e.color};--i:${st(i++)}"><b>${esc(e.title)}</b><span><svg class="i"><use href="#evclock"/></svg> ${when(e, d)}</span></div>`;
   }
   return html;
@@ -65,11 +67,11 @@ export function eventsHTML(list, max = Infinity) {
 
 // Müllabfuhr: Tonne aus dem Titel eines Ganztagstermins (Heuristik nach Titeln der Anbieter, Wortanfang beachten); Farben wie die Tonnen in Deutschland
 const BINS = [
-  { rx: /(^|[^a-zäöüß])(rest|haus)(m[uü]ll|tonne|abfall)|schwarze tonne|graue tonne/i, name: 'Restmüll', short: 'Rest', color: '#636366' },
-  { rx: /(^|[^a-zäöüß])bio(tonne|m[uü]ll|abfall|\b)|braune tonne/i, name: 'Biotonne', short: 'Bio', color: '#a2672f' },
-  { rx: /(^|[^a-zäöüß])(alt)?papier|pappe|blaue tonne/i, name: 'Papiertonne', short: 'Papier', color: '#0a84ff' },
-  { rx: /gelbe?r? (sack|s[aä]cke|tonne)|wertstoff|leichtverpackung/i, name: 'Gelber Sack', short: 'Gelb', color: '#ffd60a' },
-  { rx: /gr[uü]n(schnitt|gut|tonne)|laubsack/i, name: 'Grünschnitt', short: 'Grün', color: '#30b94d' },
+  { rx: /(^|[^a-zäöüß])(rest|haus)(m[uü]ll|tonne|abfall)|schwarze tonne|graue tonne|general waste/i, name: tx('Restmüll'), short: tx('Rest‖Tonne'), color: '#636366' },
+  { rx: /(^|[^a-zäöüß])bio(tonne|m[uü]ll|abfall|\b)|braune tonne|organic waste/i, name: tx('Biotonne'), short: tx('Bio‖Tonne'), color: '#a2672f' },
+  { rx: /(^|[^a-zäöüß])(alt)?papier|pappe|blaue tonne|paper bin/i, name: tx('Papiertonne'), short: tx('Papier‖Tonne'), color: '#0a84ff' },
+  { rx: /gelbe?r? (sack|s[aä]cke|tonne)|wertstoff|leichtverpackung|yellow bag/i, name: tx('Gelber Sack'), short: tx('Gelb‖Tonne'), color: '#ffd60a' },
+  { rx: /gr[uü]n(schnitt|gut|tonne)|laubsack/i, name: tx('Grünschnitt'), short: tx('Grün‖Tonne'), color: '#30b94d' },
 ];
 const binOf = title => BINS.find(b => b.rx.test(title));
 const dayNo = d => Math.round(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 864e5);   // Kalendertage, nicht ms/86400000 (Sommerzeit)
@@ -83,7 +85,7 @@ export function wasteChip(list, now = new Date()) {
   if (!found.size) return null;
   const d = Math.min(...found.keys()), bins = [...found.get(d)];
   const names = bins.map(b => d > 1 || bins.length > 1 ? b.short : b.name).join(' + ');   // kurz, sonst bricht die 42-cqw-Spalte (Ellipse)
-  return { bins, text: d === 0 ? `Heute: ${names}` : d === 1 ? `Morgen: ${names}` : `${names} in ${d} Tagen` };
+  return { bins, text: d === 0 ? tx('Heute: {names}', { names }) : d === 1 ? tx('Morgen: {names}', { names }) : tx('{names} in {d} Tagen', { names, d }) };
 }
 const chipHTML = c => c ? `<div class="ew"><i>${c.bins.map(b => `<svg class="i bin" style="color:${b.color}"><use href="#evbin"/></svg>`).join('')}</i><span>${esc(c.text)}</span></div>` : '';
 
@@ -93,9 +95,9 @@ export function infoHTML(list, now = new Date()) {
   const t1 = new Date(t0.getFullYear(), t0.getMonth(), t0.getDate() + 1);
   const day = list.filter(e => e.start < t1 && e.end > t0), ad = day.filter(e => e.allDay), tm = day.filter(e => !e.allDay && e.end > now), more = tm.length - 2;
   const chip = chipHTML(wasteChip(list, now));   // ersetzt die Restzeile („N weitere“ / „Keine Termine heute“), damit das Raster nicht überläuft; Tippen öffnet wie der ganze Block die Terminliste
-  return (ad.length ? `<div class="ea"><i><svg class="i"><use href="#evcal"/></svg></i>${ad.length} ganztägig</div>` : '')
+  return (ad.length ? `<div class="ea"><i><svg class="i"><use href="#evcal"/></svg></i>${tx('{n} ganztägig', { n: ad.length })}</div>` : '')
     + tm.slice(0, 2).map(e => `<div class="ee"><b>${hm(e.start < t0 ? t0 : e.start)}–${hm(e.end)}</b><span>${esc(e.title)}</span></div>`).join('')
-    + (chip ? chip : more > 0 ? `<div class="em">${more} weitere${more > 1 ? '' : 'r'} Termin${more > 1 ? 'e' : ''}</div>` : ad.length || tm.length ? '' : '<div class="em">Keine Termine heute</div>');
+    + (chip ? chip : more > 0 ? `<div class="em">${more > 1 ? tx('{n} weitere Termine', { n: more }) : tx('{n} weiterer Termin', { n: more })}</div>` : ad.length || tm.length ? '' : `<div class="em">${tx('Keine Termine heute')}</div>`);
 }
 
 // Selbstcheck: Sortierung (ganztägig vor Uhrzeit am selben Tag), Gruppierung, Escaping
@@ -109,9 +111,9 @@ export function infoHTML(list, now = new Date()) {
 {
   const at = (d, title, allDay = true) => ({ title, allDay, start: new Date(2030, 0, 5 + d), end: new Date(2030, 0, 6 + d) }), morning = new Date(2030, 0, 5, 8), evening = new Date(2030, 0, 5, 18);
   const w = (l, now) => wasteChip(l, now)?.text;
-  console.assert(w([at(0, 'Restmüll')], morning) === 'Heute: Restmüll' && w([at(0, 'Restmüll')], evening) === undefined, 'Müll: heute nur bis 12 Uhr');
-  console.assert(w([at(1, 'Biotonne'), at(1, 'Papiertonne'), at(4, 'Gelber Sack')], evening) === 'Morgen: Bio + Papier', 'Müll: mehrere Tonnen am selben Tag');
-  console.assert(w([at(3, 'Gelber Sack')], evening) === 'Gelb in 3 Tagen' && w([at(9, 'Biotonne')], evening) === undefined, 'Müll: höchstens 7 Tage');
+  console.assert(w([at(0, 'Restmüll')], morning) === tx('Heute: {names}', { names: tx('Restmüll') }) && w([at(0, 'Restmüll')], evening) === undefined, 'Müll: heute nur bis 12 Uhr');
+  console.assert(w([at(1, 'Biotonne'), at(1, 'Papiertonne'), at(4, 'Gelber Sack')], evening) === tx('Morgen: {names}', { names: tx('Bio‖Tonne') + ' + ' + tx('Papier‖Tonne') }), 'Müll: mehrere Tonnen am selben Tag');
+  console.assert(w([at(3, 'Gelber Sack')], evening) === tx('{names} in {d} Tagen', { names: tx('Gelb‖Tonne'), d: 3 }) && w([at(9, 'Biotonne')], evening) === undefined, 'Müll: höchstens 7 Tage');
   console.assert(w([at(1, 'Biologie Prüfung'), at(1, 'Papier', false)], evening) === undefined, 'Müll: nur Tonnen, nur ganztägig');
 }
 

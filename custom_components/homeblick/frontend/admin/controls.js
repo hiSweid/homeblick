@@ -1,5 +1,6 @@
 // Bedienelemente als HTML-Bausteine (Schalter, Auswahl, Regler, Entity-Zeile) plus die Verdrahtung per Ereignis-Delegation.
 // Jedes Element trägt data-k (Schlüssel); bind(root, handler) ruft handler(key, value, el) bei einer Änderung.
+import { tx } from '../i18n.js';
 import { choose, esc, ic } from './ui.js';
 import { entOf, pickEntity } from './entities.js';
 
@@ -7,7 +8,7 @@ export const sw = (on, k, extra = '') => `<button type="button" class="switch" r
 export const sroww = (label, hint, control, id = '') => `<div class="srow" ${id ? `data-row="${esc(id)}"` : ''}><span><span class="s-label">${label}</span>${hint ? `<small>${hint}</small>` : ''}</span>${control}</div>`;
 export const switchRow = (label, k, on, hint, id) => sroww(label, hint, sw(on, k), id);
 export const sliderRow = (label, k, lo, hi, step, v, hint, unit = ' %', id) => sroww(label, hint, `<span class="slider" data-unit="${esc(unit)}"><input type="range" data-k="${k}" min="${lo}" max="${hi}" step="${step}" value="${v}"><output>${v}${unit}</output></span>`, id);
-export const numberRow = (label, k, v, { min, max, step = 1, unit = '' } = {}, hint, id) => sroww(label, hint, `<span class="stepper"><output data-min="${min}" data-max="${max}" data-stp="${step}" data-unit="${esc(unit)}">${v}${unit}</output><span class="pm"><button type="button" data-step="-1" data-k="${k}" aria-label="Weniger">${ic('minus')}</button><button type="button" data-step="1" data-k="${k}" aria-label="Mehr">${ic('plus')}</button></span></span>`, id);
+export const numberRow = (label, k, v, { min, max, step = 1, unit = '' } = {}, hint, id) => sroww(label, hint, `<span class="stepper"><output data-min="${min}" data-max="${max}" data-stp="${step}" data-unit="${esc(unit)}">${v}${unit}</output><span class="pm"><button type="button" data-step="-1" data-k="${k}" aria-label="${tx('Weniger')}">${ic('minus')}</button><button type="button" data-step="1" data-k="${k}" aria-label="${tx('Mehr')}">${ic('plus')}</button></span></span>`, id);
 export const timeRow = (label, k, v, hint, id) => sroww(label, hint, `<input type="time" data-k="${k}" value="${esc(String(v || '').slice(0, 5))}">`, id);
 export const textRow = (label, k, v, { ph = '', max = 80, type = 'text' } = {}, hint, id) => sroww(label, hint, `<input type="${type}" data-k="${k}" value="${esc(v)}" placeholder="${esc(ph)}" maxlength="${max}" autocomplete="off" autocapitalize="off" spellcheck="false">`, id);
 export const segRow = (label, k, list, v, hint, id) => sroww(label, hint, `<span class="seg">${list.map(([a, n]) => `<button type="button" data-k="${k}" data-v="${esc(a)}" aria-pressed="${String(a) === String(v)}">${esc(n)}</button>`).join('')}</span>`, id);
@@ -16,7 +17,7 @@ export const selectRow = (label, k, list, v, hint, id, search = false) => sroww(
 export const selectBtn = (k, list, v, search = false) => `<button type="button" class="choice" data-k="${esc(k)}" data-choose="${search ? 's' : ''}" aria-haspopup="listbox"><span>${esc(list.find(x => String(x[0]) === String(v))?.[1] ?? v ?? '')}</span>${ic('chev-ud')}</button>`;
 // Entity-Zeile: öffnet den Auswahl-Dialog; opts = pickEntity-Optionen (domains, dcs, none, title)
 export const entityRow = (label, k, v, opts, hint, id) => sroww(label, hint, entityBtn(k, v, opts, opts.none), id);
-export const entityBtn = (k, v, opts, none = 'Wählen …') => { const e = entOf(v); return `<button type="button" class="choice" data-k="${esc(k)}" data-ep='${esc(JSON.stringify(opts))}' ><span class="${v && !e ? 'bad' : ''}">${esc(e?.name || v || none)}</span>${ic('right')}</button>`; };
+export const entityBtn = (k, v, opts, none = tx('Wählen …')) => { const e = entOf(v); return `<button type="button" class="choice" data-k="${esc(k)}" data-ep='${esc(JSON.stringify(opts))}' ><span class="${v && !e ? 'bad' : ''}">${esc(e?.name || v || none)}</span>${ic('right')}</button>`; };
 
 /** Verdrahtet Änderungen in root. get(k) liefert die aktuelle Liste für Popover-Auswahlen, on(k, wert, el) bekommt jede Änderung. */
 export function bind(root, { on, listOf = () => [], valueOf = () => '' }) {
@@ -43,7 +44,7 @@ export function bind(root, { on, listOf = () => [], valueOf = () => '' }) {
     if (b.dataset.ep) {
       const o = JSON.parse(b.dataset.ep), en = await pickEntity({ ...o, current: valueOf(k, b) });
       if (!en) return;
-      b.querySelector('span').textContent = en.name || o.none || 'Wählen …';
+      b.querySelector('span').textContent = en.name || o.none || tx('Wählen …');
       return on(k, en.id, b, en);
     }
   });
