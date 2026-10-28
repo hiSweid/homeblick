@@ -108,6 +108,8 @@ Also: `#music`, `#bigclock`, … in the URL switches to that face; the screen is
 
 Open `https://<your-ha>/homeblick/index.html?live` directly in the tablet's browser (full screen, without the Home Assistant sidebar; sign in once). Without `?live` the page shows demo data. Add `&display=<id>&name=<Name>` once to give the tablet a fixed display id. Use a browser in kiosk/full-screen mode (or "Add to home screen") and keep the tablet on power; Homeblick keeps the screen awake via the Wake Lock API.
 
+**Audio** (Settings page → a display → *Sprache*): *Mikrofon* picks the input the display listens with (the list appears after the first microphone permission; applies to Assist and the wake word). *Sprachausgabe über* speaks answers and announcements on a speaker instead of the display (e.g. Sonos, via `media_player.play_media` with `announce`; needs a Home Assistant voice). *Musik bei Sprache auf* lowers other playing players to that percentage while speaking and restores them afterwards (0 or 100 = off).
+
 **https is required** for the microphone (Assist, wake word) and the Wake Lock: browsers only allow them on https or localhost. Reach Home Assistant via https, e.g. Home Assistant Cloud, a reverse proxy with a certificate, or a tunnel. On plain http the display works, but cannot listen and may turn its screen off.
 
 ## Voice (Assist)
