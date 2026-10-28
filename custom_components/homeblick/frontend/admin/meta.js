@@ -25,7 +25,7 @@ export const designCur = f => DESIGN[GROUP[f.type]] ? `${f.type}:${f.style || ST
 export const withDesign = (cfg, f, v) => { if (!DESIGN[GROUP[f.type]]) return { ...f, style: v }; const [type, style] = v.split(':'); return { ...f, type, style: style || undefined }; };
 export const WAKE = [['off', 'Aus'], ['hey_jarvis', 'Hey Jarvis'], ['alexa', 'Alexa']];
 export const bgCss = bg => bg === 'auto' ? 'linear-gradient(135deg,#ffb36b,#5a6bb5)' : bg === 'black' ? '#1c1c1e' : bg === 'white' ? '#f2f2f7' : bg === 'metal' ? 'linear-gradient(135deg,#b5c4d6,#8795ad)' : /^(prism|fan):\d+$/.test(bg) ? `linear-gradient(135deg,hsl(${bg.split(':')[1]} 70% 62%),hsl(${bg.split(':')[1]} 60% 28%))` : /^orb:\d+(:\d+)?$/.test(bg) || bg === 'champagne' ? (([, h, sat = 24]) => `radial-gradient(circle at 62% 66%,hsl(${h} ${sat}% 90%) 0 22%,transparent 23%),linear-gradient(135deg,hsl(${h} ${sat}% 76%),hsl(${h} ${sat}% 50%))`)(bg === 'champagne' ? [0, 38, 24] : bg.split(':')) : /^flow:\d+$/.test(bg) ? `radial-gradient(circle at 36% 40%,hsl(${bg.split(':')[1]} 85% 66%) 0 24%,transparent 25%),radial-gradient(circle at 68% 68%,hsl(322 85% 62%) 0 20%,transparent 21%),linear-gradient(135deg,#ecc9f7,#f488cc)` : bg === 'prism' ? 'linear-gradient(135deg,#8483f3,#3c3cae)' : bg === 'teal' ? 'linear-gradient(135deg,#4fae9f,#1d5f56)' : typeof bg === 'number' ? `linear-gradient(135deg,hsl(${bg} 75% 66%),hsl(${bg + 25} 70% 52%))` : '#8e8e93';
-export const bgName = bg => BG.find(b => String(b[0]) === String(bg))?.[1] || THEME_SET.find(t => String(t[2]) === String(bg))?.[1] || 'Foto';
+export const bgName = bg => BG.find(b => String(b[0]) === String(bg))?.[1] || BG_SETS.flatMap(g => g[1]).find(t => String(t[0]) === String(bg))?.[1] || 'Foto';
 export const bgVal = v => /^\d+$/.test(v) ? +v : v;
 
 export const stripArea = (en, area) => area ? en.name.replace(new RegExp('^' + area.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '[\\s:_-]*', 'i'), '').trim() : en.name;
@@ -74,27 +74,20 @@ export const ENERGY = [['pv', 'Solar-Leistung'], ['grid', 'Netz-Leistung (+ Bezu
 export const TILE_DOM = ['light', 'switch', 'input_boolean', 'lock', 'cover', 'climate', 'scene', 'script', 'media_player', 'fan', 'timer', 'camera', 'button', 'input_button', 'sensor', 'binary_sensor'];
 export const TOGGLE_DOM = ['light', 'switch', 'input_boolean', 'fan', 'cover', 'media_player', 'script'];   // Domains mit Dienst .toggle
 
-export const THEME_SET = [
-  ['prisma', 'Prisma', 'prism:245', 'liquid', 'dark'], ['teal', 'Teal', 'fan:172', 'liquid', 'dark'], ['amethyst', 'Amethyst', 'fan:285', 'liquid', 'dark'], ['ozean', 'Ozean', 'prism:212', 'liquid', 'dark'],
-  ['nordlicht', 'Nordlicht', 'prism:165', 'liquid', 'dark'], ['bernstein', 'Bernstein', 'prism:35', 'liquid', 'dark'], ['koralle', 'Koralle', 'prism:8', 'liquid', 'dark'], ['beere', 'Beere', 'fan:330', 'liquid', 'dark'],
-  ['wald', 'Wald', 'fan:140', 'liquid', 'dark'], ['daemmerung', 'Dämmerung', 30, 'liquid', 'dark'], ['rot', 'Rot', 5, 'liquid', 'dark'], ['rosa', 'Rosa', 340, 'liquid', 'dark'], ['violett', 'Violett', 285, 'liquid', 'dark'],
-  ['pink', 'Pink', 307, 'liquid', 'dark'], ['blau', 'Blau', 228, 'liquid', 'dark'], ['tuerkis', 'Türkis', 205, 'liquid', 'dark'], ['himmel', 'Himmel', 212, 'liquid', 'dark'], ['gruen', 'Grün', 150, 'liquid', 'dark'],
-  ['metall', 'Metall', 'metal', 'liquid', 'dark'], ['p-rosa', 'Pastell Rosa', 340, 'liquid', 'light'], ['p-blau', 'Pastell Blau', 212, 'liquid', 'light'], ['p-gruen', 'Pastell Grün', 150, 'liquid', 'light'], ['p-gelb', 'Pastell Gelb', 50, 'liquid', 'light'],
-  ['saphir', 'Saphir', 'prism:222', 'liquid', 'dark'], ['smaragd', 'Smaragd', 'prism:152', 'liquid', 'dark'], ['rubin', 'Rubin', 'prism:350', 'liquid', 'dark'], ['topas', 'Topas', 'prism:48', 'liquid', 'dark'],
-  ['lagune', 'Lagune', 'fan:190', 'liquid', 'dark'], ['lavendel', 'Lavendel', 'fan:262', 'liquid', 'dark'], ['orchidee', 'Orchidee', 'fan:310', 'liquid', 'dark'], ['limette', 'Limette', 'fan:95', 'liquid', 'dark'],
-  ['sonnenuntergang', 'Sonnenuntergang', 'fan:18', 'liquid', 'dark'], ['mitternacht', 'Mitternacht', 'prism:255', 'liquid', 'dark'], ['gold', 'Gold', 'fan:42', 'liquid', 'dark'], ['mint', 'Mint', 'fan:160', 'liquid', 'dark'],
-  ['p-lila', 'Pastell Lila', 285, 'liquid', 'light'], ['p-mint', 'Pastell Mint', 170, 'liquid', 'light'], ['p-pfirsich', 'Pastell Pfirsich', 25, 'liquid', 'light'], ['p-himmel', 'Pastell Himmel', 200, 'liquid', 'light'],
-  ['p-prisma', 'Prisma Hell', 'prism:245', 'liquid', 'light'], ['p-teal', 'Teal Hell', 'fan:172', 'liquid', 'light'],
-  ['champagner', 'Champagner', 'champagne', 'liquid', 'dark'], ['rosegold', 'Roségold', 'orb:12:30', 'liquid', 'dark'], ['silber', 'Silber', 'orb:210:4', 'liquid', 'dark'], ['mauve', 'Mauve', 'orb:330:18', 'liquid', 'dark'],
-  ['flow', 'Flow', 'flow:232', 'liquid', 'dark'], ['flow-pfirsich', 'Flow Pfirsich', 'flow:30', 'liquid', 'dark'], ['flow-lila', 'Flow Lila', 'flow:268', 'liquid', 'dark'], ['flow-aqua', 'Flow Aqua', 'flow:190', 'liquid', 'dark'],
-  ['flat-dunkel', 'Flat Dunkel', 'black', 'flat', 'dark'], ['flat-hell', 'Flat Hell', 'white', 'flat', 'light'],
+// Hintergrund-Auswahl (gilt für das ganze Display): [Gruppe, [[bg, Name], …]]; Look und Hell/Dunkel stehen getrennt in cfg.theme / cfg.mode
+export const BG_SETS = [
+  ['Klassisch', [['auto', 'Tageszeit'], ['black', 'Schwarz'], ['white', 'Weiß'], ['metal', 'Metall']]],
+  ['Kurven', [[30, 'Dämmerung'], [5, 'Rot'], [25, 'Pfirsich'], [50, 'Gelb'], [150, 'Grün'], [170, 'Mint'], [205, 'Türkis'], [212, 'Himmel'], [228, 'Blau'], [285, 'Violett'], [307, 'Pink'], [340, 'Rosa']]],
+  ['Prisma', [['prism:245', 'Prisma'], ['prism:222', 'Saphir'], ['prism:212', 'Ozean'], ['prism:255', 'Mitternacht'], ['prism:165', 'Nordlicht'], ['prism:152', 'Smaragd'], ['prism:48', 'Topas'], ['prism:35', 'Bernstein'], ['prism:8', 'Koralle'], ['prism:350', 'Rubin']]],
+  ['Fächer', [['fan:172', 'Teal'], ['fan:190', 'Lagune'], ['fan:140', 'Wald'], ['fan:160', 'Mint'], ['fan:95', 'Limette'], ['fan:42', 'Gold'], ['fan:18', 'Sonnenuntergang'], ['fan:330', 'Beere'], ['fan:310', 'Orchidee'], ['fan:285', 'Amethyst'], ['fan:262', 'Lavendel']]],
+  ['Kugeln', [['champagne', 'Champagner'], ['orb:12:30', 'Roségold'], ['orb:210:4', 'Silber'], ['orb:330:18', 'Mauve']]],
+  ['Flow', [['flow:232', 'Flow'], ['flow:30', 'Pfirsich'], ['flow:268', 'Lila'], ['flow:190', 'Aqua']]],
 ];
 export const THEME_TYPES = ['grid', 'analog', 'bigclock', 'energy', 'info', 'people', 'todo', 'check'];   // Faces, deren Hintergrund ein Theme mitnimmt (Foto-Hintergründe bleiben)
 export const themeBg = f => !f.bg || typeof f.bg !== 'object';
 export const themeGrid = cfg => cfg.faces.find(f => f.type === 'grid') || cfg.faces[0];
-export const themeCur = cfg => { const g = themeGrid(cfg); return THEME_SET.find(t => t[3] === (cfg.theme || 'liquid') && t[4] === (cfg.mode || 'dark') && String(t[2]) === String(g.bg))?.[0] ?? ''; };
-export const themeConf = (cfg, v) => { const t = THEME_SET.find(x => x[0] === v) || THEME_SET[0], g = themeGrid(cfg); return { conf: { ...cfg, theme: t[3], mode: t[4], faces: [{ ...g, bg: t[2] }] }, face: g.id }; };
-export const themeApply = (cfg, v) => { const t = THEME_SET.find(x => x[0] === v); if (!t) return; cfg.theme = t[3]; cfg.mode = t[4]; cfg.faces.forEach(f => { if (THEME_TYPES.includes(f.type) && themeBg(f)) f.bg = t[2]; }); };
+export const bgCur = cfg => { const b = themeGrid(cfg).bg; return { prism: 'prism:245', teal: 'fan:172' }[b] ?? b; };   // Kurzformen wie die Auswahl schreiben
+export const bgAll = (cfg, v) => cfg.faces.forEach(f => { if (THEME_TYPES.includes(f.type) && themeBg(f)) f.bg = v; });
 export const THEMES = [['liquid', 'Liquid', 'linear-gradient(135deg,#e29b56,#a8541a)'], ['flat', 'Flat', 'linear-gradient(135deg,#e8e8e8 50%,#c6c2e3 50%)']];
 export const MODES = [['dark', 'Dunkel', 'linear-gradient(135deg,#3a3a3c,#1c1c1e)'], ['light', 'Hell', 'linear-gradient(135deg,#fff,#d8d8dc)']];
 export const LOOKS = [['', 'Theme', 'linear-gradient(135deg,#d8d8dc,#8e8e93)'], ...THEMES];

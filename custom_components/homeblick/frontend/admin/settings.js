@@ -2,7 +2,8 @@
 // Alles wirkt sofort, außer dem Theme: das gehört zum Entwurf des Layouts und braucht „Senden“.
 import { $, $$, choose, esc, guard, ic, toast } from './ui.js';
 import { S, call, cur, dirty, emit, mutate, on, save, setSetting } from './state.js';
-import { THEME_SET, THEMES, MODES, TYPES, WAKE, bgCss, themeApply, themeCur } from './meta.js';
+import { BG_SETS, THEMES, MODES, TYPES, WAKE, bgAll, bgCss, bgCur, bgVal, themeGrid } from './meta.js';
+import { hueOf, wall } from '../wallpapers.js';
 import { ago, ledOf } from './util.js';
 import { bind, entityRow, numberRow, selectRow, sliderRow, switchRow, textRow, timeRow, sroww } from './controls.js';
 import { copyLayoutFrom, copySettingsFrom, applyToOthers, exportEsp, exportLayout, importLayout, removeDisplay, renameDisplay, screenshot } from './actions.js';
@@ -13,7 +14,7 @@ export const spot = { key: null, section: null };
 const SECTIONS = [   // [Schlüssel, Name, Symbol, Farbe]; Gruppen wie in den iOS-Einstellungen
   [['general', 'Allgemein', 'monitor', '#8e8e93'], ['control', 'Steuerung und Ansage', 'refresh', '#007aff']],
   [['brightness', 'Helligkeit', 'sun', '#ff9500'], ['saver', 'Bildschirmschoner', 'moon', '#5856d6'], ['night', 'Nachtmodus', 'moon', '#3a3a8c']],
-  [['voice', 'Sprache und Mikrofon', 'mic', '#ff3b30'], ['wake', 'Aufwecken und Bedienung', 'bolt', '#ff9f0a'], ['look', 'Darstellung', 'paint', '#ff2d55'], ['pills', 'Live-Pillen', 'pulse', '#30d158']],
+  [['voice', 'Sprache und Mikrofon', 'mic', '#ff3b30'], ['wake', 'Aufwecken und Bedienung', 'bolt', '#ff9f0a'], ['look', 'Hintergrund und Theme', 'paint', '#ff2d55'], ['pills', 'Live-Pillen', 'pulse', '#30d158']],
   [['status', 'Status und Bildschirmfoto', 'info', '#34c759'], ['manage', 'Vorlagen und Sicherung', 'copy', '#30b0c7']],
 ];
 // Zeile, die ⌘K beim Öffnen hervorheben soll: [Schlüssel, Name, Abschnitt]
@@ -23,6 +24,7 @@ export const INDEX = [['bright', 'Helligkeit', 'brightness'], ['lux', 'Lichtsens
 const micList = v => [['', 'Standard des Geräts'], ...[...new Set([...(cur().info?.mics || []), ...(v ? [v] : [])])].map(m => [m, m])];   // gewähltes, gerade fehlendes Mikro bleibt sichtbar
 const DEPS = { dim_from: s => s.dim, dim_to: s => s.dim, dim_level: s => s.dim, sched_from: s => s.sched, sched_to: s => s.sched, wake_sens: s => s.wake !== 'off', barge: s => s.wake !== 'off' };
 const G = (title, body, foot = '') => `<div class="sect">${title ? `<div class="group-h">${title}</div>` : ''}<div class="group">${body}</div>${foot ? `<div class="group-f">${foot}</div>` : ''}</div>`;
+const thumb = (v, lit) => hueOf(bgVal(v)) == null ? bgCss(bgVal(v)) : `${wall(bgVal(v), lit)[0]} center/cover`;   // Tageszeit/Schwarz/Weiß haben kein Wallpaper
 const stack = (label, control) => `<div class="stack"><span class="s-label">${label}</span>${control}</div>`;
 const seg2 = (k, list, v) => `<span class="seg fill">${list.map(([a, n]) => `<button type="button" data-k="${k}" data-v="${a}" aria-pressed="${a === v}">${n}</button>`).join('')}</span>`;
 const liveRows = d => {
@@ -67,8 +69,10 @@ export function mount(el, route) {
       + G('Modi', switchRow('Mikrofon stumm', 'micmute', x.micmute, 'Assist per Tippen geht weiter', 'micmute') + switchRow('Gastmodus', 'guest', x.guest, 'Kalender, Info und Kameras zeigen ein Schloss', 'guest') + switchRow('Nicht stören', 'dnd', x.dnd, 'Kein Wake Word, keine Sprache, kein Gong', 'dnd') + switchRow('Gong beim Klingeln', 'chime', x.chime, 'Ton erst nach der ersten Berührung', 'chime')),
     wake: x => G('', entityRow('Bewegungs-/Präsenzmelder', 'presence', x.presence, { domains: ['binary_sensor'], dcs: ['motion', 'occupancy', 'presence'], none: 'Keiner', title: 'Melder' }, 'Solange „an“, bleibt das Display wach', 'presence') + switchRow('Kontrollzentrum', 'kz', x.kz, 'Wisch von oben rechts: Helligkeit, Lautstärke, Schalter', 'kz')),
     pills: () => pillsHTML(S.cfg, G),
-    look: () => G('Look', `<div class="stack">${seg2('look', THEMES, S.cfg.theme || 'liquid')}</div>`) + G('Modus', `<div class="stack">${seg2('mode', MODES, S.cfg.mode || 'dark')}</div>`)
-      + G('Theme', `<div class="theme-grid">${THEME_SET.map(t => `<button data-theme="${t[0]}" aria-pressed="${themeCur(S.cfg) === t[0]}" title="${esc(t[1])}"><i style="background:${bgCss(t[2])}"></i><span>${esc(t[1])}</span></button>`).join('')}</div>`, 'Gehört zum Entwurf: „Senden“ schickt es ans Display. Ein Theme setzt Look, Hell/Dunkel und den Hintergrund aller Farb-Ansichten.'),
+    look: () => `<div class="sect"><div class="pv-device bg-pv"><iframe title="Vorschau" src="index.html?preview"></iframe></div><div class="group-f">Vorschau der ersten Seite. Gilt für das ganze Display und gehört zum Entwurf: „Senden“ schickt es ans Display.</div></div>`
+      + G('Look', `<div class="stack">${seg2('look', THEMES, S.cfg.theme || 'liquid')}</div>`) + G('Modus', `<div class="stack">${seg2('mode', MODES, S.cfg.mode || 'dark')}</div>`)
+      + BG_SETS.map(([n, l]) => G(n, `<div class="bg-grid">${l.map(([v, t]) => `<button type="button" class="bg-tile" data-bg="${esc(v)}" aria-pressed="${String(bgCur(S.cfg)) === String(v)}"><i data-w="${esc(v)}" style="background:${esc(thumb(v, S.cfg.mode === 'light'))}"></i><span>${esc(t)}</span></button>`).join('')}</div>`)).join('')
+      + `<div class="sect"><div class="group-f">Der Hintergrund gilt für alle Ansichten außer Wetter, Musik, Kalender, Kameras, Fotos und Ansichten mit eigenem Foto.</div></div>`,
     status: () => `<div id="set-live">${liveRows(cur())}</div>` + G('Bildschirmfoto', `<div class="s-actions"><button class="btn quiet" data-cmd="shot" ${cur().connected ? '' : 'disabled'}>${ic('image')}Aufnehmen</button></div>${S.shots[S.sel] ? `<img class="shot" id="set-shot" src="${S.shots[S.sel]}" alt="">` : ''}`, 'Bilder von fremden Servern, Kamera-Video und WebGL fehlen im Foto.'),
     manage: () => {
       const b = (k, i, n, ok = S.cfg) => `<button class="row tap" data-m="${k}" ${ok ? '' : 'disabled'}>${ic(i)}<span class="t"><b>${n}</b></span>${ic('right')}</button>`;
@@ -108,7 +112,7 @@ export function mount(el, route) {
     const x = s();
     for (const [k, fn] of Object.entries(DEPS)) $(`[data-row=${k}]`, el)?.classList.toggle('inactive', !fn(x));
     const st = $('#set-status', el), c = cur();
-    if (st) { st.textContent = c.connected ? section === 'look' ? 'Look, Modus und Theme gehören zum Entwurf. „Senden“ schickt sie ans Display.' : section === 'pills' ? 'Die Pillen gehören zum Entwurf. „Senden“ schickt sie ans Display.' : 'Änderungen wirken sofort am Display.' : 'Das Display ist offline. Einstellungen gelten, sobald es wieder da ist.'; st.classList.toggle('warn', !c.connected); }
+    if (st) { st.textContent = c.connected ? section === 'look' ? 'Look, Modus und Hintergrund gehören zum Entwurf. „Senden“ schickt sie ans Display.' : section === 'pills' ? 'Die Pillen gehören zum Entwurf. „Senden“ schickt sie ans Display.' : 'Änderungen wirken sofort am Display.' : 'Das Display ist offline. Einstellungen gelten, sobald es wieder da ist.'; st.classList.toggle('warn', !c.connected); }
   }
   const lists = { show: () => [['', 'Wählen …'], ...TYPES], saver: saverTypes, wake: () => WAKE, tts: () => [['', 'Browser-Stimme'], ...S.ttss], pipeline: () => [['', 'Standard von Home Assistant'], ...S.pipelines], mic: () => micList(s().mic) };
   const setK = async (k, v, b, en, phase) => {
@@ -124,7 +128,18 @@ export function mount(el, route) {
   };
   html();
   bind(el, { on: setK, listOf: k => k.startsWith('p.') ? PILL_LISTS[k.split('.')[2]] || [] : lists[k]?.() || [], valueOf: k => k.startsWith('p.') ? pillGet(k) : k === 'show' ? '' : s()[k] ?? '' });
-  const themes = () => { const g = $('.theme-grid', el); if (g) [...g.children].forEach(b => b.setAttribute('aria-pressed', themeCur(S.cfg) === b.dataset.theme)); };
+  // Hintergrund-Auswahl: gewählte Kachel markieren, Thumbnails passend zu Hell/Dunkel, Vorschau-Rahmen mit dem Entwurf füttern
+  const frame = () => $('.bg-pv iframe', el), light = () => S.cfg?.mode === 'light';
+  const push = () => { const f = frame(); if (f?.dataset.ready && S.cfg) f.contentWindow.postMessage({ hb: 'preview', conf: { ...S.cfg, off: [] }, face: themeGrid(S.cfg).id, edit: false, sel: -1, states: S.states }, location.origin); };
+  const onFrame = e => { const f = frame(); if (f && e.source === f.contentWindow && e.origin === location.origin && e.data?.hb === 'preview-ready') { f.dataset.ready = 1; push(); } };
+  addEventListener('message', onFrame);
+  let lit = light();
+  const looks = () => {
+    if (!S.cfg || !frame()) return;
+    $$('.bg-tile', el).forEach(b => b.setAttribute('aria-pressed', String(bgCur(S.cfg)) === b.dataset.bg));
+    if (lit !== light()) { lit = light(); $$('.bg-tile i', el).forEach(i => { i.style.background = thumb(i.dataset.w, lit); }); }
+    push();
+  };
   el.addEventListener('click', async e => {
     const q = c => e.target.closest(c);
     const sc = q('[data-sec]'); if (sc) return open(sc.dataset.sec);
@@ -139,7 +154,7 @@ export function mount(el, route) {
     }
     const pe = q('[data-pill-add],[data-pill-del],[data-pill-up]');
     if (pe && !pe.disabled) { const sc = $('#sm .scroller', el)?.scrollTop || 0, d = pe.dataset; if (d.pillAdd !== undefined) { if (!await pillsAdd()) return; } else if (d.pillDel !== undefined) pillsDel(+d.pillDel); else pillsUp(+d.pillUp); paintMain(); const n = $('#sm .scroller', el); if (n) n.scrollTop = sc; return; }
-    const t = q('[data-theme]'); if (t) { mutate('Theme geändert', cfg => themeApply(cfg, t.dataset.theme)); return themes(); }
+    const t = q('[data-bg]'); if (t) { mutate('Hintergrund geändert', cfg => bgAll(cfg, bgVal(t.dataset.bg))); return looks(); }
     const m = q('[data-m]');
     if (m && !m.disabled) {
       const k = m.dataset.m;
@@ -162,9 +177,9 @@ export function mount(el, route) {
     const bk = $('#ss .back span', el); if (bk) bk.textContent = cur().name;
   }), on('doc', why => {
     if (why === 'undo' && section === 'pills') paintMain();
-    themes(); $$('.save-slot', el).forEach(x => { x.innerHTML = saveBtn(); });
+    looks(); $$('.save-slot', el).forEach(x => { x.innerHTML = saveBtn(); });
     const row = (k, v) => el.querySelectorAll(`[data-k=${k}]`).forEach(b => b.setAttribute('aria-pressed', b.dataset.v === v)); if (S.cfg) { row('look', S.cfg.theme || 'liquid'); row('mode', S.cfg.mode || 'dark'); }
   })];
   if (spot.key) { const r = $(`[data-row=${spot.key}]`, el); spot.key = null; if (r) requestAnimationFrame(() => { r.scrollIntoView({ block: 'center', behavior: 'smooth' }); r.classList.add('spotlit'); setTimeout(() => r.classList.remove('spotlit'), 1700); $('button,input', r)?.focus({ preventScroll: true }); }); }
-  return () => { offs.forEach(f => f()); document.removeEventListener('keydown', key); wide.removeEventListener('change', mqf); };
+  return () => { offs.forEach(f => f()); removeEventListener('message', onFrame); document.removeEventListener('keydown', key); wide.removeEventListener('change', mqf); };
 }
