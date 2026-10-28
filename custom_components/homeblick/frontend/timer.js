@@ -47,6 +47,8 @@ const ico = (id, c = '') => `<svg class="i ${c}" viewBox="0 0 24 24"><use href="
 let ac, ring = 0;
 const unlock = () => { try { ac ||= new AudioContext(); if (ac.state !== 'running') ac.resume().catch(() => {}); } catch {} };
 addEventListener('pointerdown', unlock, { capture: true, passive: true });
+// AudioContext anlegen kostet ~15 ms (auf Tablets ein Vielfaches): im Leerlauf nach dem Start statt im ersten Tipp (bleibt bis zur Berührung gesperrt, resume() oben im Tipp ist billig)
+(self.requestIdleCallback ? f => requestIdleCallback(f, { timeout: 4000 }) : f => setTimeout(f, 2000))(() => { try { ac ||= new AudioContext(); } catch {} });
 function beep(vol) {
   try {
     unlock(); if (ac?.state !== 'running') return;   // gesperrt: nicht einplanen (sonst spielen später alle aufgestauten Pieptöne)
