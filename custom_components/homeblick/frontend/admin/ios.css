@@ -1,4 +1,6 @@
 /* Homeblick-Admin, Designsystem: iOS/macOS-Stil (gruppierte Listen, Glas, Federn, Kapseln). Eigene Umsetzung nach den Apple Human Interface Guidelines. */
+@font-face{font-family:'Inter';font-style:normal;font-weight:200 700;font-display:swap;src:url(../fonts/inter-latin-ext.woff2) format('woff2');unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C4,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:'Inter';font-style:normal;font-weight:200 700;font-display:swap;src:url(../fonts/inter-latin.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
 :root{
   --bg:#f2f2f7;--cell:#fff;--cell-2:#f9f9fb;--fill:#7878801f;--fill-2:#78788029;--fill-3:#7676803d;
   --label:#000;--label-2:#3c3c4399;--label-3:#3c3c434d;--sep:#3c3c432e;--sep-strong:#3c3c4349;
@@ -8,7 +10,7 @@
   --glass:#ffffffb3;--glass-edge:#ffffffd9;--glass-shadow:0 6px 24px #0000001c,0 1px 3px #0000000f;--blur:saturate(180%) blur(22px);
   --shadow-pop:0 20px 60px #0000003d,0 3px 10px #0000001f;--shadow-card:0 1px 2px #0000000d,0 6px 20px #00000012;
   --stage:radial-gradient(120% 90% at 50% 0%,#e9eefc 0%,#f2f2f7 60%);
-  --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","Helvetica Neue",system-ui,"Segoe UI",Roboto,Arial,sans-serif;--mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display",Inter,"Helvetica Neue",system-ui,"Segoe UI",Roboto,Arial,sans-serif;--mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
   --fs:15px;--row:44px;--r-group:16px;--r-sheet:30px;--r-ctl:12px;
   --ease:cubic-bezier(.2,.8,.2,1);--spring:cubic-bezier(.34,1.35,.64,1);--sb:env(safe-area-inset-bottom,0px);
   /* alte Namen, damit nichts ins Leere zeigt */
