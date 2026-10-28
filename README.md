@@ -119,7 +119,7 @@ A ring of the doorbell event wakes the display, plays a chime and opens the door
 
 **Guest mode:** setting *Gastmodus* (also a switch entity per display, e.g. for an automation): calendar, info, camera and people faces show only a padlock until it is off.
 
-**People face** (*Personen*, „Wo ist?“): the new Home Assistant map (OpenStreetMap vector tiles via the `map_tiles` integration, HA 2026.10+) with every `person` entity as an avatar marker and its zone or distance from home; fits all people into view. Without WebGL2 or on older Home Assistant it falls back to a list of glass rows (avatar, zone or distance, battery of the device tracker).
+**People face** (*Personen*, „Wo ist?“): the new Home Assistant map (OpenStreetMap vector tiles via the `map_tiles` integration, HA 2026.10+) with every `person` entity as an avatar marker and its zone or distance from home; fits all people into view. A round glass button (like the places button of the weather face) opens a list of people, and tapping one zooms to them. Without WebGL2 or on older Home Assistant it falls back to a list of glass rows (avatar, zone or distance, battery of the device tracker).
 
 **Flow clock** (digital clock style *Flow*): a slowly drifting gradient of pink, blue and violet with the time as glass shapes; inside the digits the same colour blobs are repeated slightly enlarged and shifted, which gives the lens look without any live blur.
 

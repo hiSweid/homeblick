@@ -39,9 +39,20 @@ export async function mount(box, conn, base) {
   });
   await new Promise((ok, no) => { map.once('load', ok); setTimeout(() => no(new Error('Karte lädt nicht')), 10000); }).catch(e => { map.remove(); throw e; });
   const marks = new Map(); let key = '';
+  let first = true, foc = null, last = [];   // foc: Person, auf die gezoomt ist (dann kein automatisches Einpassen)
+  const move = () => !matchMedia('(prefers-reduced-motion: reduce)').matches && !document.documentElement.classList.contains('perf');
+  const keyOf = pts => pts.map(p => p.id + p.lat.toFixed(3) + p.lon.toFixed(3)).join();   // ~100 m
+  const fit = pts => {
+    const w = box.clientWidth, b = new ml.LngLatBounds([pts[0].lon, pts[0].lat], [pts[0].lon, pts[0].lat]); for (const p of pts) b.extend([p.lon, p.lat]);
+    map.fitBounds(b, { padding: { top: w * .18, bottom: w * .24, left: w * .16, right: w * .16 }, maxZoom: 15, duration: !first && move() ? 700 : 0 }); first = false; key = keyOf(pts);
+  };
   return {
+    focus(id) {
+      foc = id || null; const p = last.find(p => p.id === foc);
+      if (p) map.easeTo({ center: [p.lon, p.lat], zoom: 15, duration: move() ? 800 : 0 }); else if (last.length) fit(last);
+    },
     async set(pts) {
-      await fresh(conn).catch(() => {});
+      last = pts; await fresh(conn).catch(() => {});
       const w = box.clientWidth, cell = p => p.lat.toFixed(4) + p.lon.toFixed(4), n = {}, slot = {};
       for (const p of pts) n[cell(p)] = (n[cell(p)] || 0) + 1;
       for (const [id, m] of marks) if (!pts.some(p => p.id === id)) { m.remove(); marks.delete(id); }
@@ -52,10 +63,8 @@ export async function mount(box, conn, base) {
         m.setLngLat([p.lon, p.lat]).setOffset([off, 0]);
         if (m._h !== p.html) m.getElement().innerHTML = m._h = p.html;
       }
-      const k = pts.map(p => p.id + p.lat.toFixed(3) + p.lon.toFixed(3)).join(); if (k === key || !pts.length) return;   // nur bei neuen Orten neu einpassen (~100 m)
-      const b = new ml.LngLatBounds([pts[0].lon, pts[0].lat], [pts[0].lon, pts[0].lat]); for (const p of pts) b.extend([p.lon, p.lat]);
-      const slow = key && !matchMedia('(prefers-reduced-motion: reduce)').matches && !document.documentElement.classList.contains('perf');
-      map.fitBounds(b, { padding: { top: w * .26, bottom: w * .2, left: w * .16, right: w * .16 }, maxZoom: 15, duration: slow ? 700 : 0 }); key = k;
+      if (foc && !pts.some(p => p.id === foc)) foc = null;
+      if (!foc && pts.length && keyOf(pts) !== key) fit(pts);   // nur bei neuen Orten neu einpassen
     },
     destroy() { map.remove(); },
   };
