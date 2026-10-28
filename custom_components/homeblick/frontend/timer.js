@@ -35,7 +35,7 @@ const N = 60, RING = [39, 39], TICKS = Array.from({ length: N }, (_, i) => {
 }).join('');
 
 let VOICE = [], lastEnts = {};   // Sprach-Timer des Servers als timer.*-ähnliche Einträge
-let T, P, M, call, voiceCall, sound, wake, pinned = false, cur = null, key = '', iv = 0, done = null, doneT = 0, hidden = false, sel = '', mp = null, mpKey = '', touch = Date.now(), run = [];
+let T, P, PR, M, call, voiceCall, sound, wake, pinned = false, cur = null, key = '', iv = 0, done = null, doneT = 0, hidden = false, sel = '', mp = null, mpKey = '', touch = Date.now(), run = [];
 const BACK = 30000;
 const canc = {};   // id → Zeitpunkt des ✕-Abbruchs (kurz vor Ablauf nicht als „abgelaufen“ melden)
 const prev = {};   // letzter Zustand je Timer → Ablauf erkennen (active → idle, finishes_at erreicht)
@@ -81,11 +81,9 @@ export function timerInit(screen, callFn, voiceFn, soundFn, wakeFn) {
     <button class="tb tbg" aria-label="Timer wechseln">${GLYPH}</button><button class="tof" hidden aria-label="Nächster Timer"><b></b><small></small></button>
     <button class="tb tx" aria-label="Abbrechen">${ico('x')}</button><button class="tb tp" aria-label="Pause">${ico('pause')}</button>
     <div class="tmp" hidden><i></i><span><b></b><small></small></span><button aria-label="Abspielen/Pause"><svg class="i" viewBox="0 0 24 24"><path/></svg></button></div></div>`);
-  screen.querySelector('#prow').insertAdjacentHTML('beforeend', `<button id="tpill" hidden>${GLYPH}<b></b><i hidden></i></button>`);   // Pillenreihe oben mittig (#hud in index.html)
-  T = screen.querySelector('#tmr'); P = screen.querySelector('#tpill'); M = T.querySelector('.tmp');
+  T = screen.querySelector('#tmr'); PR = screen.querySelector('#tps'); M = T.querySelector('.tmp');   // PR: Timer-Pillen in der Kopfzeile (#hud in index.html), eine je laufendem Timer
   const on = (el, fn) => el.addEventListener('click', e => { e.stopPropagation(); fn(); });
   T.addEventListener('click', () => done ? finishOff() : (hidden = true, show(false)));
-  on(P, () => timerShow());
   on(T.querySelector('.tx'), () => done ? finishOff() : act(cur, 'cancel'));
   on(T.querySelector('.tp'), () => cur && !done && act(cur, cur.state === 'active' ? 'pause' : 'resume'));
   for (const b of ['.tbg', '.tof']) on(T.querySelector(b), () => done ? finishOff() : run.length > 1 ? next() : (hidden = true, show(false)));   // Glyphe/Pille: nächster Timer, bei nur einem ausblenden
@@ -124,8 +122,31 @@ const pillClip = () => {
   const s = T.getBoundingClientRect(), r = P.getBoundingClientRect(), k = s.width / T.offsetWidth || 1;
   return `inset(${(r.top - s.top) / k}px ${(s.right - r.right) / k}px ${(s.bottom - r.bottom) / k}px ${(r.left - s.left) / k}px round ${r.height / 2 / k}px)`;
 };
+// Eine Pille je laufendem/pausiertem Timer in der Kopfzeile; P ist die des angezeigten Timers (aus ihr wächst das Vollbild, in sie schrumpft es), Tippen holt den jeweiligen Timer
+const pills = new Map();   // entity_id → Button
+function syncPills() {
+  for (const [id, b] of pills) if (!run.some(s => s.entity_id === id)) { b.remove(); pills.delete(id); }
+  for (const s of run) if (!pills.has(s.entity_id)) {
+    const id = s.entity_id, b = Object.assign(document.createElement('button'), { className: 'tpill', hidden: true, innerHTML: `${GLYPH}<em hidden></em><b></b>` });
+    b.addEventListener('click', e => { e.stopPropagation(); timerShow(id); });
+    pills.set(id, b);
+  }
+  run.forEach((s, i) => { const b = pills.get(s.entity_id); if (PR.children[i] !== b) PR.insertBefore(b, PR.children[i] || null); });   // Reihenfolge wie die Timer
+  P = pills.get(cur?.entity_id);
+  paintPills();
+}
+function paintPills() {
+  const multi = run.length > 1;
+  for (const s of run) {
+    const b = pills.get(s.entity_id); if (!b) continue;
+    b.querySelector('b').textContent = hms(left(s));
+    b.classList.toggle('pa', s.state === 'paused');
+    const n = b.querySelector('em'), nm = multi ? s.attributes.friendly_name || '' : ''; n.hidden = !nm; n.textContent = nm;   // Name nur bei mehreren Timern, sonst genügt die Zeit
+  }
+}
 function pill(on) {
-  if (!P.hidden === on) return;
+  for (const b of pills.values()) if (b !== P) b.hidden = !on;   // die übrigen ohne Aufziehen: sie gehören nicht zum Wechsel Pille ↔ Vollbild
+  if (!P || !P.hidden === on) return;
   P.getAnimations().forEach(x => x.cancel()); P.style.opacity = '';
   if (on) { P.hidden = false; P.animate([{ opacity: 0, scale: '.5' }, { opacity: 1, scale: '1' }], spring()); }
   else P.hidden = true;
@@ -134,7 +155,7 @@ function show(on) {
   if (!!T._on === on) return;
   T._on = on; if (!on) pinned = false;
   T.getAnimations().forEach(x => x.cancel());
-  const morph = !P.hidden || (!on && cur && !done);   // Pille sichtbar bzw. Timer läuft weiter → über die Pille
+  const morph = (P && !P.hidden) || (!on && cur && !done);   // Pille sichtbar bzw. Timer läuft weiter → über die Pille
   if (on) {
     T.classList.add('on');
     if (morph) { const c = pillClip(); pill(false); T.animate([{ clipPath: c }, { clipPath: 'inset(0 0 0 0 round 0)' }], spring()); T.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 200, easing: 'ease-out' }); }
@@ -142,7 +163,7 @@ function show(on) {
   } else if (morph) {
     P.hidden = false; const c = pillClip(); P.style.opacity = 0;
     T.animate([{ clipPath: 'inset(0 0 0 0 round 0)' }, { clipPath: c }], spring());
-    T.animate([{ opacity: 1 }, { opacity: 1, offset: .55 }, { opacity: 0 }], spring()).onfinish = () => { P.style.opacity = ''; T._on || T.classList.remove('on'); };
+    T.animate([{ opacity: 1 }, { opacity: 1, offset: .55 }, { opacity: 0 }], spring()).onfinish = () => { P.style.opacity = ''; T._on || T.classList.remove('on'); if (!T._on) pill(true); };   // danach auch die Pillen der übrigen Timer zeigen
   } else T.animate([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'scale(1.06)' }], { duration: 250, easing: 'ease-in' }).onfinish = () => T._on || T.classList.remove('on');
 }
 
@@ -202,8 +223,7 @@ function draw() {
   rollTxt(T.querySelector('.tt'), hms(r));
   T.classList.toggle('tlong', r > 3599.5);
   ticks(f);
-  P.querySelector('b').textContent = hms(r);
-  P.classList.toggle('pa', cur.state === 'paused');
+  paintPills();
   const tp = T.querySelector('.tp'); setIco(tp, cur.state === 'paused' ? 'play' : 'pause'); tp.ariaLabel = cur.state === 'paused' ? 'Fortsetzen' : 'Pause';
   iv = setTimeout(draw, cur.state === 'active' && r > 0 ? ((r % 1) || 1) * 1000 + 15 : 500);
 }
@@ -225,7 +245,7 @@ export function timers(ents) {
   run = list.filter(s => s.state === 'active' || s.state === 'paused').sort((a, b) => a.entity_id < b.entity_id ? -1 : 1);
   cur = run.find(s => s.entity_id === sel) || [...run].sort((a, b) => (b.state === 'active') - (a.state === 'active') || left(a) - left(b))[0] || null;   // gewählter, sonst aktiver mit der kürzesten Restzeit
   sel = cur?.entity_id || '';   // Anzeige bleibt beim Timer (springt nicht bei Pause oder Zeitvergleich); neu gestartete übernehmen sie
-  const n = P.querySelector('i'); n.hidden = run.length < 2; n.textContent = '+' + (run.length - 1);   // weitere laufende Timer
+  syncPills();
   const o = T.querySelector('.tof'), k = cur ? run.indexOf(cur) + 1 : 0;
   o.hidden = run.length < 2 || !!done; o.firstChild.textContent = 'Timer ' + k; o.lastChild.textContent = ' von ' + run.length;
   if (done) return fin;
@@ -307,14 +327,15 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 #tmr .tof::before{content:"";position:absolute;inset:-3cqw -2cqw}   /* Tippfläche größer als die kleine Pille */
 #tmr .tof:active{scale:.94;transition:scale .12s ease-out}
 /* Pille oben, Maße wie die .top-Zeile (5.6cqw) mittig */
-#tpill{position:relative;flex:none;display:flex;align-items:center;gap:.8cqw;height:3.8cqw;padding:0 1.6cqw 0 .9cqw;
+/* Pillen oben (eine je Timer) */
+.tpill{position:relative;flex:none;display:flex;align-items:center;gap:.8cqw;height:3.8cqw;padding:0 1.6cqw 0 .9cqw;
   border-radius:2cqw;background:#000;color:#ff9230;font-size:2.2cqw;font-weight:600;font-variant-numeric:tabular-nums;
   box-shadow:0 .4cqw 1.6cqw #0007,inset 0 0 0 .12cqw #ff92304d;transition:scale .25s}
-#tpill::before{content:"";position:absolute;inset:-3cqw -2cqw}   /* Tippfläche größer als die kleine Pille */
-#tpill i{font-style:normal;font-size:1.7cqw;padding:.3cqw .7cqw;margin-right:-.7cqw;border-radius:1.2cqw;background:#ff92302e}
-#tpill:active{scale:.94;transition:scale .12s ease-out}
-#tpill .gl{width:2.6cqw;height:2.6cqw;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round}
-#tpill.pa b{animation:tpa 1.6s ease-in-out infinite}
+.tpill::before{content:"";position:absolute;inset:-3cqw -.5cqw}   /* Tippfläche größer als die kleine Pille */
+.tpill em{font-style:normal;font-weight:500;color:#ff9230b3;min-width:0;max-width:11cqw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tpill:active{scale:.94;transition:scale .12s ease-out}
+.tpill .gl{flex:none;width:2.6cqw;height:2.6cqw;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round}
+.tpill.pa b{animation:tpa 1.6s ease-in-out infinite}
 @keyframes tpa{50%{opacity:.35}}
 /* Mini-Player im Timer: Glas-Zeile innerhalb des Strichkranzes (Innenradius 30,7), unter der Gesamtdauer */
 #tmr .tmp{position:absolute;left:50%;translate:-50% 0;top:58.5cqw;width:42cqw;display:flex;align-items:center;gap:2cqw;padding:1.4cqw 1.4cqw 1.4cqw 1.4cqw;

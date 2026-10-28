@@ -80,6 +80,8 @@ A ring of the doorbell event wakes the display, plays a chime and opens the door
 
 **Tasks face:** a glass list of a `todo.*` entity (shopping list, local tasks, Google Tasks …), live via `todo/item/subscribe`. Tap to tick, **+** to add an item with the keyboard, *Entfernen* clears the finished ones. With several lists, chips switch between them (the list named *Einkaufsliste* comes first); the editor can pin one list. Hidden by default until you enable it under the views.
 
+**Live pills:** small glass pills at the top for whatever is running ("Waschmaschine 42 Min", "Golf lädt 63 %"); invisible when nothing runs. Rules live in the display config (`pills`: entity, running states or comparison like `>5`, label, optional sensor for the right-hand value, icon, `done`). When the source stops for a minute a pulse and a "ist fertig" card follow (no card inside the dim window, so the display stays dark). Timer pills sit in the same row, one per running timer, and tapping one opens that timer; if the row gets full it wraps. Pills are hidden in guest mode.
+
 **Guest mode:** setting *Gastmodus* (also a switch entity per display, e.g. for an automation): calendar, info and camera faces show only a padlock until it is off.
 
 **People face** (*Personen*, „Wo ist?“): every `person` entity as a glass row with avatar, zone or distance from home, and the battery of its device tracker; people at home are highlighted.

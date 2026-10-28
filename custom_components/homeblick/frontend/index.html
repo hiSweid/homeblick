@@ -733,8 +733,9 @@ input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:tr
 /* Kopfzeile: alles Kleine oben mittig in einer Spalte (z 18 wie bisher die Timer-Pille): Reihe der Pillen, darunter die Offline-Pille; Kinder fangen Tipps, der Rest nicht */
 #hud{position:absolute;left:0;right:0;top:2.1cqw;z-index:18;display:flex;flex-direction:column;align-items:center;pointer-events:none}
 #hud>*,#prow>*{pointer-events:auto}
-#prow{display:flex;justify-content:center;gap:1.2cqw;max-width:94cqw}
-#prow:has(>:not([hidden])){margin-bottom:1.2cqw}
+#prow{display:flex;flex-wrap:wrap;justify-content:center;gap:.9cqw 1.2cqw;max-width:62cqw}   /* 62 cqw: die Titelzeilen der Ansichten (links Name, rechts Uhrzeit) bleiben frei; reicht es nicht, bricht die Reihe um statt Pillen zu quetschen */
+#tps,#lps{display:contents}
+#prow:has(.tpill:not([hidden]),.lp:not([hidden])){margin-bottom:1.2cqw}
 /* ---------- Benachrichtigungskarte: Vollbild-Karte über den Faces (z 16: über .view 2, unter Kontrollzentrum 17, Zeit-Pille 18, Timer 19, Assist 20)
    Vorlage TGo1gI0QtfU 45,75 s (vorlagen/TGo…/00458_wand-benachrichtigung) + Wegwischen 46,07–46,3 s: Handkamera von rechts, Perspektive auf das Quadrat entzerrt (Rand der leuchtenden Fläche → 4 Ecken), Maße in cqw.
    Karte füllt das ganze Display (Radius wie das Panel 8), weiß; Text oben links 5,6 cqw (Aufstrich→Grundlinie 4,2; Inter ist breiter als SF → Zurichtung −0,035 em, damit „You should leave for Pickleball“ ≈ 75 cqw breit bleibt), Zeilenabstand 7,0, erste Grundlinie y 17,5, Rand links/rechts ≈ 9,7;
@@ -893,7 +894,7 @@ input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:tr
 <div id="screen">
   <div id="faces"></div>
   <div id="dim"></div>
-  <div id="hud"><div id="prow"></div></div>   <!-- oben mittig: Pillenreihe (Timer, später Live-Pillen), darunter die Offline-Pille -->
+  <div id="hud"><div id="prow"><div id="tps"></div><div id="lps"></div></div>   <!-- oben mittig: Pillenreihe (je Timer eine Pille, dann die Live-Pillen), darunter die Offline-Pille -->
 
   <section id="climate" class="view" hidden>
     <button class="x" data-act="close" aria-label="Schließen"><svg class="i"><use href="#xt"/></svg></button>
@@ -1004,6 +1005,7 @@ import { timerInit, timers, timerDemo, timerShow, timerOn, timerMusic, voiceTime
 import { camInit, camConfig, camShow, camHide, camFace, camTile, camOpen, camRinging, doorbell } from './doorbell.js';
 import { loadEvents, eventsHTML, infoHTML } from './events.js';
 import { todoInit, todoFace, todoSync } from './todo.js';
+import { pillsInit } from './pills.js';
 // Ohne Parameter: Demo-Daten. Echtes HA nur mit ?live
 const LIVE = new URLSearchParams(location.search).has('live');
 // ?preview: Vorschau in der Einstellungsseite – Konfiguration und Zustände kommen per postMessage, nichts wird gespeichert
@@ -1567,6 +1569,7 @@ const FACE = {
   },
   cams: el => camFace(el),
   people: el => { el.innerHTML = '<header>Personen</header><div class="plist"></div>'; peopleFill(); },
+  todo: (el, f) => { todoFace(el, f); todoSync($$('.f-todo')); },
   info: (el, f) => {
     // Farbtöne laut Vorlage: Türkis y-MO 08500 = 190; Himmel (hellblau, TGo 00179) ≈ 203; Blau (dunkelblau, TGo 00387) ≈ 213; Metall = Graublau #92abb1 (helle Variante)
     const hh = { 205: 190, 212: 203, 228: 213 }[f.bg]; if (hh) el.style.setProperty('--h', hh);
@@ -1576,7 +1579,6 @@ const FACE = {
 <div class="dial nums mt"></div>
 <div class="np"><div class="cover" data-act="go" data-v="music"></div><b data-bind="npt"></b><span data-bind="npa"></span><button data-act="play">${svg('play')} <span data-bind="npb"></span></button></div>
 <div class="evb" data-act="events"></div>
-  todo: (el, f) => { todoFace(el, f); todoSync($$('.f-todo')); },
 ${svg('note', 'mn')}
 <div class="wx" data-act="go" data-v="weather"><div class="loc">${esc(CFG.place)} ${svg('arrow')}</div><div class="tmp" data-bind="wxt"></div><div class="wc"><i class="wi" data-wxi></i></div><div class="cond" data-bind="wxc"></div><div class="hl" data-bind="wxhl"></div></div>`;
   },
@@ -1768,6 +1770,7 @@ const track = (q, i, pos = 0) => {
 };
 
 // Demo: Service-Calls verändern den lokalen Zustand wie HA es täte
+todoInit({ conn: () => conn, live: LIVE, ents: () => ents, down: () => netDown });   // Aufgaben-Face (todo.js)
 function demoCall(domain, service, data) {
   const id = data.entity_id, s = ent(id);
   if (!s) return;
@@ -1777,7 +1780,6 @@ function demoCall(domain, service, data) {
   if (domain === 'scene') return ['light.wohnzimmer', 'light.kuche'].forEach(l => demoCall('light', id === 'scene.gute_nacht' ? 'turn_off' : 'turn_on', { entity_id: l, brightness_pct: 80 }));
   ({
     toggle: () => set(s.state === 'on' ? 'off' : 'on'),
-todoInit({ conn: () => conn, live: LIVE, ents: () => ents, down: () => netDown });   // Aufgaben-Face (todo.js)
     turn_on: () => set(domain === 'climate' ? 'heat' : 'on', data.brightness_pct ? { brightness: data.brightness_pct * 2.55 } : {}),
     turn_off: () => set('off'),
     // Demo wie ein HA-Schloss: Zwischenzustand „locking/unlocking“ (Kachel bleibt weiß, Untertitel „Wird verriegelt …“), dann Endzustand
@@ -3075,6 +3077,12 @@ if (!LIVE) {
     'calendar.familie': ['off', { friendly_name: 'Familie' }],
     'calendar.geburtstage': ['off', { friendly_name: 'Geburtstage' }],
     'calendar.mullabfuhr': ['off', { friendly_name: 'Müllabfuhr' }],
+    'binary_sensor.waschmaschine': ['on', { friendly_name: 'Waschmaschine' }],
+    'sensor.waschmaschine_restzeit': [new Date(Date.now() + 42 * 6e4).toISOString(), { friendly_name: 'Waschmaschine Restzeit', device_class: 'timestamp' }],
+    'binary_sensor.golf_laedt': ['on', { friendly_name: 'Golf lädt' }],
+    'sensor.golf_ladestand': ['63', { friendly_name: 'Golf Ladestand', unit_of_measurement: '%' }],
+    'todo.einkaufsliste': ['4', { friendly_name: 'Einkaufsliste', supported_features: 7 }],
+    'todo.aufgaben': ['2', { friendly_name: 'Aufgaben', supported_features: 7 }],
     'person.erica': ['home', { friendly_name: 'Erica' }],
     'person.henryk': ['home', { friendly_name: 'Henryk' }],
     'person.mia': ['not_home', { friendly_name: 'Mia' }],
@@ -3084,8 +3092,6 @@ if (!LIVE) {
     'zone.home': ['zoning', { friendly_name: 'Home', latitude: 48.8, longitude: 9.8 }],
     'device_tracker.henryk_handy': ['home', { battery_level: 82 }],
     'device_tracker.anna_handy': ['not_home', { battery_level: 41 }],
-    'todo.einkaufsliste': ['4', { friendly_name: 'Einkaufsliste', supported_features: 7 }],
-    'todo.aufgaben': ['2', { friendly_name: 'Aufgaben', supported_features: 7 }],
     'lock.eingangstur': ['locked', { friendly_name: 'Eingangstür', code_format: '^\\d{4}$' }],
     'lock.garagentur': ['locked', { friendly_name: 'Garagentür' }],
     'cover.garagentor': ['closed', { friendly_name: 'Garagentor', device_class: 'garage' }],
@@ -3234,6 +3240,14 @@ if (!LIVE) {   // Demo/Test: ?nb → Karte mit Bild und Button, ?nb=2 zwei hinte
   }, 800);
 }
 timerInit(screen, call, (timer, action) => LIVE && conn.sendMessagePromise({ type: 'homeblick/timer', display: DISPLAY, timer, action }).catch(e => console.warn('Timer', action, e)), () => CFG.chime ? CFG.volume / 100 : 0, () => kiosk.wake());
+// Live-Pillen (pills.js): Regeln in CONF.pills; Tippen springt zum Face mit der Kachel, Ende → „fertig“-Karte (nachts im Dimm-Fenster keine, damit das Display nicht aufwacht)
+const DEMO_PILLS = [{ e: 'binary_sensor.waschmaschine', text: 'Waschmaschine', left: 'sensor.waschmaschine_restzeit', icon: 'wash' }, { e: 'binary_sensor.golf_laedt', text: 'Golf lädt', left: 'sensor.golf_ladestand', icon: 'bolt' }];
+pillsInit(screen, {
+  ents: () => ents, conf: () => CONF.pills || (LIVE || PREVIEW ? [] : DEMO_PILLS), hidden: () => !!CONF.kiosk?.guest,
+  go: r => { const i = CONF.faces.findIndex(f => f.tiles?.some(t => t.e === r.e)); if (i < 0) return; faces.go(i); setTimeout(() => $$(`.tile[data-e="${r.e}"]`).forEach(t => t.animate([{ scale: '1' }, { scale: '1.06' }, { scale: '1' }], { duration: 600, easing: 'ease-out' })), 450); },
+  done: (r, text) => nbPush({ title: text.replace(/ ist fertig$/, ''), message: 'ist fertig', duration: 0, entity: r.e }),
+  quiet: () => { const d = CONF.kiosk?.dim, n = new Date(); return !!d && inWindow(n.getHours() * 60 + n.getMinutes(), mins(d.from), mins(d.to)); },
+});
 const kiosk = kioskInit({ faces, conf: () => CONF, lux: () => { const e = CONF.kiosk?.lux, v = e ? parseFloat(st(e).state) : NaN; return isNaN(v) ? null : luxLevel(v); }, busy: () => cur || AS.className || timerOn() || kzOn || nbOn(), touched: () => touched,
   music: () => NP && st(NP).state === 'playing' && !/video|movie|tvshow|channel/.test(st(NP).attributes.media_content_type),   // Filme/TV ohne device_class tv nicht als Musik
   onState: st => conn?.sendMessagePromise({ type: 'homeblick/report', display: DISPLAY, ...st, info: info() }).catch(() => {}) });
