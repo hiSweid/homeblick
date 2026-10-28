@@ -24,7 +24,7 @@ export const ENERGY_TILES = [{ kind: 'en', k: 'pv', w: 2 }, { kind: 'en', k: 'au
 export const EN_NAMES = { pv: 'Solar jetzt', aut: 'Autarkie', use: 'Verbrauch', bat: 'Akku', car: 'Auto', day: 'Heute', tmr: 'Morgen' };   // kind 'en': k = Schlüssel; title überschreibt den Namen
 export const enSizes = k => k === 'pv' ? ['2x1', '2x2'] : k === 'aut' ? ['1x1', '2x2'] : ['1x1', '2x1', '2x2'];   // Ring (autark) und Solarkurve sind nur für diese Maße gezeichnet
 const goodTile = t => t && typeof t === 'object' && (t.kind !== 'en' || t.k in EN_NAMES);
-const cleanFaces = l => (Array.isArray(l) ? l : []).filter(f => f && FACE_TYPES.includes(f.type)).map(f => { if (hasTiles(f)) f.tiles = Array.isArray(f.tiles) ? f.tiles.filter(goodTile).map(cleanTile) : f.type === 'energy' ? structuredClone(ENERGY_TILES) : []; return f; });
+const cleanFaces = l => (Array.isArray(l) ? l : []).filter(f => f && FACE_TYPES.includes(f.type)).map(f => { if (hasTiles(f)) f.tiles = Array.isArray(f.tiles) ? f.tiles.filter(t => goodTile(t) && (t.kind !== 'en' || f.type === 'energy')).map(cleanTile) : f.type === 'energy' ? structuredClone(ENERGY_TILES) : []; return f; });
 export function cleanConf(conf) { conf.faces = cleanFaces(conf.faces); if (conf.off) conf.off = cleanFaces(conf.off); return conf; }
 
 // Alte Konfiguration (ohne id/off) übernehmen, fehlende Standard-Faces als ausgeschaltet ergänzen, Uhr/Kalender nur einmal; true = geändert
