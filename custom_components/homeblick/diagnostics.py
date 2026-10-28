@@ -7,9 +7,8 @@ from .const import DOMAIN
 
 
 def _display(hub, d) -> dict:
-    faces = (hub.config(d.id) or {}).get("faces", [])
     return {"id": d.id, "name": d.name, "connected": d.connected, "seen": d.seen, "face": d.face, "saver": d.saver,
-            "settings": d.settings, "info": d.info, "faces": [f.get("type") for f in faces], "logs": list(d.logs)}
+            "settings": d.settings, "info": d.info, "faces": [f.get("type") for f in hub.faces(d.id)], "logs": list(d.logs)}
 
 
 async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: ConfigEntry) -> dict:

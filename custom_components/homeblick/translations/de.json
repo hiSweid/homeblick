@@ -246,6 +246,9 @@
   "exceptions": {
     "no_display": {
       "message": "Das gewählte Gerät ist kein Homeblick-Display."
+    },
+    "no_camera": {
+      "message": "Die gewählte Kamera existiert nicht."
     }
   },
   "issues": {
