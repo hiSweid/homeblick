@@ -1089,7 +1089,7 @@ let wxOver; try { wxOver = JSON.parse(localStorage.hbwx || 'null'); } catch { }
 const HOME = { weather: CFG.weather, place: CFG.place };
 let pickPlace = () => { };
 const applyK = k => {
-  if (k?.perfauto === false && AUTOPERF) { AUTOPERF = false; try { localStorage.removeItem('hb-autoperf'); } catch {} }   // Auto-Erkennung aus (Admin) → gemerkten Zustand verwerfen
+  if (!k?.perfauto && AUTOPERF) { AUTOPERF = false; try { localStorage.removeItem('hb-autoperf'); } catch {} }   // Auto-Erkennung aus (Admin) → gemerkten Zustand verwerfen
   root.classList.toggle('perf', !!k?.perf || AUTOPERF); for (const x of ['weather', 'place', 'tts', 'pipeline', 'mic', 'out', 'duck', 'mute', 'barge', 'listen', 'volume', 'music', 'chime']) if (k?.[x] != null) CFG[x] = k[x];
   setMic(CFG.mic); HOME.weather = CFG.weather; HOME.place = CFG.place; if (wxOver?.id) [CFG.weather, CFG.place] = [wxOver.id, wxOver.name];
 };
@@ -1558,7 +1558,7 @@ function lavaTick(now) {
 const lavaStart = () => lavaRaf ||= requestAnimationFrame(lavaTick);
 // Bildrate messen (8 s, 20 s nach dem Start, bei laufenden Hintergrund-Animationen): Median über 40 ms (< 25 fps) = zu schwach → Leistungsmodus an und merken. 30-fps-Geräte (Stromsparen) bleiben darüber. Versteckt/zu wenige Bilder → in 60 s nochmal
 function probePerf() {
-  if (AUTOPERF || root.classList.contains('perf') || CONF.kiosk?.perfauto === false) return setTimeout(probePerf, 600000);   // schon an oder Auto aus (Einstellung): nur selten neu prüfen
+  if (AUTOPERF || root.classList.contains('perf') || !CONF.kiosk?.perfauto) return setTimeout(probePerf, 600000);   // schon an oder Auto aus (Einstellung): nur selten neu prüfen
   if (document.hidden) return setTimeout(probePerf, 60000);
   const d = []; let p = 0; const t0 = performance.now();
   const f = now => {
