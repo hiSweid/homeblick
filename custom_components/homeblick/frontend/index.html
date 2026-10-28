@@ -36,7 +36,11 @@ svg.i{width:1em;height:1em;flex:none;fill:none;stroke:currentColor;stroke-width:
 #faces::-webkit-scrollbar{display:none}
 .face{--ink:#1c1c1e;--ink2:#1c1c1e99;--pad:1.9cqw;--gap:2.2cqw;--t:calc((100cqw - 2*var(--pad) - 2*var(--gap))/3);--tint:hsl(var(--h,0) 100% 72%);
   flex:0 0 100cqw;height:100cqw;border-radius:8cqw;position:relative;overflow:hidden;
-  background:var(--wp) 0 0/100% 100%;transition:scale var(--sd) var(--spring),border-radius .3s,opacity .3s}
+  background:var(--wp) calc((var(--wx) + 1)*-3cqw) calc((var(--wy) + 1)*-3cqw)/106cqw 106cqw;animation:wpx 53s ease-in-out infinite alternate,wpy 71s ease-in-out infinite alternate;transition:scale var(--sd) var(--spring),border-radius .3s,opacity .3s}
+/* Wallpaper driftet: Bild 106 % groß, Versatz 0…−6 % über --wx/--wy (zwei Phasen, 53 s/71 s); Face und Glas der Kacheln lesen dieselben Werte und bleiben deckungsgleich. Ohne Animation (Leistungsmodus) steht --wx/--wy = 0 */
+@property --wx{syntax:'<number>';inherits:true;initial-value:0}@property --wy{syntax:'<number>';inherits:true;initial-value:0}
+@keyframes wpx{from{--wx:-1}to{--wx:1}}@keyframes wpy{from{--wy:-1}to{--wy:1}}
+@media (prefers-reduced-motion:reduce){.face{animation:none}}
 .face.mono{--tint:#ebebf599}
 .face.light{--tint:#3c3c4399;color:#1c1c1e}
 
@@ -46,7 +50,7 @@ svg.i{width:1em;height:1em;flex:none;fill:none;stroke:currentColor;stroke-width:
 .tile{position:relative;isolation:isolate;border-radius:4.3cqw;
   display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:5.3cqw 1cqw 4.9cqw;text-align:center;
   background:var(--glass,linear-gradient(165deg,#ffffff3d,#ffffff29 50%,#ffffff1f)),
-    var(--wpb) calc(-1*(var(--pad) + var(--c)*(var(--t) + var(--gap)))) calc(-1*(var(--pad) + var(--r)*(var(--t) + var(--gap))))/100cqw 100cqw;
+    var(--wpb) calc(-1*(var(--pad) + var(--c)*(var(--t) + var(--gap))) + (var(--wx) + 1)*-3cqw) calc(-1*(var(--pad) + var(--r)*(var(--t) + var(--gap))) + (var(--wy) + 1)*-3cqw)/106cqw 106cqw;
   /* Glasrand (Pixelprofil Website dashboard): 2 px helle Kante rundum (oben/unten kräftiger), 1 px dunkle Außenlinie */
   box-shadow:inset 0 .25cqw .1cqw #ffffff59,inset 0 -.25cqw .1cqw #ffffff40,inset 0 0 0 .25cqw #ffffff47,0 0 0 .13cqw #0000002e,0 .6cqw 2cqw #0003;
   transition:transform var(--sd) var(--spring),scale .25s,color .3s}
