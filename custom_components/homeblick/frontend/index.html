@@ -11,6 +11,31 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="preload" href="fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
+<!-- Modulgraph parallel zum HTML laden statt erst nach dem Parsen des Skripts (tests/preload.test.mjs prüft Vollständigkeit) -->
+<link rel="modulepreload" href="weather.js">
+<link rel="modulepreload" href="energy.js">
+<link rel="modulepreload" href="faces.js">
+<link rel="modulepreload" href="curve.js">
+<link rel="modulepreload" href="energy-stats.js">
+<link rel="modulepreload" href="kiosk.js">
+<link rel="modulepreload" href="netwatch.js">
+<link rel="modulepreload" href="shot.js">
+<link rel="modulepreload" href="wake.js">
+<link rel="modulepreload" href="voice.js">
+<link rel="modulepreload" href="speak.js">
+<link rel="modulepreload" href="watchfaces.js">
+<link rel="modulepreload" href="lyrics.js">
+<link rel="modulepreload" href="timer.js">
+<link rel="modulepreload" href="doorbell.js">
+<link rel="modulepreload" href="camplay.js">
+<link rel="modulepreload" href="events.js">
+<link rel="modulepreload" href="todo.js">
+<link rel="modulepreload" href="check.js">
+<link rel="modulepreload" href="spark.js">
+<link rel="modulepreload" href="multi.js">
+<link rel="modulepreload" href="photos.js">
+<link rel="modulepreload" href="pills.js">
+<link rel="modulepreload" href="wallpapers.js">
 <style>
 /* Schriften lokal (fonts/, SIL OFL): Inter, Patrick Hand SC, Roboto Flex (variabel); latin + latin-ext */
 @font-face{font-family:'Inter';font-style:normal;font-weight:200 700;font-display:swap;src:url(fonts/inter-latin-ext.woff2) format('woff2');unicode-range:U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;}

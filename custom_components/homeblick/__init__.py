@@ -1,5 +1,7 @@
 """Homeblick: wall-display panel for Home Assistant. Every display has its own layout, settings and entities."""
+import gzip
 import logging
+import os
 from pathlib import Path
 
 import voluptuous as vol
@@ -19,6 +21,21 @@ from .hub import Hub
 
 _LOGGER = logging.getLogger(__name__)
 DISPLAY = {vol.Required("display"): str}
+
+
+def _precompress(root: Path) -> None:
+    """Legt neben jede Text-Datei eine .gz: aiohttp liefert sie bei Accept-Encoding gzip statt der Datei (HA komprimiert statische Dateien nicht, index.html allein hat 300 KB)."""
+    for f in root.rglob("*"):
+        if f.suffix not in (".html", ".js", ".css", ".svg", ".webmanifest") or not f.is_file():
+            continue
+        gz, t = f.with_name(f.name + ".gz"), f.stat().st_mtime_ns
+        if not gz.exists() or gz.stat().st_mtime_ns != t:   # gleiche Zeit wie das Original = aktuell
+            try:
+                gz.write_bytes(gzip.compress(f.read_bytes(), 9, mtime=0))
+                os.utime(gz, ns=(t, t))
+            except OSError as err:   # schreibgeschützt: dann eben unkomprimiert
+                _LOGGER.warning("Homeblick: gzip nicht möglich (%s)", err)
+                return
 
 
 def _display(hass, connection, msg):
@@ -333,6 +350,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.services.async_register(DOMAIN, "hide_camera", hide_camera, HIDE)
 
     if not hass.data.get(f"{DOMAIN}_static"):   # Pfad lässt sich nach Reload nicht erneut registrieren
+        await hass.async_add_executor_job(_precompress, Path(__file__).parent / "frontend")
         hass.http.register_view(HomeblickView())   # vor dem Static-Pfad: /homeblick (ohne Datei) liefert sonst 403
         await hass.http.async_register_static_paths(
             [StaticPathConfig(URL, str(Path(__file__).parent / "frontend"), cache_headers=False)]
