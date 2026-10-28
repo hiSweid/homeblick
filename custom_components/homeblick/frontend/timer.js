@@ -80,8 +80,8 @@ export function timerInit(screen, callFn, voiceFn, soundFn, wakeFn) {
   screen.insertAdjacentHTML('beforeend', `<div id="tmr"><svg class="ring" viewBox="0 0 100 100">${TICKS}</svg><span class="tn"></span><b class="tt"></b><span class="tl"></span>
     <button class="tb tbg" aria-label="Timer wechseln">${GLYPH}</button><button class="tof" hidden aria-label="Nächster Timer"><b></b><small></small></button>
     <button class="tb tx" aria-label="Abbrechen">${ico('x')}</button><button class="tb tp" aria-label="Pause">${ico('pause')}</button>
-    <div class="tmp" hidden><i></i><span><b></b><small></small></span><button aria-label="Abspielen/Pause"><svg class="i" viewBox="0 0 24 24"><path/></svg></button></div></div>
-    <button id="tpill" hidden>${GLYPH}<b></b><i hidden></i></button>`);
+    <div class="tmp" hidden><i></i><span><b></b><small></small></span><button aria-label="Abspielen/Pause"><svg class="i" viewBox="0 0 24 24"><path/></svg></button></div></div>`);
+  screen.querySelector('#prow').insertAdjacentHTML('beforeend', `<button id="tpill" hidden>${GLYPH}<b></b><i hidden></i></button>`);   // Pillenreihe oben mittig (#hud in index.html)
   T = screen.querySelector('#tmr'); P = screen.querySelector('#tpill'); M = T.querySelector('.tmp');
   const on = (el, fn) => el.addEventListener('click', e => { e.stopPropagation(); fn(); });
   T.addEventListener('click', () => done ? finishOff() : (hidden = true, show(false)));
@@ -307,7 +307,7 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 #tmr .tof::before{content:"";position:absolute;inset:-3cqw -2cqw}   /* Tippfläche größer als die kleine Pille */
 #tmr .tof:active{scale:.94;transition:scale .12s ease-out}
 /* Pille oben, Maße wie die .top-Zeile (5.6cqw) mittig */
-#tpill{position:absolute;z-index:18;top:2.1cqw;left:50%;translate:-50% 0;display:flex;align-items:center;gap:.8cqw;height:3.8cqw;padding:0 1.6cqw 0 .9cqw;
+#tpill{position:relative;flex:none;display:flex;align-items:center;gap:.8cqw;height:3.8cqw;padding:0 1.6cqw 0 .9cqw;
   border-radius:2cqw;background:#000;color:#ff9230;font-size:2.2cqw;font-weight:600;font-variant-numeric:tabular-nums;
   box-shadow:0 .4cqw 1.6cqw #0007,inset 0 0 0 .12cqw #ff92304d;transition:scale .25s}
 #tpill::before{content:"";position:absolute;inset:-3cqw -2cqw}   /* Tippfläche größer als die kleine Pille */

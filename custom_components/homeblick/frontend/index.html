@@ -730,6 +730,11 @@ input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:tr
 #assist:not([data-k=cal]) .acal,#assist[data-k=cal] :is(.acard,.apill){display:none}
 /* Auslöser: Kamera oben Mitte antippen oder herunterziehen */
 #pull{position:absolute;left:30cqw;right:30cqw;top:0;height:3cqw;z-index:19;touch-action:none}
+/* Kopfzeile: alles Kleine oben mittig in einer Spalte (z 18 wie bisher die Timer-Pille): Reihe der Pillen, darunter die Offline-Pille; Kinder fangen Tipps, der Rest nicht */
+#hud{position:absolute;left:0;right:0;top:2.1cqw;z-index:18;display:flex;flex-direction:column;align-items:center;pointer-events:none}
+#hud>*,#prow>*{pointer-events:auto}
+#prow{display:flex;justify-content:center;gap:1.2cqw;max-width:94cqw}
+#prow:has(>:not([hidden])){margin-bottom:1.2cqw}
 /* ---------- Benachrichtigungskarte: Vollbild-Karte über den Faces (z 16: über .view 2, unter Kontrollzentrum 17, Zeit-Pille 18, Timer 19, Assist 20)
    Vorlage TGo1gI0QtfU 45,75 s (vorlagen/TGo…/00458_wand-benachrichtigung) + Wegwischen 46,07–46,3 s: Handkamera von rechts, Perspektive auf das Quadrat entzerrt (Rand der leuchtenden Fläche → 4 Ecken), Maße in cqw.
    Karte füllt das ganze Display (Radius wie das Panel 8), weiß; Text oben links 5,6 cqw (Aufstrich→Grundlinie 4,2; Inter ist breiter als SF → Zurichtung −0,035 em, damit „You should leave for Pickleball“ ≈ 75 cqw breit bleibt), Zeilenabstand 7,0, erste Grundlinie y 17,5, Rand links/rechts ≈ 9,7;
@@ -888,6 +893,7 @@ input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:tr
 <div id="screen">
   <div id="faces"></div>
   <div id="dim"></div>
+  <div id="hud"><div id="prow"></div></div>   <!-- oben mittig: Pillenreihe (Timer, später Live-Pillen), darunter die Offline-Pille -->
 
   <section id="climate" class="view" hidden>
     <button class="x" data-act="close" aria-label="Schließen"><svg class="i"><use href="#xt"/></svg></button>
@@ -985,7 +991,8 @@ input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:tr
 <script type="module">
 import { weatherFace, weather, weatherHours, weatherNear, weatherPlaces, COND } from './weather.js';
 import { energyFace, energy, energyDemo, energyInit, energyEnts, energyDetail, energyNow } from './energy.js';
-import { kioskInit, KIOSK_DEF, luxLevel } from './kiosk.js';
+import { kioskInit, KIOSK_DEF, luxLevel, inWindow, mins } from './kiosk.js';
+import { netwatchInit } from './netwatch.js';
 import { shot } from './shot.js';
 import { ICON, cleanConf, moveTo, normFaces, pack, rows } from './faces.js';
 import { wakeInit } from './wake.js';
@@ -1788,7 +1795,8 @@ function demoCall(domain, service, data) {
   })[service]?.();
 }
 // bei gescheitertem Call: Anzeige zurück auf echten HA-Zustand
-const call = (domain, service, data) => LIVE ? conn.sendMessagePromise({ type: 'call_service', domain, service, service_data: data }).catch(e => { console.warn('HA', service, e); const id = data?.entity_id; if (id) { hold[id] = 0; schedule(); $$(`[data-e="${id}"]`).forEach(shake); } }) : demoCall(domain, service, data);
+const callFail = data => { const id = data?.entity_id; if (id) { hold[id] = 0; schedule(); $$(`[data-e="${id}"]`).forEach(shake); } };   // Dienst fehlgeschlagen oder verworfen: Kachel springt zurück und schüttelt
+const call = (domain, service, data) => LIVE ? (netDown ? callFail(data) : conn.sendMessagePromise({ type: 'call_service', domain, service, service_data: data }).catch(e => { console.warn('HA', service, e); callFail(data); })) : demoCall(domain, service, data);   // offline: nicht in die Warteschlange der Bibliothek (alter Tipp feuerte Minuten später)
 // Service mit Antwort (z. B. sonos.get_queue)
 const ask = (domain, service, data) => conn.sendMessagePromise({ type: 'call_service', domain, service, service_data: data, return_response: true }).then(r => r.response);
 // Energie-Tageskurven: HA-History per WebSocket (nur lesend); Demo simuliert selbst
@@ -3284,8 +3292,12 @@ if (LIVE) {
       else { save(); if (cam) renderAll(curIdx()); }
     }).catch(console.warn);
     ha.subscribeEntities(conn, e => { ents = e; schedule(); });
-    conn.addEventListener('disconnected', () => { netDown = true; schedule(); });
-    conn.addEventListener('ready', () => { netDown = false; schedule(); });
+    netwatchInit($('#screen'), conn, {
+      down: d => { netDown = d; schedule(); },
+      canReload: !KS && !PARENT,   // im HA-Panel und in Kiosk Satellite gehört die Seite dem Wirt: nur Pille, kein Neuladen
+      night: () => { const sc = CONF.kiosk?.sched, n = new Date(); return !!sc && inWindow(n.getHours() * 60 + n.getMinutes(), mins(sc.from), mins(sc.to)); },   // Ruhefenster der Einstellungen
+      idle: () => Date.now() - touched,
+    });
     // Neu laden am HTTP-Cache vorbei: eigene Dateien (Ordner dieser Seite) erst frisch holen, sonst laufen nach einem Update alte Module weiter
     const hardReload = () => { const dir = new URL('.', location.href).href; return Promise.allSettled([location.href, ...performance.getEntriesByType('resource').map(e => e.name)].filter(u => u.startsWith(dir)).map(u => fetch(u, { cache: 'reload' }))).then(() => location.reload()); };
     // Nach HA-Neustart (z. B. Update über HACS) wieder verbinden: andere Integrationsversion → Seite neu laden, sonst läuft altes JS weiter

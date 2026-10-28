@@ -3,7 +3,7 @@
 import { siblings } from './faces.js';
 export const KIOSK_DEF = { idle: 300, saver: 'bigclock', black: false, sched: null, dim: null, wake: null, bright: 1, hold: false, kz: true };   // wake: 'hey_jarvis_v0.1' | 'alexa_v0.1' | null (Mikrofon dauerhaft offen → nur auf Wunsch)
 
-const mins = s => { const [h, m] = s.split(':'); return h * 60 + +m; };
+export const mins = s => { const [h, m] = s.split(':'); return h * 60 + +m; };
 export const inWindow = (now, from, to) => from <= to ? now >= from && now < to : now >= from || now < to;   // über Mitternacht erlaubt
 
 // faces: Scroll-Container, conf: () => CONF, busy: () => Bearbeiten/Vollbild/Assist aktiv, touched: () => letzte Berührung (ms),
