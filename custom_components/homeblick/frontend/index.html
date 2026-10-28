@@ -1701,7 +1701,7 @@ ${svg('note', 'mn')}
   },
 };
 // Gastmodus (Einstellung „Gastmodus“, auch als HA-Schalter): persönliche Faces zeigen nur ein Schloss; Vorlage: Privacy-Schloss (overview/privacy), Text und Anordnung eigene Annahme
-const GUEST_HIDES = new Set(['calendar', 'info', 'cams', 'check', 'photos']);
+const GUEST_HIDES = new Set(['calendar', 'info', 'cams', 'check', 'photos', 'people']);
 // Personen-Face („Wo ist?“): person.* mit Zone bzw. Entfernung zu zone.home und Akku des verknüpften Geräts; Glaszeilen wie die Kacheln (keine Apple-Vorlage, eigener Entwurf)
 const kmBetween = (a, b, c, d) => { const q = x => x * Math.PI / 180, h = Math.sin(q(c - a) / 2) ** 2 + Math.cos(q(a)) * Math.cos(q(c)) * Math.sin(q(d - b) / 2) ** 2; return 12742 * Math.asin(Math.sqrt(h)); };
 // Karte (HA ≥ 2026.10, peoplemap.js) ersetzt die Liste, sobald das Face sichtbar ist (Bibliothek ~430 KB gzip, vorher nicht geladen); Rückfall bleibt die Liste (Demo, Vorschau, kein WebGL2, ältere HA)
