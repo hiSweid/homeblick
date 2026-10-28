@@ -463,7 +463,7 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 .wseg .wi{height:1.32em}
 .wseg [data-m=p] .wi{height:1.06em}
 .wseg [data-m=w] .wi{height:.99em}
-.whours{display:flex;margin-top:2.45cqw;padding:0 .9cqw;overflow-x:auto;scrollbar-width:none;overscroll-behavior-x:contain;touch-action:pan-x}
+.whours{display:flex;margin-top:2.45cqw;padding:0 .9cqw;overflow:hidden;overflow-x:auto;scrollbar-width:none;overscroll-behavior-x:contain;touch-action:pan-x}
 .whours::-webkit-scrollbar{display:none}
 .whours>div{flex:0 0 14cqw;display:flex;flex-direction:column;align-items:center}
 .whours b{font-size:3.2cqw;font-weight:600;line-height:1;white-space:nowrap}
