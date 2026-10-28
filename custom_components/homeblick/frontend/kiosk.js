@@ -54,6 +54,7 @@ export function kioskInit({ faces, conf, busy, touched, onState, onWake, music, 
     const s = saver(); if (s >= 0 && s !== idx()) { back = idx(); fade(s); }
   };
 
+  const SHIFT = [[0, 0], [1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1], [0, -1], [1, -1], [.5, .5]];   // cqw; 10 Stellungen, je Minute eine
   setInterval(() => {
     const { idle: idle0, black, sched, hold } = cfg(), now = new Date(), min = now.getHours() * 60 + now.getMinutes();
     const idle = sched && inWindow(min, mins(sched.from), mins(sched.to)) ? 30 : idle0;
@@ -65,6 +66,9 @@ export function kioskInit({ faces, conf, busy, touched, onState, onWake, music, 
     const face = faces.children[idx()]?.className.match(/f-(\w+)/)?.[1] ?? null;
     if (back < 0 && face && face !== urlFace) { urlFace = face; if (location.hash.slice(1) !== face) history.replaceState(null, '', '#' + face); }   // Adresse folgt dem Face (Wischen/Tippen) → jede Ansicht ist per URL #<typ> direkt aufrufbar; replaceState löst kein hashchange aus
     if (onState && (face !== st.face || (back >= 0) !== st.saver)) onState(st = { face, saver: back >= 0 });
+    // Einbrennschutz: im Schoner wandert das Bild minütlich auf einem kleinen Pfad (Eigenschaft translate, unabhängig vom Wisch-transform)
+    const sh = cfg().shift && back >= 0 ? SHIFT[now.getMinutes() % SHIFT.length] : [0, 0];
+    faces.style.translate = sh[0] || sh[1] ? `${sh[0]}cqw ${sh[1]}cqw` : '';
     paint();
   }, 1000);
   // Helligkeit = Software-Folie (Browser kann die Hardware nicht steuern); ms = Überblendzeit (Kontrollzentrum-Regler: kurz, damit der Finger Wirkung sieht)

@@ -96,6 +96,9 @@
       "perf": {
         "name": "Leistungsmodus"
       },
+      "shift": {
+        "name": "Einbrennschutz"
+      },
       "perfauto": {
         "name": "Leistungsmodus automatisch"
       },

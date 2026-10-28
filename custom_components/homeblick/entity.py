@@ -222,7 +222,7 @@ class SettingTime(Base, TimeEntity):
 # Plattform → Entities eines Displays
 FACTORY = {
     "select": lambda h, d: [FaceSelect(h, d), SettingSelect(h, d, "saver", FACES), SettingSelect(h, d, "wake", WAKE)],
-    "switch": lambda h, d: [ScreensaverSwitch(h, d), SettingSwitch(h, d, "dim"), SettingSwitch(h, d, "black"), SettingSwitch(h, d, "perf"), SettingSwitch(h, d, "perfauto"), SettingSwitch(h, d, "hold"), SettingSwitch(h, d, "micmute"), SettingSwitch(h, d, "guest"), SettingSwitch(h, d, "dnd"), SettingSwitch(h, d, "sched"), SettingSwitch(h, d, "mute"), SettingSwitch(h, d, "barge"),
+    "switch": lambda h, d: [ScreensaverSwitch(h, d), SettingSwitch(h, d, "dim"), SettingSwitch(h, d, "black"), SettingSwitch(h, d, "perf"), SettingSwitch(h, d, "perfauto"), SettingSwitch(h, d, "shift"), SettingSwitch(h, d, "hold"), SettingSwitch(h, d, "micmute"), SettingSwitch(h, d, "guest"), SettingSwitch(h, d, "dnd"), SettingSwitch(h, d, "sched"), SettingSwitch(h, d, "mute"), SettingSwitch(h, d, "barge"),
                          SettingSwitch(h, d, "music"), SettingSwitch(h, d, "chime")],
     "light": lambda h, d: [ScreenLight(h, d)],
     "button": lambda h, d: [ActionButton(h, d, "reload"), ActionButton(h, d, "assist")],

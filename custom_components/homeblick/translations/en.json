@@ -96,6 +96,9 @@
       "perf": {
         "name": "Performance mode"
       },
+      "shift": {
+        "name": "Burn-in protection"
+      },
       "perfauto": {
         "name": "Performance mode automatic"
       },

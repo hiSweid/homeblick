@@ -247,6 +247,8 @@ export default {
   'Er startet nicht (Kochen, Präsentieren)': 'It won\'t start (cooking, presenting)',
   'Zeitplan': 'Schedule',
   'Startet nach 30 s Ruhe': 'Starts after 30 s idle',
+  'Einbrennschutz': 'Burn-in protection',
+  'Der Schoner rückt das Bild minütlich um wenige Pixel (OLED)': 'The screensaver nudges the picture a few pixels every minute (OLED)',
   'Von': 'From',
   'Bis': 'To',
   'Ein Tipp hellt für 30 Sekunden auf': 'A tap brightens it for 30 seconds',

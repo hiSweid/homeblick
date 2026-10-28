@@ -133,6 +133,7 @@ SETTINGS = vol.Schema({
     vol.Optional("kz"): bool,
     vol.Optional("micmute"): bool,
     vol.Optional("guest"): bool,
+    vol.Optional("shift"): bool,
     vol.Optional("dnd"): bool,
     vol.Optional("sched"): bool,
     vol.Optional("sched_from"): _time,
