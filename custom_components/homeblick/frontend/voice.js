@@ -10,8 +10,14 @@ const pcm16 = (id, f) => {
 };
 
 // Mikro als 16-kHz-Float-Frames (±1 → hier int16-Skala nicht nötig); gemeinsam für Sprachlauf und Wake Word
+let micLabel = '';   // gewähltes Mikrofon (Name); leer oder nicht gefunden = Standard des Geräts
+export const setMic = l => { micLabel = l || ''; };
+const inputs = async () => (await navigator.mediaDevices?.enumerateDevices?.().catch(() => [])  || []).filter(d => d.kind === 'audioinput' && d.label);   // Namen erst nach der ersten Freigabe
+export const listMics = async () => [...new Set((await inputs()).filter(d => !/^(default|communications)$/.test(d.deviceId)).map(d => d.label))];
+
 export async function openMic(onFrame) {
-  const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, channelCount: 1 } });
+  const dev = micLabel && (await inputs()).find(d => d.label === micLabel);
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, channelCount: 1, ...(dev && { deviceId: { exact: dev.deviceId } }) } });
   const ctx = new AudioContext({ sampleRate: 16000 });
   await ctx.audioWorklet.addModule(URL.createObjectURL(new Blob([WORKLET], { type: 'text/javascript' })));
   const node = new AudioWorkletNode(ctx, 'p');

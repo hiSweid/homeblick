@@ -57,7 +57,7 @@ def subscribe(hass, connection, msg):
 
 
 # Laufzustand des Panels (landet im HTML der Einstellungsseite und in der Diagnose) → feste Felder statt beliebigem dict
-INFO = vol.Schema({vol.Optional("secure"): bool, vol.Optional("mic"): bool, vol.Optional("wake"): vol.Any(None, vol.All(str, vol.Length(max=40))),
+INFO = vol.Schema({vol.Optional("secure"): bool, vol.Optional("mic"): bool, vol.Optional("mics"): vol.All([vol.All(str, vol.Length(max=120))], vol.Length(max=20)), vol.Optional("wake"): vol.Any(None, vol.All(str, vol.Length(max=40))),
                    vol.Optional("wakelock"): bool, vol.Optional("visible"): bool, vol.Optional("w"): vol.All(int, vol.Range(min=0, max=20000)),
                    vol.Optional("h"): vol.All(int, vol.Range(min=0, max=20000)),
                    vol.Optional("v"): vol.All(str, vol.Length(max=40))}, extra=vol.REMOVE_EXTRA)
@@ -126,6 +126,7 @@ SETTINGS = vol.Schema({
     vol.Optional("dim_level"): vol.All(int, vol.Range(min=10, max=95)),
     vol.Optional("wake"): vol.In(WAKE),
     vol.Optional("pipeline"): str,
+    vol.Optional("mic"): vol.All(str, vol.Length(max=120)),   # Name des Mikrofons am Display ("" = Standard des Geräts)
     vol.Optional("mute"): bool,
     vol.Optional("barge"): bool,
     vol.Optional("listen"): vol.All(int, vol.Range(min=3, max=60)),

@@ -1025,7 +1025,7 @@ import { wakeInit } from './wake.js';
 import { WF, wfHTML, wfAnimate, wfTick, wfEnergy, wfEvent, WF_CSS } from './watchfaces.js';
 document.head.insertAdjacentHTML('beforeend', `<style>${WF_CSS}</style>`);
 import { parseLRC, findLyrics } from './lyrics.js';
-import { voiceOK, voiceRun } from './voice.js';
+import { voiceOK, voiceRun, setMic, listMics } from './voice.js';
 import { timerInit, timers, timerDemo, timerShow, timerOn, timerMusic, voiceTimers, ping } from './timer.js';
 import { camInit, camConfig, camShow, camHide, camFace, camTile, camOpen, camRinging, doorbell } from './doorbell.js';
 import { loadEvents, eventsHTML, infoHTML } from './events.js';
@@ -1042,14 +1042,14 @@ const LIVE = new URLSearchParams(location.search).has('live');
 const PREVIEW = new URLSearchParams(location.search).has('preview');
 const DESIGNS = PREVIEW && new URLSearchParams(location.search).has('designs');   // Design-Auswahl der Einstellungsseite: alle Stile als Live-Raster (dgrid)
 if (DESIGNS) document.documentElement.classList.add('dg');
-const CFG = { hass: '', weather: 'weather.home', place: 'Home', pipeline: '', mute: false, barge: false, listen: 15, volume: 100, music: true, chime: true, device: '' };   // Wetter, Ort, Assist-Pipeline: je Display in der Einstellungsseite (applyK); device = HA-Gerät (register)
+const CFG = { hass: '', weather: 'weather.home', place: 'Home', pipeline: '', mic: '', mute: false, barge: false, listen: 15, volume: 100, music: true, chime: true, device: '' };   // Wetter, Ort, Assist-Pipeline: je Display in der Einstellungsseite (applyK); device = HA-Gerät (register)
 // Ort-Wahl am Wetter-Face (Listenknopf): nur dieses Gerät, bleibt über Neuladen; ohne Wahl gilt die Entity der Einstellungen
 let wxOver; try { wxOver = JSON.parse(localStorage.hbwx || 'null'); } catch { }
 const HOME = { weather: CFG.weather, place: CFG.place };
 let pickPlace = () => { };
 const applyK = k => {
-  root.classList.toggle('perf', !!k?.perf); for (const x of ['weather', 'place', 'tts', 'pipeline', 'mute', 'barge', 'listen', 'volume', 'music', 'chime']) if (k?.[x] != null) CFG[x] = k[x];
-  HOME.weather = CFG.weather; HOME.place = CFG.place; if (wxOver?.id) [CFG.weather, CFG.place] = [wxOver.id, wxOver.name];
+  root.classList.toggle('perf', !!k?.perf); for (const x of ['weather', 'place', 'tts', 'pipeline', 'mic', 'mute', 'barge', 'listen', 'volume', 'music', 'chime']) if (k?.[x] != null) CFG[x] = k[x];
+  setMic(CFG.mic); HOME.weather = CFG.weather; HOME.place = CFG.place; if (wxOver?.id) [CFG.weather, CFG.place] = [wxOver.id, wxOver.name];
 };
 const HASS = /^\/(local|homeblick)\//.test(location.pathname) ? location.origin : CFG.hass;   // unter /local/ ist die Seite selbst der HA-Origin
 
@@ -3262,7 +3262,8 @@ setInterval(() => { const p = CONF.kiosk?.presence, on = p && st(p).state === 'o
 camInit($('#cam'), { open, close, view: () => cur?.view, conn: () => conn, hass: HASS, wake: () => kiosk.wake(), sound: () => CFG.chime ? CFG.volume / 100 : 0 });
 // Laufender Zustand für die Einstellungsseite (Mikro braucht https, Wake Word hält es offen, Wake Lock hält den Bildschirm an)
 const INFO = { wake: null, v: undefined };
-const info = () => ({ secure: isSecureContext, mic: voiceOK(), wake: INFO.wake, wakelock: kiosk.wakeLock(), visible: document.visibilityState === 'visible', w: innerWidth, h: innerHeight, v: INFO.v });
+let MICS = [];   // Mikrofone des Geräts für die Auswahl in der Einstellungsseite
+const info = () => (listMics().then(m => { MICS = m; }), { secure: isSecureContext, mic: voiceOK(), mics: MICS, wake: INFO.wake, wakelock: kiosk.wakeLock(), visible: document.visibilityState === 'visible', w: innerWidth, h: innerHeight, v: INFO.v });
 renderAll(0);
 setTimeout(() => { tick(); setInterval(tick, 60000); }, 60050 - Date.now() % 60000);
 setInterval(times, 1000);
@@ -3376,9 +3377,9 @@ if (LIVE) {
     // Wake Word nur auf Wunsch (CONF.kiosk.wake): Mikrofon bleibt dann dauerhaft offen
     let wkCtl, wkModel;
     const wk = async () => {
-      const m = { ...KIOSK_DEF, ...CONF.kiosk }.wake;
-      if (m === wkModel) return;
-      wkModel = m; wkCtl?.stop(); wkCtl = null; INFO.wake = null;
+      const m = { ...KIOSK_DEF, ...CONF.kiosk }.wake, key = m + '|' + CFG.mic;
+      if (key === wkModel) return;
+      wkModel = key; wkCtl?.stop(); wkCtl = null; INFO.wake = null;
       if (m && voiceOK()) wkCtl = await wakeInit({ model: m, threshold: () => 1 - ({ ...KIOSK_DEF, ...CONF.kiosk }.wake_sens ?? 50) / 100, onWake: () => {
         kiosk.wake(); ping(CFG.chime ? CFG.volume / 100 : 0);   // Hörbereit-Ton (aus bei DND/Klingel-Gong aus)
         // Barge-in: Wake Word während der Antwort bricht sie ab und hört neu zu
