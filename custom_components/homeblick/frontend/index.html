@@ -420,7 +420,12 @@ html.dg,html.dg body{background:transparent;overflow:auto;display:block;height:a
 /* ---------- Musik (Maße aus Video t = 36 s) ---------- */
 .f-music{background:#1c1c1e}
 /* ponytail: CSS-Blur auf dem Cover-Layer; ruckelt das beim Wischen auf dem Tablet → vorgerendertes Blur-Bild */
-.f-music .mbg{position:absolute;inset:-30%;background:var(--art) center/cover;filter:blur(130px) brightness(.78) saturate(1.4)}   /* Vorlage _Tbq 00635: weicher Mesh-Verlauf ohne erkennbare Cover-Flecken */
+.f-music .mbg{position:absolute;inset:-30%;background:var(--art) center/cover;filter:blur(130px) brightness(.78) saturate(1.4)}
+@property --c1{syntax:'<color>';inherits:true;initial-value:#3a3a3c}@property --c2{syntax:'<color>';inherits:true;initial-value:#3a3a3c}@property --c3{syntax:'<color>';inherits:true;initial-value:#3a3a3c}
+#screen.mesh .f-music .mbg{inset:0;background:var(--c3);filter:none;overflow:hidden;transition:--c1 1.4s,--c2 1.4s,--c3 1.4s}   /* Cover-Farben als Mesh: Farben wechseln weich, die Flächen driften langsam; ohne lesbares Cover bleibt der Blur */
+#screen.mesh .f-music .mbg::before{content:"";position:absolute;inset:-25%;background:radial-gradient(circle at 25% 28%,var(--c1) 0,#0000 52%),radial-gradient(circle at 78% 35%,var(--c2) 0,#0000 50%),radial-gradient(circle at 45% 85%,var(--c1) 0,#0000 48%),radial-gradient(circle at 90% 90%,var(--c3) 0,#0000 45%);animation:mbgdrift 46s ease-in-out infinite alternate;will-change:transform}
+#screen.mesh .f-music .mbg::after{content:"";position:absolute;inset:0;background:#0000002e}
+@keyframes mbgdrift{to{transform:translate(5%,-4%) rotate(14deg) scale(1.08)}}   /* Vorlage _Tbq 00635: weicher Mesh-Verlauf ohne erkennbare Cover-Flecken */
 .mb,.mpill{position:absolute;z-index:1;top:6cqw;height:8.6cqw;border-radius:9cqw;background:#ffffff1f;box-shadow:inset 0 .15cqw .1cqw #ffffff40,inset 0 0 0 .1cqw #ffffff1a;display:flex;align-items:center;justify-content:space-around;font-size:5cqw}
 .mb{left:6cqw;width:8.6cqw;justify-content:center}
 /* Pille (Vorlage _Tbq 00635/00280: AirPlay-Symbol + Raumname + Lautsprecher; Apple-Video 36 s ohne Namen): Tipp auf den Lautsprecher weitet sie nach links zum Regler,
@@ -2012,32 +2017,62 @@ function npPos(id = NP) {
 }
 // Dominanter Farbton des Covers: 24×24-Raster, Farbwinkel nach Sättigung × Helligkeitsabstand gewichtet. Lesbar nur, wenn das Bild CORS-frei kommt
 // (gleicher Origin/HA-Proxy); sonst (oder ohne Cover) bleibt es null und die Oberfläche beim neutralen Weiß. ponytail: pro URL einmal, Map wächst bis zum Neuladen
+const pixels = new Map();
+const pix = url => url ? (pixels.has(url) || pixels.set(url, new Promise(ok => {
+  const img = new Image(); img.crossOrigin = 'anonymous';
+  img.onerror = () => ok(null);
+  img.onload = () => { try {
+    const c = document.createElement('canvas'); c.width = c.height = 24;
+    const g = c.getContext('2d', { willReadFrequently: true }); g.drawImage(img, 0, 0, 24, 24);
+    ok(g.getImageData(0, 0, 24, 24).data);
+  } catch { ok(null); } };   // getImageData: „tainted“ → ohne Ton
+  img.src = url;
+})), pixels.get(url)) : Promise.resolve(null);
 const tints = new Map();
 function domColor(url) {
-  if (!url) return Promise.resolve(null);
-  if (!tints.has(url)) tints.set(url, new Promise(ok => {
-    const img = new Image(); img.crossOrigin = 'anonymous';
-    img.onerror = () => ok(null);
-    img.onload = () => { try {
-      const c = document.createElement('canvas'); c.width = c.height = 24;
-      const g = c.getContext('2d', { willReadFrequently: true }); g.drawImage(img, 0, 0, 24, 24);
-      const d = g.getImageData(0, 0, 24, 24).data; let x = 0, y = 0, w = 0, sat = 0;
-      for (let i = 0; i < d.length; i += 4) {
-        const r = d[i] / 255, gg = d[i + 1] / 255, b = d[i + 2] / 255, mx = Math.max(r, gg, b), mn = Math.min(r, gg, b), l = (mx + mn) / 2, dl = mx - mn;
-        if (dl < .08) continue;
-        const sv = dl / (1 - Math.abs(2 * l - 1) || 1), k = sv * (1 - Math.abs(2 * l - 1)),
-          h = (mx === r ? ((gg - b) / dl + 6) % 6 : mx === gg ? (b - r) / dl + 2 : (r - gg) / dl + 4) * 60 * Math.PI / 180;
-        x += Math.cos(h) * k; y += Math.sin(h) * k; w += k; sat += sv * k;
-      }
-      ok(w < 3 ? null : `hsl(${Math.round((Math.atan2(y, x) * 180 / Math.PI + 360) % 360)} ${Math.round(Math.min(90, Math.max(35, sat / w * 100)))}% 64%)`);
-    } catch { ok(null); } };   // getImageData: „tainted“ → ohne Ton
-    img.src = url;
+  if (!tints.has(url)) tints.set(url, pix(url).then(d => {
+    if (!d) return null;
+    let x = 0, y = 0, w = 0, sat = 0;
+    for (let i = 0; i < d.length; i += 4) {
+      const r = d[i] / 255, gg = d[i + 1] / 255, b = d[i + 2] / 255, mx = Math.max(r, gg, b), mn = Math.min(r, gg, b), l = (mx + mn) / 2, dl = mx - mn;
+      if (dl < .08) continue;
+      const sv = dl / (1 - Math.abs(2 * l - 1) || 1), k = sv * (1 - Math.abs(2 * l - 1)),
+        h = (mx === r ? ((gg - b) / dl + 6) % 6 : mx === gg ? (b - r) / dl + 2 : (r - gg) / dl + 4) * 60 * Math.PI / 180;
+      x += Math.cos(h) * k; y += Math.sin(h) * k; w += k; sat += sv * k;
+    }
+    return w < 3 ? null : `hsl(${Math.round((Math.atan2(y, x) * 180 / Math.PI + 360) % 360)} ${Math.round(Math.min(90, Math.max(35, sat / w * 100)))}% 64%)`;
   }));
   return tints.get(url);
 }
+// Drei Leitfarben des Covers für den Mesh-Hintergrund: 4-Bit-Farbklassen, Gewicht = Anzahl × (Farbigkeit + Grundwert), die nächsten müssen sich klar unterscheiden;
+// Farbton bleibt, Sättigung/Helligkeit werden in einen satten, nicht zu hellen Bereich gezogen. null → Blur-Fallback.
+const pals = new Map();
+function palette(url) {
+  if (!pals.has(url)) pals.set(url, pix(url).then(d => {
+    if (!d) return null;
+    const bins = new Map();
+    for (let i = 0; i < d.length; i += 4) {
+      const k = (d[i] >> 4) << 8 | (d[i + 1] >> 4) << 4 | d[i + 2] >> 4, e = bins.get(k) || [0, 0, 0, 0];
+      e[0]++; e[1] += d[i]; e[2] += d[i + 1]; e[3] += d[i + 2]; bins.set(k, e);
+    }
+    const cols = [...bins.values()].map(([n, r, g, b]) => { r /= n * 255; g /= n * 255; b /= n * 255; const mx = Math.max(r, g, b), mn = Math.min(r, g, b); return { r, g, b, w: n * (mx - mn + .12) }; }).sort((p, q) => q.w - p.w), out = [];
+    for (const c of cols) if (out.length < 3 && out.every(o => Math.hypot(o.r - c.r, o.g - c.g, o.b - c.b) > .35)) out.push(c);
+    if (!out.length) return null;
+    return Array.from({ length: 3 }, (_, i) => {
+      const { r, g, b } = out[i] || out[0], mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, dl = mx - mn;
+      const h = dl < .02 ? 0 : (mx === r ? ((g - b) / dl + 6) % 6 : mx === g ? (b - r) / dl + 2 : (r - g) / dl + 4) * 60, sv = dl / (1 - Math.abs(2 * l - 1) || 1);
+      return `hsl(${Math.round(h)} ${Math.round(dl < .06 ? 0 : Math.min(85, Math.max(35, sv * 120)))}% ${Math.round(Math.min(52, Math.max(26, l * 100 * (out[i] ? 1 : .7))))}%)`;
+    });
+  }));
+  return pals.get(url);
+}
+let tintUrl;
 function tintOf(url) {
-  screen.style.removeProperty('--tint');
-  domColor(url).then(c => { if (c && screen.style.getPropertyValue('--art').includes(url)) screen.style.setProperty('--tint', c); });
+  tintUrl = url;
+  screen.style.removeProperty('--tint'); if (!url) screen.classList.remove('mesh');   // bei Wechsel bleibt das Mesh stehen und blendet auf die neuen Farben über
+  const ok = () => url && tintUrl === url;
+  domColor(url).then(c => { if (c && ok()) screen.style.setProperty('--tint', c); });
+  palette(url).then(p => { if (!ok()) return; screen.classList.toggle('mesh', !!p); p?.forEach((c, i) => screen.style.setProperty('--c' + (i + 1), c)); });   // ponytail: pro URL einmal, Maps wachsen bis zum Neuladen
 }
 // Fortschritt läuft als lineare Compositor-Animation bis zum Songende
 function progress(bar) {
