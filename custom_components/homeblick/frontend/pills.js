@@ -98,9 +98,12 @@ export function pillsInit(screen, o) {
       }
       if (host.children[i] !== el) host.insertBefore(el, host.children[i] || null);
       const ic = x.fin ? 'ok' : iconOf(x.rule), name = x.rule.text || x.s?.attributes?.friendly_name || x.rule.e, d = x.fin ? 'fertig' : detail(o.ents()[x.rule.left] || (isFinite(parseFloat(x.s?.state)) ? x.s : null), now);
-      el._r = x.rule; el.classList.toggle('fin', !!x.fin); el.style.cssText = tint(x.fin ? 'ok' : iconOf(x.rule));
+      el._r = x.rule; el.classList.toggle('fin', !!x.fin); el.style.cssText = tint(x.fin ? 'ok' : iconOf(x.rule)) + (el._v == null ? '' : `;--v:${el._v}`);
       const pr = x.fin ? 100 : progress(o.ents()[x.rule.left] || (isFinite(parseFloat(x.s?.state)) ? x.s : null), x.m, now);
-      el.classList.toggle('ind', pr == null); if (pr != null) el.style.setProperty('--v', pr.toFixed(1));   // Ring: Fortschritt oder, wenn unbekannt, ein kreisender Bogen
+      el.classList.toggle('ind', pr == null); if (pr != null) {   // Ring: Fortschritt oder, wenn unbekannt, ein kreisender Bogen; nur ab 1 % Sprung neu setzen (jede Änderung startet eine 0,9-s-Übergangsanimation auf dem Main-Thread, bei 1-s-Takt wäre sie Dauerlast)
+    const v = +pr.toFixed(1);
+    if (el._v == null || Math.abs(v - el._v) >= 1 || (v >= 100 || v <= 0) && v !== el._v) { el._v = v; el.style.setProperty('--v', v); }
+  }
       const svg = el.querySelector('svg'); if (svg._i !== ic) { svg._i = ic; svg.innerHTML = ICONS[ic]; }
       el.querySelector('b').textContent = name; const di = el.querySelector('i');
       if (di.textContent !== d) {   // Wert rollt: alter gleitet hoch hinaus, neuer von unten herein (nicht beim ersten Setzen)

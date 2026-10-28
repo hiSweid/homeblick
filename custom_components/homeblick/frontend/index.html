@@ -36,11 +36,9 @@ svg.i{width:1em;height:1em;flex:none;fill:none;stroke:currentColor;stroke-width:
 #faces::-webkit-scrollbar{display:none}
 .face{--ink:#1c1c1e;--ink2:#1c1c1e99;--pad:1.9cqw;--gap:2.2cqw;--t:calc((100cqw - 2*var(--pad) - 2*var(--gap))/3);--tint:hsl(var(--h,0) 100% 72%);
   flex:0 0 100cqw;height:100cqw;border-radius:8cqw;position:relative;overflow:hidden;
-  background:var(--wp) calc((var(--wx) + 1)*-3cqw) calc((var(--wy) + 1)*-3cqw)/106cqw 106cqw;animation:wpx 53s ease-in-out infinite alternate,wpy 71s ease-in-out infinite alternate;transition:scale var(--sd) var(--spring),border-radius .3s,opacity .3s}
-/* Wallpaper driftet: Bild 106 % groß, Versatz 0…−6 % über --wx/--wy (zwei Phasen, 53 s/71 s); Face und Glas der Kacheln lesen dieselben Werte und bleiben deckungsgleich. Ohne Animation (Leistungsmodus) steht --wx/--wy = 0 */
+  background:var(--wp) calc((var(--wx) + 1)*-3cqw) calc((var(--wy) + 1)*-3cqw)/106cqw 106cqw;transition:scale var(--sd) var(--spring),border-radius .3s,opacity .3s}
+/* Wallpaper driftet: Bild 106 % groß, Versatz 0…−6 % über --wx/--wy (zwei Phasen, 53 s/71 s); Face und Glas der Kacheln lesen dieselben Werte und bleiben deckungsgleich. Werte setzt drift() (JS) – eine CSS-Animation der Custom Property hielte den Main-Thread mit 60 Frames/s voll. Im Leistungsmodus steht --wx/--wy = 0 */
 @property --wx{syntax:'<number>';inherits:true;initial-value:0}@property --wy{syntax:'<number>';inherits:true;initial-value:0}
-@keyframes wpx{from{--wx:-1}to{--wx:1}}@keyframes wpy{from{--wy:-1}to{--wy:1}}
-@media (prefers-reduced-motion:reduce){.face{animation:none}}
 .face.mono{--tint:#ebebf599}
 .face.light{--tint:#3c3c4399;color:#1c1c1e}
 
@@ -1505,6 +1503,14 @@ function lavaDraw(c, t) {
 }
 let lavaRaf = 0, lavaT = 0;
 const calm = matchMedia('(prefers-reduced-motion:reduce)');
+// Wallpaper-Drift: Kosinus über 106 s (--wx) bzw. 142 s (--wy), 2 Hz, nur sichtbare Faces (unter 1 px je Schritt); beim Wischen zieht der Scroll-Handler das einlaufende Face sofort nach
+let driftT = 0;
+function drift() {
+  const now = Date.now(); if (now - driftT < 120 || document.hidden || calm.matches || root.classList.contains('perf')) return;
+  driftT = now; const t = now / 1e3, x = (-Math.cos(t * Math.PI / 53)).toFixed(3), y = (-Math.cos(t * Math.PI / 71)).toFixed(3);
+  for (const f of faces.children) { const r = f.getBoundingClientRect(); if (r.right > 0 && r.left < innerWidth) { f.style.setProperty('--wx', x); f.style.setProperty('--wy', y); } }
+}
+setInterval(drift, 500); faces.addEventListener('scroll', drift, { passive: true }); drift();
 function lavaTick(now) {
   const cs = document.querySelectorAll('canvas.amb'); if (!cs.length) return lavaRaf = 0;
   lavaRaf = requestAnimationFrame(lavaTick);
