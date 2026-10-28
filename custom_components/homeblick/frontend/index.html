@@ -877,11 +877,11 @@ input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:tr
 .f-bigclock.flow{background:hsl(285 72% 82%)}
 .flow .ft{font-size:49px;font-weight:900;font-variation-settings:'wght' 1000,'wdth' 151,'opsz' 144}.flow .dg{fill:#ffffff2e}
 .flow .fb{transform-box:fill-box;transform-origin:center}
-.act .fb{animation:flow0 30s ease-out forwards}.act .fb1{animation-name:flow1}.act .fb2{animation-name:flow2}.act .fb3{animation-name:flow3}
-@keyframes flow0{to{transform:translate(-18px,22px) scale(1.15)}}
-@keyframes flow1{to{transform:translate(20px,-12px) scale(.95)}}
-@keyframes flow2{to{transform:translate(-6px,-18px) scale(.9)}}
-@keyframes flow3{to{transform:translate(24px,16px) scale(1.12)}}
+.act .fb{animation:flow0 41s ease-in-out infinite alternate}.act .fb1{animation-name:flow1;animation-duration:53s}.act .fb2{animation-name:flow2;animation-duration:47s}.act .fb3{animation-name:flow3;animation-duration:61s}   /* Flow läuft dauerhaft, solange sichtbar */
+@keyframes flow0{0%{transform:translate(-14px,-6px) scale(.9)}35%{transform:translate(22px,10px) scale(1.22)}70%{transform:translate(8px,34px) scale(.85)}100%{transform:translate(-18px,22px) scale(1.15)}}
+@keyframes flow1{0%{transform:translate(16px,10px) scale(1.1)}40%{transform:translate(-24px,22px) scale(.82)}75%{transform:translate(-8px,-16px) scale(1.2)}100%{transform:translate(20px,-12px) scale(.95)}}
+@keyframes flow2{0%{transform:translate(-20px,12px) scale(1.2)}30%{transform:translate(14px,-22px) scale(.88)}65%{transform:translate(26px,6px) scale(1.15)}100%{transform:translate(-6px,-18px) scale(.9)}}
+@keyframes flow3{0%{transform:translate(12px,-14px) scale(.85)}45%{transform:translate(-22px,-4px) scale(1.2)}80%{transform:translate(-10px,26px) scale(.95)}100%{transform:translate(24px,16px) scale(1.12)}}
 /* Bewegung läuft einmal je Ansicht (.act = Face zu ≥ 60 % sichtbar, siehe actIO), bremst aus und bleibt dann stehen. Tiefen-Uhr: das Bild in den Ziffern (Foto/Wallpaper) schwimmt langsam (Überstand 8 % je Seite), der Vordergrund-Ausschnitt .dfg bleibt stehen → Tiefenwirkung */
 .dpan{transform-origin:50px 50px;will-change:transform}
 .act .dpan{animation:dpan 30s ease-out forwards}
