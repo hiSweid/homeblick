@@ -132,7 +132,7 @@ export function alerts(el) {
       e.preventDefault();
       const to = d_ => (d_ ? [S.displays.find(x => x.id === d_)] : ready).filter(x => x?.connected), list = to($('#try-d', el).dataset.v), res = $('#try-res', el);
       if (!list.length) { res.textContent = tx('Dieses Display ist nicht geöffnet.'); return; }
-      const title = $('#try-title', el).value.trim(), message = $('#try-msg', el).value.trim() || tx('Die Mitteilung funktioniert.'), durV = $('#try-dur', el).value.trim(), dur = durV !== '' && +durV >= 0 ? Math.min(+durV, 3600) : null;
+      const title = $('#try-title', el).value.trim(), message = $('#try-msg', el).value.trim() || tx('Die Mitteilung funktioniert.'), durV = $('#try-dur', el).value.trim(), dur = durV !== '' && +durV >= 0 ? Math.min(Math.round(+durV), 3600) : null;
       res.textContent = tx('Sende …');
       try { await Promise.all(list.map(x => call('command', { display: x.id, action: 'notify', ...(title && { title }), message, ...(dur !== null && { duration: dur }) }))); res.textContent = list.length > 1 ? tx('Gesendet an {n} Displays.', { n: list.length }) : tx('Gesendet an {n} Display.', { n: list.length }); }
       catch (er) { res.textContent = er?.message || tx('Fehler'); }
@@ -149,9 +149,10 @@ export function newDisplay(el, route) {
   const chip = (attr, on_, text) => `<button class="chip pick ${on_ ? 'on' : ''}" ${attr}>${esc(text)}</button>`;
   let shown = 0;   // 0 Anleitung, 1 Formular, 2 Auswahl
   const draw = () => {
-    const d = S.displays.find(x => x.id === id && x.new), list = pending();
+    const list = pending();
+    if (!id && list.length) id = list[0].id;   // keine Adress-ID: das erste wartende Display
+    const d = S.displays.find(x => x.id === id && x.new);
     if (!list.length) return shown = 0, frame(el, tx('Neues Display'), tx('Zeig deinem Haus ein Display.'), G(tx('Noch kein neues Display angemeldet'), `<ol class="steps"><li>${tx('Öffne Homeblick auf dem Gerät. In der Home-Assistant-App: Seitenleiste → Homeblick.')}</li><li>${tx('Das Display erscheint hier als neues Display, dann geht es in drei Schritten weiter.')}</li></ol>`, tx('Für mehrere Geräte im selben Browser hilft <code>?display=kueche&amp;name=Küche</code> hinter der Adresse.')));
-    if (!id) id = list[0].id;   // keine Adress-ID: das erste wartende Display
     shown = d ? 1 : 2;
     // Adress-ID wartet nicht (mehr): nie still ein anderes Display einrichten, der Nutzer wählt selbst
     if (!d) return frame(el, tx('Neues Display'), tx('Name, Bereich und Vorlage wählen, fertig.'), G(tx('Dieses Display wartet nicht mehr'), `<p class="panel-p">${tx('Es ist schon eingerichtet oder gerade nicht angemeldet. Wähle eines der wartenden Displays:')}</p><div class="quick">${list.map(x => chip(`data-d="${esc(x.id)}"`, false, x.name + (x.connected ? '' : ' · ' + tx('nicht verbunden')))).join('')}</div>`) + `<div class="actions"><button class="btn quiet big" data-goto="#/">${tx('Später')}</button></div>`);
@@ -173,7 +174,7 @@ export function newDisplay(el, route) {
     if (x) { if (shown === 1) names[id] = $('#wn', el).value; id = x.dataset.d; draw(); return paintNote(); }
     if (a) { area = a.dataset.a; $$('[data-a]', el).forEach(b => b.classList.toggle('on', b === a)); return paintNote(); }
     if (t) { tpl = t.dataset.t; $$('[data-t]', el).forEach(b => b.classList.toggle('on', b === t)); return paintNote(); }
-    if (!e.target.closest('#go')) return;
+    if (!e.target.closest('#go') || busy) return;
     const d = S.displays.find(v => v.id === id), name = $('#wn', el).value.trim() || d.name;
     const config = setupConfig(tpl, area), wx = entsOf('weather'), w = wx.find(v => v.id === 'weather.home') || wx[0];
     busy = true;   // nach dem Einrichten ist das Display nicht mehr „neu“: kein Zurückspringen auf die Anleitung vor dem Seitenwechsel
