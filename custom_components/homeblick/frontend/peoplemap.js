@@ -18,9 +18,9 @@ const fresh = async conn => {
 };
 // Apple-Karten-Palette: HA-Farbe (exakter String im Stil) → Ersatz; kühleres Grau statt Beige, sattes Wasserblau, weiche Parks, weiße Straßen, Hauptstraßen gelb-orange
 const rgb = (...c) => `rgb(${c})`, APPLE = {
-  'rgb(245,239,229)': rgb(242, 240, 236), 'rgb(184,218,236)': rgb(170, 208, 240), 'rgb(159,206,232)': rgb(150, 196, 236), 'rgb(84,135,170)': rgb(66, 124, 184),
-  'rgb(241,233,218)': rgb(238, 236, 231), 'rgb(247,224,216)': rgb(240, 236, 232), 'rgb(240,231,203)': rgb(235, 233, 228), 'rgb(232,239,225)': rgb(234, 240, 226),
-  'rgb(207,228,188)': rgb(200, 230, 176), 'rgb(226,238,216)': rgb(220, 236, 206), 'rgb(234,222,199)': rgb(230, 226, 220), 'rgb(224,205,174)': rgb(214, 210, 202),
+  'rgb(245,239,229)': rgb(245, 243, 239), 'rgb(184,218,236)': rgb(158, 204, 246), 'rgb(159,206,232)': rgb(140, 192, 240), 'rgb(84,135,170)': rgb(66, 124, 184),
+  'rgb(241,233,218)': rgb(244, 242, 238), 'rgb(247,224,216)': rgb(241, 238, 233), 'rgb(240,231,203)': rgb(240, 238, 233), 'rgb(232,239,225)': rgb(234, 240, 226),
+  'rgb(207,228,188)': rgb(190, 228, 162), 'rgb(226,238,216)': rgb(214, 236, 196), 'rgb(234,222,199)': rgb(236, 233, 227), 'rgb(224,205,174)': rgb(214, 210, 202),
   'rgb(252,250,248)': rgb(255, 255, 255), 'rgb(233,219,196)': rgb(224, 222, 217), 'rgb(244,243,241)': rgb(250, 250, 250), 'rgb(239,228,212)': rgb(230, 228, 224),
   'rgb(255,231,190)': rgb(255, 236, 184), 'rgb(235,208,159)': rgb(240, 202, 124), 'rgb(241,214,165)': rgb(251, 208, 124), 'rgb(232,189,110)': rgb(238, 172, 74),
   'rgb(75,71,60)': rgb(58, 58, 64), 'rgba(250,248,245,0.8)': 'rgba(255,255,255,.85)',
@@ -34,6 +34,8 @@ async function loadStyle(base) {
   for (const k in s.sources) if (s.sources[k].url) s.sources[k].url = abs(s.sources[k].url);
   for (const l of s.layers) {
     for (const k in l.paint) if (k.includes('color')) l.paint[k] = APPLE[l.paint[k]] ?? l.paint[k].replace?.(/^rgb\((\d+),(\d+),(\d+)\)$/, (m, r, g, b) => r - b > 6 ? rgb(...[r, g].map(v => Math.round(+b + (v - b) * .4)), b) : m);   // Rest (Fußwege, Tunnel, Bahn …): Beige zu Grau entsättigen
+    const w = /^street-/.test(l.id) && l.paint['line-width'];   // Straßen ~25 % breiter, wie bei Apple klar lesbar
+    if (w?.[0] === 'interpolate') l.paint['line-width'] = w.map((v, i) => i > 3 && i % 2 === 0 && typeof v === 'number' ? +(v * 1.25).toFixed(2) : v);
     if (/^label-place-(neighbourhood|quarter|suburb|hamlet|village|town|city|statecapital|capital)/.test(l.id)) l.layout['text-font'] = ['noto_sans_bold'];   // Ortsnamen fett wie bei Apple
     if (l.paint?.['text-halo-width']) l.paint['text-halo-width'] = 2.5;
     if (/^(poi|symbol-transit|label-address|label-motorway)/.test(l.id)) (l.layout ??= {}).visibility = 'none';   // ruhiger: keine Orte/Haltestellen/Hausnummern auf dem kleinen Display
