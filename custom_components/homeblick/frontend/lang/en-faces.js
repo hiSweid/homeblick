@@ -115,6 +115,7 @@ export default {
   'Verbrauch': 'Usage',
   'Verbrauch {u} kWh · PV-Ertrag {p} kWh': 'Usage {u} kWh · PV yield {p} kWh',
   'Verbunden': 'Connected',
+  '{v} % autark': '{v} % self-sufficient',
   '↓ {v} kW Bezug': '↓ {v} kW import',
   '↓ {v} kW Bezug aus dem Netz': '↓ {v} kW from grid',
   '↑ {v} kW ins Netz': '↑ {v} kW to grid',

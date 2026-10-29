@@ -1094,7 +1094,7 @@ input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:tr
 <script type="module">
 import { tx, LOC, LANG } from './i18n.js';
 import { weatherFace, weather, weatherHours, weatherNear, weatherPlaces, COND } from './weather.js';
-import { energyFace, energyTile, energy, energyDemo, energyInit, energyEnts, energyDetail, energyNow } from './energy.js';
+import { energyFace, energyList, energyTile, energy, energyDemo, energyInit, energyEnts, energyDetail, energyNow } from './energy.js';
 import { kioskInit, KIOSK_DEF, luxLevel, inWindow, mins } from './kiosk.js';
 import { netwatchInit } from './netwatch.js';
 import { shot } from './shot.js';
@@ -1737,6 +1737,7 @@ const FACE = {
   weather: (el, f) => weatherFace(el, f, CFG.place),
   energy: (el, f) => {
     energyEnts(f.ents);
+    if (f.style === 'list') return energyList(el);
     const g = f.tiles ? f : { ...f, tiles: ENERGY_TILES };   // Standard (cleanConf legt sie normalerweise schon an)
     for (const t of g.tiles) el.append(tileEl(t));
     place(el, g); energyFace(el);

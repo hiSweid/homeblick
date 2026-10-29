@@ -315,6 +315,7 @@ export default {
   'Grün': 'Green',
   'Kompakt': 'Compact',
   'Gestapelt': 'Stacked',
+  'Kacheln': 'Tiles',
   'Lavalampe': 'Lava lamp',
   'Ringe': 'Rings',
   'Mond': 'Moon',

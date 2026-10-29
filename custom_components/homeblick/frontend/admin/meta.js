@@ -12,7 +12,7 @@ export const FACE = {
 };
 export const TYPES = Object.entries(FACE).map(([k, v]) => [k, v[0]]);
 export const BG = [['auto', tx('Tageszeit')], ['black', tx('Schwarz')], ['white', tx('Weiß')], ['metal', tx('Metall')], ['prism', tx('Prisma')], ['teal', 'Teal'], ['champagne', tx('Champagner')], ['flow:232', 'Flow'], [30, tx('Orange')], [5, tx('Rot')], [340, tx('Rosa')], [285, tx('Violett')], [307, 'Pink'], [228, tx('Blau')], [205, tx('Türkis')], [212, tx('Himmel')], [150, tx('Grün')]];
-export const STYLES = { weather: [['', tx('Kompakt')], ['cond', tx('Bedingungen')]], bigclock: [['stack', tx('Gestapelt')], ['line', tx('Lavalampe')], ['flow', 'Flow'], ['typo', 'Typograph'], ['rings', tx('Ringe')], ['solar', 'Solar Graph'], ['moon', tx('Mond')], ['modular', 'Modular']], analog: [['big', tx('Große Ziffern')], ['relief', 'Relief'], ['chrono', 'Chronograph'], ['utility', 'Utility'], ['meridian', 'Meridian']], info: [['events', tx('Termine')], ['music', tx('Musik')]] };
+export const STYLES = { energy: [['', tx('Kacheln')], ['list', tx('Liste')]], weather: [['', tx('Kompakt')], ['cond', tx('Bedingungen')]], bigclock: [['stack', tx('Gestapelt')], ['line', tx('Lavalampe')], ['flow', 'Flow'], ['typo', 'Typograph'], ['rings', tx('Ringe')], ['solar', 'Solar Graph'], ['moon', tx('Mond')], ['modular', 'Modular']], analog: [['big', tx('Große Ziffern')], ['relief', 'Relief'], ['chrono', 'Chronograph'], ['utility', 'Utility'], ['meridian', 'Meridian']], info: [['events', tx('Termine')], ['music', tx('Musik')]] };
 export const LEGACY = { bigclock: [['depth', tx('Tiefe')]], analog: [['numbers', tx('Zahlen')], ['ticks', tx('Striche')], ['minimal', tx('Minimal')]] };   // ohne Vorlage: nur sichtbar, wenn gespeichert
 // Uhr und Kalender gibt es je Display nur einmal; Design (digital/analog bzw. Monat/Datum) und Farbe stellt man am Face ein. Wert = "Typ:Stil"
 export const DESIGN = { clock: [['bigclock:stack', tx('Digital · Gestapelt')], ['bigclock:line', tx('Digital · Lavalampe')], ['bigclock:flow', tx('Digital · Flow')], ['bigclock:typo', tx('Digital · Typograph')], ['bigclock:rings', tx('Digital · Ringe')], ['bigclock:solar', tx('Digital · Solar Graph')], ['bigclock:moon', tx('Digital · Mond')], ['bigclock:modular', tx('Digital · Modular')], ['analog:big', tx('Analog · Große Ziffern')], ['analog:relief', tx('Analog · Relief')], ['analog:chrono', tx('Analog · Chronograph')], ['analog:utility', tx('Analog · Utility')], ['analog:meridian', tx('Analog · Meridian')], ['info:events', tx('Info · Termine')], ['info:music', tx('Info · Musik')]],
@@ -60,7 +60,7 @@ export function roomTiles(area) {
 }
 export function setupConfig(key, area) {
   const types = SETUP.find(x => x[0] === key)[3], std = key === 'std', found = energyGuess(), ents = Object.keys(found).length ? { ...found, carName: tx('Auto‖Fahrzeug') } : null;   // „Auto“ statt „e-Golf“ (Standardname des Face)
-  const mk = type => ({ type, bg: FACE_BG[type], ...(type === 'grid' && { tiles: roomTiles(area) }), ...(type === 'energy' && ents && { ents }) });
+  const mk = type => ({ type, bg: FACE_BG[type], ...(type === 'grid' && { tiles: roomTiles(area) }), ...(type === 'energy' && { style: 'list', ...(ents && { ents }) }) });
   const c = { cams: 1, energy: 1, dyn: 2, off: std ? types.filter(t => !stdHas(t)).map(mk) : [], faces: types.filter(t => !std || stdHas(t)).map(mk) };
   normFaces(c);
   return c;

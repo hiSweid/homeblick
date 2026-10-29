@@ -83,6 +83,21 @@ export function energyFace(el) {
   if (V) paint(el);
 }
 
+// Layout „Liste“ (f.style 'list'): Kopf mit Solar-kW, Netztext und Tageskurve, darunter Glaskarte mit Zeilen Solar/Haus/Akku/Auto (Tipp = Detail wie die Kacheln).
+// Entwurf des Users 29.10. (Mix aus Liste + Tagesverlauf, Mockup scratchpad e/e.html .m, Apple hat kein Energie-Dashboard); Zahlen, Kurve und Details sind dieselben wie bei den Kacheln.
+export function energyList(el) {
+  const g = 'eg' + ++gN, ic = (c, s, d = '#fff') => `<span class="ic" style="--c:${c};--ic:${d}"><svg class="i" viewBox="0 0 24 24">${SYM[s]}</svg></span>`;
+  const row = (k, c, s, d, name, sub, v, u) => `<div class="erow ${k}" data-act="edet" data-v="${k}" style="--c:${c}">${ic(c, s, d)}<div class="tx">${name}<small${sub[0] ? ` data-bind="${sub[0]}"` : ''}>${sub[1]}</small></div><div class="enum erval"><b class="num" data-bind="e_${v}" data-digits></b><small>${u}</small></div></div>`;
+  el.classList.add('el-list');
+  el.innerHTML = `<div class="elh">${tx('Energie')}</div><time data-bind="time"></time>
+<div class="ehero" data-act="edet" data-v="pv"><div class="enum"><b class="num" data-bind="e_pv" data-digits></b><small> kW</small></div><div class="sub gl" data-bind="e_gl"></div></div>
+<div class="cw"><div class="ci"><svg viewBox="0 0 100 30" preserveAspectRatio="none"><defs><linearGradient id="${g}" x2="0" y2="1"><stop offset="0" stop-color="#ffd60a" stop-opacity=".6"/><stop offset="1" stop-color="#ffd60a" stop-opacity="0"/></linearGradient></defs><path class="ar" fill="url(#${g})"/><path class="ln"/><path class="fc"/></svg></div></div>
+<div class="elc">${row('day', '#ffd60a', 'sun', '#000', tx('Solar'), ['', tx('Heute')], 'today', ' kWh')}${row('use', '#0a84ff', 'home', '#fff', EN_NAMES.use, ['e_autl', ''], 'home', ' kW')}${row('bat', '#30d158', 'bat', '#000', EN_NAMES.bat, ['e_batl', ''], 'soc', ' %')}${row('car', '#bf5af2', 'car', '#fff', esc(CAR), ['e_carl', ''], 'carSoc', ' %')}</div>`;
+  veil(el, !still());
+  io.observe(el);
+  if (V) paint(el);
+}
+
 // ---------- Tageskurve ----------
 // Ist = HA-History der PV-Leistung (Demo: simuliert), Prognose = Solcast detailedForecast (pv_estimate kW je 30 min) des Heute-Sensors
 let H = [], F = [], FB = [];   // [[ms, W]]; FB = Prognose-Band [[ms, W10, W90]]
@@ -210,6 +225,7 @@ export function energy(ents, roll) {
   const all = home + car;   // evcc-Hausverbrauch schließt die Ladepunkte nicht ein (Demo: Netz = Haus + Auto − PV − Akku) → Auto addieren, sonst 0 % obwohl das Haus aus PV läuft
   const aut = ok.home && ok.grid ? (all > 0 ? Math.round(100 * (1 - Math.min(1, (imp ? grid : 0) / all))) : 100) : null;   // Autarkie = 1 − Netzbezug / Verbrauch (Haus + Auto)
   rb('e_aut', aut == null ? '–' : String(aut));
+  bd('e_autl', aut == null ? '' : tx('{v} % autark', { v: aut }));
   // „Bezug“ statt „aus dem Netz“: passt auch bei ≥ 10 kW (Wallbox) in die 1×1-Kachel (3 cqw), sonst abgeschnitten
   bd('e_gl', !ok.grid ? '' : imp ? tx('↓ {v} kW Bezug', { v: kw(grid) }) : exp ? tx('↑ {v} kW ins Netz', { v: kw(grid) }) : tx('{v} kW Netz', { v: de(0) }));
   bd('e_batl', !ok.bat ? '' : bat < -50 ? tx('lädt · {v} kW', { v: kw(bat) }) : bat > 50 ? tx('entlädt · {v} kW', { v: kw(bat) }) : tx('bereit'));
@@ -225,7 +241,7 @@ export function energy(ents, roll) {
     set('.bar.soc', '--v', c01(soc / 100), ok.soc);
     set('.bar.carSoc', '--v', c01(carSoc / 100), ok.carSoc);
     set('.bar.today', '--v', c01(today / todayFc), ok.today && ok.todayFc && todayFc > 0);
-    for (const [t, has] of [['bat', ok.soc || ok.bat], ['car', ok.carSoc || ok.car], ['day', ok.today], ['tmr', ok.tomorrow]]) for (const n of f.querySelectorAll('.tile.' + t)) n.classList.toggle('na', !has);   // ohne passende Entity abgeblendet
+    for (const [t, has] of [['bat', ok.soc || ok.bat], ['car', ok.carSoc || ok.car], ['day', ok.today], ['tmr', ok.tomorrow]]) for (const n of f.querySelectorAll(`.tile.${t},.erow.${t}`)) n.classList.toggle('na', !has);   // ohne passende Entity abgeblendet
     for (const gl of f.querySelectorAll('.gl')) { gl.classList.toggle('imp', imp); gl.classList.toggle('z', !imp && !exp); }
     paint(f);
   }
@@ -599,6 +615,24 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 .f-energy .ci .ln{fill:none;stroke:#ffd60a;stroke-width:1.6;vector-effect:non-scaling-stroke}
 .f-energy .ci .fc{fill:none;stroke:currentColor;stroke-opacity:.45;stroke-width:1.4;stroke-dasharray:2 3;vector-effect:non-scaling-stroke}
 .f-energy.light .ci .ln{stroke:#e0a800}
+/* Layout „Liste“ (Maße aus dem Mockup, 480 px = 100 cqw) */
+.f-energy.el-list>.elh{position:absolute;left:7cqw;top:5.6cqw;font-size:7.6cqw;font-weight:700;letter-spacing:-.02em;line-height:1.1}
+.f-energy.el-list>time{position:absolute;right:6cqw;top:6.4cqw;font-size:4.4cqw;font-weight:600;line-height:1;opacity:.75}
+.f-energy .ehero{position:absolute;left:7cqw;top:17.5cqw}
+.f-energy .ehero .enum{font-size:12cqw;line-height:1;margin:0}.f-energy .ehero .enum small{font-size:4.4cqw;font-weight:500}
+.f-energy .ehero .gl{margin-top:2.4cqw;font-size:3.4cqw;font-weight:600;color:#c8ffd4}.f-energy .ehero .gl.imp{color:#ffd9a8}.f-energy .ehero .gl.z{color:inherit;opacity:.62}
+.f-energy.light .ehero .gl{color:#248a3d}.f-energy.light .ehero .gl.imp{color:#c93400}
+.f-energy.el-list .cw{right:2cqw;top:15.5cqw;bottom:auto}
+.f-energy .elc{position:absolute;left:4cqw;right:4cqw;top:40cqw;bottom:4cqw;display:flex;flex-direction:column;overflow:hidden;border-radius:6cqw;background:color-mix(in srgb,currentColor 11%,transparent);box-shadow:inset 0 0 0 .3cqw color-mix(in srgb,currentColor 13%,transparent)}
+.f-energy .erow{flex:1;display:flex;align-items:center;gap:3.2cqw;padding:0 4cqw;position:relative;transition:background-color .3s,opacity .3s}
+.f-energy .erow:active{background:color-mix(in srgb,currentColor 12%,transparent);transition:none}
+.f-energy .erow+.erow::before{content:"";position:absolute;top:0;left:14cqw;right:0;height:.3cqw;background:color-mix(in srgb,currentColor 14%,transparent)}
+.f-energy .erow.na{opacity:.4}
+.f-energy .erow .ic{display:grid;place-items:center;flex:none;width:8.4cqw;height:8.4cqw;border-radius:27%;font-size:5cqw;color:var(--ic);background:var(--c)}
+.f-energy .erow .tx{flex:1;min-width:0;font-size:4cqw;font-weight:500;line-height:1.2;white-space:nowrap}
+.f-energy .erow .tx small{display:block;min-height:1.2em;font-size:2.8cqw;font-weight:400;opacity:.62;overflow:hidden;text-overflow:ellipsis}
+.f-energy .erow .erval{font-size:4.4cqw;margin:0;font-weight:600}.f-energy .erow .erval small{font-size:1em;font-weight:600;white-space:pre}
+.f-energy .erow .erval .num{justify-items:end}
 @media (prefers-reduced-motion:reduce){.f-energy *{transition:none!important}}
 /* ---------- Detailansicht #edet: Kopf/✕/Uhr = #climate/#dimmer (index.html), Karte = .wcard Wetter-Detail y-MO 08900 (weather.js) ---------- */
 #edet{--trk:#ffffff38;--sb:hsl(var(--h) 100% 84%);--y:#ffd60a;--gn:#30d158;--bl:#0a84ff;--or:#ff9f0a;color:#fff;background:var(--wpb) 0 0/100% 100%,var(--wp) 0 0/100% 100%,var(--eb,#000);touch-action:none}

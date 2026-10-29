@@ -125,7 +125,7 @@ export const pageTypes = () => {   // Typen, die man neu anlegen kann (Uhr, Kale
 };
 export function addPage(type) {
   const id = faceId(S.cfg, type);
-  mutate(tx('Ansicht „{name}“ hinzugefügt', { name: faceName({ type, id }) }), c => { c.faces.push({ type, id, bg: FACE_BG[type] ?? 'black', ...(type === 'grid' && { tiles: [] }), ...(type === 'energy' && { tiles: structuredClone(ENERGY_TILES) }) }); });
+  mutate(tx('Ansicht „{name}“ hinzugefügt', { name: faceName({ type, id }) }), c => { c.faces.push({ type, id, bg: FACE_BG[type] ?? 'black', ...(type === 'grid' && { tiles: [] }), ...(type === 'energy' && { style: 'list', tiles: structuredClone(ENERGY_TILES) }) }); });
   select({ k: 'page', f: id });
   return id;
 }
