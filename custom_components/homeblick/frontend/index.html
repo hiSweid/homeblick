@@ -899,7 +899,7 @@ input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:tr
 .pb{font-size:3.5cqw;font-weight:500;opacity:.8}.pnone{position:absolute;left:0;right:0;top:40cqw;text-align:center;opacity:.6;font-size:4cqw}
 /* Personen-Karte (peoplemap.js): füllt das Face; Listenknopf + Popover wie der Orte-Knopf im Wetter-Face (Vorlage display_endframe), Marker = Avatar mit weißem Ring, Beschriftung wie Apple Karten (Text mit weißem Rand, Vorlage Siri-Antwort y-MO 07000).
    Eine Apple-Vorlage für „Wo ist?“ selbst gibt es in ref/ nicht (ANALYSE P3: kein Bild) → Karten-Elemente der Siri-Karte + Wetter-Knopf, Rest Annahme */
-.f-people .pmap{position:absolute;inset:0;opacity:0;transition:opacity .6s}.f-people.mapped .pmap{opacity:1}.f-people.mapped .plist,.f-people.mapped header{display:none}
+.f-people .pmap{position:absolute;inset:0;opacity:0;transition:opacity .6s}.f-people.mapped .pmap{opacity:1}.f-people.mapped .plist,.f-people.mapped header,.f-people.wait .plist,.f-people.wait header{display:none}
 .f-people .plb{display:none;position:absolute;left:4.2cqw;top:4.2cqw;width:8.6cqw;height:8.6cqw;padding:0;border:0;border-radius:50%;place-items:center;color:#3c3c3c;background:#ffffffc7;-webkit-backdrop-filter:blur(2cqw);backdrop-filter:blur(2cqw);box-shadow:0 .4cqw 1.6cqw #0003;z-index:4;transition:scale .2s}.f-people .plb:active{scale:.92}.f-people .plb svg{width:4.6cqw;height:4.6cqw}.f-people.mapped .plb{display:grid}
 .f-people .ppop{corner-shape:squircle;position:absolute;left:4.2cqw;top:14.6cqw;min-width:50cqw;max-width:78cqw;max-height:80cqw;overflow-y:auto;touch-action:pan-y;overscroll-behavior:contain;scrollbar-width:none;padding:1.6cqw;border-radius:5cqw;background:#ffffffe0;color:#2b2b2b;-webkit-backdrop-filter:blur(4cqw);backdrop-filter:blur(4cqw);box-shadow:0 1cqw 4cqw #0003;z-index:4;transform-origin:0 0;scale:.6;opacity:0;pointer-events:none;transition:scale var(--sd,.64s) var(--spring,ease-out),opacity .25s}.f-people .ppop.open{scale:1;opacity:1;pointer-events:auto}
 .ppop button{display:flex;align-items:center;gap:3cqw;width:100%;padding:1.8cqw 2.4cqw;border:0;border-radius:3.6cqw;background:none;color:inherit;font-family:inherit;font-size:4.2cqw;font-weight:600;text-align:left}.ppop button.on{background:#0000000f}
@@ -1745,6 +1745,7 @@ const FACE = {
   people: el => {
     el.innerHTML = `<div class="pmap"></div><button class="plb" aria-label="${tx('Personen')}"><svg viewBox="0 0 24 24"><path d="M4 7h1.6M9 7h11M4 12h1.6M9 12h11M4 17h1.6M9 17h11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button><div class="ppop"></div><header>${tx('Personen')}</header><div class="plist"></div>`;
     const pop = $('.ppop', el);
+    if (LIVE && !PREVIEW) el.classList.add('wait');   // Karte kommt (peopleMount) – Liste erst zeigen, wenn sie ausfällt
     $('.plb', el).onclick = () => pop.classList.toggle('open');
     pop.onclick = e => { const b = e.target.closest('button'); if (!b) return; pop.classList.remove('open'); el._foc = b.dataset.id; el._map?.focus(el._foc); popOn(el); };   // Tipp auf eine Person zoomt hin, „Alle“ zeigt wieder alle
     el.addEventListener('click', e => { if (!e.target.closest('.plb,.ppop')) pop.classList.remove('open'); });
@@ -1780,7 +1781,7 @@ async function peopleMount(f) {
     const m = await (await import('./peoplemap.js')).mount($('.pmap', f), conn, HASS);
     if (!f.isConnected) return m.destroy();
     f._map = m; pmaps.add(f); f._pk = ''; f.classList.add('mapped'); peopleFill();
-  } catch (e) { console.warn('Personen-Karte:', e.message || e); }
+  } catch (e) { console.warn('Personen-Karte:', e.message || e); f.classList.remove('wait'); }
 }
 const popOn = f => { for (const b of $('.ppop', f).children) b.classList.toggle('on', b.dataset.id === (f._foc || '')); };
 function peopleFill() {
@@ -1802,6 +1803,7 @@ function peopleFill() {
     if (f._ph !== ph) { f._ph = ph; if (f._foc && !pts.some(p => p.id === f._foc)) f._foc = ''; $('.ppop', f).innerHTML = ph; popOn(f); }
     if (f._map) { if (f._pk !== pk) { f._pk = pk; f._map.set(pts); } }
     else if (pts.length && LIVE && !PREVIEW && !f._pm && !f.closest('#dgrid')) peopleIO.observe(f);
+    else if (!f._pm && Object.keys(ents).length) f.classList.remove('wait');   // Zustände da, aber keine Karte möglich (keine Koordinaten, Übersicht) → Liste
   }
 }
 function buildFace(f) {
