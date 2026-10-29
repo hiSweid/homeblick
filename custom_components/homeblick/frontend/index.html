@@ -70,9 +70,11 @@ svg.i{width:1em;height:1em;flex:none;fill:none;stroke:currentColor;stroke-width:
 #faces::-webkit-scrollbar{display:none}
 .face{--ink:#1c1c1e;--ink2:#1c1c1e99;--pad:1.9cqw;--gap:2.2cqw;--t:calc((100cqw - 2*var(--pad) - 2*var(--gap))/3);--tint:hsl(var(--h,0) 100% 72%);
   flex:0 0 100cqw;height:100cqw;border-radius:8cqw;position:relative;overflow:hidden;
-  background:var(--wp) calc((var(--wx) + 1)*-3cqw) calc((var(--wy) + 1)*-3cqw)/106cqw 106cqw;transition:scale var(--sd) var(--spring),border-radius .3s,opacity .3s}
-/* Wallpaper driftet: Bild 106 % groß, Versatz 0…−6 % über --wx/--wy (zwei Phasen, 53 s/71 s); Face und Glas der Kacheln lesen dieselben Werte und bleiben deckungsgleich. Werte setzt drift() (JS) – eine CSS-Animation der Custom Property hielte den Main-Thread mit 60 Frames/s voll. Im Leistungsmodus steht --wx/--wy = 0 */
-@property --wx{syntax:'<number>';inherits:true;initial-value:0}@property --wy{syntax:'<number>';inherits:true;initial-value:0}
+  isolation:isolate;transition:scale var(--sd) var(--spring),border-radius .3s,opacity .3s}
+/* Wallpaper driftet: Bild 106 % groß als eigene Ebene (.face::before), Versatz 0…−6 cqw per CSS-Animation auf translate/transform = läuft auf dem Compositor, kein Main-Thread, kein Ruckeln (zwei Phasen, 53 s/71 s; --dx/--dy synchronisieren alle Faces über die Uhr). Kachel-Glas steht auf Mitte. Leistungsmodus: .perf stoppt Animationen */
+.face::before{content:"";position:absolute;left:0;top:0;width:106cqw;height:106cqw;z-index:-1;pointer-events:none;background:var(--wp) 0 0/100% 100%;will-change:translate,transform;animation:wpx 53s ease-in-out var(--dx,0s) infinite alternate,wpy 71s ease-in-out var(--dy,0s) infinite alternate}
+@keyframes wpx{from{translate:0 0}to{translate:-5.66% 0}}@keyframes wpy{from{transform:translateY(0)}to{transform:translateY(-5.66%)}}
+@media (prefers-reduced-motion:reduce){.face::before{animation:none}}
 .face.mono{--tint:#ebebf599}
 .face.light{--tint:#3c3c4399;color:#1c1c1e}
 
@@ -82,7 +84,7 @@ svg.i{width:1em;height:1em;flex:none;fill:none;stroke:currentColor;stroke-width:
 .tile{position:relative;isolation:isolate;border-radius:4.3cqw;
   display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:5.3cqw 1cqw 4.9cqw;text-align:center;
   background:var(--glass,linear-gradient(165deg,#ffffff3d,#ffffff29 50%,#ffffff1f)),
-    var(--wpb) calc(-1*(var(--pad) + var(--c)*(var(--t) + var(--gap))) + (var(--wx) + 1)*-3cqw) calc(-1*(var(--pad) + var(--r)*(var(--t) + var(--gap))) + (var(--wy) + 1)*-3cqw)/106cqw 106cqw;
+    var(--wpb) calc(-1*(var(--pad) + var(--c)*(var(--t) + var(--gap))) - 3cqw) calc(-1*(var(--pad) + var(--r)*(var(--t) + var(--gap))) - 3cqw)/106cqw 106cqw;
   /* Glasrand (Pixelprofil Website dashboard): 2 px helle Kante rundum (oben/unten kräftiger), 1 px dunkle Außenlinie */
   box-shadow:inset 0 .25cqw .1cqw #ffffff59,inset 0 -.25cqw .1cqw #ffffff40,inset 0 0 0 .25cqw #ffffff47,0 0 0 .13cqw #0000002e,0 .6cqw 2cqw #0003;
   transition:transform var(--sd) var(--spring),scale .25s,color .3s}
@@ -1602,14 +1604,8 @@ function lavaDraw(c, t) {
 }
 let lavaRaf = 0, lavaT = 0;
 const calm = matchMedia('(prefers-reduced-motion:reduce)');
-// Wallpaper-Drift: dauerhaft für Faces im Bild: Kosinus über 106 s (--wx) bzw. 142 s (--wy), 2 Hz (unter 1 px je Schritt); beim Wischen zieht der Scroll-Handler das einlaufende Face sofort nach
-let driftT = 0;
-function drift() {
-  const now = Date.now(); if (now - driftT < 120 || document.hidden || calm.matches || root.classList.contains('perf')) return;
-  driftT = now; const t = now / 1e3, x = (-Math.cos(t * Math.PI / 53)).toFixed(3), y = (-Math.cos(t * Math.PI / 71)).toFixed(3);
-  for (const f of faces.children) { const r = f.getBoundingClientRect(); if (r.right > 0 && r.left < innerWidth) { f.style.setProperty('--wx', x); f.style.setProperty('--wy', y); } }   // jedes Face im Bild (nicht nur .act): kein Sprung beim Hereinwischen
-}
-setInterval(drift, 500); faces.addEventListener('scroll', drift, { passive: true }); drift();
+// Wallpaper-Drift läuft in CSS (.face::before); hier nur die Uhr-Phase, damit neu erzeugte Faces deckungsgleich laufen
+{ const t = Date.now() / 1e3; root.style.setProperty('--dx', `-${(t % 106).toFixed(1)}s`); root.style.setProperty('--dy', `-${(t % 142).toFixed(1)}s`); }
 const LAVA_T0 = 20;   // Startbild ohne Bewegung (Leistungsmodus, Face nie sichtbar gewesen)
 function lavaTick(now) {
   const cs = document.querySelectorAll('canvas.amb'); if (!cs.length) return lavaRaf = 0;
@@ -1642,7 +1638,7 @@ if (!PREVIEW) setTimeout(probePerf, 20000);
 function replayAct() {
   const f = faces.children[Math.round(faces.scrollLeft / (faces.clientWidth * 1.025))]; if (!f?.classList.contains('act')) return;
   f.classList.remove('act');
-  setTimeout(() => { f.classList.add('act'); lavaStart(); drift(); }, 80);   // Pause, damit CSS-Animationen und Lava den Neustart sehen
+  setTimeout(() => { f.classList.add('act'); lavaStart(); }, 80);   // Pause, damit CSS-Animationen und Lava den Neustart sehen
 }
 // Flow (Vorlage faces_enhanced, unten links): weicher Verlauf aus Rosa, Blau und Violett, die Zeit als Glasformen. Linse = dieselben Farbflecken noch einmal, in die Ziffern geclippt und leicht vergrößert/versetzt
 // (keine Verzerrung per Filter: läuft ohne Live-Blur auch auf schwachen Tablets). Ziffern wechseln ohne Roll.
@@ -1882,7 +1878,7 @@ function initDials(scope) {
 const wallS = (d = new Date()) => d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds() + d.getMilliseconds() / 1000;
 const musicIO = new IntersectionObserver(es => { for (const e of es) e.target.isConnected ? e.target.classList.toggle('vo', !e.isIntersecting) : musicIO.unobserve(e.target); }, { threshold: .01 });
 // Bewegung nur bei sichtbarem Face: .act ab 60 % sichtbar (Face neu geladen oder angeschaut), erst unter 5 % wieder weg (kein Zurückspringen beim Wischen) – Lavalampe, Flow, Tiefen-Uhr und Ambient-Licht laufen unter .act dauerhaft (GPU/Canvas), der Wallpaper-Drift ebenfalls (2 Hz, Neuzeichnen im Main-Thread: stärkster Posten, im Leistungsmodus aus)
-const actIO = new IntersectionObserver(es => { for (const e of es) { if (!e.target.isConnected) { actIO.unobserve(e.target); continue; } if (e.intersectionRatio >= .6) { e.target.classList.add('act'); lavaStart(); drift(); } else if (e.intersectionRatio < .05) e.target.classList.remove('act'); } }, { threshold: [0, .05, .6] });
+const actIO = new IntersectionObserver(es => { for (const e of es) { if (!e.target.isConnected) { actIO.unobserve(e.target); continue; } if (e.intersectionRatio >= .6) { e.target.classList.add('act'); lavaStart(); } else if (e.intersectionRatio < .05) e.target.classList.remove('act'); } }, { threshold: [0, .05, .6] });
 const dialIO = new IntersectionObserver(es => { for (const e of es) if (!e.target.isConnected) dialIO.unobserve(e.target); else for (const [per, a] of e.target._h || []) if (e.isIntersecting) { a.currentTime = (wallS() % per) * 1000; a.play(); } else a.pause(); }, { threshold: .01 });
 // Zahlen-Roll: alt raus, neu mit Feder rein (Richtung dir = ±1, 0 = ohne Animation)
 function roll(el, txt, dir = 0) {

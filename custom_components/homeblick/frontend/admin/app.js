@@ -1,12 +1,13 @@
 // Homeblick-Admin: Gerüst (Adresse, Tab-Leiste, Übersicht). Die Ansichten liegen in screen.js und panels.js.
 import { tx } from '../i18n.js';
-import { $, ask, enhance, esc, ic, toast } from './ui.js';
-import { S, call, dirty, discard, closeDoc, emit, on, reload, save, start } from './state.js';
+import { $, ask, enhance, esc, ic, menu, toast } from './ui.js';
+import { S, byId, call, snap, dirty, discard, closeDoc, emit, on, reload, save, start } from './state.js';
 import { ago, issues, ledOf } from './util.js';
 import { openPalette } from './palette.js';
 import * as screen from './screen.js';
 import * as panels from './panels.js';
 import { collapse, gbtn, page } from './nav.js';
+import { duplicateDisplay, removeDisplay, renameDisplay } from './actions.js';
 
 // ---- Adresse: #/ · #/d/<id>[/settings[/<abschnitt>]] · #/new[/<id>] · #/settings · #/alerts ----
 export function parse(h = location.hash) {
@@ -49,7 +50,7 @@ function home(el) {
     if (found) { toast(tx('„{name}“ hat sich gemeldet', { name: found.name })); return go({ name: 'new', id: found.id }); }
     const card = d => {
       const w = issues(d)[0], sub = w ? w : [[d.area, d.connected ? tx('Online') : tx('Offline · {t}', { t: ago(d.seen) })].filter(Boolean).join(' · '), ''];
-      return `<button class="home-card ${d.connected ? '' : 'off'}" data-goto="${esc(href({ name: 'screen', id: d.id, tab: 'layout' }))}"><span class="home-shot">${S.shots[d.id] ? `<img src="${esc(S.shots[d.id])}" alt="">` : `<span class="none">${ic('layout')}<span>${tx('Noch kein Bild')}</span></span>`}</span><span class="home-meta"><strong>${esc(d.name)}</strong><small class="${sub[1] === 'down' ? 'd' : sub[1] ? 'w' : ''}"><i class="led ${ledOf(d)}"></i>${esc(sub[0])}</small></span></button>`;
+      return `<div class="home-item"><button class="home-card ${d.connected ? '' : 'off'}" data-goto="${esc(href({ name: 'screen', id: d.id, tab: 'layout' }))}"><span class="home-shot">${S.shots[d.id] ? `<img src="${esc(S.shots[d.id])}" alt="">` : `<span class="none">${ic('layout')}<span>${tx('Noch kein Bild')}</span></span>`}</span><span class="home-meta"><strong>${esc(d.name)}</strong><small class="${sub[1] === 'down' ? 'd' : sub[1] ? 'w' : ''}"><i class="led ${ledOf(d)}"></i>${esc(sub[0])}</small></span></button><button class="gbtn sm home-more" data-more="${esc(d.id)}" aria-label="${tx('Mehr')}">${ic('dots')}</button></div>`;
     };
     const newCard = d => `<button class="home-card fresh" data-goto="${esc(href({ name: 'new', id: d.id }))}"><span class="home-shot">${ic('plus')}</span><span class="home-meta"><strong>${esc(d.name)}</strong><small>${d.connected ? tx('Wartet auf die Einrichtung') : tx('Nicht verbunden')}</small></span></button>`;
     const sc = $('.scroller', el)?.scrollTop || 0;
@@ -69,7 +70,19 @@ function home(el) {
   };
   draw();
   const off = on('list', draw);
-  return () => off();
+  const more = e => {
+    const b = e.target.closest('[data-more]'); if (!b) return;
+    const d = byId(b.dataset.more); if (!d) return;
+    menu(b, [
+      { label: tx('Umbenennen'), icon: 'pencil', run: () => renameDisplay(d.id) },
+      { label: tx('Duplizieren'), icon: 'copy', run: () => duplicateDisplay(d.id) },
+      { label: tx('Neu laden'), icon: 'refresh', disabled: !d.connected, title: d.connected ? '' : tx('Das Display ist offline'), run: () => call('command', { display: d.id, action: 'reload' }).then(() => toast(tx('Gesendet'))).catch(er => toast(er?.message || tx('Fehler'), { bad: true })) },
+      { label: tx('Bildschirmfoto'), icon: 'image', disabled: !d.connected, run: async () => { (await snap(d.id)) ? toast(tx('Bildschirmfoto aktualisiert')) : toast(tx('Keine Antwort vom Display'), { bad: true }); } },
+      '-', { label: tx('Display entfernen'), icon: 'trash', danger: true, run: () => removeDisplay(d.id) },
+    ], { width: 250 });
+  };
+  el.addEventListener('click', more);
+  return () => { off(); el.removeEventListener('click', more); };
 }
 
 // ---- Wechsel der Ansicht ----

@@ -48,7 +48,7 @@ html[data-th] .f-grid .dial .ss{color:var(--th-accent)}
 html[data-th] .f-grid .dial svg g{stroke:var(--th-ink)}
 html[data-th] .f-grid .dial.glass{background:var(--th-glass)}
 html[data-th] .f-grid .dial .pin{background:radial-gradient(circle,var(--th-blk,var(--th-paper,#fff)) 0 22%,var(--th-ink) 26%)}
-html[data-th] .f-bigclock.stack:not(.mono):not(.light){background:var(--wp) calc((var(--wx) + 1)*-3cqw) calc((var(--wy) + 1)*-3cqw)/106cqw 106cqw}
+html[data-th] .f-bigclock.stack:not(.mono):not(.light){background:none}
 html[data-th] .f-bigclock.stack.mono{background:var(--th-blk,#000)}
 html[data-th] .f-bigclock.stack.light{background:var(--th-paper,#fff)}
 html[data-th] .f-bigclock.stack:is(.mono,.light,:not(.x)) .gt{fill:var(--th-clk)}

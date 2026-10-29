@@ -24,6 +24,7 @@
 
 /* ---- Übersicht ---- */
 .home-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(224px,1fr));gap:30px 24px;padding-top:14px}
+.home-item{position:relative}.home-more{position:absolute;top:10px;right:10px;z-index:2;opacity:.92}.home-more:hover{opacity:1}
 .home-card{display:grid;gap:13px;justify-items:center;text-align:center;border-radius:30px;padding:0;width:100%;transition:transform .5s var(--spring)}
 .home-shot{position:relative;width:100%;aspect-ratio:1;border-radius:10.2%;background:#000;padding:3px;box-shadow:var(--shadow-card),0 0 0 .5px #0000003d;transition:transform .55s var(--spring),box-shadow .3s;overflow:hidden}
 .home-shot img{display:block;width:100%;height:100%;object-fit:cover;border-radius:9.6%;background:#111}

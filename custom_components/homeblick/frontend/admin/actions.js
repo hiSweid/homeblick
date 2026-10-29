@@ -69,18 +69,32 @@ export async function applyToOthers() {
   if (dropped) toast(dropped > 1 ? tx('{n} Kacheln ohne Gegenstück im Bereich weggelassen', { n: dropped }) : tx('{n} Kachel ohne Gegenstück im Bereich weggelassen', { n: dropped }), { bad: true });
 }
 
-export async function renameDisplay() {
-  const d = cur(), v = await prompt(tx('Name des Displays'), d.name, { ok: tx('Umbenennen') });
+const target = id => (typeof id === 'string' ? byId(id) : cur());   // aus der Übersicht mit Kennung, sonst das geöffnete Display
+export async function renameDisplay(id) {
+  const d = target(id), v = await prompt(tx('Name des Displays'), d.name, { ok: tx('Umbenennen') });
   if (!v?.trim() || v.trim() === d.name) return;
   await guard(call('update', { display: d.id, name: v.trim() })).catch(() => 0);
   d.name = v.trim(); emit('list');
 }
-export async function removeDisplay() {
-  const d = cur();
+export async function removeDisplay(id) {
+  const d = target(id);
   if (!await ask(tx('„{name}“ entfernen? Ansichten und Einstellungen gehen verloren. Das Gerät und seine Entities in Home Assistant werden mit entfernt.', { name: d.name }), { ok: tx('Entfernen‖Remove'), danger: true })) return false;
   try { await guard(call('remove', { display: d.id })); } catch { return false; }   // guard zeigt den Fehler
-  S.sel && (S.sel = null, S.cfg = null, S.saved = '');
+  S.sel === d.id && (S.sel = null, S.cfg = null, S.saved = '');
   location.hash = '#/'; await reload(); toast(tx('Display entfernt')); return true;
+}
+/** Kopie mit gleichem Layout und gleichen Einstellungen (ohne gerätegebundene: Mikrofon, Ausgabe, Präsenz, Licht). Sie meldet sich als eigenes Display; das Gerät öffnet dazu ?display=<Kennung>. */
+export async function duplicateDisplay(id) {
+  const src = target(id), { config } = await call('get_config', { display: src.id }).catch(() => ({}));
+  if (!config?.faces) return toast(tx('Quelle hat noch keine Konfiguration'), { bad: true });
+  const name = tx('{name} Kopie', { name: src.name }).slice(0, 60), base = name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ß/g, 'ss').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'display';
+  let nid = base; for (let i = 2; byId(nid); i++) nid = `${base}-${i}`;
+  const { mic, out, presence, lux, ...settings } = src.settings;
+  try {
+    await guard(call('register', { display: nid, name }));
+    await guard(call('setup', { display: nid, name, ...(src.area && { area: src.area }), config, settings }));
+  } catch { return; }
+  await reload(); toast(tx('„{name}“ angelegt. Auf dem Gerät ?display={id} an die Adresse hängen.', { name, id: nid }));
 }
 /** Bildschirmfoto aufnehmen und als Bild der Karte merken. */
 export async function screenshot(btn) {
