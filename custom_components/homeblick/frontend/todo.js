@@ -76,6 +76,14 @@ const appear = (e, delay = 0) => {
   e.querySelector('span')?.animate([{ opacity: 0, translate: '-4cqw 0' }, { translate: '0 0' }], { duration: 560, delay: delay + 110, easing: EASE, fill: 'backwards' });
 };
 const enter = (e, i = 0) => calm(e) || appear(e, Math.min(i, 12) * 45);
+function puff(e) {   // sieben Staubwölkchen steigen von der gelöschten Zeile auf
+  const b = e.parentNode, y = e.offsetTop + e.offsetHeight / 2, w = e.offsetWidth;
+  for (let i = 0; i < 7; i++) {
+    const d = document.createElement('b'), z = 3 + Math.random() * 3, x = w * (.15 + Math.random() * .7);
+    d.className = 'tpuff'; d.style.cssText = `left:${x}px;top:${y}px;width:${z}cqw;height:${z}cqw;margin:${-z / 2}cqw 0 0 ${-z / 2}cqw`; b.append(d);
+    d.animate([{ opacity: 0, scale: .3, translate: '0 0' }, { opacity: .55, scale: 1, offset: .3 }, { opacity: 0, scale: 1.8, translate: `${(Math.random() - .5) * 8}cqw ${-4 - Math.random() * 5}cqw` }], { duration: 700 + Math.random() * 300, delay: 120 + Math.random() * 120, easing: 'ease-out' }).onfinish = () => d.remove();
+  }
+}
 function leave(e, i = 0, sweep = false) {   // Zeile klappt zu (Höhe, Abstand, Deckkraft), dann weg; beim „Entfernen“ wischt sie erst nach rechts weg; Schlüssel sofort frei, damit sie wiederkommen kann
   delete e.dataset.k; e.style.pointerEvents = 'none';
   if (calm(e) || e.classList.contains('tnone')) return void (calm(e) ? e.remove() : e.animate({ opacity: [1, 0] }, { duration: 160 }).onfinish = () => e.remove());
@@ -83,8 +91,9 @@ function leave(e, i = 0, sweep = false) {   // Zeile klappt zu (Höhe, Abstand, 
   e.style.overflow = sweep ? '' : 'hidden';
   const k0 = { opacity: 1, height: h, minHeight: h, paddingTop: c.paddingTop, paddingBottom: c.paddingBottom, marginBottom: '0px', scale: 1 };
   const k1 = { opacity: 0, height: '0px', minHeight: '0px', paddingTop: '0px', paddingBottom: '0px', marginBottom: -gap + 'px', scale: .96 };
-  const wipe = { translate: '35cqw 0', rotate: '4deg' };
-  e.animate(sweep ? [k0, { ...k0, ...wipe, opacity: 0, offset: .55 }, { ...k1, ...wipe }] : [k0, k1], { duration: sweep ? 800 : 440, delay: sweep ? Math.min(i, 8) * 70 : Math.min(i, 8) * 35, easing: 'ease-in-out', fill: 'forwards' }).onfinish = () => e.remove();
+  const wipe = sweep ? { translate: '35cqw 0', rotate: '4deg' } : { translate: '-16cqw 0', rotate: '-3deg' };   // gelöscht: Zeile kippt nach links weg und zerstäubt, „Entfernen“: wischt nach rechts
+  if (!sweep && !e.classList.contains('tsep')) puff(e);
+  e.animate([k0, { ...k0, ...wipe, opacity: 0, scale: .92, offset: sweep ? .55 : .5 }, { ...k1, ...wipe }], { duration: sweep ? 800 : 640, delay: Math.min(i, 8) * (sweep ? 70 : 40), easing: 'ease-in-out', fill: 'forwards' }).onfinish = () => e.remove();
 }
 // Abgleich nach Schlüssel: vorhandene Elemente bleiben (Animationen laufen weiter), neue federn ein, fehlende klappen zu, verschobene gleiten (FLIP)
 function sync(body, specs) {
@@ -272,6 +281,7 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 @keyframes tdraw{to{stroke-dashoffset:0}}
 .perf .tbig :is(circle,path){stroke-dashoffset:0}
 .tnone:has(.tsk){top:25cqw;left:5cqw;right:5cqw;opacity:1}.f-todo.multi .tnone:has(.tsk){top:33cqw}
+.tpuff{position:absolute;border-radius:50%;background:radial-gradient(#ffffffb3,#ffffff00 70%);pointer-events:none}
 .tsk{display:block;height:12.5cqw;margin-bottom:2cqw;border-radius:4.3cqw;corner-shape:squircle;background:linear-gradient(100deg,#ffffff1f 30%,#ffffff45 50%,#ffffff1f 70%) 100% 0/250% 100% no-repeat;animation:tshim 1.4s ease-in-out infinite}
 .tsk:nth-child(2){animation-delay:.15s;opacity:.75}.tsk:nth-child(3){animation-delay:.3s;opacity:.5}
 @keyframes tshim{to{background-position:0 0}}
