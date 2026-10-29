@@ -33,7 +33,9 @@ async function loadStyle(base) {
   s.sprite = Array.isArray(s.sprite) ? s.sprite.map(p => ({ ...p, url: abs(p.url) })) : s.sprite && abs(s.sprite);
   for (const k in s.sources) if (s.sources[k].url) s.sources[k].url = abs(s.sources[k].url);
   for (const l of s.layers) {
-    for (const k in l.paint) if (k.includes('color')) l.paint[k] = APPLE[l.paint[k]] ?? l.paint[k];
+    for (const k in l.paint) if (k.includes('color')) l.paint[k] = APPLE[l.paint[k]] ?? l.paint[k].replace?.(/^rgb\((\d+),(\d+),(\d+)\)$/, (m, r, g, b) => r - b > 6 ? rgb(...[r, g].map(v => Math.round(+b + (v - b) * .4)), b) : m);   // Rest (Fußwege, Tunnel, Bahn …): Beige zu Grau entsättigen
+    if (/^label-place-(neighbourhood|quarter|suburb|hamlet|village|town|city|statecapital|capital)/.test(l.id)) l.layout['text-font'] = ['noto_sans_bold'];   // Ortsnamen fett wie bei Apple
+    if (l.paint?.['text-halo-width']) l.paint['text-halo-width'] = 2.5;
     if (/^(poi|symbol-transit|label-address|label-motorway)/.test(l.id)) (l.layout ??= {}).visibility = 'none';   // ruhiger: keine Orte/Haltestellen/Hausnummern auf dem kleinen Display
   }
   s.projection = { type: 'mercator' };   // Globus nur beim Herauszoomen, hier unnötig
