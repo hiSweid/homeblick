@@ -11,9 +11,10 @@ A fluid, glassy wall-display panel for Home Assistant. Configurable faces (grid,
 
 **Status:** beta.
 
-<p align="center"><img src="https://raw.githubusercontent.com/hiSweid/homeblick/main/docs/img/demo.webp" alt="Homeblick in motion: hold a light to dim it, set the thermostat, swipe through music, clock, weather, energy, calendar, to-do list and home check" width="480"></p>
-
-<p align="center"><img src="https://raw.githubusercontent.com/hiSweid/homeblick/main/docs/img/cards.png" alt="Homeblick faces and tiles" width="900"></p>
+<p align="center">
+  <img src="https://raw.githubusercontent.com/hiSweid/homeblick/main/docs/img/cards-top.webp" alt="Homeblick in motion on the display: hold a light to dim it, set the thermostat, swipe through music, clock, weather, energy, calendar, to-do list and home check" width="900"><br>
+  <img src="https://raw.githubusercontent.com/hiSweid/homeblick/main/docs/img/cards-bottom.png" alt="Homeblick faces and tiles" width="900">
+</p>
 
 ## Install
 
