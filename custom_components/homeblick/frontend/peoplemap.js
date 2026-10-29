@@ -35,8 +35,8 @@ async function loadStyle(base) {
   for (const k in s.sources) if (s.sources[k].url) s.sources[k].url = abs(s.sources[k].url);
   s.layers = s.layers.filter(l => l.id !== 'building:outline');
   for (const l of s.layers) {
-    if (l.id === 'building') Object.assign(l, { type: 'fill-extrusion', paint: {   // 3D-Häuser wie Apple Karten: hell, Höhe aus den Kacheln, falls vorhanden (die HA-Kacheln haben keine → einheitlich 12 m; to-number würde „fehlt“ zu 0 machen), blenden ab Zoom 14 ein
-      'fill-extrusion-color': 'rgb(236,233,228)', 'fill-extrusion-height': ['coalesce', ['get', 'height'], 12], 'fill-extrusion-base': ['coalesce', ['get', 'min_height'], 0],
+    if (l.id === 'building') Object.assign(l, { type: 'fill-extrusion', paint: {   // 3D-Häuser wie Apple Karten: hell, Höhe aus den Kacheln (Standard 9 m), blenden ab Zoom 14 ein
+      'fill-extrusion-color': 'rgb(236,233,228)', 'fill-extrusion-height': ['coalesce', ['to-number', ['get', 'height']], 9], 'fill-extrusion-base': ['coalesce', ['to-number', ['get', 'min_height']], 0],
       'fill-extrusion-opacity': ['interpolate', ['linear'], ['zoom'], 14, 0, 15.5, .92] } });
     for (const k in l.paint) if (k.includes('color')) l.paint[k] = APPLE[l.paint[k]] ?? l.paint[k];
     if (/^(poi|symbol-transit|label-address|label-motorway)/.test(l.id)) (l.layout ??= {}).visibility = 'none';   // ruhiger: keine Orte/Haltestellen/Hausnummern auf dem kleinen Display
