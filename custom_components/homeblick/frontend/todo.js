@@ -67,10 +67,10 @@ function demo(id, service, data) {
 function paint(id) { for (const el of faces) if (pick(el) === id) paintFace(el); }
 const PAL = ['#0a84ff', '#ff9f0a', '#af52de', '#ff453a', '#32ade6', '#ff375f'];
 const lcolor = id => shop(id) ? '#34c759' : PAL[[...id].reduce((n, c) => n + c.charCodeAt(0), 0) % PAL.length];   // Einkaufsliste grün wie „Groceries“ bei Apple, andere Listen reihum
-const EASE = 'cubic-bezier(.22,1.2,.36,1)';
-const calm = el => el.closest('.perf') || matchMedia('(prefers-reduced-motion:reduce)').matches;
+export const EASE = 'cubic-bezier(.22,1.2,.36,1)';
+export const calm = el => el.closest('.perf') || matchMedia('(prefers-reduced-motion:reduce)').matches;
 // Zeile erscheint: sie steigt mit leichter Drehung auf und federt, der Ring dreht sich aus dem Nichts ein, der Text gleitet von links nach (Endwerte offen, damit erledigte Zeilen bei ihrer Deckkraft bleiben)
-const appear = (e, delay = 0) => {
+export const appear = (e, delay = 0) => {
   e.animate([{ opacity: 0, translate: '0 5cqw', scale: .92, rotate: '-1.4deg' }, { opacity: 1, translate: '0 0', scale: 1, rotate: '0deg' }], { duration: 640, delay, easing: EASE, fill: 'backwards' });
   e.querySelector('.tck')?.animate([{ scale: 0, rotate: '-120deg' }, { scale: 1, rotate: '0deg' }], { duration: 600, delay: delay + 170, easing: EASE, fill: 'backwards' });
   e.querySelector('span')?.animate([{ opacity: 0, translate: '-4cqw 0' }, { translate: '0 0' }], { duration: 560, delay: delay + 110, easing: EASE, fill: 'backwards' });
@@ -92,11 +92,11 @@ function leave(e, i = 0, sweep = false) {   // Zeile klappt zu (Höhe, Abstand, 
   const k0 = { opacity: 1, height: h, minHeight: h, paddingTop: c.paddingTop, paddingBottom: c.paddingBottom, marginBottom: '0px', scale: 1 };
   const k1 = { opacity: 0, height: '0px', minHeight: '0px', paddingTop: '0px', paddingBottom: '0px', marginBottom: -gap + 'px', scale: .96 };
   const wipe = sweep ? { translate: '35cqw 0', rotate: '4deg' } : { translate: '-16cqw 0', rotate: '-3deg' };   // gelöscht: Zeile kippt nach links weg und zerstäubt, „Entfernen“: wischt nach rechts
-  if (!sweep && !e.classList.contains('tsep')) puff(e);
+  if (!sweep && !e.matches('.tsep,h4,.cfoot')) puff(e);
   e.animate([k0, { ...k0, ...wipe, opacity: 0, scale: .92, offset: sweep ? .55 : .5 }, { ...k1, ...wipe }], { duration: sweep ? 800 : 640, delay: Math.min(i, 8) * (sweep ? 70 : 40), easing: 'ease-in-out', fill: 'forwards' }).onfinish = () => e.remove();
 }
 // Abgleich nach Schlüssel: vorhandene Elemente bleiben (Animationen laufen weiter), neue federn ein, fehlende klappen zu, verschobene gleiten (FLIP)
-function sync(body, specs) {
+export function sync(body, specs) {
   const old = new Map([...body.children].filter(e => e.dataset.k).map(e => [e.dataset.k, e])), first = new Map([...old].map(([k, e]) => [k, e.getBoundingClientRect().top]));
   const fresh = !old.size, keep = new Set(), made = [];
   let prev = null;
@@ -139,7 +139,7 @@ function placePill(el, tc, id) {   // eine farbige Kapsel gleitet federnd zum ak
   if (!jump && !calm(el)) on.animate([{ scale: 1 }, { scale: 1.12, offset: .4 }, { scale: 1 }], { duration: 480, easing: EASE });
 }
 const CONF = [...PAL, '#34c759', '#ffd60a', '#fff'];
-function confetti(el) {   // Letzter Eintrag abgehakt: Konfetti fällt aus dem Kopf über die Liste
+export function confetti(el) {   // Letzter Eintrag abgehakt: Konfetti fällt aus dem Kopf über die Liste
   const box = document.createElement('div'); box.className = 'tconf'; el.append(box);
   for (let i = 0; i < 30; i++) {
     const p = document.createElement('i'), x = (Math.random() - .5) * 80, w = 1.1 + Math.random() * 1.3;
@@ -233,7 +233,7 @@ export function todoFace(el, f) {
 }
 const fail = (el, e) => { console.warn('Aufgaben', e); el.animate([{ translate: '0' }, { translate: '-1.2cqw' }, { translate: '1.2cqw' }, { translate: '0' }], { duration: 280 }); };
 
-document.head.insertAdjacentHTML('beforeend', `<style>
+if (typeof document !== 'undefined') document.head.insertAdjacentHTML('beforeend', `<style>
 .f-todo{padding:0;overflow:hidden}
 .f-todo header{position:absolute;left:7cqw;right:22cqw;top:8cqw}
 .f-todo header b{display:block;font-size:7cqw;font-weight:600;letter-spacing:-.03em;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
