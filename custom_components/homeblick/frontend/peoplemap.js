@@ -1,8 +1,7 @@
 // Personen-Karte („Wo ist?“): die neue HA-Karte (OSM-Vektorkacheln, HA ≥ 2026.10) statt der Liste.
 // Stil, Kacheln, Schriften und Sprites liefert HA selbst (/static/map/light.json, /api/map_tiles/…, Integration map_tiles); hier kommt nur das Kachel-Token per WebSocket dazu.
-// ponytail: nicht interaktiv (Wisch gehört dem Pager), Stil fix hell, leicht gekippt mit 3D-Häusern, Fit auf alle Personen; wirft bei Fehler → die Liste bleibt stehen
+// ponytail: nicht interaktiv (Wisch gehört dem Pager), Stil fix hell, Fit auf alle Personen; wirft bei Fehler → die Liste bleibt stehen
 const VENDOR = new URL('./vendor/', import.meta.url).href;
-const PITCH = 50;   // Kartenneigung (Grad)
 const TOKEN_MS = 10 * 60 * 1000;   // Core wechselt das Token alle 30 min und hält zwei gültig
 let lib, token, tokenAt = 0;
 const loadLib = () => lib ??= (async () => {
@@ -33,11 +32,7 @@ async function loadStyle(base) {
   s.glyphs = abs(s.glyphs);
   s.sprite = Array.isArray(s.sprite) ? s.sprite.map(p => ({ ...p, url: abs(p.url) })) : s.sprite && abs(s.sprite);
   for (const k in s.sources) if (s.sources[k].url) s.sources[k].url = abs(s.sources[k].url);
-  s.layers = s.layers.filter(l => l.id !== 'building:outline');
   for (const l of s.layers) {
-    if (l.id === 'building') Object.assign(l, { type: 'fill-extrusion', paint: {   // 3D-Häuser wie Apple Karten: hell, Höhe aus den Kacheln (Standard 9 m), blenden ab Zoom 14 ein
-      'fill-extrusion-color': 'rgb(236,233,228)', 'fill-extrusion-height': ['coalesce', ['to-number', ['get', 'height']], 9], 'fill-extrusion-base': ['coalesce', ['to-number', ['get', 'min_height']], 0],
-      'fill-extrusion-opacity': ['interpolate', ['linear'], ['zoom'], 14, 0, 15.5, .92] } });
     for (const k in l.paint) if (k.includes('color')) l.paint[k] = APPLE[l.paint[k]] ?? l.paint[k];
     if (/^(poi|symbol-transit|label-address|label-motorway)/.test(l.id)) (l.layout ??= {}).visibility = 'none';   // ruhiger: keine Orte/Haltestellen/Hausnummern auf dem kleinen Display
   }
@@ -51,7 +46,7 @@ export async function mount(box, conn, base) {
   conn.addEventListener('ready', () => { tokenAt = 0; });   // HA-Neustart: neues Token
   const same = base === location.origin;
   const map = new ml.Map({
-    container: box, style, interactive: false, pitch: PITCH, fadeDuration: 0, attributionControl: { compact: true }, center: [0, 0], zoom: 1,
+    container: box, style, interactive: false, fadeDuration: 0, attributionControl: { compact: true }, center: [0, 0], zoom: 1,
     transformRequest: u => {   // Kachel-URLs aus dem TileJSON sind relativ → gegen HA auflösen, dann Token anhängen
       const url = new URL(u, base).href;
       return !url.startsWith(base + '/api/map_tiles/') ? undefined : same ? { url, headers: { 'X-Map-Tiles-Token': token } } : { url: url + (url.includes('?') ? '&' : '?') + 'token=' + token };
@@ -69,12 +64,12 @@ export async function mount(box, conn, base) {
   const keyOf = pts => pts.map(p => p.id + p.lat.toFixed(3) + p.lon.toFixed(3)).join();   // ~100 m
   const fit = pts => {
     const w = box.clientWidth, b = new ml.LngLatBounds([pts[0].lon, pts[0].lat], [pts[0].lon, pts[0].lat]); for (const p of pts) b.extend([p.lon, p.lat]);
-    map.fitBounds(b, { padding: { top: w * .18, bottom: w * .24, left: w * .16, right: w * .16 }, maxZoom: 16, pitch: PITCH, duration: !first && move() ? 700 : 0 }); first = false; key = keyOf(pts);
+    map.fitBounds(b, { padding: { top: w * .18, bottom: w * .24, left: w * .16, right: w * .16 }, maxZoom: 15, duration: !first && move() ? 700 : 0 }); first = false; key = keyOf(pts);
   };
   return {
     focus(id) {
       foc = id || null; const p = last.find(p => p.id === foc);
-      if (p) fk = at(p), map.easeTo({ center: [p.lon, p.lat], zoom: 16, duration: move() ? 800 : 0 }); else if (last.length) fit(last);
+      if (p) fk = at(p), map.easeTo({ center: [p.lon, p.lat], zoom: 15, duration: move() ? 800 : 0 }); else if (last.length) fit(last);
     },
     async set(pts) {
       last = pts = pts.filter(valid); await fresh(conn).catch(() => {});
