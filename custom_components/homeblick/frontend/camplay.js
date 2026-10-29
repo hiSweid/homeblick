@@ -18,6 +18,8 @@ const cfgOf = (conn, e) => once(CFGS, e, 3e5, () => conn.sendMessagePromise({ ty
 // Vor dem Öffnen aufrufen (Kamera-Liste bekannt): Fähigkeiten + WebRTC-Konfiguration liegen bereit, wenn der Stream angefordert wird
 export const prep = (conn, es) => conn && es.forEach(e => capsOf(conn, e).then(c => c.includes('web_rtc') && cfgOf(conn, e)).catch(() => {}));
 export async function live(conn, e, video, hass = '', fail = () => {}, o = {}) {
+  let probe = null;   // Startphase von WebRTC: Abbruch dort führt zu HLS statt zum Rückfall des Aufrufers
+  const f0 = fail; fail = err => probe ? probe(err) : f0(err);
   const release = n => () => { n.fails.delete(fail); video.srcObject = null; if (--n.n === 0) { n.stop(); shared.delete(e); } };
   const open = async start => {
     const n = { n: 1, fails: new Set([fail]), dead: false, ms: new MediaStream() };
@@ -33,10 +35,13 @@ export async function live(conn, e, video, hass = '', fail = () => {}, o = {}) {
   const caps = await capsOf(conn, e);
   if (caps.includes('web_rtc')) {
     try {
+      const bad = caps.includes('hls') ? new Promise(r => probe = err => r(console.warn('WebRTC', e, err?.message || err))) : null;
       const rel = await open((n, die) => webrtc(conn, e, video, die, n.ms));
-      // Bleibt das Bild ohne Fehlermeldung aus (ICE/UDP zu HA blockiert), nach 6 s auf HLS wechseln statt bis zum Zeitlimit zu warten
-      if (!caps.includes('hls') || await flows(shared.get(e).ms, 6000)) return rel;
-      console.warn('WebRTC', e, 'kein Bild nach 6 s → HLS'); rel();
+      // Bleibt das Bild aus (Fehlermeldung der Kamera oder ICE/UDP blockiert), nach höchstens 6 s auf HLS wechseln statt bis zum Zeitlimit zu warten
+      const ok = !bad || await Promise.race([flows(shared.get(e).ms, 6000), bad.then(() => false)]);
+      probe = null;
+      if (ok) return rel;
+      rel();
     } catch (err) { console.warn('WebRTC', e, err?.message || err); }
   }
   if (caps.includes('hls')) return hls(conn, e, video, hass, fail);
@@ -82,7 +87,7 @@ async function webrtc(conn, e, video, fail, ms) {
   const { configuration, dataChannel } = await cfgOf(conn, e);
   const pc = new RTCPeerConnection(configuration);
   let sid, queue = [], unsub, dead = false;
-  const stop = () => { dead = true; try { unsub?.(); } catch {} pc.close(); video.srcObject = null; };
+  const stop = () => { dead = true; Promise.resolve(unsub?.()).catch(() => {}); pc.close(); video.srcObject = null; };
   const die = err => { if (dead) return; stop(); fail(err); };
   const send = candidate => conn.sendMessagePromise({ type: 'camera/webrtc/candidate', entity_id: e, session_id: sid, candidate }).catch(() => {});
   pc.ontrack = ev => { ms.addTrack(ev.track); video.srcObject = ms; };
