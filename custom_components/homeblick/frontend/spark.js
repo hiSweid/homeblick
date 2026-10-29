@@ -56,7 +56,7 @@ export function sparkSync(els) {
 
 if (typeof document !== 'undefined') document.head.insertAdjacentHTML('beforeend', `<style>
 .tile[data-sv=spark] .spw{position:relative;flex:none;align-self:stretch;height:7cqw;margin:0 4.5cqw 1.5cqw;color:var(--accent,currentColor)}
-.tile[data-sv=spark][data-size="2x1"]:not(.thermo){gap:3cqw}.tile[data-sv=spark][data-size="2x1"] .big{flex:none;font-size:9cqw}
+.tile[data-sv=spark][data-size="2x1"]:not(.thermo){gap:3cqw}.tile[data-sv=spark][data-size="2x1"] .big{flex:0 1 auto;max-width:45%;font-size:9cqw}
 .tile[data-sv=spark][data-size="2x1"] .spw{flex:1 1 0;order:1;align-self:center;height:11cqw;margin:0}.tile[data-sv=spark][data-size="2x1"] .lbl{order:2;min-width:0}
 .tile[data-sv=spark][data-size="2x2"] .spw{height:22cqw;margin-bottom:4cqw}
 .spw svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}

@@ -222,6 +222,8 @@ export default {
   'Bereit, aber versteckt, weil dein Haus dafür nichts hat: {list}.': 'Ready but hidden because your home has nothing for them: {list}.',
   'Zeig deinem Haus ein Display.': 'Give your home a display.',
   'Noch kein neues Display angemeldet': 'No new display has connected yet',
+  'Dieses Display wartet nicht mehr': 'This display is no longer waiting',
+  'Es ist schon eingerichtet oder gerade nicht angemeldet. Wähle eines der wartenden Displays:': 'It is already set up or not connected right now. Pick one of the waiting displays:',
   'Öffne Homeblick auf dem Gerät. In der Home-Assistant-App: Seitenleiste → Homeblick.': 'Open Homeblick on the device. In the Home Assistant app: sidebar → Homeblick.',
   'Das Display erscheint hier als neues Display, dann geht es in drei Schritten weiter.': 'The display shows up here as a new display, then it takes three steps.',
   'Für mehrere Geräte im selben Browser hilft <code>?display=kueche&amp;name=Küche</code> hinter der Adresse.': 'For several devices in the same browser, append <code>?display=kitchen&amp;name=Kitchen</code> to the address.',

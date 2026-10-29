@@ -18,7 +18,7 @@ html[data-th] .tile[data-sv=circle].on .ico{background:var(--accent,var(--th-acc
 html[data-th] .light .tile{background:var(--th-glass)}
 html[data-th] .tile :is(.ttl,.big){font-weight:var(--th-fw,600)}
 html[data-th] :is(.f-grid,.f-people,.f-todo,.f-check,.f-energy){--ink:var(--th-onink)!important;--ink2:var(--th-onsub)!important}
-html[data-th] .tile:is([data-sv=fill],[data-sv=blind]){--fi:#1c1c1e;--fi2:#1c1c1e99}   /* feste weiße Füllung: nur Text/Symbol auf der Füllung (.hi/.full/.top) wird dunkel, der Rest bleibt th-onink */
+html[data-th] .tile:is([data-sv=fill],[data-sv=blind]){--fi:#1c1c1e}   /* feste weiße Füllung: nur Text/Symbol auf der Füllung (.fl2) wird dunkel, der Rest bleibt th-onink */
 
 /* ---------- Pillen oben (Live-Pillen, Timer) ---------- */
 html[data-th] .lp,html[data-th] #prow .tpill{background:var(--th-pill);color:var(--th-pillink);-webkit-backdrop-filter:blur(2cqw);backdrop-filter:blur(2cqw)}

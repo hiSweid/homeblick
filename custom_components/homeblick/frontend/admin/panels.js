@@ -132,9 +132,9 @@ export function alerts(el) {
       e.preventDefault();
       const to = d_ => (d_ ? [S.displays.find(x => x.id === d_)] : ready).filter(x => x?.connected), list = to($('#try-d', el).dataset.v), res = $('#try-res', el);
       if (!list.length) { res.textContent = tx('Dieses Display ist nicht geöffnet.'); return; }
-      const title = $('#try-title', el).value.trim(), message = $('#try-msg', el).value.trim() || tx('Die Mitteilung funktioniert.'), dur = Math.max(0, Math.min(3600, +$('#try-dur', el).value || 0));
+      const title = $('#try-title', el).value.trim(), message = $('#try-msg', el).value.trim() || tx('Die Mitteilung funktioniert.'), durV = $('#try-dur', el).value.trim(), dur = durV !== '' && +durV >= 0 ? Math.min(+durV, 3600) : null;
       res.textContent = tx('Sende …');
-      try { await Promise.all(list.map(x => call('command', { display: x.id, action: 'notify', ...(title && { title }), message, ...(dur !== "" && +dur >= 0 && { duration: Math.min(+dur, 3600) }) }))); res.textContent = list.length > 1 ? tx('Gesendet an {n} Displays.', { n: list.length }) : tx('Gesendet an {n} Display.', { n: list.length }); }
+      try { await Promise.all(list.map(x => call('command', { display: x.id, action: 'notify', ...(title && { title }), message, ...(dur !== null && { duration: dur }) }))); res.textContent = list.length > 1 ? tx('Gesendet an {n} Displays.', { n: list.length }) : tx('Gesendet an {n} Display.', { n: list.length }); }
       catch (er) { res.textContent = er?.message || tx('Fehler'); }
     }
   });
@@ -144,14 +144,18 @@ export function alerts(el) {
 // ================= Neues Display =================
 export function newDisplay(el, route) {
   const pending = () => S.displays.filter(x => x.new);
-  let id = route.id || pending()[0]?.id || '', area = '', tpl = 'std'; const names = {};   // getippte Namen je Display: bleiben beim Wechsel der Chips erhalten
+  let id = route.id || '', area = '', tpl = 'std'; const names = {};   // getippte Namen je Display: bleiben beim Wechsel der Chips erhalten
   const note = () => { const c = setupConfig(tpl, area); return `${tx('Du bekommst: {list}.', { list: c.faces.map(f => FACE[f.type][0] + (f.type === 'grid' ? (f.tiles.length ? ' ' + tx('({n} Kacheln)', { n: f.tiles.length }) : ' ' + tx('(leer, Kacheln fügst du gleich hinzu)')) : f.type === 'energy' ? (f.ents ? ' ' + tx('({n} Werte erkannt)', { n: Object.keys(f.ents).length - 1 }) : ' ' + tx('(nichts erkannt, Werte wählst du im Editor)')) : '')).join(' · ') })}${c.off.length ? ' ' + tx('Bereit, aber versteckt, weil dein Haus dafür nichts hat: {list}.', { list: c.off.map(f => FACE[f.type][0]).join(', ') }) : ''}`; };
   const chip = (attr, on_, text) => `<button class="chip pick ${on_ ? 'on' : ''}" ${attr}>${esc(text)}</button>`;
+  let shown = 0;   // 0 Anleitung, 1 Formular, 2 Auswahl
   const draw = () => {
     const d = S.displays.find(x => x.id === id && x.new), list = pending();
-    if (!list.length) return frame(el, tx('Neues Display'), tx('Zeig deinem Haus ein Display.'), G(tx('Noch kein neues Display angemeldet'), `<ol class="steps"><li>${tx('Öffne Homeblick auf dem Gerät. In der Home-Assistant-App: Seitenleiste → Homeblick.')}</li><li>${tx('Das Display erscheint hier als neues Display, dann geht es in drei Schritten weiter.')}</li></ol>`, tx('Für mehrere Geräte im selben Browser hilft <code>?display=kueche&amp;name=Küche</code> hinter der Adresse.')));
-    if (!d) id = list[0].id;
-    const cur_ = S.displays.find(x => x.id === id);
+    if (!list.length) return shown = 0, frame(el, tx('Neues Display'), tx('Zeig deinem Haus ein Display.'), G(tx('Noch kein neues Display angemeldet'), `<ol class="steps"><li>${tx('Öffne Homeblick auf dem Gerät. In der Home-Assistant-App: Seitenleiste → Homeblick.')}</li><li>${tx('Das Display erscheint hier als neues Display, dann geht es in drei Schritten weiter.')}</li></ol>`, tx('Für mehrere Geräte im selben Browser hilft <code>?display=kueche&amp;name=Küche</code> hinter der Adresse.')));
+    if (!id) id = list[0].id;   // keine Adress-ID: das erste wartende Display
+    shown = d ? 1 : 2;
+    // Adress-ID wartet nicht (mehr): nie still ein anderes Display einrichten, der Nutzer wählt selbst
+    if (!d) return frame(el, tx('Neues Display'), tx('Name, Bereich und Vorlage wählen, fertig.'), G(tx('Dieses Display wartet nicht mehr'), `<p class="panel-p">${tx('Es ist schon eingerichtet oder gerade nicht angemeldet. Wähle eines der wartenden Displays:')}</p><div class="quick">${list.map(x => chip(`data-d="${esc(x.id)}"`, false, x.name + (x.connected ? '' : ' · ' + tx('nicht verbunden')))).join('')}</div>`) + `<div class="actions"><button class="btn quiet big" data-goto="#/">${tx('Später')}</button></div>`);
+    const cur_ = d;
     frame(el, tx('Neues Display'), tx('Name, Bereich und Vorlage wählen, fertig.'), `${list.length > 1 ? G(tx('Display'), `<div class="quick">${list.map(x => chip(`data-d="${esc(x.id)}"`, x.id === id, x.name + (x.connected ? '' : ' · ' + tx('nicht verbunden')))).join('')}</div>`) : ''}
       ${G(tx('1 · Name'), `<div class="srow"><input id="wn" class="wide" value="${esc(names[id] ?? cur_.name)}" maxlength="60" autocomplete="off"></div>`)}
       ${G(tx('2 · Bereich'), `<div class="quick">${[['', tx('Keiner')], ...areasOf().map(a => [a, a])].map(([a, t]) => chip(`data-a="${esc(a)}"`, a === area, t)).join('')}</div>`)}
@@ -163,10 +167,10 @@ export function newDisplay(el, route) {
   // 5-s-Aktualisierung: neu angemeldetes Display erscheint von selbst; das angezeigte Formular bleibt unangetastet, solange sein Display noch wartet
   let busy = false;
   // zweites wartendes Display: neuer Chip, der getippte Name bleibt erhalten (names)
-  const off = on('list', () => { if (busy) return; const form = !!$('#go', el), n = pending().length; if (form !== n > 0 || (form && (!pending().some(x => x.id === id) || $$('[data-d]', el).length !== (n > 1 ? n : 0)))) { if (form) names[id] = $('#wn', el).value; draw(); paintNote(); } });
+  const off = on('list', () => { if (busy) return; const n = pending().length, s = !n ? 0 : pending().some(x => x.id === id) || !id ? 1 : 2; if (s !== shown || $$('[data-d]', el).length !== (s === 2 || n > 1 ? n : 0)) { if (shown === 1) names[id] = $('#wn', el).value; draw(); paintNote(); } });
   el.addEventListener('click', async e => {
     const x = e.target.closest('[data-d]'), a = e.target.closest('[data-a]'), t = e.target.closest('[data-t]');
-    if (x) { names[id] = $('#wn', el).value; id = x.dataset.d; draw(); return paintNote(); }
+    if (x) { if (shown === 1) names[id] = $('#wn', el).value; id = x.dataset.d; draw(); return paintNote(); }
     if (a) { area = a.dataset.a; $$('[data-a]', el).forEach(b => b.classList.toggle('on', b === a)); return paintNote(); }
     if (t) { tpl = t.dataset.t; $$('[data-t]', el).forEach(b => b.classList.toggle('on', b === t)); return paintNote(); }
     if (!e.target.closest('#go')) return;

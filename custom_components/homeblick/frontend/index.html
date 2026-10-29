@@ -135,6 +135,7 @@ svg.i{width:1em;height:1em;flex:none;fill:none;stroke:currentColor;stroke-width:
 /* Stil-Varianten (Ideen-Galerie), im Layout der Apple-Vorlage (Website highlights/dashboard): zentriert wie die Thermostat-Zahl 68 mit Titel/Untertitel darunter, Glas, weiße An-Fläche, Ring/Kreis nur als dünne weiße Linie.
    value = Messwert groß statt Symbol (Sensor), circle = Symbol im Kreis (Szene, Schalter, Ventilator …), fill = Licht als Dimmer (weiße Fläche steigt) */
 .tile:is([data-sv=value],[data-sv=spark]) .ico{display:none}.tile:is([data-sv=value],[data-sv=spark]) .big{flex:1;display:flex;flex-wrap:wrap;align-items:baseline;align-content:center;justify-content:center;min-width:0;max-width:100%;font-size:8.5cqw;font-weight:500;letter-spacing:-.02em;line-height:1;white-space:nowrap;padding-top:1.5cqw}
+.tile:is([data-sv=value],[data-sv=spark]) .big .nm{font-size:calc(1em*var(--k,1))}
 .tile:is([data-sv=value],[data-sv=spark]) .big .tx{min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis}
 .tile:is([data-sv=value],[data-sv=spark]) .big small{font-size:.5em;font-weight:500;margin-left:.15em}
 .tile:is([data-sv=value],[data-sv=spark])[data-size="2x1"] .big{font-size:12cqw}.tile:is([data-sv=value],[data-sv=spark])[data-size="2x2"] .big{font-size:20cqw}.tile[data-sv=spark] .big{flex:1 1 0;padding-top:0;font-size:7.5cqw}
@@ -147,14 +148,17 @@ svg.i{width:1em;height:1em;flex:none;fill:none;stroke:currentColor;stroke-width:
 .tile:is([data-sv=fill],[data-sv=blind]) .fill::before{content:"";position:absolute;inset:0 0 auto;height:.25cqw;background:#fff}
 .tile:is([data-sv=fill],[data-sv=blind]).drag .fill{transition:none}
 .tile:is([data-sv=fill],[data-sv=blind]) .pct{position:absolute;right:2.6cqw;top:2.6cqw;font-size:2.6cqw;font-weight:600;transition:color .3s}
-.tile:is([data-sv=fill],[data-sv=blind]).hi .ttl,.tile[data-sv=fill].top .pct{color:var(--fi,var(--ink))!important}.tile:is([data-sv=fill],[data-sv=blind]).hi .sub{color:var(--fi2,var(--ink2))!important}.tile:is([data-sv=fill],[data-sv=blind]).full .ico{color:var(--fi,var(--ink))!important}
+/* Text/Symbol/Prozent zweilagig: .fl2 = Kopie in dunkler Schrift, per clip-path auf die Fläche beschnitten (folgt --p) → an jeder Füllhöhe Kontrast, auch wenn die Kante durch den Text läuft */
+.tile .fl2{display:none}
+.tile:is([data-sv=fill],[data-sv=blind]) .fl2{position:absolute;inset:0;display:flex;flex-direction:inherit;align-items:inherit;justify-content:inherit;gap:inherit;padding:inherit;text-align:inherit;pointer-events:none;clip-path:inset(calc(100% - var(--p,0)*1%) 0 0);transition:clip-path .5s var(--spring)}
+.tile[data-sv=blind] .fl2{clip-path:inset(0 0 calc(100% - var(--p,0)*1%))}
+.tile:is([data-sv=fill],[data-sv=blind]).drag .fl2{transition:none}
+.fl2 :is(.ttl,.sub,.ico,.pct){color:var(--fi,var(--ink))!important}.fl2 .sub{opacity:.8}
 .tile:is([data-sv=fill],[data-sv=blind])[data-size="2x2"] .pct{font-size:4.4cqw;right:5cqw;top:5cqw}
-/* Rollo: Lamellenpanzer schiebt sich von oben nach unten (Höhe = Schließgrad); Symbol/Prozent oben werden dunkel, sobald die Fläche sie erreicht (.full), der Titel unten erst bei fast zu (.hi) */
+/* Rollo: Lamellenpanzer schiebt sich von oben nach unten (Höhe = Schließgrad); Text/Symbol werden dunkel, wo die Fläche liegt (.fl2) */
 .tile[data-sv=blind] .fill{inset:0 0 auto;background:repeating-linear-gradient(#fff 0 .3cqw,#f3f3f6 .3cqw 2.05cqw,#cdcdd5 2.05cqw 2.4cqw)}   /* Rolladenpanzer von oben nach unten: weiße Lamellen mit Lichtkante und Fuge, Abschlussschiene unten */
 .tile[data-sv=blind] .fill::before{inset:auto 0 0;height:.9cqw;background:linear-gradient(#c8c8d0,#a9a9b3)}
 .tile[data-sv=blind] .ttl,.tile[data-sv=blind] .sub{transition:color .3s}
-.tile[data-sv=blind].hi .ttl{color:var(--fi,var(--ink))!important}.tile[data-sv=blind].hi .sub{color:var(--fi2,var(--ink2))!important}
-.tile[data-sv=blind].full .ico,.tile[data-sv=blind].full .pct{color:var(--fi,var(--ink))!important}
 /* Medien: Cover füllt die Kachel (Galerie „Cover-Vollbild“): dunkler Verlauf unten, Raum-Pille oben links, Titel/Interpret unten, Status-Symbol oben rechts; Pause = entsättigt + dunkler; ohne Cover Farbverlauf. Nicht aktiv = normale Kachel */
 .tile[data-sv=cover]{overflow:hidden}.tile[data-sv=cover]::before{display:none}
 .tile[data-sv=cover] .art{position:absolute;inset:0;z-index:-1;background:linear-gradient(145deg,#ff7a59,#c2185b 52%,#3b1c6e) center/cover;opacity:0;transition:opacity .4s,filter .4s}
@@ -1466,6 +1470,14 @@ function place(el, f) {
 }
 
 // ---------- Ansichten bauen ----------
+// Messwert „Zahl + Einheit“ (value/spark): Schrift verkleinern, bis alles einzeilig in die Kachel passt (Zahl nie abschneiden); false = noch kein Layout
+const fitBig = big => {
+  const nm = big.firstElementChild; if (!nm?.classList.contains('nm')) return true;
+  nm.style.removeProperty('--k'); const w = big.clientWidth, n = nm.offsetWidth;
+  if (!w) return false;
+  if (n > w) nm.style.setProperty('--k', Math.floor(w / n * 98) / 100);
+  return true;
+};
 const svg = (id, cls = '') => `<svg class="i ${cls}"><use href="#${esc(id)}"/></svg>`;
 const chev = d => `<button class="chev" data-act="${d}" aria-label="${d === 'up' ? tx('Wärmer') : tx('Kälter')}">${svg(d)}</button>`;
 const kindOf = t => t.kind || (t.e?.startsWith('climate.') ? 'thermo' : 'tile');
@@ -1492,7 +1504,9 @@ function tileEl(c) {
   else if (kind === 'thermo') { el.className = 'tile thermo'; el.innerHTML = `<div class="num" data-temp="${esc(t.e)}"></div><div class="foot">${chev('down')}${label}${chev('up')}</div>`; }
   else {
     el.className = 'tile';
-    el.innerHTML = (t.e?.startsWith('camera.') ? '<div class="feed"></div>' + (t.sv === 'live' ? `<div class="lvp"></div><div class="mch">${tx('Bewegung')}</div>` : '') : '') + (t.sv === 'fill' || t.sv === 'blind' ? '<div class="fill"></div><div class="pct"></div>' : t.sv === 'cover' ? `<div class="art"></div><div class="pill">${esc(t.title)}</div><div class="pct"></div><div class="cvr"><button data-act="tmp" aria-label="${tx('Zurück')}">${svg('prev')}</button><button class="pp" data-act="tmt" aria-label="${tx('Abspielen/Pause')}"></button><button data-act="tmn" aria-label="${tx('Weiter')}">${svg('next')}</button></div>` : '') + svg(iconOf(t), 'ico') + (t.sv === 'value' ? '<div class="big"></div>' : t.sv === 'spark' ? '<div class="big"></div><div class="spw"></div>' : '') + label;
+    el.innerHTML = (t.e?.startsWith('camera.') ? '<div class="feed"></div>' + (t.sv === 'live' ? `<div class="lvp"></div><div class="mch">${tx('Bewegung')}</div>` : '') : '') + (t.sv === 'fill' || t.sv === 'blind' ? '<div class="fill"></div><div class="pct"></div>' : t.sv === 'cover' ? `<div class="art"></div><div class="pill">${esc(t.title)}</div><div class="pct"></div><div class="cvr"><button data-act="tmp" aria-label="${tx('Zurück')}">${svg('prev')}</button><button class="pp" data-act="tmt" aria-label="${tx('Abspielen/Pause')}"></button><button data-act="tmn" aria-label="${tx('Weiter')}">${svg('next')}</button></div>` : '') + svg(iconOf(t), 'ico') + (t.sv === 'value' ? '<div class="big"></div>' : t.sv === 'spark' ? '<div class="big"></div><div class="spw"></div>' : '') + label
+      + (t.sv === 'fill' || t.sv === 'blind' ? `<div class="fl2" aria-hidden="true"><div class="pct"></div>${svg(iconOf(t), 'ico')}${label}</div>` : '');
+    if (t.sv === 'fill' || t.sv === 'blind') { const o = $('.lbl', el), c = $('.fl2 .lbl', el); new MutationObserver(() => c.innerHTML = o.innerHTML).observe(o, { subtree: true, childList: true, characterData: true }); }   // Textänderungen (Name, Status) in die dunkle Lage spiegeln
   }   // Livebild: camTile in render()
   return el;
 }
@@ -2213,10 +2227,11 @@ function render() {
       sv?.style.setProperty('--o', o);
     }
     else if (d === 'lock') { const sv = $('svg.lk', t); if (sv) sv.classList.toggle('open', ON.lock(s)); }
+    if (t.dataset.sv === 'fill' || t.dataset.sv === 'blind') { const a = $('.ico', t), b = $('.fl2 .ico', t); if (a && b && a.outerHTML !== b.outerHTML) b.replaceWith(a.cloneNode(true)); }   // Symbol-Umbau (Schloss/Garage) in die dunkle Lage spiegeln
     if (d === 'camera' && t.dataset.ti != null) camTile(t, id, s);
     if (t.dataset.sv === 'value' || t.dataset.sv === 'spark') {   // Messwert groß über dem Titel; Zahl und Einheit getrennt
-      const big = $('.big', t), m = valText(s, t._val || 'state').match(/^(-?[\d.,]+)(?![\d:-])\s*(.*)$/), h = m ? `${m[1]}${m[2] ? `<small>${esc(m[2])}</small>` : ''}` : `<span class="tx">${esc(valText(s, t._val || 'state') || '–')}</span>`;   // Text/Zeitstempel: kürzen statt über Nachbarkacheln laufen
-      if (big && big.dataset.h !== h) { big.dataset.h = h; big.innerHTML = h; }
+      const big = $('.big', t), m = valText(s, t._val || 'state').match(/^(-?[\d.,]+)(?![\d:-])\s*(.*)$/), h = m ? `<span class="nm">${m[1]}${m[2] ? `<small>${esc(m[2])}</small>` : ''}</span>` : `<span class="tx">${esc(valText(s, t._val || 'state') || '–')}</span>`;   // Text/Zeitstempel: kürzen statt über Nachbarkacheln laufen
+      if (big && big.dataset.h !== h) { big.dataset.h = h; big.innerHTML = h; if (!fitBig(big)) big.dataset.h = ''; }   // noch ohne Layout → beim nächsten Update erneut einpassen
     }
     else if (t._val && d !== 'climate' && t.classList.contains('tile')) {   // Zusatzanzeige (Zustand/Attribut) hinter dem Untertitel
       t._sub = [t._base, valText(s, t._val)].filter(Boolean).join(' • ');
@@ -2536,7 +2551,7 @@ document.addEventListener('keydown', e => {
   if (e.key === 'k' || e.key === 'K') assistStart('cal');
   if ((e.key === 't' || e.key === 'T') && !LIVE) call('timer', 'start', { entity_id: 'timer.kuche' });
   if ((e.key === 'e' || e.key === 'E') && !LIVE) call('timer', 'start', { entity_id: 'timer.eier' });   // Demo: zweiter Timer
-  if (e.key === 'Escape') { const k = kzOn; asEsc = AS.className === 'drop'; assistEnd(); kzClose(); if (!k) close(); }   // Detail-Sheet schließen, wenn das Kontrollzentrum nicht offen war
+  if (e.key === 'Escape') { const po = $('.pop.open'); if (po) return po.classList.remove('open'); const k = kzOn; asEsc = AS.className === 'drop'; assistEnd(); kzClose(); if (!k) close(); }   // Detail-Sheet schließen, wenn das Kontrollzentrum nicht offen war
   if (e.key === 'c' || e.key === 'C') kzOn ? kzClose() : kzOpen();   // Tastatur: Kontrollzentrum
 });
 
@@ -2737,12 +2752,10 @@ function sendTemp(id) {
   clearTimeout(tempT[id]);
   tempT[id] = setTimeout(() => call('climate', 'set_temperature', { entity_id: id, ...(R[id] ? { target_temp_low: R[id][0], target_temp_high: R[id][1] } : { temperature: T[id] }) }), 600);
 }
-// Symbol dunkel (full), sobald die weiße Fläche es erreicht; Prozentzahl oben (top) erst bei fast voller Füllung
+// Füllung: --p setzen (Fläche und dunkle Textlage .fl2 folgen per CSS), Prozentzahl in beiden Lagen
 const fillSet = (t, p) => {
   t.style.setProperty('--p', p);
-  if (t.dataset.sv === 'blind') { t.classList.toggle('full', p >= 22); t.classList.toggle('hi', p >= (t.dataset.size === '2x2' ? 85 : 78)); }
-  else { t.classList.toggle('top', p >= (t.dataset.size === '2x2' ? 90 : 88)); t.classList.toggle('hi', p >= 25); t.classList.toggle('full', p >= (t.dataset.size === '2x2' ? 85 : 55)); }
-  const x = $('.pct', t); if (x) x.textContent = p ? (t.dataset.sv === 'blind' ? 100 - p : p) + ' %' : '';
+  $$('.pct', t).forEach(x => x.textContent = p ? (t.dataset.sv === 'blind' ? 100 - p : p) + ' %' : '');
 };
 // Licht „Füllstand“: senkrecht ziehen dimmt (relativ wie der Dimmer), die Füllung folgt dem Finger, HA bekommt höchstens alle 200 ms einen Wert; ein Tipp schaltet weiter
 {
@@ -3160,8 +3173,8 @@ document.addEventListener('click', e => {
   else if (act === 'events') openEvents(b);
   else if (act === 'edet') { energyDetail(b.dataset.v, b); open(b, 'edet'); }   // Energie-Kachel → Detail-Vollbild (FLIP wie Klima/Licht)
   else if (act === 'toggle') st(b.dataset.e).state === 'unavailable' ? shake(b) : TAP[b.dataset.e.split('.')[0]]?.(b, b.dataset.e);   // Licht im Klingel-Bild / Kameras-Face
-  else if (act === 'avatars') { const g = b.closest('.greet'); g.classList.toggle('fan'); g._fanAt = Date.now(); }
-  else if (act === 'avpick') { const g = b.closest('.greet'); if (Date.now() - (g._fanAt || 0) < 450 + 40 * $$('.avf', g).length) return;   // Doppeltipp im Aufklappen (Buttons liegen noch gestapelt, Sperre = Feder + Staffelung) wählt keine Person
+  else if (act === 'avatars') { const g = b.closest('.greet'); g.classList.toggle('fan'); }
+  else if (act === 'avpick') { const g = b.closest('.greet'); if ($$('.avf', g).some(x => x.getAnimations().some(a => a.transitionProperty === 'translate'))) return;   // Doppeltipp im Aufklappen (Buttons liegen noch gestapelt, Sperre = bis die Übergänge wirklich enden, auch bei langsamem Rendering) wählt keine Person
     who = b.dataset.v; try { localStorage.hb_person = who; } catch {} b.closest('.greet').classList.remove('fan'); render(); }
   else if (act === 'go') { const i = CONF.faces.findIndex(f => f.type === b.dataset.v); if (i >= 0) faces.go(i); }
   else if (act === 'play') {   // 300 ms Sperre: Doppeltipp würde sonst Pause und Play auslösen und sich aufheben; ausgeschaltet → einschalten
@@ -3602,7 +3615,7 @@ if (LIVE) {
       CONF.kiosk = c.kiosk; applyK(c.kiosk); CFG.device = c.device_id || '';
       const cam = setCams(c.cameras);
       voiceTimers(c.timers);   // beim Anmelden laufende Timer, ohne zu wecken
-      if (c.new) return void waiting(c.name);   // wartet auf die Einrichtung: weder Vorlage hochladen noch anzeigen
+      if (c.new || Array.isArray(c.config?.faces) && !c.config.faces.length) return void waiting(c.name);   // wartet auf die Einrichtung (neu, oder Server-Konfig ausdrücklich leer = nichts eingerichtet): weder Vorlage/Demo-Kacheln hochladen noch anzeigen; ganz ohne Server-Konfig (alt) lädt die lokale hoch
       srvConf = JSON.stringify(c.config);
       if (takeConf(c.config, c.kiosk)) renderAll(0);
       else { save(); if (cam) renderAll(curIdx()); }   // keine (brauchbare) Server-Konfig: die lokale hochladen

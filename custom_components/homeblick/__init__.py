@@ -11,7 +11,7 @@ from homeassistant.components.http import HomeAssistantView, StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall, callback
 from homeassistant.exceptions import ServiceValidationError
-from homeassistant.helpers import area_registry as ar, config_validation as cv, device_registry as dr
+from homeassistant.helpers import area_registry as ar, config_validation as cv
 from homeassistant.helpers.device_registry import DeviceEntry
 from homeassistant.helpers.json import json_bytes
 from homeassistant.loader import async_get_integration
@@ -331,10 +331,7 @@ def command(hass, connection, msg):
 async def remove(hass, connection, msg):
     """Display samt Konfiguration, Gerät und Entities löschen."""
     if _display(hass, connection, msg):
-        hub = hass.data[DOMAIN]
-        await hub.remove(msg["display"])
-        if dev := hub.device(msg["display"]):   # Gerät samt Entities aus der Registry nehmen (HA räumt die Entities mit ab), sonst bleiben Geister mit altem Zustand
-            dr.async_get(hass).async_remove_device(dev.id)   # remove_config_entry_id in async_update_device ist veraltet (ab HA 2027.8 Fehler)
+        await hass.data[DOMAIN].remove(msg["display"], device=True)
         connection.send_result(msg["id"])
 
 
