@@ -115,6 +115,17 @@ function burst(row) {   // Abhaken: Ring federt, Haken poppt, Welle läuft vom R
   row.querySelector('.tsh').animate({ backgroundPosition: ['100% 0', '0% 0'] }, { duration: 780, delay: 120, easing: 'ease-in-out' });
   row.animate([{ boxShadow: 'inset 0 0 0 .25cqw #ffffff47' }, { boxShadow: 'inset 0 0 0 .4cqw color-mix(in srgb,var(--lc) 85%,transparent)', offset: .3 }, { boxShadow: 'inset 0 0 0 .25cqw #ffffff47' }], { duration: 900, easing: 'ease-out' });
 }
+const popChips = tc => tc.querySelectorAll('.tchip').forEach((c, i) => c.animate([{ opacity: 0, scale: .5, translate: '0 2cqw' }, { opacity: 1, scale: 1, translate: '0 0' }], { duration: 520, delay: 60 + i * 55, easing: EASE, fill: 'backwards' }));
+function placePill(el, tc, id) {   // eine farbige Kapsel gleitet federnd zum aktiven Chip (bleibt außerhalb der neu gebauten Chips)
+  const on = [...tc.querySelectorAll('.tchip')].find(c => c.dataset.list === id), pill = tc.querySelector('.tpill');
+  tc.querySelectorAll('.tchip').forEach(c => c.classList.toggle('on', c === on));
+  if (!on || !on.offsetWidth) return;
+  const jump = !el._pw;   // erste Platzierung ohne Gleiten
+  pill.style.transition = jump ? 'none' : ''; pill.style.width = on.offsetWidth + 'px'; pill.style.translate = on.offsetLeft + 'px 0'; pill.style.setProperty('--lc', lcolor(id)); el._pw = 1;
+  if (jump) { pill.offsetWidth; pill.style.transition = ''; }
+  const x = on.offsetLeft - (tc.clientWidth - on.offsetWidth) / 2; if (tc.scrollWidth > tc.clientWidth) tc.scrollTo({ left: Math.max(0, x), behavior: calm(el) || jump ? 'auto' : 'smooth' });   // aktiver Chip rückt in die Mitte
+  if (!jump && !calm(el)) on.animate([{ scale: 1 }, { scale: 1.12, offset: .4 }, { scale: 1 }], { duration: 480, easing: EASE });
+}
 function paintFace(el) {
   const id = pick(el), L = lists.get(id), a = api.ents()[id]?.attributes, sf = feat(id), all = sorted(), body = el.querySelector('.tbody');
   if (el._id !== id) { body.replaceChildren(); el._id = id; }   // andere Liste: nicht abgleichen, sondern neu aufbauen
@@ -130,8 +141,11 @@ function paintFace(el) {
   const pr = list.length ? (list.length - open) / list.length * 100 + '%' : '0';
   if (el._p !== pr) { if (el._p !== undefined && el._id === el._pid && !calm(el)) el.querySelector('.tprog').animate([{ scale: '1 1' }, { scale: '1 2.4', offset: .3 }, { scale: '1 1' }], { duration: 620, easing: EASE }); el._p = pr; el._pid = el._id; }   // Balken wippt, wenn sich der Stand ändert (nicht beim Listenwechsel)
   el.querySelector('.tprog i').style.width = pr;
-  const chips = all.length > 1 && !el.dataset.todo ? all.map(i => `<button class="tchip${i === id ? ' on' : ''}" data-list="${esc(i)}" style="--lc:${lcolor(i)}">${esc(api.ents()[i].attributes.friendly_name || i)}</button>`).join('') : '';
-  if (el._ch !== chips) { el._ch = chips; el.querySelector('.tchips').innerHTML = chips; }
+  const chips = all.length > 1 && !el.dataset.todo ? all.map(i => `<button class="tchip" data-list="${esc(i)}" style="--lc:${lcolor(i)}">${esc(api.ents()[i].attributes.friendly_name || i)}</button>`).join('') : '';
+  const tc = el.querySelector('.tchips');
+  if (el._ch !== chips) { const fresh = !el._ch; el._ch = chips; tc.querySelectorAll('.tchip').forEach(c => c.remove()); tc.insertAdjacentHTML('beforeend', chips); if (chips && !fresh && !calm(el)) popChips(tc); }
+  placePill(el, tc, id);
+  el.classList.toggle('alldone', !!list.length && !open && !!L?.got);   // Untertitel wird zur Listenfarbe, wenn alles erledigt ist
   const msg = !id ? `${tx('Keine Liste in Home Assistant')}<small>${tx('Füge die Integration „Einkaufsliste“ oder „Lokale Aufgaben“ hinzu')}</small>`
     : L?.err ? `${tx('Liste nicht lesbar')}<small>${tx('Home Assistant hat das Abonnement abgelehnt')}</small>`
     : !L?.got ? `${tx('Lädt …')}`
@@ -147,13 +161,14 @@ function paintFace(el) {
 export function todoFace(el, f) {
   if (f.todo) el.dataset.todo = f.todo;
   el.innerHTML = `<header><b class="tn">${tx('Aufgaben')}</b><small class="ts"></small></header><button class="tplus" aria-label="${tx('Hinzufügen')}" hidden><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
-<div class="tprog"><i></i></div><div class="tchips"></div><div class="tbody"></div>
+<div class="tprog"><i></i></div><div class="tchips"><i class="tpill"></i></div><div class="tbody"></div>
 <form class="tadd"><input maxlength="255" placeholder="${tx('Neuer Eintrag')}" autocomplete="off" enterkeyhint="done"><button aria-label="${tx('Hinzufügen')}"><svg class="i" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></svg></button></form>`;
   const inp = el.querySelector('input');
   new MutationObserver(m => {   // Ansicht kommt ins Bild (.act): Kopf und Zeilen federn nacheinander ein
     if (!m.some(r => r.oldValue?.split(' ').includes('act') === false && el.classList.contains('act')) || calm(el)) return;
     el.querySelectorAll('header,.trow,.tsep').forEach((e, i) => appear(e, Math.min(i, 12) * 45));
     el.querySelector('.tn').animate([{ letterSpacing: '.08em' }, { letterSpacing: '-.03em' }], { duration: 900, easing: EASE });
+    popChips(el.querySelector('.tchips'));
     el.querySelector('.tplus').animate([{ scale: 0, rotate: '-180deg' }, { scale: 1, rotate: '0deg' }], { duration: 700, delay: 150, easing: EASE, fill: 'backwards' });
     el.querySelector('.tprog i').animate([{ scale: '0 1' }, { scale: '1 1' }], { duration: 800, delay: 100, easing: 'ease-out', fill: 'backwards' });
   }).observe(el, { attributes: true, attributeFilter: ['class'], attributeOldValue: true });
@@ -203,8 +218,13 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 .tchips{position:absolute;left:5cqw;right:5cqw;top:24.4cqw;display:none;gap:2cqw;overflow-x:auto;scrollbar-width:none;touch-action:pan-x}
 .tchips::-webkit-scrollbar{display:none}
 .f-todo.multi .tchips{display:flex}
-.tchip{flex:none;height:7.4cqw;padding:0 3.4cqw;border-radius:9cqw;font-size:3.5cqw;font-weight:600;color:inherit;background:#ffffff26;white-space:nowrap;transition:background .3s,color .3s}
-.tchip.on{background:var(--lc,#ffffffd9);color:#fff}
+.tchip{position:relative;flex:none;height:7.4cqw;padding:0 3.4cqw;border-radius:9cqw;font-size:3.5cqw;font-weight:600;color:inherit;background:#ffffff26;white-space:nowrap;transition:background .4s,color .3s,scale .2s}
+.tchip:active{scale:.92}
+.tchip.on{background:transparent;color:#fff}
+.tpill{position:absolute;left:0;top:0;height:7.4cqw;width:0;border-radius:9cqw;background:var(--lc,#fff);pointer-events:none;transition:translate .55s var(--spring,cubic-bezier(.22,1.2,.36,1)),width .55s var(--spring,cubic-bezier(.22,1.2,.36,1)),background .4s}
+.tchip{z-index:1}
+.f-todo header small{transition:color .5s,opacity .5s}
+.f-todo.alldone header small{color:var(--lc);opacity:1;font-weight:600}
 .tprog{position:absolute;left:7cqw;right:7cqw;top:22.2cqw;height:.9cqw;border-radius:1cqw;background:#ffffff26;overflow:hidden}
 .tprog i{display:block;height:100%;width:0;border-radius:inherit;background:var(--lc,#fff);transition:width .7s var(--spring)}
 .tbody{position:absolute;left:5cqw;right:5cqw;top:25cqw;bottom:4cqw;display:flex;flex-direction:column;gap:2cqw;overflow-y:auto;scrollbar-width:none;touch-action:pan-y}
