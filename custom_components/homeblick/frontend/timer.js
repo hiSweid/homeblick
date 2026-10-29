@@ -38,6 +38,7 @@ const N = 60, RING = [39, 39], TICKS = Array.from({ length: N }, (_, i) => {
 let VOICE = [], lastEnts = {};   // Sprach-Timer des Servers als timer.*-ähnliche Einträge
 let T, P, PR, M, call, voiceCall, sound, wake, pinned = false, cur = null, key = '', iv = 0, done = null, doneT = 0, hidden = false, sel = '', mp = null, mpKey = '', touch = Date.now(), run = [];
 const BACK = 30000;
+let lastCancel = 0;   // Doppeltipp auf ✕: der zweite träfe schon den nächsten Timer
 const canc = {};   // id → Zeitpunkt des ✕-Abbruchs (kurz vor Ablauf nicht als „abgelaufen“ melden)
 const prev = {};   // letzter Zustand je Timer → Ablauf erkennen (active → idle, finishes_at erreicht)
 // Timer-Symbol der Vorlage (Live Activity): offener Ring (Lücke oben, leicht links) + kurzer Zeiger nach oben links
@@ -100,14 +101,14 @@ export function timerInit(screen, callFn, voiceFn, soundFn, wakeFn) {
   }, 1000);
 }
 // Ansicht offen (Licht, Klima, Kamera/Klingel …), Anpassen oder Assist: der Timer deckt sie nicht zu, er bleibt Pille
-const blocked = () => { const s = T.parentElement; return /custom|gallery/.test(s.className) || !!s.querySelector('.view:not([hidden])') || !!s.querySelector('#assist')?.className; };
+const blocked = () => { const s = T.parentElement; return /custom|gallery/.test(s.className) || !!s.querySelector('.view:not([hidden])') || !!s.querySelector('#assist')?.className || !!s.querySelector('.f-todo.adding input:focus'); };   // Todo-Eingabe fokussiert (Tastatur offen); .adding allein bleibt nach dem Wegwischen stehen
 export function timerShow(id) { hidden = false; pinned = true; if (id && run.some(s => s.entity_id === id)) sel = id; key = ''; timers(lastEnts); }   // pinned: vom Nutzer geholt → auch über offene Ansichten
 export const timerOn = () => !!T?._on;   // Vollbild sichtbar → kein Bildschirmschoner (bei schwarzem Schoner wäre der Timer sonst unsichtbar)
 
 // Dienst je Timer: HA-timer.* oder Sprach-Timer (optimistisch lokal, der Server schickt danach den echten Stand)
 function act(s, a) {
   if (!s) return;
-  if (a === 'cancel') canc[s.entity_id] = Date.now();
+  if (a === 'cancel') { if (Date.now() - lastCancel < 600) return; canc[s.entity_id] = lastCancel = Date.now(); }
   if (!s.entity_id.startsWith('voice.')) return call('timer', { cancel: 'cancel', pause: 'pause', resume: 'start' }[a], { entity_id: s.entity_id });
   const id = s.entity_id.slice(6), now = Date.now();
   VOICE = a === 'cancel' ? VOICE.filter(v => v.entity_id !== s.entity_id) : VOICE.map(v => v.entity_id !== s.entity_id ? v : a === 'pause'
@@ -143,7 +144,7 @@ function paintPills() {
   for (const s of run) {
     const b = pills.get(s.entity_id); if (!b) continue;
     b.querySelector('b').textContent = hms(left(s));
-    const du = sec(s.attributes.duration); b.style.setProperty('--v', du > 0 ? Math.min(100, Math.max(0, 100 * (1 - left(s) / du))) : 0);   // Ring = abgelaufener Anteil
+    const du = sec(s.attributes.duration); b.style.setProperty('--rv', du > 0 ? Math.min(100, Math.max(0, 100 * (1 - left(s) / du))) : 0);   // Ring = abgelaufener Anteil
     b.classList.toggle('pa', s.state === 'paused');
     const n = b.querySelector('em'), nm = multi ? s.attributes.friendly_name || '' : ''; n.hidden = !nm; n.textContent = nm;   // Name nur bei mehreren Timern, sonst genügt die Zeit
   }

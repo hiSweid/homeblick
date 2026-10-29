@@ -18,7 +18,8 @@ export function kioskInit({ faces, conf, busy, touched, onState, onWake, music, 
   const fade = i => {
     if (!document.startViewTransition) return goto(i);
     const r = document.documentElement; r.classList.add('vt-blur');
-    document.startViewTransition(() => goto(i, 'instant')).finished.catch(() => {}).finally(() => r.classList.remove('vt-blur'));
+    const t = document.startViewTransition(() => goto(i, 'instant'));
+    t.ready.catch(() => {}); t.finished.catch(() => {}).finally(() => r.classList.remove('vt-blur'));   // übersprungene Transition (schneller Wechsel) lehnt auch ready ab (AbortError)
   };
   let last = Date.now(), back = -1, st = {}, urlFace;   // back = Face vor dem Screensaver
 
@@ -41,7 +42,8 @@ export function kioskInit({ faces, conf, busy, touched, onState, onWake, music, 
   document.addEventListener('pointerdown', e => { lock(); if (wake()) { e.stopPropagation(); e.preventDefault(); } }, true);
 
   const at = t => [...faces.children].findIndex(f => f.classList.contains('f-' + t));
-  const find = t => { const i = at(t); return i >= 0 ? i : Math.max(-1, ...(siblings(t)).map(at)); };   // Uhr/Kalender gibt es nur einmal, egal in welchem Design
+  const atId = t => [...faces.children].findIndex(f => f.dataset.fid === t);   // Face-id (grid, grid2 …): trifft auch die zweite Ansicht eines Typs
+  const find = t => { const j = atId(t); if (j >= 0) return j; const i = at(t); return i >= 0 ? i : Math.max(-1, ...(siblings(t)).map(at)); };   // Uhr/Kalender gibt es nur einmal, egal in welchem Design
   const saver = () => {
     const m = cfg().music !== false && music?.() ? find('music') : -1; if (m >= 0) return m;
     const i = find(cfg().saver);
@@ -64,7 +66,8 @@ export function kioskInit({ faces, conf, busy, touched, onState, onWake, music, 
       const s = saver(); if (s >= 0 && s !== idx()) fade(s);
     }
     const face = faces.children[idx()]?.className.match(/f-(\w+)/)?.[1] ?? null;
-    if (back < 0 && face && face !== urlFace) { urlFace = face; if (location.hash.slice(1) !== face) history.replaceState(null, '', '#' + face); }   // Adresse folgt dem Face (Wischen/Tippen) → jede Ansicht ist per URL #<typ> direkt aufrufbar; replaceState löst kein hashchange aus
+    const fid = faces.children[idx()]?.dataset.fid || face;
+    if (back < 0 && fid && fid !== urlFace) { urlFace = fid; if (location.hash.slice(1) !== fid) history.replaceState(null, '', '#' + fid); }   // Adresse folgt dem Face (Wischen/Tippen) → jede Ansicht ist per URL #<id> direkt aufrufbar (erste Ansicht eines Typs: #<typ>); replaceState löst kein hashchange aus
     if (onState && (face !== st.face || (back >= 0) !== st.saver)) onState(st = { face, saver: back >= 0 });
     // Einbrennschutz: im Schoner wandert das Bild minütlich auf einem kleinen Pfad (Eigenschaft translate, unabhängig vom Wisch-transform)
     const sh = cfg().shift && back >= 0 ? SHIFT[now.getMinutes() % SHIFT.length] : [0, 0];
@@ -85,8 +88,16 @@ export function kioskInit({ faces, conf, busy, touched, onState, onWake, music, 
   // Gewähltes Face beendet den Screensaver (sonst holt ihn der Schoner-Tick zurück)
   const show = t => { const i = find(t); if (i < 0) return; back = -1; last = Date.now(); goto(i); };
   const byHash = () => show(location.hash.slice(1));
-  addEventListener('hashchange', byHash); if (location.hash) byHash();
-  return { wake, sleep, show, paint, report: () => onState?.(st), wakeLock: () => !!wl && !wl.released };   // wake: Screensaver beenden (Wake Word, HA-Befehl), sleep: sofort starten, show: Face zeigen (HA-Befehl), report: Zustand erneut melden
+  addEventListener('hashchange', byHash);
+  // Start-Fragment: die Faces entstehen erst nach kioskInit() und werden nach register() nochmal auf Face 0 neu aufgebaut → #<face> bei jedem Neuaufbau erneut anwenden, bis getippt/hashchange/10 s
+  let boot = location.hash.slice(1);
+  const bootGo = () => { const i = boot ? find(boot) : -1; if (i >= 0) { back = -1; last = Date.now(); goto(i, 'instant'); } };
+  if (boot) {
+    const mo = new MutationObserver(bootGo), end = () => { boot = ''; mo.disconnect(); };
+    mo.observe(faces, { childList: true }); bootGo();
+    addEventListener('hashchange', end, { once: true }); addEventListener('pointerdown', end, { once: true, capture: true }); setTimeout(end, 10000);
+  }
+  return { wake, sleep, show, prev: () => back >= 0 ? back : idx(), paint, report: () => st.saver !== undefined && onState?.(st), wakeLock: () => !!wl && !wl.released };   // report: erst nach dem ersten Tick (sonst fehlen face/saver); wake: Screensaver beenden (Wake Word, HA-Befehl), sleep: sofort starten, show: Face zeigen (HA-Befehl), prev: Face vor dem Screensaver (sonst das aktuelle), report: Zustand erneut melden
 }
 
 // Selbsttest: node kiosk.js

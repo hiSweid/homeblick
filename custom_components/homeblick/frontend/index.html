@@ -4,6 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Homeblick</title>
+<script>
+// Die App ist ein einziger Modulgraph: fällt ein Import aus (WLAN-Aussetzer, HA-Neustart beim Boot), läuft nichts davon und nichts darin kann heilen → hier neu laden, mit wachsendem Abstand (höchstens 20 Versuche)
+addEventListener('error', e => {
+  if (e.target?.tagName !== 'SCRIPT') return;
+  let n = 5; try { n = +sessionStorage.hbBoot || 0; sessionStorage.hbBoot = n + 1; } catch {}
+  if (n < 20) setTimeout(() => location.reload(), Math.min(5 + n * 5, 60) * 1000);
+}, true);
+</script>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg">
 <meta name="theme-color" content="#000000">
@@ -126,7 +134,9 @@ svg.i{width:1em;height:1em;flex:none;fill:none;stroke:currentColor;stroke-width:
 .tile[data-size="2x1"]:not(.thermo){flex-direction:row;justify-content:flex-start;gap:4cqw;padding:0 5cqw;text-align:left}
 /* Stil-Varianten (Ideen-Galerie), im Layout der Apple-Vorlage (Website highlights/dashboard): zentriert wie die Thermostat-Zahl 68 mit Titel/Untertitel darunter, Glas, weiße An-Fläche, Ring/Kreis nur als dünne weiße Linie.
    value = Messwert groß statt Symbol (Sensor), circle = Symbol im Kreis (Szene, Schalter, Ventilator …), fill = Licht als Dimmer (weiße Fläche steigt) */
-.tile:is([data-sv=value],[data-sv=spark]) .ico{display:none}.tile:is([data-sv=value],[data-sv=spark]) .big{flex:1;display:flex;flex-wrap:wrap;align-items:baseline;align-content:center;justify-content:center;font-size:8.5cqw;font-weight:500;letter-spacing:-.02em;line-height:1;white-space:nowrap;padding-top:1.5cqw}
+.tile:is([data-sv=value],[data-sv=spark]) .ico{display:none}.tile:is([data-sv=value],[data-sv=spark]) .big{flex:1;display:flex;flex-wrap:wrap;align-items:baseline;align-content:center;justify-content:center;min-width:0;max-width:100%;font-size:8.5cqw;font-weight:500;letter-spacing:-.02em;line-height:1;white-space:nowrap;padding-top:1.5cqw}
+.tile:is([data-sv=value],[data-sv=spark]) .big .nm{font-size:calc(1em*var(--k,1))}
+.tile:is([data-sv=value],[data-sv=spark]) .big .tx{min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis}
 .tile:is([data-sv=value],[data-sv=spark]) .big small{font-size:.5em;font-weight:500;margin-left:.15em}
 .tile:is([data-sv=value],[data-sv=spark])[data-size="2x1"] .big{font-size:12cqw}.tile:is([data-sv=value],[data-sv=spark])[data-size="2x2"] .big{font-size:20cqw}.tile[data-sv=spark] .big{flex:1 1 0;padding-top:0;font-size:7.5cqw}
 .tile[data-sv=circle] .ico{box-sizing:content-box;font-size:6.2cqw;padding:2.4cqw;border-radius:50%;background:#ffffff26;transition:background .3s,color .3s}
@@ -138,14 +148,17 @@ svg.i{width:1em;height:1em;flex:none;fill:none;stroke:currentColor;stroke-width:
 .tile:is([data-sv=fill],[data-sv=blind]) .fill::before{content:"";position:absolute;inset:0 0 auto;height:.25cqw;background:#fff}
 .tile:is([data-sv=fill],[data-sv=blind]).drag .fill{transition:none}
 .tile:is([data-sv=fill],[data-sv=blind]) .pct{position:absolute;right:2.6cqw;top:2.6cqw;font-size:2.6cqw;font-weight:600;transition:color .3s}
-.tile:is([data-sv=fill],[data-sv=blind]).hi .ttl,.tile:is([data-sv=fill],[data-sv=blind]).hi .pct{color:var(--ink)!important}.tile:is([data-sv=fill],[data-sv=blind]).hi .sub{color:var(--ink2)!important}.tile:is([data-sv=fill],[data-sv=blind]).full .ico{color:var(--ink)!important}
+/* Text/Symbol/Prozent zweilagig: .fl2 = Kopie in dunkler Schrift, per clip-path auf die Fläche beschnitten (folgt --p) → an jeder Füllhöhe Kontrast, auch wenn die Kante durch den Text läuft */
+.tile .fl2{display:none}
+.tile:is([data-sv=fill],[data-sv=blind]) .fl2{position:absolute;inset:0;display:flex;flex-direction:inherit;align-items:inherit;justify-content:inherit;gap:inherit;padding:inherit;text-align:inherit;pointer-events:none;clip-path:inset(calc(100% - var(--p,0)*1%) 0 0);transition:clip-path .5s var(--spring)}
+.tile[data-sv=blind] .fl2{clip-path:inset(0 0 calc(100% - var(--p,0)*1%))}
+.tile:is([data-sv=fill],[data-sv=blind]).drag .fl2{transition:none}
+.fl2 :is(.ttl,.sub,.ico,.pct){color:var(--fi,var(--ink))!important}.fl2 .sub{opacity:.8}
 .tile:is([data-sv=fill],[data-sv=blind])[data-size="2x2"] .pct{font-size:4.4cqw;right:5cqw;top:5cqw}
-/* Rollo: Lamellenpanzer schiebt sich von oben nach unten (Höhe = Schließgrad); Symbol/Prozent oben werden dunkel, sobald die Fläche sie erreicht (.full), der Titel unten erst bei fast zu (.hi) */
+/* Rollo: Lamellenpanzer schiebt sich von oben nach unten (Höhe = Schließgrad); Text/Symbol werden dunkel, wo die Fläche liegt (.fl2) */
 .tile[data-sv=blind] .fill{inset:0 0 auto;background:repeating-linear-gradient(#fff 0 .3cqw,#f3f3f6 .3cqw 2.05cqw,#cdcdd5 2.05cqw 2.4cqw)}   /* Rolladenpanzer von oben nach unten: weiße Lamellen mit Lichtkante und Fuge, Abschlussschiene unten */
 .tile[data-sv=blind] .fill::before{inset:auto 0 0;height:.9cqw;background:linear-gradient(#c8c8d0,#a9a9b3)}
 .tile[data-sv=blind] .ttl,.tile[data-sv=blind] .sub{transition:color .3s}
-.tile[data-sv=blind].hi .ttl{color:var(--ink)!important}.tile[data-sv=blind].hi .sub{color:var(--ink2)!important}
-.tile[data-sv=blind].full .ico,.tile[data-sv=blind].full .pct{color:var(--ink)!important}
 /* Medien: Cover füllt die Kachel (Galerie „Cover-Vollbild“): dunkler Verlauf unten, Raum-Pille oben links, Titel/Interpret unten, Status-Symbol oben rechts; Pause = entsättigt + dunkler; ohne Cover Farbverlauf. Nicht aktiv = normale Kachel */
 .tile[data-sv=cover]{overflow:hidden}.tile[data-sv=cover]::before{display:none}
 .tile[data-sv=cover] .art{position:absolute;inset:0;z-index:-1;background:linear-gradient(145deg,#ff7a59,#c2185b 52%,#3b1c6e) center/cover;opacity:0;transition:opacity .4s,filter .4s}
@@ -188,9 +201,11 @@ svg.i{width:1em;height:1em;flex:none;fill:none;stroke:currentColor;stroke-width:
 .wxtile .tmp{position:absolute;left:5cqw;top:10cqw;font-size:22cqw;font-weight:300}
 .wxtile .wi{position:absolute;left:5cqw;bottom:5cqw;font-size:12cqw}
 .wxtile[data-size="1x1"] .tmp{font-size:10cqw;top:8cqw}.wxtile[data-size="1x1"] .wi{font-size:6cqw}
-.thermo .num{font-size:27cqw;margin-top:4.8cqw}   /* Ziffernmitte bei 43 % der Kachelhöhe (Frontalbild dashboard), Ziffernhöhe 19,8 % W */
+.thermo .num{font-size:27cqw;margin-top:4.8cqw;white-space:nowrap}   /* Ziffernmitte bei 43 % der Kachelhöhe (Frontalbild dashboard), Ziffernhöhe 19,8 % W */
 .thermo[data-size="2x1"] .num{font-size:13cqw;margin-top:4cqw}
 .thermo[data-size="1x1"] .num{font-size:10cqw;margin-top:5.5cqw}
+/* Bereichs-Sollwert „21–24“ (heat_cool): kleiner, damit es einzeilig in die Kachel passt */
+.thermo .num[data-rg]{font-size:12cqw}.thermo[data-size="2x1"] .num[data-rg]{font-size:8cqw}.thermo[data-size="1x1"] .num[data-rg]{font-size:5.5cqw}#climate .num[data-rg]{font-size:20cqw}
 /*: Titel/Untertitel im 2×2-Thermostat so groß wie bei 1×1, eine Zeile („Wohnzimmer • 20,5°“) */
 .thermo[data-size="2x2"] :is(.ttl,.sub){font-size:3cqw;line-height:1.36}
 .thermo .sub{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -476,6 +491,7 @@ html.dg,html.dg body{background:transparent;overflow:auto;display:block;height:a
 .f-music.pod .c:is(.prev,.next){font-size:9.6cqw}
 /* Zustände: nichts geladen/nicht erreichbar → Bedienung gedimmt; Radio/Livestream ohne Dauer → kein Fortschritt (LIVE) */
 .f-music.none:not(.amb) :is(.lyr,.queue,.prev,.next,.more,.prog,.times){opacity:.3;pointer-events:none}
+.f-music.nop .prev,.f-music.non .next,.f-music.nos .prog,.f-music.nosh [data-act=shuffle],.f-music.norp [data-act=repeat]{opacity:.3;pointer-events:none}   /* Player ohne das Merkmal (supported_features) */
 .f-music.live .prog{pointer-events:none}.f-music.live .prog i{display:none}
 .f-music.live .times span:first-child{visibility:hidden}
 .c.play{left:50cqw;font-size:11cqw}
@@ -524,7 +540,7 @@ html.dg,html.dg body{background:transparent;overflow:auto;display:block;height:a
 .amb:not(.ly,.qm)>.cover::after{transform:scale(1.12)}
 
 /* Warteschlange (wie Lyrics-Modus, Liste statt Text) */
-.qlist{position:absolute;inset:17cqw 0 21cqw;overflow-y:auto;scrollbar-width:none;padding:0 6cqw 4cqw;opacity:0;pointer-events:none;filter:blur(1.4cqw)}
+.qlist{position:absolute;inset:17cqw 0 21cqw;overflow-y:auto;touch-action:pan-y;scrollbar-width:none;padding:0 6cqw 4cqw;opacity:0;pointer-events:none;filter:blur(1.4cqw)}
 .qlist::-webkit-scrollbar{display:none}
 .qm .qlist{opacity:1;pointer-events:auto;filter:none}
 .f-music>.qlist{transition:opacity .23s ease-out,filter .23s ease-out}
@@ -790,7 +806,7 @@ input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:tr
 /* Kopfzeile: alles Kleine oben mittig in einer Spalte (z 18 wie bisher die Timer-Pille): Reihe der Pillen, darunter die Offline-Pille; Kinder fangen Tipps, der Rest nicht */
 #hud{position:absolute;left:0;right:0;top:2.1cqw;z-index:18;display:flex;flex-direction:column;align-items:center;pointer-events:none}
 #hud>*,#prow>*{pointer-events:auto}
-#prow{display:flex;flex-wrap:wrap;justify-content:center;gap:.9cqw 1.2cqw;max-width:62cqw}   /* 62 cqw: die Titelzeilen der Ansichten (links Name, rechts Uhrzeit) bleiben frei; reicht es nicht, bricht die Reihe um statt Pillen zu quetschen */
+#prow{display:flex;flex-wrap:nowrap;justify-content:safe center;gap:.9cqw 1.2cqw;max-width:62cqw;overflow-x:auto;scrollbar-width:none}#prow::-webkit-scrollbar{display:none}   /* 62 cqw: die Titelzeilen der Ansichten (links Name, rechts Uhrzeit) bleiben frei; reicht es nicht, bleibt die Reihe einzeilig und scrollt, statt Pillen zu quetschen oder in die Ausgabe-Pille umzubrechen */
 #tps,#lps{display:contents}
 #prow:has(.tpill:not([hidden]),.lp:not([hidden])){margin-bottom:1.2cqw}
 /* ---------- Benachrichtigungskarte: Vollbild-Karte über den Faces (z 16: über .view 2, unter Kontrollzentrum 17, Zeit-Pille 18, Timer 19, Assist 20)
@@ -875,7 +891,7 @@ input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:tr
 .guestlock .gl{width:17cqw;height:17cqw;margin-bottom:2cqw}.guestlock b{font-size:5.6cqw;font-weight:600}.guestlock span{font-size:3.8cqw;opacity:.6}
 /* Personen-Face */
 .f-people{padding:0;overflow:hidden}.f-people header{position:absolute;left:7cqw;top:9cqw;font-size:7cqw;font-weight:600;letter-spacing:-.03em}
-.f-people .plist{position:absolute;left:5cqw;right:5cqw;top:23cqw;bottom:4cqw;display:flex;flex-direction:column;gap:2.2cqw;overflow-y:auto;scrollbar-width:none}.f-people .plist::-webkit-scrollbar{display:none}
+.f-people .plist{position:absolute;left:5cqw;right:5cqw;top:23cqw;bottom:4cqw;display:flex;flex-direction:column;gap:2.2cqw;overflow-y:auto;touch-action:pan-y;scrollbar-width:none}.f-people .plist::-webkit-scrollbar{display:none}
 .prow{flex:none;display:flex;align-items:center;gap:3.4cqw;height:16cqw;padding:0 4cqw;border-radius:4.3cqw;corner-shape:squircle;background:var(--glass,linear-gradient(165deg,#ffffff3d,#ffffff29 50%,#ffffff1f));box-shadow:inset 0 0 0 .25cqw #ffffff47}
 .prow.home{background:linear-gradient(165deg,#ffffffd9,#ffffffb8);color:#3c3c3c}
 .pav{flex:none;width:10.4cqw;height:10.4cqw;border-radius:50%;overflow:hidden;display:grid;place-items:center;background:#ffffff40;font-size:5cqw;font-weight:600}.pav img{width:100%;height:100%;object-fit:cover}
@@ -885,7 +901,7 @@ input[type=range]::-moz-range-thumb{width:1px;height:7cqw;border:0;background:tr
    Eine Apple-Vorlage für „Wo ist?“ selbst gibt es in ref/ nicht (ANALYSE P3: kein Bild) → Karten-Elemente der Siri-Karte + Wetter-Knopf, Rest Annahme */
 .f-people .pmap{position:absolute;inset:0;opacity:0;transition:opacity .6s}.f-people.mapped .pmap{opacity:1}.f-people.mapped .plist,.f-people.mapped header{display:none}
 .f-people .plb{display:none;position:absolute;left:4.2cqw;top:4.2cqw;width:8.6cqw;height:8.6cqw;padding:0;border:0;border-radius:50%;place-items:center;color:#3c3c3c;background:#ffffffc7;-webkit-backdrop-filter:blur(2cqw);backdrop-filter:blur(2cqw);box-shadow:0 .4cqw 1.6cqw #0003;z-index:4;transition:scale .2s}.f-people .plb:active{scale:.92}.f-people .plb svg{width:4.6cqw;height:4.6cqw}.f-people.mapped .plb{display:grid}
-.f-people .ppop{corner-shape:squircle;position:absolute;left:4.2cqw;top:14.6cqw;min-width:50cqw;max-width:78cqw;padding:1.6cqw;border-radius:5cqw;background:#ffffffe0;color:#2b2b2b;-webkit-backdrop-filter:blur(4cqw);backdrop-filter:blur(4cqw);box-shadow:0 1cqw 4cqw #0003;z-index:4;transform-origin:0 0;scale:.6;opacity:0;pointer-events:none;transition:scale var(--sd,.64s) var(--spring,ease-out),opacity .25s}.f-people .ppop.open{scale:1;opacity:1;pointer-events:auto}
+.f-people .ppop{corner-shape:squircle;position:absolute;left:4.2cqw;top:14.6cqw;min-width:50cqw;max-width:78cqw;max-height:80cqw;overflow-y:auto;touch-action:pan-y;overscroll-behavior:contain;scrollbar-width:none;padding:1.6cqw;border-radius:5cqw;background:#ffffffe0;color:#2b2b2b;-webkit-backdrop-filter:blur(4cqw);backdrop-filter:blur(4cqw);box-shadow:0 1cqw 4cqw #0003;z-index:4;transform-origin:0 0;scale:.6;opacity:0;pointer-events:none;transition:scale var(--sd,.64s) var(--spring,ease-out),opacity .25s}.f-people .ppop.open{scale:1;opacity:1;pointer-events:auto}
 .ppop button{display:flex;align-items:center;gap:3cqw;width:100%;padding:1.8cqw 2.4cqw;border:0;border-radius:3.6cqw;background:none;color:inherit;font-family:inherit;font-size:4.2cqw;font-weight:600;text-align:left}.ppop button.on{background:#0000000f}
 .ppop .pav{width:8cqw;height:8cqw;font-size:4cqw;background:#dfe5e8}.ppop b{display:block;font-size:4cqw;font-weight:600}.ppop small{display:block;font-size:3.2cqw;font-weight:400;opacity:.6}
 .pm{width:11cqw;height:11cqw;animation:pmin .6s var(--spring) backwards}@keyframes pmin{from{scale:.3;opacity:0}}
@@ -1100,6 +1116,7 @@ import { photosInit, photosFace } from './photos.js';
 import { pillsInit } from './pills.js';
 import { MOTIF, hueOf, bgTint, bgInk, bgSvg, svgData, wall as wallpaper } from './wallpapers.js';
 import { TH, themeBg, applyThemeVars } from './themes.js';
+try { sessionStorage.removeItem('hbBoot'); } catch {}   // Modulgraph geladen: Neuladezähler des Kopf-Skripts zurücksetzen
 // Ohne Parameter: Demo-Daten. Echtes HA nur mit ?live
 const LIVE = new URLSearchParams(location.search).has('live');
 // ?preview: Vorschau in der Einstellungsseite – Konfiguration und Zustände kommen per postMessage, nichts wird gespeichert
@@ -1390,14 +1407,27 @@ try { const o = localStorage.getItem('homeview.v1'); if (o != null) { if (localS
 // Jedes Display hat seine Kennung (pro Gerät/Browser); in HA: eigenes Gerät mit Entities, eigene Faces und Einstellungen
 // ?display=kueche (einmal pro Gerät öffnen) legt die Kennung fest und merkt sie sich
 const DISPLAY = PREVIEW ? 'preview' : (() => {
-  const p = (new URLSearchParams(location.search).get('display') || '').toLowerCase().replace(/[^a-z0-9_-]/g, '');
-  try { if (p) localStorage.homeblickDisplay = p; return localStorage.homeblickDisplay ||= 'd' + Math.random().toString(36).slice(2, 8); } catch { return p || 'd0'; }
+  const norm = x => String(x || '').toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 64);   // wie der Server: [a-z0-9_-], höchstens 64 Zeichen
+  const p = norm(new URLSearchParams(location.search).get('display'));
+  try { if (p) localStorage.homeblickDisplay = p; return localStorage.homeblickDisplay = norm(localStorage.homeblickDisplay) || 'd' + Math.random().toString(36).slice(2, 8); } catch { return p || 'd0'; }
 })();
 let CONF;
 if (!PREVIEW) try { CONF = JSON.parse(localStorage.getItem(KEY)); } catch {}
 if (Array.isArray(CONF?.faces)) cleanConf(CONF); else CONF = null;   // kaputte Struktur → Standard
 if (!CONF?.faces?.length) cleanConf(CONF = structuredClone(DEF));
 if (PREVIEW) CONF.kiosk = { idle: 0, kz: false };
+// Server-Konfig übernehmen: erst bereinigen, dann prüfen (nur ungültige Faces ergäben ein schwarzes Display, auch nach dem Neuladen); false = unbrauchbar, CONF bleibt.
+// Fehlende Migrations-Flags (ältere/per API angelegte Konfigs) nachtragen und hochladen, sonst migriert jeder Seitenaufruf lokal neu und zwei Tabs laden sich gegenseitig endlos neu
+const takeConf = (c, kiosk) => {
+  if (!c?.faces?.length) return false;
+  const n = { ...c, kiosk }; normFaces(n, DEF.faces);
+  if (!n.faces.length) return false;
+  const flags = !n.cams || !n.energy || (n.dyn || 0) < 2;
+  n.cams = n.energy = 1; n.dyn = Math.max(n.dyn || 0, 2);
+  CONF = n;
+  if (flags) save(); else try { localStorage.setItem(KEY, JSON.stringify(CONF)); } catch {}
+  return true;
+};
 const normSave = () => { if (normFaces(CONF, DEF.faces)) save(); };
 // ponytail: Fotos als data-URL im localStorage (~5 MB Limit); bei vielen Fotos → IndexedDB
 const save = () => { if (PREVIEW) return; try { localStorage.setItem(KEY, JSON.stringify(CONF)); conn?.sendMessagePromise({ type: 'homeblick/set_config', display: DISPLAY, config: CONF }).catch(() => {}); } catch (e) { console.warn('Speichern fehlgeschlagen', e); } };
@@ -1440,6 +1470,14 @@ function place(el, f) {
 }
 
 // ---------- Ansichten bauen ----------
+// Messwert „Zahl + Einheit“ (value/spark): Schrift verkleinern, bis alles einzeilig in die Kachel passt (Zahl nie abschneiden); false = noch kein Layout
+const fitBig = big => {
+  const nm = big.firstElementChild; if (!nm?.classList.contains('nm')) return true;
+  nm.style.removeProperty('--k'); const w = big.clientWidth, n = nm.offsetWidth;
+  if (!w) return false;
+  if (n > w) nm.style.setProperty('--k', Math.floor(w / n * 98) / 100);
+  return true;
+};
 const svg = (id, cls = '') => `<svg class="i ${cls}"><use href="#${esc(id)}"/></svg>`;
 const chev = d => `<button class="chev" data-act="${d}" aria-label="${d === 'up' ? tx('Wärmer') : tx('Kälter')}">${svg(d)}</button>`;
 const kindOf = t => t.kind || (t.e?.startsWith('climate.') ? 'thermo' : 'tile');
@@ -1466,7 +1504,9 @@ function tileEl(c) {
   else if (kind === 'thermo') { el.className = 'tile thermo'; el.innerHTML = `<div class="num" data-temp="${esc(t.e)}"></div><div class="foot">${chev('down')}${label}${chev('up')}</div>`; }
   else {
     el.className = 'tile';
-    el.innerHTML = (t.e?.startsWith('camera.') ? '<div class="feed"></div>' + (t.sv === 'live' ? `<div class="lvp"></div><div class="mch">${tx('Bewegung')}</div>` : '') : '') + (t.sv === 'fill' || t.sv === 'blind' ? '<div class="fill"></div><div class="pct"></div>' : t.sv === 'cover' ? `<div class="art"></div><div class="pill">${esc(t.title)}</div><div class="pct"></div><div class="cvr"><button data-act="tmp" aria-label="${tx('Zurück')}">${svg('prev')}</button><button class="pp" data-act="tmt" aria-label="${tx('Abspielen/Pause')}"></button><button data-act="tmn" aria-label="${tx('Weiter')}">${svg('next')}</button></div>` : '') + svg(iconOf(t), 'ico') + (t.sv === 'value' ? '<div class="big"></div>' : t.sv === 'spark' ? '<div class="big"></div><div class="spw"></div>' : '') + label;
+    el.innerHTML = (t.e?.startsWith('camera.') ? '<div class="feed"></div>' + (t.sv === 'live' ? `<div class="lvp"></div><div class="mch">${tx('Bewegung')}</div>` : '') : '') + (t.sv === 'fill' || t.sv === 'blind' ? '<div class="fill"></div><div class="pct"></div>' : t.sv === 'cover' ? `<div class="art"></div><div class="pill">${esc(t.title)}</div><div class="pct"></div><div class="cvr"><button data-act="tmp" aria-label="${tx('Zurück')}">${svg('prev')}</button><button class="pp" data-act="tmt" aria-label="${tx('Abspielen/Pause')}"></button><button data-act="tmn" aria-label="${tx('Weiter')}">${svg('next')}</button></div>` : '') + svg(iconOf(t), 'ico') + (t.sv === 'value' ? '<div class="big"></div>' : t.sv === 'spark' ? '<div class="big"></div><div class="spw"></div>' : '') + label
+      + (t.sv === 'fill' || t.sv === 'blind' ? `<div class="fl2" aria-hidden="true"><div class="pct"></div>${svg(iconOf(t), 'ico')}${label}</div>` : '');
+    if (t.sv === 'fill' || t.sv === 'blind') { const o = $('.lbl', el), c = $('.fl2 .lbl', el); new MutationObserver(() => c.innerHTML = o.innerHTML).observe(o, { subtree: true, childList: true, characterData: true }); }   // Textänderungen (Name, Status) in die dunkle Lage spiegeln
   }   // Livebild: camTile in render()
   return el;
 }
@@ -1749,11 +1789,11 @@ function peopleFill() {
   const home = ents['zone.home']?.attributes, pts = [];
   const html = Object.keys(ents).filter(i => i.startsWith('person.')).sort().map(id => {
     const s = ents[id], a = s.attributes, name = a.friendly_name || id, bat = ents[a.source]?.attributes.battery_level;
-    const away = s.state === 'not_home', d = away && a.latitude != null && home?.latitude != null ? kmBetween(a.latitude, a.longitude, home.latitude, home.longitude) : null;
+    const away = s.state === 'not_home', d0 = away && a.latitude != null && home?.latitude != null && Math.abs(a.latitude) <= 90 && Math.abs(a.longitude) <= 180 ? kmBetween(a.latitude, a.longitude, home.latitude, home.longitude) : null, d = Number.isFinite(d0) ? d0 : null;   // ungültige Koordinaten (>90°, Text, NaN): ohne Entfernung
     const where = s.state === 'home' ? tx('Zuhause') : away ? tx('Unterwegs') + (d != null ? ` • ${d < 10 ? d.toLocaleString(LOC, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : Math.round(d)} km` : '') : s.state === 'unknown' || s.state === 'unavailable' ? tx('Unbekannt') : s.state;
-    const av = `<div class="pav">${a.entity_picture ? `<img src="${esc(abs(a.entity_picture))}" alt="">` : esc(name.trim()[0] || '?').toUpperCase()}</div>`;
+    const av = `<div class="pav">${abs(a.entity_picture) ? `<img src="${esc(abs(a.entity_picture))}" alt="">` : esc(name.trim()[0] || '?').toUpperCase()}</div>`;
     const at = a.latitude != null ? a : s.state === 'home' && home?.latitude != null ? home : null;   // ohne GPS steht, wer „Zuhause“ ist, auf der Home-Zone
-    if (at) pts.push({ id, lat: at.latitude, lon: at.longitude, html: `${av}<div class="lb"><b>${esc(name)}</b><span>${esc(where)}</span></div>`, row: `${av}<span><b>${esc(name)}</b><small>${esc(where)}</small></span>` });
+    if (at && Math.abs(at.latitude) <= 90 && Math.abs(at.longitude) <= 180) pts.push({ id, lat: at.latitude, lon: at.longitude, html: `${av}<div class="lb"><b>${esc(name)}</b><span>${esc(where)}</span></div>`, row: `${av}<span><b>${esc(name)}</b><small>${esc(where)}</small></span>` });
     return `<div class="prow${s.state === 'home' ? ' home' : ''}">${av}<div class="pt"><b>${esc(name)}</b><span>${esc(where)}</span></div>${bat != null ? `<div class="pb">${Math.round(bat)} %</div>` : ''}</div>`;
   }).join('') || `<p class="pnone">${tx('Keine Personen in Home Assistant')}</p>`;
   const pk = JSON.stringify(pts), ph = `<button data-id="">${tx('Alle Personen')}</button>` + pts.map(p => `<button data-id="${esc(p.id)}">${p.row}</button>`).join('');
@@ -1766,13 +1806,13 @@ function peopleFill() {
 }
 function buildFace(f) {
   const el = document.createElement('div');
-  el.className = `face f-${f.type}`;
+  el.className = `face f-${f.type}`; el.dataset.fid = f.id;
   applyBg(el, bgOf(f));
   FACE[f.type](el, f);
   initDials(el);
   if (f.type === 'music') musicIO.observe(el);
   actIO.observe(el);
-  if (CONF.kiosk?.guest && GUEST_HIDES.has(f.type) && !PREVIEW) el.insertAdjacentHTML('beforeend', `<div class="guestlock">${svg('lock', 'gl')}<b>${tx('Persönlich')}</b><span>${tx('Gastmodus')}</span></div>`);
+  if (CONF.kiosk?.guest && GUEST_HIDES.has(f.type) && !PREVIEW) { el.inert = true; el.insertAdjacentHTML('beforeend', `<div class="guestlock">${svg('lock', 'gl')}<b>${tx('Persönlich')}</b><span>${tx('Gastmodus')}</span></div>`); }   // inert: Tab/Enter und Screenreader kommen nicht an der Sperre vorbei
   return el;
 }
 
@@ -1845,7 +1885,7 @@ const dialIO = new IntersectionObserver(es => { for (const e of es) if (!e.targe
 function roll(el, txt, dir = 0) {
   const old = el.lastElementChild, n = document.createElement('span');
   n.textContent = txt; el.append(n);
-  if (el.closest('#climate')) n.classList.toggle('dec', txt.includes(','));   // Klima: Dezimalzahl kleiner – nur an der neuen Zahl, die ausrollende alte behält ihre Größe
+  if (el.closest('#climate')) n.classList.toggle('dec', txt.includes(',') && !el.dataset.rg);   // Klima: Dezimalzahl kleiner – nur an der neuen Zahl, die ausrollende alte behält ihre Größe
   if (!dir || !old) { old?.remove(); return; }
   // Apple (STEUERUNG.md P2-5): nur die geänderte Ziffer rollt, 55 % Zeichenhöhe, Blur, ~300 ms; sinkt der Wert: alt nach unten, neu von oben
   const out = { transform: `translateY(${-dir * 55}%)`, opacity: 0, filter: 'blur(.8cqw)' }, inn = { transform: `translateY(${dir * 55}%)`, opacity: 0, filter: 'blur(.8cqw)' }, id = { transform: 'none', opacity: 1, filter: 'none' };
@@ -1885,7 +1925,7 @@ let ents = {}, forecast = null, NP = null, npKey = '', netDown = false;   // net
 const ent = id => Object.hasOwn(ents, id) ? ents[id] : undefined;   // plain object: 'constructor' u. Ä. dürfen nicht als Entity gelten
 const gone = id => !ent(id) || ent(id).state === 'unavailable';   // Entity verschwunden/nicht erreichbar: keine Calls
 const st = id => ent(id) || { state: 'unavailable', attributes: {} };
-const abs = u => u && (u.startsWith('/') ? HASS + u : u);
+const abs = u => typeof u === 'string' && u ? (u.startsWith('/') ? HASS + u : u) : '';   // Attribute können beliebig typisiert sein (Template/Custom-Integration)
 const hold = {}, holdT = {}, held = id => hold[id] > Date.now();   // lokale Eingabe gewinnt kurz gegen HA-Echo
 const holdFor = (id, ms) => { hold[id] = Date.now() + ms; clearTimeout(holdT[id]); holdT[id] = setTimeout(schedule, ms + 50); };   // nach Ablauf einmal abgleichen (render überspringt Gehaltenes)
 const fmt = v => v == null ? '–' : (+v).toLocaleString(LOC, { maximumFractionDigits: 1 });
@@ -1893,7 +1933,7 @@ const FILL = /^(fill|blind)$/, closedPct = s => s.state === 'closed' ? 100 : s.a
 const pct = s => s.state === 'on' ? Math.max(1, Math.round((s.attributes.brightness ?? 255) / 2.55)) : 0;   // brightness 1 ist an, nicht 0 %
 const mmss = s => { s = Math.max(0, s); const z = n => String(n).padStart(2, '0'), h = Math.floor(s / 3600); return (h ? h + ':' + z(Math.floor(s / 60) % 60) : Math.floor(s / 60)) + ':' + z(Math.floor(s % 60)); };   // negativ → 0, ab 1 h h:mm:ss
 const cu = u => `url("${String(u).replace(/["\\()\n\r]/g, c => '%' + c.charCodeAt(0).toString(16).padStart(2, '0'))}")`;   // URL für CSS url("…"): Ausbruchszeichen prozent-kodieren
-const ON = { climate: s => /^(heating|cooling)$/.test(s.attributes.hvac_action), /* Ruhezustand = Glas, an nur bei aktivem Heizen/Kühlen oder kurz nach Bedienung */ light: s => s.state === 'on', fan: s => s.state === 'on', lock: s => s.state !== 'locked', cover: s => s.state !== 'closed', media_player: s => s.state === 'playing', timer: s => s.state === 'active', switch: s => s.state === 'on', input_boolean: s => s.state === 'on', binary_sensor: s => s.state === 'on' };
+const ON = { climate: s => /^(heating|cooling)$/.test(s.attributes.hvac_action), /* Ruhezustand = Glas, an nur bei aktivem Heizen/Kühlen oder kurz nach Bedienung */ light: s => s.state === 'on', fan: s => s.state === 'on', lock: s => /^(unlocked|unlocking|open|opening|jammed)$/.test(s.state), /* nur sicher Offenes; unavailable/unknown = neutral */ cover: s => s.state !== 'closed', media_player: s => s.state === 'playing', timer: s => s.state === 'active', switch: s => s.state === 'on', input_boolean: s => s.state === 'on', binary_sensor: s => s.state === 'on' };
 const MODES = { heat: [tx('Heizen auf'), '#ff9500'], cool: [tx('Kühlen auf'), '#009efc'], heat_cool: [tx('Automatisch'), '#30b0c7'], dry: [tx('Entfeuchten'), '#5ac8fa'], fan_only: [tx('Lüften'), '#34c759'], off: [tx('Aus'), '#636366'], auto: [tx('Automatisch'), '#30b0c7'], unavailable: [tx('Nicht verfügbar'), '#636366'], unknown: [tx('Nicht verfügbar'), '#636366'] };
 
 // ---------- Demo-Bibliothek (erfundene Titel, generierte Cover) ----------
@@ -1997,14 +2037,16 @@ energyInit((ids, start) => LIVE && conn ? conn.sendMessagePromise({ type: 'histo
 // Modus-Menü der Klima-Ansicht: Reihenfolge wie im Video (Off, Cool, Heat, Auto), weitere HA-Modi dahinter
 const HVAC = { off: tx('Aus'), cool: tx('Kühlen'), heat: tx('Heizen'), heat_cool: 'Auto', auto: 'Auto', dry: tx('Entfeuchten'), fan_only: tx('Lüften') };
 function fillModes(c) {
-  const m = Object.keys(HVAC), l = (c.attributes.hvac_modes || []).filter(k => HVAC[k]).sort((a, b) => m.indexOf(a) - m.indexOf(b)), mm = $('#climate .hm');
+  const m = Object.keys(HVAC), l = (Array.isArray(c.attributes.hvac_modes) ? c.attributes.hvac_modes : []).filter(k => HVAC[k]).sort((a, b) => m.indexOf(a) - m.indexOf(b)), mm = $('#climate .hm');
   const html = l.map(k => `<button role="menuitemradio" data-act="hvacset" data-v="${k}"${k === c.state ? ' class="on" aria-checked="true"' : ''}><svg class="i"><use href="#check"/></svg>${HVAC[k]}</button>`).join('');
   if (mm.dataset.k !== html) { mm.dataset.k = html; mm.innerHTML = html; }
   $('#climate .pw').hidden = !l.length;
 }
 const modeMenu = on => { $('#climate').classList.toggle('mo', on); $('#climate .hm').classList.toggle('open', on); };
 const T = {};   // Soll-Temperatur je Klima-Entity
-function setTemp(id, v, dir = 0) { T[id] = v; for (const el of $$(`[data-temp="${id}"]`)) roll(el, fmt(v), dir); }
+function setTemp(id, v, dir = 0) { T[id] = v; delete R[id]; for (const el of $$(`[data-temp="${id}"]`)) { el.removeAttribute('data-rg'); roll(el, fmt(v), dir); } }
+const R = {};   // Bereichs-Sollwert (heat_cool) je Klima-Entity: [niedrig, hoch]
+function setRange(id, r, dir = 0) { R[id] = r; for (const el of $$(`[data-temp="${id}"]`)) { el.dataset.rg = 1; roll(el, `${fmt(r[0])}–${fmt(r[1])}`, dir); } }
 const S = { light: 0 };
 // Füllhöhe ≈ Wert + 6 Punkte (Gerade durch drei Messpunkte 33/37/80 %, bei 100 % geklammert; Enden unbelegt, STEUERUNG F7)
 function setShade(c) { S.shade = 100 - c; $('#shade').style.setProperty('--f', c / 100); $('#shade').classList.toggle('lo', c >= 14); bind('shade', 100 - c); }   // c = Schließgrad
@@ -2088,16 +2130,17 @@ let queued = 0;
 const schedule = () => queued ||= requestAnimationFrame(() => { queued = 0; render(); });
 // Mehrbenutzer: Avatare aus person.*, Tipp fächert die übrigen im Viertelbogen auf, Auswahl setzt Name/Akzent
 const AVC = ['#9b8cd6', '#5a9a8f', '#e8a63c', '#d4604a', '#4a8ad8', '#8aa85a'];
-let who = localStorage.hb_person || '';
+let who = ''; try { who = localStorage.hb_person || ''; } catch {}   // gesperrter Speicher darf den Start nicht abbrechen
 const persons = () => Object.values(ents).filter(e => e.entity_id.startsWith('person.'));
-const avStyle = (e, i) => `--c:${AVC[i % AVC.length]}` + (e.attributes.entity_picture ? `;background-image:url("${e.attributes.entity_picture.startsWith('/') ? HASS + e.attributes.entity_picture : e.attributes.entity_picture}")` : '');
+const avPic = e => abs(e.attributes.entity_picture);
+const avStyle = (e, i) => `--c:${AVC[i % AVC.length]}` + (avPic(e) ? `;background-image:${cu(avPic(e))}` : '');
 const avName = e => e.attributes.friendly_name || e.entity_id.slice(7);
 function avatars() {
   const ps = persons(), cur = ps.find(p => p.entity_id === who) || ps[0];
   for (const g of $$('.greet')) {
     const a = $('.av', g); if (!a) continue;
     a.hidden = !cur; if (!cur) continue;
-    const i = ps.indexOf(cur); a.style.cssText = avStyle(cur, i); a.textContent = cur.attributes.entity_picture ? '' : avName(cur)[0];
+    const i = ps.indexOf(cur); a.style.cssText = avStyle(cur, i); a.textContent = avPic(cur) ? '' : avName(cur)[0];
     bind('who', avName(cur));
     const rest = ps.filter(p => p !== cur), key = rest.map(p => p.entity_id).join();
     if (g.dataset.fk === key) continue;
@@ -2105,7 +2148,7 @@ function avatars() {
     rest.forEach((p, k) => {   // 180° (links) bis 90° (unten), Radius 3,5 × Avatar
       const ang = Math.PI * (rest.length < 2 ? .75 : 1 - k / (rest.length - 1) / 2), r = 35;
       // esc: url("…") aus avStyle steht sonst roh im doppelt gequoteten style-Attribut und beendet es
-      g.insertAdjacentHTML('beforeend', `<button class="avf" data-act="avpick" data-v="${esc(p.entity_id)}" style="${esc(avStyle(p, ps.indexOf(p)))};--k:${k};--x:${(r * Math.cos(ang)).toFixed(1)}cqw;--y:${(r * Math.sin(ang)).toFixed(1)}cqw">${p.attributes.entity_picture ? '' : esc(avName(p)[0])}</button>`);
+      g.insertAdjacentHTML('beforeend', `<button class="avf" data-act="avpick" data-v="${esc(p.entity_id)}" style="${esc(avStyle(p, ps.indexOf(p)))};--k:${k};--x:${(r * Math.cos(ang)).toFixed(1)}cqw;--y:${(r * Math.sin(ang)).toFixed(1)}cqw">${avPic(p) ? '' : esc(avName(p)[0])}</button>`);
     });
   }
 }
@@ -2123,12 +2166,13 @@ function liveTile(t, s) {   // Kamera-Livebild: Pille (Live/Offline) + Bewegungs
   const mid = t._t.motion || t._mid;
   t.classList.toggle('mv', !!mid && ents[mid]?.state === 'on');
 }
+const ttlOf = (t, s) => (t._v || t._t).title?.trim() || s.attributes.friendly_name || '';   // leerer Titel → Name der Entity
 function coverTile(t, s) {   // Medien-Kachel mit Cover-Vollbild
   const a = s.attributes, act = /^(playing|buffering|paused)$/.test(s.state) && !!(a.media_title || a.entity_picture), pic = a.entity_picture ? abs(a.entity_picture) : '';
   t.classList.toggle('art-on', act); t.classList.toggle('paused', s.state === 'paused');
   const art = $('.art', t); if (t._pic !== pic) { t._pic = pic; art.style.backgroundImage = pic ? `url("${pic}")` : ''; }
   const set = (sel, v) => { const n = $(sel, t); if (n && n.innerHTML !== v) n.innerHTML = v; };
-  set('.ttl', esc(act ? a.media_title || (t._v || t._t).title : (t._v || t._t).title)); set('.sub', esc(act ? a.media_artist || a.media_album_name || '' : t._sub || ''));
+  set('.ttl', esc(act ? a.media_title || ttlOf(t, s) : ttlOf(t, s))); set('.sub', esc(act ? a.media_artist || a.media_album_name || '' : t._sub || ''));
   set('.cvr .pp', act ? svg(s.state === 'paused' ? 'play' : 'pause') : '');
 }
 function statusSub(t, d, s) {
@@ -2143,6 +2187,10 @@ function valText(s, k) {
   if (v == null || v === '' || s.state === 'unavailable') return '';
   if (k === 'state' && v in SDE) return SDE[v];
   if (k === 'brightness') return Math.round(v / 2.55) + ' %';
+  if (typeof v === 'string' && /^\d{4}-\d\d-\d\dT\d\d:\d\d.*(Z|[+-]\d\d:?\d\d)$/.test(v) && !isNaN(Date.parse(v))) {   // ISO-Zeitstempel (z. B. sun_next_dusk) lokal: heute nur Uhrzeit
+    const d = new Date(v), hm = d.toLocaleTimeString(LOC, { hour: '2-digit', minute: '2-digit' });
+    return d.toDateString() === new Date().toDateString() ? hm : `${d.toLocaleDateString(LOC, { weekday: 'short', day: 'numeric', month: 'short' })} ${hm}`;
+  }
   if (typeof v !== 'number' && !/^-?\d+(\.\d+)?$/.test(v)) return String(v);
   return fmt(v) + (k === 'state' ? (s.attributes.unit_of_measurement ? ' ' + s.attributes.unit_of_measurement : '') : ATTR_U.find(([r]) => r.test(k))?.[1] || '');
 }
@@ -2158,6 +2206,7 @@ function render() {
     t.classList.toggle('na', s.state === 'unavailable');
     if (!held(id)) t.classList.toggle(FILL.test(t.dataset.sv) || t.dataset.sv === 'cover' ? 'lit' : 'on', !!ON[d]?.(s));
     if (t.dataset.sv === 'cover') coverTile(t, s);
+    else if (t.dataset.ti != null && !(t._v || t._t).title?.trim()) { const n = $('.ttl', t), v = ttlOf(t, s); if (n && n.textContent !== v) n.textContent = v; }
     if (t.dataset.sv === 'live') liveTile(t, s);
     if (FILL.test(t.dataset.sv) && !t._drag && !held(id)) {   // Füllhöhe = Helligkeit bzw. Schließgrad; in der Vorschau (nicht Bearbeiten) bei „aus“/offen eine Beispielhöhe zur Ansicht
       const blind = t.dataset.sv === 'blind', p0 = blind ? closedPct(s) : pct(s), demo = PREVIEW && !root.classList.contains('pvedit') && (blind ? !p0 : s.state !== 'on'), p = demo ? (blind ? 55 : 70) : p0;
@@ -2167,7 +2216,7 @@ function render() {
     const u = d === 'lock' && $('.ico use', t);
     if (u && /lock/.test(u.getAttribute('href'))) {
       // Bügel als eigener Pfad: hebt/dreht sich beim Entriegeln, rastet mit Feder ein
-      const sv = u.closest('svg'), open = s.state !== 'locked';
+      const sv = u.closest('svg'), open = ON.lock(s);
       sv.classList.add('lk'); sv.setAttribute('viewBox', '0 0 24 24'); sv.innerHTML = '<rect x="4.5" y="11.5" width="15" height="10.5" rx="2.5" fill="currentColor" stroke="none"/><path class="sh" d="M7.8 11.5V8.4a4.2 4.2 0 0 1 8.4 0v3.1" stroke-width="2.4"/>';
       sv.classList.toggle('open', open);
     }
@@ -2177,11 +2226,12 @@ function render() {
       const p = s.attributes.current_position, o = typeof p === 'number' ? p / 100 : /^(open|opening)$/.test(s.state) ? 1 : 0;
       sv?.style.setProperty('--o', o);
     }
-    else if (d === 'lock') { const sv = $('svg.lk', t); if (sv) sv.classList.toggle('open', s.state !== 'locked'); }
+    else if (d === 'lock') { const sv = $('svg.lk', t); if (sv) sv.classList.toggle('open', ON.lock(s)); }
+    if (t.dataset.sv === 'fill' || t.dataset.sv === 'blind') { const a = $('.ico', t), b = $('.fl2 .ico', t); if (a && b && a.outerHTML !== b.outerHTML) b.replaceWith(a.cloneNode(true)); }   // Symbol-Umbau (Schloss/Garage) in die dunkle Lage spiegeln
     if (d === 'camera' && t.dataset.ti != null) camTile(t, id, s);
     if (t.dataset.sv === 'value' || t.dataset.sv === 'spark') {   // Messwert groß über dem Titel; Zahl und Einheit getrennt
-      const big = $('.big', t), m = valText(s, t._val || 'state').match(/^(-?[\d.,]+)\s*(.*)$/), h = m ? `${m[1]}${m[2] ? `<small>${esc(m[2])}</small>` : ''}` : esc(valText(s, t._val || 'state') || '–');
-      if (big && big.dataset.h !== h) { big.dataset.h = h; big.innerHTML = h; }
+      const big = $('.big', t), m = valText(s, t._val || 'state').match(/^(-?[\d.,]+)(?![\d:-])\s*(.*)$/), h = m ? `<span class="nm">${m[1]}${m[2] ? `<small>${esc(m[2])}</small>` : ''}</span>` : `<span class="tx">${esc(valText(s, t._val || 'state') || '–')}</span>`;   // Text/Zeitstempel: kürzen statt über Nachbarkacheln laufen
+      if (big && big.dataset.h !== h) { big.dataset.h = h; big.innerHTML = h; if (!fitBig(big)) big.dataset.h = ''; }   // noch ohne Layout → beim nächsten Update erneut einpassen
     }
     else if (t._val && d !== 'climate' && t.classList.contains('tile')) {   // Zusatzanzeige (Zustand/Attribut) hinter dem Untertitel
       t._sub = [t._base, valText(s, t._val)].filter(Boolean).join(' • ');
@@ -2197,7 +2247,10 @@ function render() {
     const c = st(id).attributes.current_temperature, sub = th && $('.sub', th);
     if (sub) { const txt = [(th._v || th._t).sub, c != null && th.dataset.size !== '1x1' && fmt(c) + '°'].filter(Boolean).join(' • '); if (sub.textContent !== txt) sub.textContent = txt; }
     if (!held(id) && v != null && v !== T[id]) setTemp(id, v, T[id] == null ? 0 : Math.sign(v - T[id]));
-    else if (v == null && !held(id)) { delete T[id]; if (el.textContent !== '–') { el.replaceChildren(); roll(el, '–'); } }   // Sollwert weg (aus/unavailable): keine veraltete Zahl, „–“ statt leerem Feld, Chevron sendet nichts
+    else if (v == null && !held(id)) {
+      const a = st(id).attributes, r = a.target_temp_low != null && a.target_temp_high != null ? `${fmt(a.target_temp_low)}–${fmt(a.target_temp_high)}` : '–';   // Bereichs-Sollwert (heat_cool): Chevrons schieben beide Grenzen gemeinsam (bump)
+      delete T[id]; delete R[id]; el.toggleAttribute('data-rg', r.length > 1); if (el.textContent !== r) { el.replaceChildren(); roll(el, r); }
+    }   // Sollwert weg (aus/unavailable): keine veraltete Zahl, „–“ statt leerem Feld, Chevron sendet nichts
     else if (!el.firstChild && T[id] != null) roll(el, fmt(T[id]));
   }
   if (cur?.view.id === 'climate') {
@@ -2225,16 +2278,19 @@ function render() {
     || mps.find(e => e.state === 'paused' && has(e)) || mps.find(e => e.attributes.device_class === 'speaker') || mps[0], a = np?.attributes || {};
   NP = np?.entity_id;
   const pic = a.entity_picture, title = a.media_title, off = /^(off|standby)$/.test(np?.state), busy = /^(playing|buffering)$/.test(np?.state);
+  const pod = !!NP && isPod(NP), sf = LIVE && a.supported_features != null ? a.supported_features : -1;   // PREVIOUS_TRACK 16, NEXT_TRACK 32, SEEK 2, SHUFFLE_SET 16384, REPEAT_SET 262144
   for (const f of $$('.f-music')) {
-    f.classList.toggle('pod', !!NP && isPod(NP));
+    f.classList.toggle('pod', pod);
     f.classList.toggle('none', !title || netDown);         // nichts geladen / aus / nicht erreichbar / Verbindung weg
     f.classList.toggle('live', !!title && !a.media_duration);   // Radio/Livestream: keine Dauer → kein Fortschritt
     f.classList.toggle('nocov', !pic);
+    f.classList.toggle('nop', !(sf & (pod ? 2 : 16))); f.classList.toggle('non', !(sf & (pod ? 2 : 32)));   // Podcast: Vor/Zurück = Seek
+    f.classList.toggle('nos', !(sf & 2)); f.classList.toggle('nosh', !(sf & 16384)); f.classList.toggle('norp', !(sf & 262144));
   }
   timerMusic(np, HASS);
   bind('npt', netDown ? tx('Keine Verbindung') : title || (np?.state === 'unavailable' ? tx('Nicht verfügbar') : off ? tx('Aus') : tx('Nichts läuft')));
   bind('npa', netDown ? tx('Home Assistant nicht erreichbar') : title ? a.media_artist || a.media_series_title || a.media_channel || a.media_album_name || '' : a.friendly_name || '');
-  bind('npn', (a.friendly_name || '').replace(/^Sonos\s+(?=\S)/i, ''));   // Herstellerpräfix nur in der Pille weglassen, damit der Raum lesbar bleibt
+  bind('npn', String(a.friendly_name || '').replace(/^Sonos\s+(?=\S)/i, ''));   // Herstellerpräfix nur in der Pille weglassen, damit der Raum lesbar bleibt
   bind('npb', busy ? 'Pause' : tx('Abspielen'));
   const icon = busy ? '#pause' : '#play';
   for (const u of $$('[data-act=play] use')) if (u.getAttribute('href') !== icon) u.setAttribute('href', icon);
@@ -2271,12 +2327,13 @@ const DEMO_LINES = Array.from({ length: 52 }, (_, k) => ({ t: +(2 + k * 4.2).toF
 let lyr = { key: null, title: '', lines: [], msg: '' }, lyrIdx, lyrT;
 async function loadLyrics(a) {
   const key = `${a.media_title}|${a.media_artist}`;
-  lyr = { key, title: a.media_title || '', lines: !a.media_title ? [] : LIVE ? null : a.media_duration ? DEMO_LINES : [] };
+  lyr = { key, title: a.media_title || '', lines: !a.media_title || (LIVE && (!a.media_artist || /^(movie|tvshow|video|episode|podcast|channel)$/.test(a.media_content_type))) ? [] : LIVE ? null : a.media_duration ? DEMO_LINES : [] };   // ohne Interpret bzw. Film/Podcast: keine Suche, nichts geht an LRCLIB
   fillLyrics();
   if (lyr.lines) return;
   let lines = [], msg = '';
   try {
-    const h = await findLyrics(a, async u => { const r = await fetch(u, { signal: AbortSignal.timeout(8000) }); return r.ok ? r.json() : null; });   // hängender Dienst: nach 8 s aufgeben
+    const sig = AbortSignal.timeout(8000);   // hängender Dienst: Gesamtbudget 8 s für alle Stufen (get + 2× search)
+    const h = await findLyrics(a, async u => { const r = await fetch(u, { signal: sig }); return r.ok ? r.json() : null; });
     if (h?.syncedLyrics) lines = parseLRC(h.syncedLyrics);
     else if (h?.plainLyrics) lines = h.plainLyrics.split('\n').map(s => ({ t: null, s: s.trim() }));
     else if (h?.instrumental) msg = 'Instrumental';
@@ -2365,6 +2422,7 @@ const asSim = () => ({ socket: { send() {} }, subscribeMessage: async cb => {
   return () => {};
 } });
 // k = 'cal' → Kalender-Antwort (Taste K), sonst Wetter (Taste S / Zug von oben)
+const aq = [];   // Ansagen, die während einer laufenden Ansage/Assist eintreffen (max. 5), laufen nacheinander
 let asEsc = false;   // Escape im Tropfen vorgemerkt, wirkt nach dessen Ende
 function assistStart(k = '') {
   if (AS.className) return;
@@ -2401,7 +2459,7 @@ async function assistAnswer() {
 }
 // Ansage aus dem Admin-Panel bzw. notify.send_message: Text (Titel fett) in der Kugel, gesprochen per HA- oder Browser-Stimme (Stumm/Lautstärke gelten)
 function announce(m, title) {
-  if (AS.className) return;
+  if (AS.className) { if (aq.length < 5) aq.push([m, title]); return; }
   const t = title ? `${title}. ${m}` : m;
   AS.dataset.k = 'voice'; AS.className = 'listen'; $('.atxt', AS).innerHTML = (title ? `<b>${esc(title)}</b><br>` : '') + esc(m);
   let ms = 8000 + t.length * 60;
@@ -2482,6 +2540,7 @@ function assistEnd() {
     goo([[5, .45], [1, .42, .52], [-7, .4]], 200, 'ease-in').onfinish = () => {
       AS.className = '';
       for (const el of [ORB, INK, BLOOM]) el.getAnimations().forEach(a => a.cancel());
+      const n = aq.shift(); if (n) announce(...n);   // erst nach dem Aufräumen: sonst bricht es die Animation der nächsten Ansage ab
     };
   };
 }
@@ -2492,7 +2551,7 @@ document.addEventListener('keydown', e => {
   if (e.key === 'k' || e.key === 'K') assistStart('cal');
   if ((e.key === 't' || e.key === 'T') && !LIVE) call('timer', 'start', { entity_id: 'timer.kuche' });
   if ((e.key === 'e' || e.key === 'E') && !LIVE) call('timer', 'start', { entity_id: 'timer.eier' });   // Demo: zweiter Timer
-  if (e.key === 'Escape') { asEsc = AS.className === 'drop'; assistEnd(); kzClose(); }
+  if (e.key === 'Escape') { const po = $('.pop.open'); if (po) return po.classList.remove('open'); const k = kzOn; asEsc = AS.className === 'drop'; assistEnd(); kzClose(); if (!k) close(); }   // Detail-Sheet schließen, wenn das Kontrollzentrum nicht offen war
   if (e.key === 'c' || e.key === 'C') kzOn ? kzClose() : kzOpen();   // Tastatur: Kontrollzentrum
 });
 
@@ -2691,14 +2750,12 @@ function sendTemp(id) {
   holdFor(id, 3000);
   $$(`[data-e="${id}"]`).forEach(t => t.classList.add('on'));
   clearTimeout(tempT[id]);
-  tempT[id] = setTimeout(() => call('climate', 'set_temperature', { entity_id: id, temperature: T[id] }), 600);
+  tempT[id] = setTimeout(() => call('climate', 'set_temperature', { entity_id: id, ...(R[id] ? { target_temp_low: R[id][0], target_temp_high: R[id][1] } : { temperature: T[id] }) }), 600);
 }
-// Symbol dunkel (full), sobald die weiße Fläche es erreicht
+// Füllung: --p setzen (Fläche und dunkle Textlage .fl2 folgen per CSS), Prozentzahl in beiden Lagen
 const fillSet = (t, p) => {
   t.style.setProperty('--p', p);
-  if (t.dataset.sv === 'blind') { t.classList.toggle('full', p >= 22); t.classList.toggle('hi', p >= (t.dataset.size === '2x2' ? 85 : 78)); }
-  else { t.classList.toggle('hi', p >= 25); t.classList.toggle('full', p >= (t.dataset.size === '2x2' ? 85 : 55)); }
-  const x = $('.pct', t); if (x) x.textContent = p ? (t.dataset.sv === 'blind' ? 100 - p : p) + ' %' : '';
+  $$('.pct', t).forEach(x => x.textContent = p ? (t.dataset.sv === 'blind' ? 100 - p : p) + ' %' : '');
 };
 // Licht „Füllstand“: senkrecht ziehen dimmt (relativ wie der Dimmer), die Füllung folgt dem Finger, HA bekommt höchstens alle 200 ms einen Wert; ein Tipp schaltet weiter
 {
@@ -2714,6 +2771,7 @@ const fillSet = (t, p) => {
   document.addEventListener('pointermove', e => {
     if (!d || e.pointerId !== d.pid) return;
     if (!d.on) {
+      if (cur) return void (d = null);   // Halten hat das Sheet geöffnet: kein Dimmen mehr per Ziehen
       if (Math.abs(e.clientY - d.y) < 8 || Math.abs(e.clientY - d.y) < Math.abs(e.clientX - d.x)) return;
       d.on = true; suppress = true; d.t._drag = true; d.t.classList.add('drag', 'lit'); d.t.setPointerCapture(e.pointerId);
     }
@@ -2878,7 +2936,6 @@ async function openEvents(face) {
 // ---------- Bearbeiten ----------
 const curIdx = () => Math.round(faces.scrollLeft / (faces.clientWidth * 1.025));
 const curEl = () => faces.children[curIdx()];
-const markCur = () => [...faces.children].forEach((f, i) => f.classList.toggle('cur', i === curIdx()));
 function refresh() { npKey = ''; tick(); render(); times(); fillLyrics(); }
 // Laufende Animationen (fill:forwards, Endlos-Punkte/Zeiger) halten ihr Target samt Teilbaum am Leben → vor dem Entfernen beenden; mit onfinish laufen zu Ende
 const drop = el => el.getAnimations({ subtree: true }).forEach(a => a.onfinish || a.cancel());
@@ -2887,7 +2944,7 @@ function renderAll(idx = 0) {
   applyTheme();
   drop(faces); faces.replaceChildren(...CONF.faces.map(f => buildFace(f)));
   faces.scrollLeft = idx * faces.clientWidth * 1.025;
-  markCur(); refresh();
+  refresh();
 }
 // Tag ↔ Nacht: betroffene Faces neu aufbauen, Überblendung per View Transition (Compositor); nicht im Vollbild → nächster tick/render holt es nach
 let night, sunSeen;
@@ -2905,7 +2962,6 @@ function phase() {
 }
 function rerender(i) {
   const old = faces.children[i], n = buildFace(CONF.faces[i]);
-  n.classList.toggle('cur', old.classList.contains('cur'));
   if (cur?.tile === old) cur.tile = n;   // offene Terminliste: Schließen fliegt aufs neue Face (Tageswechsel)
   drop(old); old.replaceWith(n); refresh();
 }
@@ -2953,10 +3009,15 @@ function rerender(i) {
     };
     raf = requestAnimationFrame(f);
   };
+  const settle = () => spin(Math.round(faces.scrollLeft / STEP()) * STEP());   // Tipp/senkrechte Geste im Auslauf: down() hat die Feder gestoppt, auf die nächste Seite einrasten
   faces.go = (i, instant) => { const x = Math.max(0, Math.min(faces.children.length - 1, i)) * STEP(); instant ? (cancelAnimationFrame(raf), faces.scrollLeft = x) : spin(x); };
+  faces.addEventListener('focusin', e => { const i = [...faces.children].indexOf(e.target.closest('#faces > *')); if (i >= 0) faces.go(i); });   // Tab-Fokus scrollt den overflow:hidden-Pager sonst zwischen zwei Seiten
+  let pw = faces.clientWidth, pi = 0;   // pi = Seite vor der Größenänderung (der Browser klemmt scrollLeft beim Verkleinern schon vor dem resize-Ereignis)
+  faces.addEventListener('scroll', () => { if (faces.clientWidth === pw) pi = Math.round(faces.scrollLeft / STEP()); });
+  addEventListener('resize', () => { const w = faces.clientWidth; if (pw && w && w !== pw) faces.go(pi, true); pw = w; });   // Drehen/Fenstergröße: auf der Seite bleiben statt zwischen zwei
   const down = e => {
     const cam = cur?.view.id === 'cam' && e.currentTarget.id === 'cam';
-    if (e.button || (cur && !cam) || (!cam && e.target.closest('.prog,.pop,input,.lyrics,#pull,.whours'))) return;
+    if (e.button || !e.isPrimary || (cur && !cam) || (!cam && e.target.closest('.prog,.pop,input,.lyrics,#pull,.whours'))) return;
     if (cam && (camL !== null || !$('#cam').getAnimations().every(a => a.playState === 'finished'))) return;   // nicht mitten im Öffnen/Schließen
     cancelAnimationFrame(raf);
     m = { x: e.clientX, y: e.clientY, l: faces.scrollLeft, on: false, h: [] };
@@ -2964,24 +3025,24 @@ function rerender(i) {
   };
   faces.addEventListener('pointerdown', down); $('#cam').addEventListener('pointerdown', down);
   addEventListener('pointermove', e => {
-    if (!m) return;
+    if (!m || !e.isPrimary) return;   // zweiter Finger darf den Wisch nicht überschreiben/beenden
     const dx = e.clientX - m.x, dy = e.clientY - m.y;
     if (!m.on) {
-      if (Math.abs(dy) > 8 && Math.abs(dy) > Math.abs(dx)) return void (m = null);   // senkrecht gehört anderen Gesten
+      if (Math.abs(dy) > 8 && Math.abs(dy) > Math.abs(dx)) return void (m = null, settle());   // senkrecht gehört anderen Gesten
       if (Math.abs(dx) <= 8) return;
       m.on = true; faces.setPointerCapture(e.pointerId);
     }
     m.h.push([e.timeStamp, e.clientX]); while (m.h[0][0] < e.timeStamp - 100) m.h.shift();
     faces.scrollLeft = m.l - dx; follow();
   });
-  const end = () => {
-    if (!m) return;
-    const { on, h, l } = m; m = null;
-    if (!on) return void (camL = null);
+  const end = e => {
+    if (!m || !e.isPrimary) return;
+    const { on, h, l } = m, cancel = e.type === 'pointercancel'; m = null;
+    if (!on) return void (camL = null, settle());
     const w = STEP(), v = h.length > 1 ? (h.at(-1)[1] - h[0][1]) / Math.max(16, h.at(-1)[0] - h[0][0]) * 1000 : 0,   // Finger px/s
-      d = (faces.scrollLeft - l) / w, i0 = Math.round(l / w), go = Math.abs(d) >= .2 || Math.abs(v) / w >= .5;
+      d = (faces.scrollLeft - l) / w, i0 = Math.round(l / w), go = !cancel && (Math.abs(d) >= .2 || Math.abs(v) / w >= .5);   // Abbruch (Systemgeste) → zurück zur Ausgangsseite
     const i = Math.max(0, Math.min(faces.children.length - 1, go ? i0 + (Math.abs(v) / w >= .5 ? -Math.sign(v) : Math.sign(d)) : i0));
-    spin(i * w, -v);
+    spin(i * w, cancel ? 0 : -v);
     const stop = e => e.stopPropagation(); addEventListener('click', stop, true); setTimeout(() => removeEventListener('click', stop, true), 50);
   };
   addEventListener('pointerup', end); addEventListener('pointercancel', end);
@@ -2989,8 +3050,14 @@ function rerender(i) {
 // ---------- Gesten ----------
 function bump(b) {
   const id = b.closest('[data-e]')?.dataset.e || cur?.e, a = st(id).attributes, d = b.dataset.act === 'up' ? 1 : -1, now = T[id] ?? a.temperature;
+  const sp = a.target_temp_step || .5;
+  if (now == null && a.target_temp_low != null && a.target_temp_high != null) {   // Bereichs-Sollwert: beide Grenzen um einen Schritt schieben, nur wenn beide im Bereich bleiben
+    const [lo, hi] = R[id] || [a.target_temp_low, a.target_temp_high], l = +(lo + d * sp).toFixed(2), h = +(hi + d * sp).toFixed(2);
+    if (l >= (a.min_temp ?? 5) && h <= (a.max_temp ?? 35)) { setRange(id, [l, h], d); sendTemp(id); }
+    return;
+  }
   if (now == null) return;
-  const sp = a.target_temp_step || .5, v = +Math.min(a.max_temp ?? 35, Math.max(a.min_temp ?? 5, Math.round((now + d * sp) / sp) * sp)).toFixed(2);   // auf Schrittweite runden (kein 22.70000000000001)
+  const v = +Math.min(a.max_temp ?? 35, Math.max(a.min_temp ?? 5, Math.round((now + d * sp) / sp) * sp)).toFixed(2);   // auf Schrittweite runden (kein 22.70000000000001)
   if (v !== now) { setTemp(id, v, d); sendTemp(id); }
 }
 // Eigene Aktion einer Kachel (Einstellungsseite: tap/hold = { do: toggle | service | face | none, service, data, face }); default/fehlt = Standard
@@ -3065,6 +3132,7 @@ document.addEventListener('click', e => {
   if (act === 'assist') return assistStart();
   if (e.target.closest('#assist')) { assistEnd(); if (act !== 'go') return; }   // Tipp schließt; Pille führt zusätzlich hin
   if (pop && !e.target.closest('.pop')) return pop.classList.remove('open');   // Tipp daneben schließt nur
+  const fan = $('.greet.fan'); if (fan && !e.target.closest('.av,.avf')) return fan.classList.remove('fan');   // Avatar-Fächer: Tipp daneben schließt nur
   if (act === 'close') close();
   else if (act === 'pk') { const k = b.dataset.k; k === 'ok' ? pinGo() : (pinV = k === 'del' ? pinV.slice(0, -1) : (pinV + k).slice(0, 12), pinDots()); }
   else if (act === 'cov') { if (!cur) return; hold[cur.e] = Date.now() + 1500; setTimeout(schedule, 1600); call('cover', b.dataset.v, { entity_id: cur.e }); }
@@ -3105,8 +3173,9 @@ document.addEventListener('click', e => {
   else if (act === 'events') openEvents(b);
   else if (act === 'edet') { energyDetail(b.dataset.v, b); open(b, 'edet'); }   // Energie-Kachel → Detail-Vollbild (FLIP wie Klima/Licht)
   else if (act === 'toggle') st(b.dataset.e).state === 'unavailable' ? shake(b) : TAP[b.dataset.e.split('.')[0]]?.(b, b.dataset.e);   // Licht im Klingel-Bild / Kameras-Face
-  else if (act === 'avatars') b.closest('.greet').classList.toggle('fan');
-  else if (act === 'avpick') { who = b.dataset.v; try { localStorage.hb_person = who; } catch {} b.closest('.greet').classList.remove('fan'); render(); }
+  else if (act === 'avatars') { const g = b.closest('.greet'); g.classList.toggle('fan'); }
+  else if (act === 'avpick') { const g = b.closest('.greet'); if ($$('.avf', g).some(x => x.getAnimations().some(a => a.transitionProperty === 'translate'))) return;   // Doppeltipp im Aufklappen (Buttons liegen noch gestapelt, Sperre = bis die Übergänge wirklich enden, auch bei langsamem Rendering) wählt keine Person
+    who = b.dataset.v; try { localStorage.hb_person = who; } catch {} b.closest('.greet').classList.remove('fan'); render(); }
   else if (act === 'go') { const i = CONF.faces.findIndex(f => f.type === b.dataset.v); if (i >= 0) faces.go(i); }
   else if (act === 'play') {   // 300 ms Sperre: Doppeltipp würde sonst Pause und Play auslösen und sich aufheben; ausgeschaltet → einschalten
     if (NP && Date.now() - ppT > 300) { ppT = Date.now(); call('media_player', /^(off|standby)$/.test(st(NP).state) ? 'turn_on' : 'media_play_pause', { entity_id: NP }); }
@@ -3251,7 +3320,7 @@ for (const el of $$('.kzsl', kz)) {
 // Dimmer: ganzer Screen ist der Slider, relativ ziehen wie im Kontrollzentrum
 // Rollo-Ansicht: relativ ziehen (nach unten = schließen), HA höchstens alle 200 ms
 const shd = $('#shade');
-shd.addEventListener('pointerdown', e => { if (e.target.closest('[data-act]') || st(cur.e).attributes.current_position == null) return; sy = e.clientY; sp = 100 - S.shade; shd.classList.add('drag'); shd.setPointerCapture(e.pointerId); });
+shd.addEventListener('pointerdown', e => { if (!cur || e.target.closest('[data-act]') || st(cur.e).attributes.current_position == null) return; sy = e.clientY; sp = 100 - S.shade; shd.classList.add('drag'); shd.setPointerCapture(e.pointerId); });
 shd.addEventListener('pointermove', e => {
   const id = cur?.e; if (sy === null || !id) return;
   const c = Math.round(Math.min(100, Math.max(0, sp + (e.clientY - sy) / shd.clientHeight * 100)));
@@ -3388,7 +3457,7 @@ function nbTick() {
       nb.parked = b; nb.el.hidden = b;
       if (b) { clearTimeout(nb.t); nbPause(); } else { nbIn(nb.el); nbArm(); }
     }
-  } else if (!nb.el && nb.q.length && !b) nbShow(nb.q.shift());
+  } else if (!nb.el && !nb.out && nb.q.length && !b) nbShow(nb.q.shift());   // nicht mitten in der Weg-Animation (nbOut hat die nächste Karte schon gezogen)
 }
 setInterval(nbTick, 250);
 // Weg: Karte nach links, darunter kommt mit Spalt die nächste Karte (Warteschlange) bzw. das Face von rechts. dx = bisheriger Fingerweg (px)
@@ -3473,7 +3542,7 @@ if (!LIVE) camConfig({ list: [{ entity: 'camera.turklingel', name: tx('Haustür'
 // Präsenzmelder je Display (Einstellung presence): solange „an“, weckt das Display aus dem Ruhemodus
 let near;   // Wetter-Face „Bedingungen“: Melder an = Nah (Karte), aus = Fern (nur Text); ohne Melder bleibt Nah
 setInterval(() => { const p = CONF.kiosk?.presence, on = p && st(p).state === 'on'; if (on) kiosk.wake(); if (p && on !== near) weatherNear(near = on); }, 1000);
-camInit($('#cam'), { open, close, view: () => cur?.view, conn: () => conn, hass: HASS, wake: () => kiosk.wake(), sound: () => CFG.chime ? CFG.volume / 100 : 0 });
+camInit($('#cam'), { guest: () => !!CONF.kiosk?.guest, open, close, view: () => cur?.view, conn: () => conn, hass: HASS, wake: () => kiosk.wake(), sound: () => CFG.chime ? CFG.volume / 100 : 0 });
 // Laufender Zustand für die Einstellungsseite (Mikro braucht https, Wake Word hält es offen, Wake Lock hält den Bildschirm an)
 const INFO = { wake: null, v: undefined };
 let MICS = [];   // Mikrofone des Geräts für die Auswahl in der Einstellungsseite
@@ -3500,6 +3569,15 @@ if (LIVE) {
   let ha;   // Bibliothek liegt lokal (vendor/), damit das Display auch ohne Internet startet
   try {
     ha = await import('./vendor/ha-websocket.js');
+    // Offline-Wächter schon vor der ersten Verbindung (HA beim Start oder nach dem Heal-Neuladen nicht erreichbar): er hängt an einem Stellvertreter, der die Ereignisse der echten Verbindung weitergibt
+    const nw = new EventTarget(); nw.ping = () => conn.ping(); Object.defineProperty(nw, 'socket', { get: () => conn?.socket });
+  netwatchInit($('#screen'), nw, {
+    down: d => { netDown = d; schedule(); },
+    canReload: !KS && !PARENT,   // im HA-Panel und in Kiosk Satellite gehört die Seite dem Wirt: nur Pille, kein Neuladen
+    night: () => { const sc = CONF.kiosk?.sched, n = new Date(); return !!sc && inWindow(n.getHours() * 60 + n.getMinutes(), mins(sc.from), mins(sc.to)); },   // Ruhefenster der Einstellungen
+    idle: () => Date.now() - touched,
+  });
+    nw.dispatchEvent(new Event('disconnected'));   // bis zur ersten Verbindung offline
     if (PARENT) conn = await ha.createConnection({ auth: (await PARENT).auth, setupRetry: -1 });
     else if (KS) {
       // setupRetry greift bei eigenem createSocket nicht → ersten Versuch selbst wiederholen (HA bootet)
@@ -3510,12 +3588,14 @@ if (LIVE) {
     } else {
       const auth = await ha.getAuth({
         hassUrl: HASS,
-        saveTokens: t => localStorage.hassTokens = JSON.stringify(t),
-        loadTokens: async () => JSON.parse(localStorage.hassTokens || 'null'),
+        saveTokens: t => { try { localStorage.hassTokens = JSON.stringify(t); } catch {} },
+        loadTokens: async () => { try { return JSON.parse(localStorage.hassTokens || 'null'); } catch { return null; } },
       });
       if (location.search.includes('auth_callback')) history.replaceState(null, '', location.pathname + '?live');
       conn = await ha.createConnection({ auth, setupRetry: -1 }); try { delete sessionStorage.hbAuthRetry; } catch {}
     }
+    for (const t of ['disconnected', 'ready']) conn.addEventListener(t, () => nw.dispatchEvent(new Event(t)));
+    nw.dispatchEvent(new Event('ready'));
     // Display anmelden: eigene Konfiguration + Kiosk-Einstellungen aus HA; ohne gespeicherte Konfiguration bleibt die lokale und wird hochgeladen
     let camJ = '';   // Kamera-Konfiguration (Liste, Klingel) vom Server; true = hat sich geändert
     const setCams = c => { const j = JSON.stringify(c); if (j === camJ) return false; camJ = j; camConfig(c); return true; };
@@ -3529,27 +3609,38 @@ if (LIVE) {
         location.assign('admin.html' + to);
       });
     };
-    let version;
+    let version, srvConf;   // srvConf: zuletzt übernommene Server-Konfig (Vergleich beim Reconnect)
     const hello = register().then(c => {
       version = INFO.v = c.version;
       CONF.kiosk = c.kiosk; applyK(c.kiosk); CFG.device = c.device_id || '';
       const cam = setCams(c.cameras);
       voiceTimers(c.timers);   // beim Anmelden laufende Timer, ohne zu wecken
-      if (c.new) return void waiting(c.name);   // wartet auf die Einrichtung: weder Vorlage hochladen noch anzeigen
-      if (c.config?.faces?.length) { CONF = { ...c.config, kiosk: c.kiosk }; normFaces(CONF, DEF.faces); try { localStorage.setItem(KEY, JSON.stringify(CONF)); } catch {} renderAll(0); }
-      else { save(); if (cam) renderAll(curIdx()); }
-    }).catch(console.warn);
-    ha.subscribeEntities(conn, e => { ents = e; schedule(); });
-    netwatchInit($('#screen'), conn, {
-      down: d => { netDown = d; schedule(); },
-      canReload: !KS && !PARENT,   // im HA-Panel und in Kiosk Satellite gehört die Seite dem Wirt: nur Pille, kein Neuladen
-      night: () => { const sc = CONF.kiosk?.sched, n = new Date(); return !!sc && inWindow(n.getHours() * 60 + n.getMinutes(), mins(sc.from), mins(sc.to)); },   // Ruhefenster der Einstellungen
-      idle: () => Date.now() - touched,
+      if (c.new || Array.isArray(c.config?.faces) && !c.config.faces.length) return void waiting(c.name);   // wartet auf die Einrichtung (neu, oder Server-Konfig ausdrücklich leer = nichts eingerichtet): weder Vorlage/Demo-Kacheln hochladen noch anzeigen; ganz ohne Server-Konfig (alt) lädt die lokale hoch
+      srvConf = JSON.stringify(c.config);
+      if (takeConf(c.config, c.kiosk)) renderAll(0);
+      else { save(); if (cam) renderAll(curIdx()); }   // keine (brauchbare) Server-Konfig: die lokale hochladen
+    }).catch(e => {
+      console.warn(e);
+      if (typeof e?.code === 'string') $('#screen').insertAdjacentHTML('beforeend', `<div id="setup"><small>Homeblick</small><b>${tx('Anmeldung nicht möglich')}</b><span>${esc(e.message || e.code)}</span><button onclick="location.reload()">${tx('Erneut versuchen')}</button></div>`);   // vom Server abgelehnt (ungültige id, zu viele Displays); Verbindungsfehler haben eine Zahl als code
+    });
+    let wxChecked;
+    ha.subscribeEntities(conn, e => {
+      ents = e; schedule();
+      if (!wxChecked && Object.keys(e).length) { wxChecked = true; if (wxOver && !e[wxOver.id]) pickPlace(HOME.weather); }   // gewählter Ort existiert nicht mehr (gelöscht/umbenannt): zurück zum Heim-Ort statt dauerhaft „–“
     });
     // Neu laden am HTTP-Cache vorbei: eigene Dateien (Ordner dieser Seite) erst frisch holen, sonst laufen nach einem Update alte Module weiter
     const hardReload = () => { const dir = new URL('.', location.href).href; return Promise.allSettled([location.href, ...performance.getEntriesByType('resource').map(e => e.name)].filter(u => u.startsWith(dir)).map(u => fetch(u, { cache: 'reload' }))).then(() => location.reload()); };
     // Nach HA-Neustart (z. B. Update über HACS) wieder verbinden: andere Integrationsversion → Seite neu laden, sonst läuft altes JS weiter
-    conn.addEventListener('ready', () => register().then(c => { if (version && c.version && c.version !== version) hardReload(); else if (voiceTimers(c.timers)) kiosk.wake(); }).catch(console.warn));   // nach Verbindungsabbruch Sprach-Timer neu abgleichen (verpasste Pushs)
+    // Einstellungen/Konfig aus HA (Push und Abgleich nach Reconnect: während eines Ausfalls gehen Pushs verloren)
+    const takeKiosk = k => { const w = [CFG.weather, CFG.place], g = !!CONF.kiosk?.guest; CONF.kiosk = k; applyK(k); if ([CFG.weather, CFG.place] + '' !== w + '') return location.reload(); if (!!k.guest !== g) renderAll(curIdx()); wk(); };
+    const takeServerConf = cfg => { srvConf = JSON.stringify(cfg); const i = curIdx(); if (takeConf(cfg, CONF.kiosk)) { $('#setup')?.remove(); renderAll(Math.min(i, CONF.faces.length - 1)); } };
+    conn.addEventListener('ready', () => register().then(c => {
+      if (version && c.version && c.version !== version) return hardReload();
+      if (voiceTimers(c.timers)) kiosk.wake();
+      if (c.new) return;
+      if (c.kiosk && JSON.stringify(c.kiosk) !== JSON.stringify(CONF.kiosk)) takeKiosk(c.kiosk);
+      if (c.config?.faces?.length && JSON.stringify(c.config) !== srvConf) takeServerConf(c.config);
+    }).catch(console.warn));   // nach Verbindungsabbruch Sprach-Timer neu abgleichen (verpasste Pushs)
     // Fehler des Panels ins HA-Protokoll und auf die Einstellungsseite (gleiche Meldung höchstens einmal pro Minute)
     const seenErr = new Map();
     const report = (level, m) => {
@@ -3576,12 +3667,12 @@ if (LIVE) {
     };
     // Befehle und geänderte Einstellungen aus HA (Entities des Displays)
     hello.then(() => conn.subscribeMessage(c => {
-      if (c.kiosk) { const w = [CFG.weather, CFG.place], g = !!CONF.kiosk?.guest; CONF.kiosk = c.kiosk; applyK(c.kiosk); if ([CFG.weather, CFG.place] + '' !== w + '') return location.reload(); if (!!c.kiosk.guest !== g) renderAll(curIdx()); wk(); }
-      else if (c.config?.faces?.length) { $('#setup')?.remove(); const i = curIdx(); CONF = { ...c.config, kiosk: CONF.kiosk }; normFaces(CONF, DEF.faces); try { localStorage.setItem(KEY, JSON.stringify(CONF)); } catch {} renderAll(Math.min(i, CONF.faces.length - 1)); }
+      if (c.kiosk) takeKiosk(c.kiosk);
+      else if (c.config?.faces?.length) takeServerConf(c.config);
       else if (c.timers) { if (voiceTimers(c.timers, c.finished)) kiosk.wake(); }   // Sprach-Timer: Display weckt bei Start und Ablauf
       else if (c.cameras !== undefined) { if (setCams(c.cameras)) cur ? camStale = true : renderAll(curIdx()); }   // offene Ansicht behält ihre Daten, die Faces ziehen nach dem Schließen nach
       else if (c.action === 'face' && c.face) {
-        const prev = faces.children[curIdx()]?.className.match(/f-(\w+)/)?.[1];   // Face mit Dauer: danach zurück zum vorherigen
+        const prev = faces.children[kiosk.prev?.() ?? curIdx()]?.dataset.fid;   // Face mit Dauer: danach zurück zum vorherigen
         clearTimeout(faceBack); kiosk.show(c.face);
         if (c.duration && prev && prev !== c.face) faceBack = setTimeout(() => kiosk.show(prev), c.duration * 1000);
       }
@@ -3591,7 +3682,7 @@ if (LIVE) {
       else if (c.action === 'wake') kiosk.wake();
       else if (c.action === 'screenshot') shot().then(image => conn.sendMessagePromise({ type: 'homeblick/shot', display: DISPLAY, image })).catch(console.warn);
       else if (c.action === 'assist') { kiosk.wake(); assistStart(); }
-      else if (c.action === 'stop') { try { speechSynthesis.cancel(); } catch {} assistEnd(); cleanEnd?.(); }
+      else if (c.action === 'stop') { try { speechSynthesis.cancel(); } catch {} aq.length = 0; assistEnd(); cleanEnd?.(); }
       else if (c.action === 'navigate' && c.path) { const u = new URL(c.path, location.href); if (u.origin === location.origin) location.assign(u); }   // nur Pfade derselben Herkunft (Browser streicht Tab/Umbruch: "/\t/x" wäre sonst //x)
       else if (c.action === 'announce' && c.message) { kiosk.wake(); announce(c.message, c.title); }
       else if (c.action === 'notify' && c.message) nbPush(c);
@@ -3617,14 +3708,15 @@ if (LIVE) {
     const subWx = () => {
       wxUn.forEach(u => u.then(f => f()).catch(() => 0)); const id = CFG.weather;
       wxUn = [conn.subscribeMessage(f => { if (id === CFG.weather) { forecast = f.forecast?.[0]; schedule(); } }, { type: 'weather/subscribe_forecast', forecast_type: 'daily', entity_id: id }),
-        conn.subscribeMessage(f => { if (id === CFG.weather) weatherHours(f.forecast); }, { type: 'weather/subscribe_forecast', forecast_type: 'hourly', entity_id: id })];
+        conn.subscribeMessage(f => { if (id === CFG.weather) weatherHours(f.forecast || []); }, { type: 'weather/subscribe_forecast', forecast_type: 'hourly', entity_id: id })];
+      wxUn[1] = wxUn[1].catch(e => { if (id === CFG.weather) weatherHours([]); throw e; });   // Entity ohne hourly-Abo: jetzt erst den Hinweis zeigen
       wxUn.forEach(u => u.catch(console.warn));
     };
     pickPlace = id => {   // Ort-Wahl am Listenknopf: Entity + Name wechseln, Vorhersage neu abonnieren, Faces neu aufbauen
       wxOver = id === HOME.weather ? null : { id, name: ents[id]?.attributes.friendly_name || id };
       try { wxOver ? localStorage.hbwx = JSON.stringify(wxOver) : localStorage.removeItem('hbwx'); } catch { }
       [CFG.weather, CFG.place] = wxOver ? [wxOver.id, wxOver.name] : [HOME.weather, HOME.place];
-      forecast = undefined; weatherHours([]); subWx(); renderAll(curIdx());
+      forecast = undefined; weatherHours(null); subWx(); renderAll(curIdx());
     };
     hello.then(subWx);   // Stundenleiste (Stil „Bedingungen“); Wetter ohne hourly → Fehler, Leiste bleibt leer
   } catch (err) {
@@ -3634,7 +3726,7 @@ if (LIVE) {
     // Neustart ohne auth_callback/code/state in der URL, sonst Schleife; einmal pro Sitzung, danach nur Fehler
     else if (err === ha.ERR_INVALID_AUTH && !(() => { try { return sessionStorage.hbAuthRetry; } catch { return 1; } })()) {
       try { sessionStorage.hbAuthRetry = 1; } catch {}
-      localStorage.removeItem('hassTokens');
+      try { localStorage.removeItem('hassTokens'); } catch {}
       const u = new URLSearchParams(location.search); for (const k of ['auth_callback', 'code', 'state']) u.delete(k);
       location.replace(location.pathname + '?' + u);
     }

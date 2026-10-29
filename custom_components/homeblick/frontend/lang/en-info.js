@@ -5,8 +5,8 @@ export default {
   'Teilweise bewölkt': 'Partly cloudy', 'Starkregen': 'Heavy rain', 'Regen': 'Rain', 'Schnee': 'Snow', 'Schneeregen': 'Sleet',
   'Sonnig': 'Sunny', 'Windig': 'Windy', 'Windig, bewölkt': 'Windy and cloudy',
   'Wind': 'Wind', 'Feuchte': 'Humidity',
-  'Temperatur (°C)': 'Temperature (°C)', 'Niederschlag (%)': 'Precipitation (%)', 'Wind (km/h)': 'Wind (km/h)',
-  'Orte': 'Places', 'Bedingungen': 'Conditions', 'Jetzt': 'Now',
+  'Temperatur (°C)': 'Temperature (°C)', 'Niederschlag': 'Precipitation', 'Wind (km/h)': 'Wind (km/h)',
+  'Orte': 'Places', 'Bedingungen': 'Conditions', 'Keine Stundenvorhersage': 'No hourly forecast', 'Jetzt': 'Now',
   ' Uhr‖Stunde': ':00', 'H‖Höchsttemperatur': 'H', 'T‖Tiefsttemperatur': 'L',
   'Untergang': 'Sunset', 'Aufgang': 'Sunrise',
   // events.js
@@ -34,7 +34,7 @@ export default {
   // netwatch.js
   'Keine Verbindung': 'No connection', 'seit {t}': 'since {t}',
   // photos.js
-  'Keine Bilder in dieser Quelle gefunden': 'No photos found in this source', 'Medienquelle im Editor wählen (Ansicht → Quelle)': 'Choose a media source in the editor (View → Source)',
+  'Keine Bilder in dieser Quelle gefunden': 'No photos found in this source', 'Bilder nicht ladbar': 'Photos can\'t be loaded', 'Medienquelle im Editor wählen (Ansicht → Quelle)': 'Choose a media source in the editor (View → Source)',
   // timer.js
   '{n} STD': '{n} HR', '{n} MIN': '{n} MIN', '{n} SEK': '{n} SEC',
   'Timer wechseln': 'Switch timer', 'Nächster Timer': 'Next timer', 'Abbrechen': 'Cancel', 'Pause': 'Pause', 'Abspielen/Pause': 'Play/Pause', 'Fortsetzen': 'Resume',

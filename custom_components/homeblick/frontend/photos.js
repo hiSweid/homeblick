@@ -4,7 +4,6 @@
 // jedes Bild erst kurz vor der Anzeige per media_source/resolve_media aufgelöst (signierte Adressen laufen ab). Es liegen höchstens zwei Bilder im DOM; keine Bilder in der Konfiguration.
 import { tx } from './i18n.js';
 const MAX = 300, DIRS = 25, DEPTH = 2, SEC = 20;
-const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 // Reine Sammlung: browse(id) → { children: [...] } | null; liefert Bild-IDs (Mischen macht der Aufrufer)
 export async function collect(browse, root, { max = MAX, dirs = DIRS, depth = DEPTH } = {}) {
@@ -57,18 +56,20 @@ async function next(el, tries = 3) {
   const p = el._p;
   if (p.busy || !p.list.length) return;
   p.busy = true;
+  let shown = false;
   try {
     for (let n = 0; n < tries; n++) {
       p.i = (p.i + 1) % p.list.length;
       const u = await url(p.list[p.i]).catch(() => null);
       if (!u) continue;
-      const ok = await new Promise(res => { const im = new Image(); im.onload = () => res(true); im.onerror = () => res(false); im.src = u; });
+      const ok = await new Promise(res => { const im = new Image(), t = setTimeout(() => { im.src = ''; res(false); }, 30000); im.onload = () => { clearTimeout(t); res(true); }; im.onerror = () => { clearTimeout(t); res(false); }; im.src = u; });   // Timeout: hängender Server hält sonst busy ewig
       if (!ok) continue;
       const ls = el.querySelectorAll('.pl'), nx = ls[p.top ^ 1];
-      for (const q of nx.children) q.style.backgroundImage = `url("${esc(u)}")`;
+      for (const q of nx.children) q.style.backgroundImage = `url(${JSON.stringify(u)})`;
       nx.classList.add('on'); ls[p.top].classList.remove('on'); p.top ^= 1;
-      break;
+      shown = true; break;
     }
+    msg(el, shown || el.querySelector('.pl.on') ? '' : tx('Bilder nicht ladbar'));   // nichts lesbar und noch nichts zu sehen: Hinweis statt schwarz
   } finally { p.busy = false; p.at = Date.now(); }
 }
 function tick() {

@@ -2,6 +2,13 @@
 // Grenzen: Bilder von fremden Servern, Video (Kamera) und WebGL fehlen; Canvas-Inhalte werden übernommen.
 export async function shot(width = 480) {
   const w = innerWidth, h = innerHeight, root = document.documentElement.cloneNode(true);
+  // Web-Animations (Uhrzeiger, Ring) trägt der Klon nicht: aktuellen Wert als festen Stil übernehmen (gleiche Elementreihenfolge live/Klon)
+  const all = new Map([...document.documentElement.querySelectorAll('*')].map((e, i) => [e, i])), cl = root.querySelectorAll('*');
+  for (const a of document.getAnimations()) {
+    const t = a.effect?.target, i = all.get(t); if (i == null || !cl[i] || a.effect.pseudoElement) continue;
+    const cs = getComputedStyle(t);
+    for (const k of Object.keys(a.effect.getKeyframes()[0] || {})) if (!['offset', 'easing', 'composite', 'computedOffset'].includes(k)) cl[i].style[k] = cs[k];
+  }
   const live = document.querySelectorAll('canvas'), copy = root.querySelectorAll('canvas');
   live.forEach((c, i) => { try { const im = new Image(); im.src = c.toDataURL(); im.style.cssText = c.style.cssText; im.className = c.className; copy[i].replaceWith(im); } catch {} });
   root.querySelectorAll('script,video,iframe').forEach(e => e.remove());

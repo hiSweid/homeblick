@@ -28,7 +28,7 @@ export const E = {
 };
 const E0 = { ...E };
 let CAR = 'e-Golf';   // Name der Auto-Kachel; erkannte Konfigurationen sagen „Auto“ (ents.carName), im Editor änderbar
-export const energyEnts = (m = {}) => { for (const k in E) E[k] = m[k] || E0[k]; CAR = m.carName || 'e-Golf'; };
+export const energyEnts = m => { m ||= {}; for (const k in E) E[k] = m[k] || E0[k]; CAR = m.carName || 'e-Golf'; };
 
 // Symbole aus dem Entwurf (m5.html)
 const SYM = {
@@ -120,7 +120,7 @@ async function loadSum(p) {
       if (!rows) return;   // noch keine Verbindung
       SUM[p] = { at, v: sums(SRC, rows, price) };
     }
-  } catch (e) { if (SRC == null) SRC = false; else console.warn('Energie-Summen', e); }
+  } catch (e) { if (SRC == null) { SRC = false; sp = 'now'; } else console.warn('Energie-Summen', e); }
   detail();
 }
 async function loadHist(ents) {
@@ -190,6 +190,7 @@ export function energy(ents, roll) {
   const ok = Object.fromEntries(Object.keys(E).map(k => [k, has(k)]));
   const x = Object.fromEntries(Object.keys(E).map(k => [k, v(k)]));
   for (const k of ['pv', 'home', 'car']) x[k] = Math.max(0, x[k]);   // Erzeugung, Verbrauch und Ladeleistung sind nie negativ (Messrauschen/Offset würde sonst als Wert erscheinen und -0,0 kW/Verlauf verzerren)
+  for (const k of ['soc', 'carSoc']) x[k] = Math.min(100, Math.max(0, x[k]));   // Prozent bleibt 0–100 (unplausibler Sensorwert: „-5 %“, „250 %“, kWh gespeichert)
   const { pv, home, grid, bat, soc, car, carSoc, range, today, todayFc, tomorrow } = x;
   const fa = st('todayFc')?.attributes, fl = fa?.detailedForecast || fa?.detailedHourly || [];
   const step = fl.length > 1 ? Date.parse(fl[1].period_start) - Date.parse(fl[0].period_start) : 0;
@@ -552,12 +553,12 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 .f-energy .pv .enum{font-size:14cqw;line-height:1;margin-top:1.6cqw}
 .f-energy .pv .enum small{font-size:5cqw;font-weight:500}
 .f-energy .use .enum small{font-weight:500}   /* „ kW“ Medium, „%“ wie die Zahl */
-.f-energy .et .sub{font-size:3cqw;line-height:normal;color:inherit;transition:color .3s}
+.f-energy .et .sub{font-size:2.8cqw;line-height:normal;color:inherit;transition:color .3s}
 .f-energy .dim{color:#ffffff9e}.f-energy.light .dim{color:#828284}
 /* Autarkie: Ring 24,2 cqw (r 44, Strich 6 von 100), Zahl 8 cqw */
 .f-energy .aut .ez{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0}
 .f-energy .aut .enum{font-size:8cqw;line-height:1;margin:0}
-.f-energy .aut .sub{margin-top:.6cqw}
+.f-energy .aut .sub{margin-top:.6cqw;font-size:3cqw}
 .f-energy .rg{position:absolute;left:3.4cqw;top:3.4cqw;width:24.2cqw;height:24.2cqw;fill:none;stroke-width:6}
 .f-energy .rg circle{stroke:var(--trk)}
 .f-energy .rg .on{stroke:#30d158;stroke-linecap:round;stroke-dasharray:100 100;stroke-dashoffset:calc((1 - var(--v,0)) * 100);transition:stroke-dashoffset calc(var(--sd) * 2.2) var(--spring)}

@@ -23,8 +23,9 @@ export function toast(text, o = {}) {
   el.querySelector('button')?.addEventListener('click', e => { if (e.timeStamp - t0 < 350) return; off(); o.run?.(); });
   document.body.append(el); tt = setTimeout(off, o.action ? 8000 : 5000);
 }
-// Speichern mit Rückmeldung: Fehler als Hinweis, danach wieder werfen
-export const guard = (p, ok) => p.then(r => (ok && toast(ok), r), e => (toast(e?.message || tx('Fehler'), { bad: true }), Promise.reject(e)));
+// Speichern mit Rückmeldung: Fehler als Hinweis, danach wieder werfen; vom Server abgelehnte Werte (Schema) ohne den rohen englischen Text, der steht in der Konsole
+const errText = e => e?.code === 'invalid_format' ? (console.warn('Homeblick:', e.message), tx('Ungültiger Wert')) : e?.message || tx('Fehler');
+export const guard = (p, ok) => p.then(r => (ok && toast(ok), r), e => (toast(errText(e), { bad: true }), Promise.reject(e)));
 
 // ---- Rückfragen als Alert: erst Abbrechen im Fokus, Escape bricht ab, Klick daneben tut nichts ----
 const queue = [];
@@ -103,11 +104,12 @@ export function modal(html, { cls = '', label = '', init, dismiss = true } = {})
     const dlg = Object.assign(document.createElement('div'), { className: `sheet ${cls}`, role: 'dialog', ariaLabel: label, innerHTML: `<div class="grabber"></div>${html}` });
     const back = document.activeElement;
     let closing = false;
-    const done = v => { if (closing) return; closing = true; dlg.classList.add('out'); dim.style.transition = 'opacity .24s'; dim.style.opacity = '0'; document.removeEventListener('keydown', key, true); setTimeout(() => { dim.remove(); dlg.remove(); }, 230); back?.focus?.({ preventScroll: true }); res(v); };
+    const hc = () => done(null);   // Seitenwechsel (Browser-Zurück): Blatt gehört zur alten Seite und schließt mit
+    const done = v => { if (closing) return; closing = true; removeEventListener('hashchange', hc); dlg.classList.add('out'); dim.style.transition = 'opacity .24s'; dim.style.opacity = '0'; document.removeEventListener('keydown', key, true); setTimeout(() => { dim.remove(); dlg.remove(); }, 230); back?.focus?.({ preventScroll: true }); res(v); };
     const key = e => { if (e.key === 'Escape' && !$('.pop') && !$('.picker') && !$('.alert')) { e.stopPropagation(); done(null); } };
     dlg.addEventListener('click', e => { const b = e.target.closest('[data-r]'); if (b && !b.disabled) done(b.dataset.r); });
     if (dismiss) dim.onclick = () => done(null);
-    document.addEventListener('keydown', key, true);
+    document.addEventListener('keydown', key, true); addEventListener('hashchange', hc);
     document.body.append(dim, dlg);
     init?.(dlg, done);
     if (!matchMedia('(pointer:coarse)').matches) (dlg.querySelector('[autofocus]') || dlg.querySelector('input:not([type=range])'))?.focus({ preventScroll: true });   // am Touchgerät kein Tastatur-Aufklappen

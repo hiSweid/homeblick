@@ -93,7 +93,7 @@ export function pickEntity({ title = tx('Entität wählen'), domains, dcs, none,
     q.addEventListener('input', () => { hi = 0; draw(); list.scrollTop = 0; });
     key = e => {   // das Blatt selbst ignoriert Escape, solange eine Auswahl offen ist (sie liegt über anderen Blättern)
       if (e.key === 'Escape') { e.stopPropagation(); done(null); }
-      else if (e.key === 'Enter' && items[hi]) done(items[hi]);
+      else if (e.key === 'Enter' && items[hi] && !e.target.closest('button')) { e.preventDefault(); done(items[hi]); }   // preventDefault: sonst klickt das Enter nach dem Schließen den Auslöser; auf Knöpfen gilt deren eigener Klick
       else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); hi = Math.max(0, Math.min(items.length - 1, hi + (e.key === 'ArrowDown' ? 1 : -1))); mark(); list.querySelectorAll('.pk-item')[hi]?.scrollIntoView({ block: 'nearest' }); }
     };
     document.addEventListener('keydown', key, true);

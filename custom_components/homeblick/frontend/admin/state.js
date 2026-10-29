@@ -2,12 +2,12 @@
 import { tx, LOC } from '../i18n.js';
 import { normFaces } from '../faces.js';
 import { loadEntities } from './entities.js';
-import { guard, sleep, toast } from './ui.js';
+import { ask, guard, sleep, toast } from './ui.js';
 
 export const S = {
   conn: null, displays: [], shots: {}, states: {}, pipelines: [], ttss: [],
   cams: { cameras: { list: [], bell: null }, auto: true }, camEnts: [],
-  sel: null, cfg: null, saved: '', undo: [], redo: [], busy: false, justSaved: false,
+  sel: null, cfg: null, rev: 0, saved: '', undo: [], redo: [], busy: false, justSaved: false,
   ui: { sel: null, insert: null, page: null },   // Auswahl im Editor: { k: 'page', f } | { k: 'tile', f, j } | { k: 'tiles', f, js } | null; insert = markierte leere Zelle { f, cell }; page = Seite im Vordergrund
 };
 export const call = (type, p = {}) => S.conn.sendMessagePromise({ type: 'homeblick/' + type, ...p });
@@ -68,9 +68,14 @@ function perfNotice() {
 export async function poll() {   // Status nachführen, ohne Formulare neu zu zeichnen
   const n = await call('displays').catch(() => null);
   if (!n) return;
-  if (n.length !== S.displays.length) return reload();
-  n.forEach(x => Object.assign(byId(x.id) || {}, { new: x.new, connected: x.connected, face: x.face, saver: x.saver, info: x.info, seen: x.seen, logs: x.logs, outdated: x.outdated, windows: x.windows }));
-  emit('list'); perfNotice();
+  if (n.length !== S.displays.length || n.some(x => !byId(x.id))) return reload();   // auch Tausch (eines weg, eines neu) bei gleicher Anzahl
+  let ext = false;   // Einstellungen/Name von außen geändert (HA-Entity, Kontrollzentrum, anderer Admin): Formular neu zeichnen
+  n.forEach(x => {
+    const d = byId(x.id);
+    ext ||= JSON.stringify(d.settings) !== JSON.stringify(x.settings) || d.name !== x.name || d.area !== x.area;
+    Object.assign(d, { name: x.name, area: x.area, settings: x.settings, faces: x.faces, new: x.new, connected: x.connected, face: x.face, saver: x.saver, info: x.info, seen: x.seen, logs: x.logs, outdated: x.outdated, windows: x.windows });
+  });
+  emit('list', ext ? 'ext' : undefined); perfNotice();
 }
 // Bildschirmfoto als Bild der Karte (das Display antwortet asynchron); null = keine Antwort
 export async function snap(id) {
@@ -93,7 +98,7 @@ export const dirty = () => !!S.cfg && snapOf(S.cfg) !== S.saved;
 export async function openDoc(id) {
   const c = await call('get_config', { display: id }).catch(() => null);
   if (!c?.config?.faces) { S.sel = id; S.cfg = null; S.saved = ''; S.undo = []; S.redo = []; emit('doc'); return false; }
-  S.sel = id; S.cfg = c.config; normFaces(S.cfg); S.saved = snapOf(S.cfg); S.undo = []; S.redo = []; S.justSaved = false; S.ui = { sel: null, insert: null, page: null };
+  S.sel = id; S.cfg = c.config; S.rev = c.rev ?? 0; normFaces(S.cfg); S.saved = snapOf(S.cfg); S.undo = []; S.redo = []; S.justSaved = false; S.ui = { sel: null, insert: null, page: null };
   emit('doc'); return true;
 }
 export function closeDoc() { S.sel = null; S.cfg = null; S.saved = ''; S.undo = []; S.redo = []; S.ui = { sel: null, insert: null, page: null }; emit('doc'); }
@@ -117,12 +122,34 @@ export function redo() {
   const r = S.redo.pop(); if (!r) return;
   S.undo.push({ label: r.label, json: snapOf(S.cfg) }); S.cfg = JSON.parse(r.json); lastKey = ''; S.justSaved = false; emit('doc', 'undo');
 }
+// Konfiguration ohne Schlüsselreihenfolge und ohne 'kiosk' (das streicht der Server) vergleichbar machen
+const canon = ({ kiosk, ...c }) => JSON.stringify(c, (k, v) => v && typeof v === 'object' && !Array.isArray(v) ? Object.fromEntries(Object.entries(v).sort(([a], [b]) => a < b ? -1 : 1)) : v);
+/** Sendet den Entwurf; true = wirklich gesendet (false: Neu laden im Konflikt, Abbruch, Fehler). */
 export async function save() {
-  if (!S.cfg || S.busy) return;
+  if (!S.cfg || S.busy) return false;
+  let ok = false;
+  const id = S.sel, sent = snapOf(S.cfg);   // gesendeter Stand: Änderungen während des Sendens bleiben „nicht gesendet“
   S.busy = true; emit('doc');
-  try { await guard(call('admin_config', { display: S.sel, config: S.cfg })); S.saved = snapOf(S.cfg); S.justSaved = true; const id = S.sel; setTimeout(() => snap(id), 2500); }
+  try {
+    const slow = () => new Promise((_, no) => setTimeout(() => no(new Error(tx('Keine Verbindung zu Home Assistant'))), 15000));   // tote Verbindung hält sonst „Sendet …“ ewig; je Versuch neu (der Überschreiben-Dialog kann länger dauern)
+    const send = base_rev => Promise.race([call('admin_config', { display: id, config: JSON.parse(sent), base_rev }), slow()]);
+    const r = await guard(send(S.rev).catch(async e => {   // base_rev: Stand beim Öffnen; jemand anderes hat inzwischen gesendet
+      if (e?.code !== 'conflict') throw e;
+      const c = await call('get_config', { display: id }).catch(() => null);   // Zeitüberschreitung: die erste Anfrage kann später doch angenommen worden sein, das ist dann kein fremder Konflikt
+      if (c?.config?.faces && canon(c.config) === canon(JSON.parse(sent))) return { rev: c.rev ?? 0 };
+      const a = await ask(tx('Die Konfiguration dieses Displays wurde inzwischen von jemand anderem geändert. Überschreiben löscht diese Änderungen, Neu laden verwirft deinen Entwurf.'), { alt: tx('Neu laden'), ok: tx('Überschreiben'), danger: true });
+      if (a === 'alt') await openDoc(id);
+      return a === true ? send(undefined) : false;   // ohne base_rev: bewusst überschreiben
+    }));
+    if (r !== false) {   // false: Konflikt, nicht gesendet
+      ok = true;
+      if (S.sel === id) { S.saved = sent; S.rev = r?.rev ?? S.rev; S.justSaved = !dirty(); }
+      setTimeout(() => snap(id), 2500);
+    }
+  }
   catch { /* guard zeigt den Fehler */ }
   S.busy = false; emit('doc');
+  return ok;
 }
 export function discard() { if (S.saved) { S.cfg = JSON.parse(S.saved); S.undo = []; S.redo = []; emit('doc', 'undo'); } }
 /** Konfiguration nach Import/Übernehmen neu laden. */
@@ -131,6 +158,7 @@ export async function reloadDoc() { const id = S.sel; await openDoc(id); }
 // ---- Einstellungen eines Displays: sofort wirksam, kein Entwurf ----
 export function setSetting(id, patch) {
   const d = byId(id); if (!d) return Promise.resolve();
+  const old = Object.fromEntries(Object.keys(patch).map(k => [k, d.settings[k]]));
   Object.assign(d.settings, patch); emit('list');
-  return guard(call('update', { display: id, settings: patch })).catch(() => {});
+  return guard(call('update', { display: id, settings: patch })).catch(() => { Object.assign(d.settings, old); emit('list', 'ext'); });   // vom Server abgelehnt: Anzeige zurück auf den echten Stand
 }

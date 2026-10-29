@@ -87,7 +87,7 @@ export function wasteChip(list, now = new Date()) {
   const names = bins.map(b => d > 1 || bins.length > 1 ? b.short : b.name).join(' + ');   // kurz, sonst bricht die 42-cqw-Spalte (Ellipse)
   return { bins, text: d === 0 ? tx('Heute: {names}', { names }) : d === 1 ? tx('Morgen: {names}', { names }) : tx('{names} in {d} Tagen', { names, d }) };
 }
-const chipHTML = c => c ? `<div class="ew"><i>${c.bins.map(b => `<svg class="i bin" style="color:${b.color}"><use href="#evbin"/></svg>`).join('')}</i><span>${esc(c.text)}</span></div>` : '';
+const chipHTML = c => c ? `<div class="ew${c.bins.length > 1 ? ' m' : ''}"><i>${c.bins.map(b => `<svg class="i bin" style="color:${b.color}"><use href="#evbin"/></svg>`).join('')}</i><span>${esc(c.text)}</span></div>` : '';
 
 // Info-Face (Vorlage Video y-MO 08500 / _Tbq 01230): nur heute — „N ganztägig“, die nächsten zwei Termine mit Zeit, „N weitere Termine“
 export function infoHTML(list, now = new Date()) {
@@ -131,6 +131,7 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 .ew i{display:flex;align-items:center;gap:.2cqw;flex:none;height:7cqw;padding:0 1.6cqw;border-radius:9cqw;background:var(--btn)}
 .ew svg.bin{width:4.4cqw;height:4.4cqw;fill:currentColor;stroke:none;filter:drop-shadow(0 0 .25cqw #0007)}
 .ew span{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.ew.m span{font-size:3.2cqw;line-height:1.05;white-space:normal;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2}   /* mehrere Tonnen: höchstens zwei Zeilen (Chip 7 cqw hoch), danach „…“ */
 #events .x{background:#0000000f}
 #events .top{font-size:3.8cqw}
 .evl{position:absolute;inset:15cqw 0 0;overflow-y:auto;scrollbar-width:none;touch-action:pan-y;overscroll-behavior:contain;padding:0 4.4cqw 8cqw}

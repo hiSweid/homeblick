@@ -21,7 +21,7 @@ export const DESIGN = { clock: [['bigclock:stack', tx('Digital · Gestapelt')], 
 export const ACC = [['', tx('Blau & Rot')], [5, tx('Rot')], [30, tx('Orange')], [145, tx('Grün')], [190, tx('Türkis')], [275, tx('Violett')], [335, 'Pink'], ['gray', tx('Graphit')]];
 export const accCss = v => v === '' ? 'linear-gradient(135deg,#0064ff 50%,#ff4646 50%)' : v === 'gray' ? '#8e8e93' : `hsl(${v} 85% 55%)`;
 export const GNAME = { clock: tx('Uhr') };
-export const faceName = x => (GNAME[GROUP[x.type]] || FACE[x.type]?.[0] || x.type) + (x.id !== x.type ? ' ' + x.id.replace(x.type, '') : '');
+export const faceName = x => (GNAME[GROUP[x.type]] || FACE[x.type]?.[0] || x.type) + (/\d+$/.exec(x.id) ? ' ' + /\d+$/.exec(x.id)[0] : '');   // nur der Zähler (grid2); die id bleibt beim Design-Wechsel stehen (bigclock → analog)
 export const designs = f => DESIGN[GROUP[f.type]] ? DESIGN[GROUP[f.type]].concat((LEGACY[f.type] || []).filter(([v]) => v === f.style).map(([v, n]) => [`${f.type}:${v}`, `${{ bigclock: tx('Digital'), analog: tx('Analog'), info: 'Info' }[f.type]} · ${n}`])) : STYLES[f.type];
 export const designCur = f => DESIGN[GROUP[f.type]] ? `${f.type}:${f.style || STYLES[f.type]?.[0][0] || ''}` : f.style || STYLES[f.type]?.[0][0];
 export const withDesign = (cfg, f, v) => { if (!DESIGN[GROUP[f.type]]) return { ...f, style: v }; const [type, style] = v.split(':'); return { ...f, type, style: style || undefined }; };

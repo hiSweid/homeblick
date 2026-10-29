@@ -246,6 +246,9 @@
   "exceptions": {
     "no_display": {
       "message": "The selected device is not a Homeblick display."
+    },
+    "no_camera": {
+      "message": "The selected camera does not exist."
     }
   },
   "issues": {

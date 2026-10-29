@@ -213,7 +213,7 @@ class SettingNumber(Base, NumberEntity):
 class SettingTime(Base, TimeEntity):
     @property
     def native_value(self) -> time:
-        return time.fromisoformat(self.d.settings[self.key])
+        return time.fromisoformat(self.d.settings[self.key].strip())
 
     async def async_set_value(self, value: time) -> None:
         await self.hub.set_setting(self.d, self.key, value.strftime("%H:%M:%S"))

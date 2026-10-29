@@ -1,7 +1,8 @@
 import { tx } from './i18n.js';
 // conf.faces = angezeigte Faces in der Reihenfolge des Displays (frei, in der Live-Bearbeitung der Einstellungsseite änderbar), conf.off = ausgeblendete mit ihrer Konfiguration (bleibt erhalten).
 // Jedes Face hat eine eindeutige id (Typ, bei weiteren desselben Typs mit Zähler: grid, grid2, …).
-const ids = list => { const n = {}; for (const f of list) f.id ||= (n[f.type] = (n[f.type] || 0) + 1) > 1 ? f.type + n[f.type] : f.type; };
+// Fehlende, doppelte oder unbrauchbare ids (Import, Handarbeit; sie dienen als Adresse: #id, Befehl face) bekommen eine freie; taken = schon vergebene
+const ids = (list, taken = new Set()) => { for (const f of list) { if (!/^[\w-]{1,40}$/.test(typeof f.id === 'string' ? f.id : '') || taken.has(f.id)) { let n = 1; while (taken.has(n > 1 ? f.type + n : f.type)) n++; f.id = n > 1 ? f.type + n : f.type; } taken.add(f.id); } };
 // Neue eindeutige id für ein Face dieses Typs (über angezeigte und ausgeblendete)
 export function faceId(conf, type) {
   const used = new Set([...conf.faces, ...(conf.off || [])].map(f => f.id));
@@ -16,9 +17,14 @@ export const siblings = t => Object.keys(GROUP).filter(k => GROUP[k] === GROUP[t
 const dedupe = (list, seen) => { for (let i = 0; i < list.length; i++) { const g = GROUP[list[i].type]; if (!g) continue; if (seen.has(g)) list.splice(i--, 1); else seen.add(g); } };
 
 // Struktur prüfen: eine kaputte gespeicherte Konfig würde sonst bei jedem Start renderAll sprengen
-const FACE_TYPES = ['grid', 'music', 'bigclock', 'analog', 'calendar', 'date', 'weather', 'energy', 'cams', 'people', 'todo', 'check', 'photos', 'info'];   // = Schlüssel von FACE (index.html)
+export const FACE_TYPES = ['grid', 'music', 'bigclock', 'analog', 'calendar', 'date', 'weather', 'energy', 'cams', 'people', 'todo', 'check', 'photos', 'info'];   // = Schlüssel von FACE (index.html)
 // Kachelfelder mit falschem Typ verwerfen (kindOf/iconOf rufen String-Methoden); night rekursiv
-const cleanTile = t => { for (const k of ['e', 'title', 'sub', 'icon', 'kind', 'cs', 'k', 'dom']) if (typeof t[k] !== 'string') delete t[k]; if (Array.isArray(t.ents)) t.ents = t.ents.filter(x => typeof x === 'string').slice(0, 100); else delete t.ents; if (t.night && typeof t.night === 'object' && !Array.isArray(t.night)) cleanTile(t.night); else delete t.night; return t; };
+const obj = x => x && typeof x === 'object' && !Array.isArray(x);
+const cleanTile = t => { for (const k of ['e', 'title', 'sub', 'icon', 'kind', 'cs', 'k', 'dom']) if (typeof t[k] !== 'string') delete t[k];
+  for (const k of ['e', 'dom']) if (t[k]?.split('.')[0] in Object.prototype) delete t[k];   // Domain „__proto__“/„constructor“ träfe Tabellen wie ON[d] und ICON[dom] als geerbtes Objekt
+  for (const k of ['w', 'h']) if (!(Number.isInteger(t[k]) && t[k] >= 1 && t[k] <= 4)) delete t[k];
+  for (const k of ['tap', 'hold']) if (!obj(t[k])) delete t[k]; else if (t[k].data !== undefined && !obj(t[k].data)) delete t[k].data;   // data wird in den Service-Call gespreizt
+  if (Array.isArray(t.ents)) t.ents = t.ents.filter(x => typeof x === 'string' && !(x.split('.')[0] in Object.prototype)).slice(0, 100); else delete t.ents; if (obj(t.night)) cleanTile(t.night); else delete t.night; return t; };
 // Kacheln haben „Smart Home“ und „Energie“; Energie ohne gespeicherte Kacheln startet mit den bisherigen acht (ENERGY_TILES), ein leeres Feld bleibt leer
 export const hasTiles = f => f.type === 'grid' || f.type === 'energy';
 export const ENERGY_TILES = [{ kind: 'en', k: 'pv', w: 2 }, { kind: 'en', k: 'aut' }, { kind: 'en', k: 'use' }, { kind: 'en', k: 'bat' }, { kind: 'en', k: 'car' }, { kind: 'en', k: 'day' }, { kind: 'en', k: 'tmr' }, { kind: 'clock' }];
@@ -33,7 +39,7 @@ export function normFaces(conf, defs = []) {
   const before = JSON.stringify([conf.faces, conf.off]);
   cleanConf(conf);
   ids(conf.faces);
-  conf.off = (conf.off || []).filter(f => !conf.faces.some(a => a.id === f.id)); ids(conf.off);
+  conf.off = (conf.off || []).filter(f => !conf.faces.some(a => a.id === f.id)); ids(conf.off, new Set(conf.faces.map(f => f.id)));
   const seen = new Set(); dedupe(conf.faces, seen); dedupe(conf.off, seen);
   const d = cleanFaces(structuredClone(defs)); ids(d);
   for (const f of d) if (![...conf.faces, ...conf.off].some(x => x.id === f.id) && !seen.has(GROUP[f.type])) { conf.off.push(f); if (GROUP[f.type]) seen.add(GROUP[f.type]); }

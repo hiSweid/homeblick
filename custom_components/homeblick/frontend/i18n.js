@@ -2,7 +2,7 @@
 // Wahl: ?lang=de|en · localStorage hb_lang · Browsersprache (alles außer Deutsch → Englisch).
 const pick = s => (/^(de|en)/i.exec(s || '') || [])[1]?.toLowerCase();
 const stored = () => { try { return globalThis.localStorage.getItem('hb_lang'); } catch { return null; } };
-export const LANG = pick(new URLSearchParams(globalThis.location?.search).get('lang')) || pick(stored()) || (globalThis.navigator?.languages?.length ? navigator.languages : [globalThis.navigator?.language]).map(pick).find(Boolean) || 'en';
+export const LANG = pick(new URLSearchParams(globalThis.location?.search).get('lang')) || pick(stored()) || (globalThis.document ? (globalThis.navigator?.languages?.length ? navigator.languages : [globalThis.navigator?.language]).map(pick).find(Boolean) || 'en' : 'de');   // ohne Browser (Node-Selbsttests) gilt der deutsche Quelltext
 export const LOC = LANG === 'de' ? 'de-DE' : 'en-GB';   // Datum/Zahlen/24-Stunden-Uhr
 export const setLang = l => { try { l ? localStorage.setItem('hb_lang', l) : localStorage.removeItem('hb_lang'); } catch {} location.reload(); };
 

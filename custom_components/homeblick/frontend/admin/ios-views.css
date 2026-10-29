@@ -61,6 +61,9 @@
 .bg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:14px 12px;padding:14px}
 .bg-tile{display:grid;gap:6px;justify-items:center;font-size:.74em;color:var(--label-2);text-align:center}
 .bg-tile i{width:100%;aspect-ratio:1;border-radius:22%;box-shadow:inset 0 0 0 .5px #0000002e;transition:transform .4s var(--spring),box-shadow .25s}.bg-tile:hover i{transform:scale(1.05)}
+@media (prefers-color-scheme:dark){.bg-tile i{box-shadow:inset 0 0 0 .5px #ffffff3d}}   /* dunkle Kacheln (Schwarz, Space Grau) sonst nicht von der Gruppenfläche zu trennen */
+#set-mode>.sect{margin-top:26px}   /* .sect:first-child nullt sonst den Abstand im Wrapper */
+@media (min-width:901px){.split-side .save-slot{display:none}}   /* breit: „Senden“ nur im Detail */
 .bg-tile[aria-pressed=true]{color:var(--label);font-weight:600}.bg-tile[aria-pressed=true] i{box-shadow:0 0 0 3px var(--cell),0 0 0 5px var(--tint)}
 img.shot{display:block;width:calc(100% - 32px);max-width:300px;aspect-ratio:1;object-fit:cover;border-radius:10.2%;margin:4px 16px 16px;box-shadow:var(--shadow-card);background:#000}
 
@@ -100,3 +103,9 @@ img.shot{display:block;width:calc(100% - 32px);max-width:300px;aspect-ratio:1;ob
   .home-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:22px 16px}.tab{min-width:84px;padding:8px 10px 6px}
   .nav{padding:0 10px}
 }
+
+/* Lange Namen ohne Leerzeichen (Display, Ansicht, Kachel) sprengen weder Raster noch Hinweise */
+.large,.alert p,.toast span,.srow .s-label,.set-hero small{overflow-wrap:anywhere}.toast span{min-width:0}
+.home-card,.home-meta,.pgc .t{grid-template-columns:minmax(0,1fr)}.home-meta{min-width:0}
+.home-meta strong,.set-hero b,.pgc .t b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}.pgc .t{min-width:0}
+.chip.pick{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis}

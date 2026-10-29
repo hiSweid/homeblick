@@ -143,7 +143,10 @@ export function hidePage(id) {
 export function removePage(id) {
   if (S.cfg.faces.length < 2) return toast(tx('Mindestens eine Ansicht muss bleiben'), { bad: true });
   const f = faceBy(id), n = tilesOf(f).length, name = faceName(f);
-  mutate(tx('Ansicht „{name}“ gelöscht', { name }), c => { c.faces.splice(c.faces.findIndex(x => x.id === id), 1); });
+  mutate(tx('Ansicht „{name}“ gelöscht', { name }), c => {
+    c.faces.splice(c.faces.findIndex(x => x.id === id), 1);
+    for (const g of [...c.faces, ...(c.off || [])]) for (const t of g.tiles || []) for (const a of ['tap', 'hold']) if (t[a]?.face === id) delete t[a];   // Verweise auf die gelöschte Ansicht fallen auf die Standardaktion zurück
+  });
   select(null);
   toast(n ? (n > 1 ? tx('Ansicht „{name}“ und {n} Kacheln gelöscht', { name, n }) : tx('Ansicht „{name}“ und 1 Kachel gelöscht', { name })) : tx('Ansicht „{name}“ gelöscht', { name }), { action: tx('Rückgängig'), run: undo });
 }

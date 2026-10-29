@@ -1,9 +1,12 @@
 """Displays: je Display eigene Konfiguration, Einstellungen und Entities; Verbindung zu den offenen Panels."""
+import asyncio
+import re
 from collections import deque
 
 from homeassistant.components.intent import async_register_timer_handler
 from homeassistant.components.intent.const import TIMER_DATA
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import area_registry as ar, device_registry as dr, entity_registry as er, issue_registry as ir
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.event import async_call_later
@@ -11,6 +14,7 @@ from homeassistant.helpers.storage import Store
 
 from .const import DEFAULTS, DOMAIN, LOGS, STORE_VERSION
 
+MAX_DISPLAYS = 50   # Obergrenze, damit sich keine Entity-Flut anmelden lässt (register braucht keine Administratorrechte)
 OFFLINE = 600   # s ohne offenes Panel bis zur Reparaturmeldung (kurze Neuladen/WLAN-Aussetzer lösen keine aus)
 
 
@@ -55,16 +59,20 @@ class Hub:
         self.version: str | None = None   # Integrationsversion (manifest), gesetzt in async_setup_entry
         self.default: dict | None = None   # Vorlage für neue Displays (Stand vor Mehrfach-Display: die eine gemeinsame Konfiguration)
         self.configs: dict[str, dict] = {}
+        self.revs: dict[str, int] = {}   # Stand der Konfiguration je Display, zählt bei jeder Änderung von der Einstellungsseite (Konfliktprüfung zwischen mehreren Administratoren)
         self.cams: dict | None = None   # Kameras + Klingel für alle Displays; None = automatisch erkannt
         self.displays: dict[str, Display] = {}
         self.timer_unsub: dict = {}   # Display-id → Abmeldung des Timer-Handlers
         self.adders: dict = {}   # Plattform → (async_add_entities, Fabrik)
+        self.lock = asyncio.Lock()   # ensure/remove nacheinander: sonst legt ein zweites register Entities an, die remove danach samt Gerät wieder löscht (nie verschachtelt locken)
 
     async def load(self) -> None:
         d = await self.store.async_load() or {}
         if "faces" in d:   # altes Format
             d = {"default": d}
-        self.default, self.configs, self.cams = d.get("default"), d.get("configs", {}), d.get("cameras")
+        self.default, self.configs, self.cams, self.revs = d.get("default"), d.get("configs", {}), d.get("cameras"), d.get("revs", {})
+        if not self._has_faces(self.default):   # leere Vorlage aus älterem Store ignorieren
+            self.default = None
         for id, m in d.get("displays", {}).items():
             self.displays[id] = Display(id, m["name"], m.get("settings"))
             self.displays[id].new = m.get("new", False)
@@ -72,7 +80,7 @@ class Hub:
 
     async def _save(self) -> None:
         await self.store.async_save({
-            "default": self.default, "configs": self.configs, "cameras": self.cams,
+            "default": self.default, "configs": self.configs, "cameras": self.cams, "revs": self.revs,
             "displays": {i: {"name": d.name, "settings": d.settings, "new": d.new} for i, d in self.displays.items()},
         })
 
@@ -81,23 +89,40 @@ class Hub:
         add([e for d in self.displays.values() for e in factory(self, d)])
 
     async def ensure(self, id: str, name: str | None) -> Display:
-        if id not in self.displays:
-            d = self.displays[id] = Display(id, name or f"Display {len(self.displays) + 1}")
-            d.new = True
-            for add, factory in self.adders.values():
-                add(factory(self, d))
-            self.watch_timers(d)
-            await self._save()
-        return self.displays[id]
+        if d := self.displays.get(id):
+            return d
+        async with self.lock:
+            if id not in self.displays:
+                if not re.fullmatch(r"[a-z0-9_-]{1,64}", id):   # wie das Frontend sie bildet (index.html, ?display=)
+                    raise ServiceValidationError("Invalid display id")
+                if len(self.displays) >= MAX_DISPLAYS:
+                    raise ServiceValidationError("Too many displays")
+                used, n = {x.name for x in self.displays.values()}, 1
+                while f"Display {n}" in used:   # kleinste freie Nummer: nach Entfernen kein doppelter Standardname
+                    n += 1
+                d = self.displays[id] = Display(id, name or f"Display {n}")
+                d.new = True
+                for add, factory in self.adders.values():
+                    add(factory(self, d))
+                self.watch_timers(d)
+                await self._save()
+            return self.displays[id]   # remove läuft nur unter dem Lock, nimmt es also nicht zwischendurch weg
 
-    async def remove(self, id: str) -> None:
-        self.unwatch_timers(id)
-        if d := self.displays.pop(id, None):
-            self._disarm(d)
-        self.configs.pop(id, None)
-        if not self.displays:   # Vorlage nur für die Umstellung vom alten Einzel-Display; ohne Displays nicht weiterreichen
-            self.default = None
-        await self._save()
+    async def remove(self, id: str, device: bool = False) -> None:
+        """device=True: auch das Gerät samt Entities aus der Registry nehmen (unter dem Lock, damit kein register dazwischen Entities anlegt, die danach mit dem Gerät verschwinden)."""
+        async with self.lock:
+            self.unwatch_timers(id)
+            if d := self.displays.pop(id, None):
+                self._disarm(d)
+            self.configs.pop(id, None)
+            self.revs.pop(id, None)
+            if not self.displays:   # Vorlage nur für die Umstellung vom alten Einzel-Display; ohne Displays nicht weiterreichen
+                self.default = None
+            await self._save()
+            if device and (dev := self.device(id)):   # HA räumt die Entities mit ab, sonst bleiben Geister mit altem Zustand
+                dr.async_get(self.hass).async_remove_device(dev.id)   # remove_config_entry_id in async_update_device ist veraltet (ab HA 2027.8 Fehler)
+            if d:   # noch offene Panels melden sich neu an (sonst laufen sie verwaist weiter und der Server lehnt alle Meldungen ab)
+                self.push(d, {"action": "reload"})
 
     def timers(self, d: Display) -> list[dict]:
         """Laufende Sprach-Timer (Assist), die an diesem Display gestartet wurden."""
@@ -132,9 +157,16 @@ class Hub:
 
     @callback
     def unwatch_timers(self, id: str | None = None) -> None:
-        for i in [id] if id else list(self.timer_unsub):
+        for i in list(self.timer_unsub) if id is None else [id]:
             if unsub := self.timer_unsub.pop(i, None):
                 unsub()
+
+    def device(self, id: str):
+        """HA-Gerät zur Display-id (None, wenn es keins gibt)."""
+        reg = dr.async_get(self.hass)
+        if find := getattr(reg, "async_get_device_by_identifier", None):   # async_get_device ist ab HA 2027.8 entfernt
+            return find((DOMAIN, id), self.entry_id)
+        return reg.async_get_device(identifiers={(DOMAIN, id)})   # ältere HA-Versionen
 
     def device_id(self, d: Display) -> str:
         """HA-Gerät des Displays (legt es an, falls die Entities noch nicht da sind) – für den Raumbezug von Assist."""
@@ -172,13 +204,25 @@ class Hub:
         for d in self.displays.values():
             self.push(d, {"cameras": self.cameras()})
 
+    @staticmethod
+    def _has_faces(config) -> bool:
+        return isinstance(config, dict) and bool(config.get("faces"))
+
     def config(self, id: str) -> dict | None:
         return self.configs.get(id) or self.default
+
+    def faces(self, id: str) -> list[dict]:
+        """Faces der Konfiguration; auch ein beschädigter Store-Eintrag bringt Leser nicht zu Fall."""
+        faces = (self.config(id) or {}).get("faces")
+        return [f for f in faces if isinstance(f, dict)] if isinstance(faces, list) else []
 
     async def set_config(self, id: str, config: dict, push: bool = False) -> None:
         """push=True: Änderung kommt von der Einstellungsseite → das offene Panel baut sich neu auf."""
         self.configs[id] = config
-        self.default = self.default or config   # erstes Display liefert die Vorlage für weitere
+        if push:
+            self.revs[id] = self.revs.get(id, 0) + 1   # nur Änderungen der Einstellungsseite: das Display lädt beim Start auch unverändert hoch
+        if self._has_faces(config) and not self._has_faces(self.default):   # erstes Display mit Faces liefert die Vorlage; {"faces": []} ist truthy und würde sie sonst dauerhaft vergiften
+            self.default = config
         await self._save()
         if push:
             self.push(self.displays[id], {"config": config})
@@ -188,7 +232,7 @@ class Hub:
         d.settings.update(settings)
         if name and name != d.name:
             d.name = name
-            if dev := dr.async_get(self.hass).async_get_device(identifiers={(DOMAIN, d.id)}):
+            if dev := self.device(d.id):
                 dr.async_get(self.hass).async_update_device(dev.id, name=name)
         await self._save()
         self.push(d, {"kiosk": d.kiosk()})
@@ -224,7 +268,7 @@ class Hub:
                 return
             ir.async_create_issue(self.hass, DOMAIN, f"offline_{d.id}", is_fixable=False, severity=ir.IssueSeverity.WARNING,
                                   translation_key="offline", translation_placeholders={"name": d.name})
-        if not d.links and not d.alarm:
+        if not d.links and not d.alarm and self.displays.get(d.id) is d:   # entfernte Displays melden sich nicht offline (das offene Panel trennt erst danach)
             d.alarm = async_call_later(self.hass, OFFLINE, fire)
 
     @callback

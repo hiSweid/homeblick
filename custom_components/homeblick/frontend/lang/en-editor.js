@@ -2,6 +2,7 @@
 export default {
   'Zustand': 'State',
   'Standard': 'Default',
+  'Dienst fehlt': 'Service missing',
   'Umschalten': 'Toggle',
   'Dienst aufrufen': 'Call service',
   'Ansicht öffnen': 'Open view',
@@ -285,7 +286,7 @@ export default {
   'Sichern': 'Back up',
   'Layout exportieren (JSON)': 'Export layout (JSON)',
   'Die ESP-Datei enthält nur, was ein LVGL-Panel (480×480) darstellen kann; Fehlendes steht unter „skipped“.': 'The ESP file contains only what an LVGL panel (480×480) can show; anything missing is listed under “skipped”.',
-  'Ansichten und Einstellungen gehen verloren. Das Gerät in Home Assistant danach unter Geräte löschen.': 'Views and settings are lost. Afterwards, delete the device in Home Assistant under Devices.',
+  'Ansichten und Einstellungen gehen verloren. Das Gerät und seine Entities in Home Assistant werden mit entfernt.': 'Views and settings are lost. The device and its entities in Home Assistant are removed as well.',
   'Wähle links einen Abschnitt.': 'Choose a section on the left.',
   'Look, Modus und Hintergrund gehören zum Entwurf. „Senden“ schickt sie ans Display.': 'Look, mode and background belong to the draft. “Send” pushes them to the display.',
   'Die Pillen gehören zum Entwurf. „Senden“ schickt sie ans Display.': 'The pills belong to the draft. “Send” pushes them to the display.',

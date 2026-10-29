@@ -158,6 +158,7 @@ export default {
   'Jetzt einrichten': 'Set Up Now',
   'Ein Administrator richtet es in den Homeblick-Einstellungen ein:': 'An administrator can set it up in the Homeblick settings:',
   'Start nicht möglich': 'Can\'t start',
+  'Anmeldung nicht möglich': 'Can\'t register',
   'Die Verbindungsbibliothek konnte nicht geladen werden.': 'The connection library could not be loaded.',
   'Erneut versuchen': 'Try Again',
   'Schließen': 'Close',
