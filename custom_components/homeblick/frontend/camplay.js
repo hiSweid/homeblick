@@ -32,7 +32,7 @@ export async function live(conn, e, video, hass = '', fail = () => {}, o = {}) {
   if (o.go2rtc?.url) {
     try { return await open((n, die) => whep(o.go2rtc, video, die, n, o.talk)); } catch (err) { console.warn('go2rtc', e, err?.message || err); if (!conn) throw err; }
   }
-  const caps = await capsOf(conn, e);
+  const caps = await capsOf(conn, e); console.warn('DIAG caps', e, caps + '');   // DIAG
   if (caps.includes('web_rtc')) {
     try {
       const bad = caps.includes('hls') ? new Promise(r => probe = err => r(console.warn('WebRTC', e, err?.message || err))) : null;
@@ -40,6 +40,7 @@ export async function live(conn, e, video, hass = '', fail = () => {}, o = {}) {
       // Bleibt das Bild aus (Fehlermeldung der Kamera oder ICE/UDP blockiert), nach höchstens 6 s auf HLS wechseln statt bis zum Zeitlimit zu warten
       const ok = !bad || await Promise.race([flows(shared.get(e).ms, 6000), bad.then(() => false)]);
       probe = null;
+      console.warn('DIAG flows', e, ok);   // DIAG
       if (ok) return rel;
       rel();
     } catch (err) { console.warn('WebRTC', e, err?.message || err); }
@@ -49,7 +50,7 @@ export async function live(conn, e, video, hass = '', fail = () => {}, o = {}) {
 }
 
 // Kommen Daten an? Entfernte Spuren sind stumm, bis der erste RTP-Frame da ist
-const flows = async (ms, t) => { for (let i = 0; i < t / 200; i++) { if (ms.getTracks().some(x => !x.muted)) return true; await new Promise(r => setTimeout(r, 200)); } return false; };
+const flows = async (ms, t) => { for (let i = 0; i < t / 200; i++) { if (ms.getVideoTracks().some(x => !x.muted)) return true; await new Promise(r => setTimeout(r, 200)); } return false; };
 
 // go2rtc-WHEP: Angebot (ohne Trickle, LAN) per POST, Antwort kommt als SDP; n.tr = Audio-Transceiver (Sprechen)
 async function whep(g, video, die, n, talk) {
@@ -84,13 +85,14 @@ export async function talk(e, on) {
 }
 
 async function webrtc(conn, e, video, fail, ms) {
-  const { configuration, dataChannel } = await cfgOf(conn, e);
+  const { configuration, dataChannel } = await cfgOf(conn, e); console.warn('DIAG cfg ok', e);   // DIAG
   const pc = new RTCPeerConnection(configuration);
   let sid, queue = [], unsub, dead = false;
   const stop = () => { dead = true; Promise.resolve(unsub?.()).catch(() => {}); pc.close(); video.srcObject = null; };
   const die = err => { if (dead) return; stop(); fail(err); };
   const send = candidate => conn.sendMessagePromise({ type: 'camera/webrtc/candidate', entity_id: e, session_id: sid, candidate }).catch(() => {});
-  pc.ontrack = ev => { ms.addTrack(ev.track); video.srcObject = ms; };
+  pc.ontrack = ev => { ms.addTrack(ev.track); video.srcObject = ms; console.warn('DIAG track', e, ev.track.kind, ev.track.muted); ev.track.onunmute = () => console.warn('DIAG unmute', e, ev.track.kind); };   // DIAG
+  pc.oniceconnectionstatechange = () => console.warn('DIAG ice', e, pc.iceConnectionState);   // DIAG
   pc.onconnectionstatechange = () => pc.connectionState === 'failed' && die(new Error(tx('WebRTC-Verbindung fehlgeschlagen')));
   pc.onicecandidate = ev => ev.candidate && (sid ? send(ev.candidate.toJSON()) : queue.push(ev.candidate.toJSON()));
   try {
@@ -100,6 +102,7 @@ async function webrtc(conn, e, video, fail, ms) {
     await pc.setLocalDescription(await pc.createOffer());
     unsub = await conn.subscribeMessage(ev => {
       if (dead) return;
+      console.warn('DIAG ev', e, ev.type);   // DIAG
       if (ev.type === 'session') { sid = ev.session_id; queue.splice(0).forEach(send); }
       else if (ev.type === 'answer') pc.setRemoteDescription({ type: 'answer', sdp: ev.answer }).catch(die);
       else if (ev.type === 'candidate') pc.addIceCandidate(ev.candidate).catch(() => {});
@@ -110,13 +113,14 @@ async function webrtc(conn, e, video, fail, ms) {
 }
 
 async function hls(conn, e, video, hass, fail) {
-  const { url } = await conn.sendMessagePromise({ type: 'camera/stream', entity_id: e });
+  const { url } = await conn.sendMessagePromise({ type: 'camera/stream', entity_id: e }); console.warn('DIAG hls url', e, url.slice(0, 30));   // DIAG
   const src = hass + url;
   if (video.canPlayType('application/vnd.apple.mpegurl')) { video.src = src; return () => (video.removeAttribute('src'), video.load()); }
   const { default: Hls } = await import('./vendor/hls.mjs');   // hls.js 1.7.4 lokal gebündelt (Apache-2.0), erst beim ersten HLS-Bedarf geladen
   if (!Hls.isSupported()) throw new Error(tx('HLS nicht unterstützt'));
   const h = new Hls({ lowLatencyMode: true });
   h.on(Hls.Events.ERROR, (_, d) => d.fatal && fail(new Error('HLS: ' + d.details)));
+  h.on(Hls.Events.MANIFEST_PARSED, () => console.warn('DIAG hls manifest', e)); h.on(Hls.Events.FRAG_LOADED, () => console.warn('DIAG hls frag', e));   // DIAG
   h.loadSource(src); h.attachMedia(video);
   return () => h.destroy();
 }
