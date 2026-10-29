@@ -122,11 +122,14 @@ function paintFace(el) {
   el.classList.toggle('multi', all.length > 1 && !el.dataset.todo);
   el.querySelector('.tplus').hidden = !(sf & CREATE) || !id;
   if (!(sf & CREATE)) el.classList.remove('adding');
-  el.querySelector('.tn').textContent = id ? a?.friendly_name || id : tx('Aufgaben');
+  const tn = el.querySelector('.tn'), name = id ? a?.friendly_name || id : tx('Aufgaben');
+  if (tn.textContent !== name) { const was = tn.textContent; tn.textContent = name; if (was && !calm(el)) tn.animate([{ translate: '0 40%', opacity: 0, letterSpacing: '.06em' }, { translate: '0 0', opacity: 1, letterSpacing: '-.03em' }], { duration: 560, easing: EASE }); }   // Listenname rollt von unten ein und zieht sich zusammen
   const list = items(id), open = list.filter(x => x.status !== 'completed').length, ts = el.querySelector('.ts');
   const sub = !id || !L?.got ? '' : open ? tx('{n} offen', { n: open }) : list.length ? tx('Alles erledigt') : tx('Leer');
   if (ts.textContent !== sub) { const was = ts.textContent; ts.textContent = sub; if (was && sub && !calm(el)) ts.animate([{ translate: '0 45%', opacity: 0 }, { translate: '0 0', opacity: 1 }], { duration: 420, easing: EASE }); }   // Zähler rollt von unten ein
-  el.querySelector('.tprog i').style.width = list.length ? (list.length - open) / list.length * 100 + '%' : '0';
+  const pr = list.length ? (list.length - open) / list.length * 100 + '%' : '0';
+  if (el._p !== pr) { if (el._p !== undefined && el._id === el._pid && !calm(el)) el.querySelector('.tprog').animate([{ scale: '1 1' }, { scale: '1 2.4', offset: .3 }, { scale: '1 1' }], { duration: 620, easing: EASE }); el._p = pr; el._pid = el._id; }   // Balken wippt, wenn sich der Stand ändert (nicht beim Listenwechsel)
+  el.querySelector('.tprog i').style.width = pr;
   const chips = all.length > 1 && !el.dataset.todo ? all.map(i => `<button class="tchip${i === id ? ' on' : ''}" data-list="${esc(i)}" style="--lc:${lcolor(i)}">${esc(api.ents()[i].attributes.friendly_name || i)}</button>`).join('') : '';
   if (el._ch !== chips) { el._ch = chips; el.querySelector('.tchips').innerHTML = chips; }
   const msg = !id ? `${tx('Keine Liste in Home Assistant')}<small>${tx('Füge die Integration „Einkaufsliste“ oder „Lokale Aufgaben“ hinzu')}</small>`
@@ -150,10 +153,18 @@ export function todoFace(el, f) {
   new MutationObserver(m => {   // Ansicht kommt ins Bild (.act): Kopf und Zeilen federn nacheinander ein
     if (!m.some(r => r.oldValue?.split(' ').includes('act') === false && el.classList.contains('act')) || calm(el)) return;
     el.querySelectorAll('header,.trow,.tsep').forEach((e, i) => appear(e, Math.min(i, 12) * 45));
+    el.querySelector('.tn').animate([{ letterSpacing: '.08em' }, { letterSpacing: '-.03em' }], { duration: 900, easing: EASE });
+    el.querySelector('.tplus').animate([{ scale: 0, rotate: '-180deg' }, { scale: 1, rotate: '0deg' }], { duration: 700, delay: 150, easing: EASE, fill: 'backwards' });
+    el.querySelector('.tprog i').animate([{ scale: '0 1' }, { scale: '1 1' }], { duration: 800, delay: 100, easing: 'ease-out', fill: 'backwards' });
   }).observe(el, { attributes: true, attributeFilter: ['class'], attributeOldValue: true });
   el.addEventListener('click', e => {
     const id = pick(el), L = lists.get(id), t = e.target;
-    if (t.closest('.tplus')) { el.classList.toggle('adding'); if (el.classList.contains('adding')) inp.focus(); else inp.blur(); return; }
+    if (t.closest('.tplus')) {
+      const on = el.classList.toggle('adding'), f = el.querySelector('.tadd');
+      if (on) inp.focus(); else { inp.blur(); if (!calm(el)) { f.style.display = 'flex'; f.animate([{ opacity: 1, translate: '0 0', scale: 1 }, { opacity: 0, translate: '0 6cqw', scale: .92 }], { duration: 300, easing: 'ease-in' }).onfinish = () => f.style.removeProperty('display'); } }
+      if (!calm(el)) t.closest('.tplus').animate([{ scale: 1 }, { scale: .8, offset: .3 }, { scale: 1.12, offset: .65 }, { scale: 1 }], { duration: 480, easing: EASE });
+      return;
+    }
     const chip = t.closest('.tchip'); if (chip) { el._sel = chip.dataset.list; subscribe(el._sel); todoSync(faces); return; }
     if (!L) return;
     if (t.closest('[data-clear]')) return void svc(id, 'remove_completed_items').catch(e => fail(el, e));
@@ -165,13 +176,16 @@ export function todoFace(el, f) {
     else if (!calm(row)) row.querySelector('.tck').animate([{ scale: 1 }, { scale: .8, offset: .35 }, { scale: 1.1, offset: .7 }, { scale: 1 }], { duration: 420, easing: EASE });   // wieder öffnen: Ring wackelt kurz
     svc(id, 'update_item', { item: x.uid, status }).catch(e => { delete L.pend[x.uid]; clearTimeout(L.settle.get(x.uid)?.t); L.settle.delete(x.uid); paint(id); fail(el, e); });   // Erfolg: die nächste Meldung von HA ersetzt den lokalen Stand
   });
+  inp.addEventListener('input', () => el.querySelector('.tadd').classList.toggle('ready', !!inp.value.trim()));   // Senden-Knopf erwacht, sobald etwas getippt ist
   el.querySelector('.tadd').addEventListener('submit', e => {
     e.preventDefault();
     const id = pick(el), L = lists.get(id), text = inp.value.trim(); if (!L || !text) return;
-    inp.value = ''; const tmp = { uid: 'neu' + Date.now(), summary: text, status: 'needs_action' }; L.tmp.push(tmp); paint(id);
+    inp.value = ''; el.querySelector('.tadd').classList.remove('ready');
+    if (!calm(el)) { const b = el.querySelector('.tadd button'); b.animate([{ scale: 1 }, { scale: .85, offset: .25 }, { scale: 1 }], { duration: 420, easing: EASE }); b.firstChild.animate([{ translate: '0 0', opacity: 1 }, { translate: '0 -160%', opacity: 0, offset: .45 }, { translate: '0 160%', opacity: 0, offset: .46 }, { translate: '0 0', opacity: 1 }], { duration: 560, easing: 'ease-in-out' }); }
+    const tmp = { uid: 'neu' + Date.now(), summary: text, status: 'needs_action' }; L.tmp.push(tmp); paint(id);
     const body = el.querySelector('.tbody'), r = body.querySelector(`[data-k="r:${tmp.uid}"]`);   // neue Zeile ins Bild scrollen (nur der Listenbehälter, nicht die Ansichten)
     if (r) { const need = r.offsetTop + r.offsetHeight - body.clientHeight + 12; if (need > body.scrollTop) body.scrollTo({ top: need, behavior: calm(el) ? 'auto' : 'smooth' }); }
-    svc(id, 'add_item', { item: text }).catch(e => { L.tmp = L.tmp.filter(x => x !== tmp); paint(id); inp.value = text; fail(el, e); });
+    svc(id, 'add_item', { item: text }).catch(e => { L.tmp = L.tmp.filter(x => x !== tmp); paint(id); inp.value = text; el.querySelector('.tadd').classList.add('ready'); fail(el, e); });
   });
 }
 const fail = (el, e) => { console.warn('Aufgaben', e); el.animate([{ translate: '0' }, { translate: '-1.2cqw' }, { translate: '1.2cqw' }, { translate: '0' }], { duration: 280 }); };
@@ -181,7 +195,8 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 .f-todo header{position:absolute;left:7cqw;right:22cqw;top:8cqw}
 .f-todo header b{display:block;font-size:7cqw;font-weight:600;letter-spacing:-.03em;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .f-todo header small{display:block;font-size:3.6cqw;opacity:.7;margin-top:.8cqw;min-height:4cqw}
-.tplus{position:absolute;right:6cqw;top:8.5cqw;width:10cqw;height:10cqw;border-radius:50%;display:grid;place-items:center;color:inherit;background:var(--glass,linear-gradient(165deg,#ffffff3d,#ffffff29 50%,#ffffff1f));box-shadow:inset 0 0 0 .25cqw #ffffff47;transition:scale .25s,rotate var(--sd) var(--spring)}
+.tplus{position:absolute;right:6cqw;top:8.5cqw;width:10cqw;height:10cqw;border-radius:50%;display:grid;place-items:center;color:inherit;background:var(--glass,linear-gradient(165deg,#ffffff3d,#ffffff29 50%,#ffffff1f));box-shadow:inset 0 0 0 .25cqw #ffffff47;transition:scale .25s,rotate var(--sd) var(--spring),background .3s}
+.f-todo.adding .tplus{background:var(--lc,#34c759)}
 .tplus:active{scale:.9;transition:scale .12s ease-out}
 .f-todo.adding .tplus{rotate:45deg}
 .tplus svg{width:5cqw;height:5cqw;stroke-width:2.2}
@@ -196,6 +211,7 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 .tbody::-webkit-scrollbar{display:none}
 .f-todo.multi .tbody{top:33cqw}
 .f-todo.adding .tbody{bottom:19cqw}
+.tbody{transition:bottom .5s var(--spring,cubic-bezier(.22,1.2,.36,1))}
 .trow{position:relative;flex:none;display:flex;align-items:center;gap:3.4cqw;min-height:12.5cqw;padding:2cqw 4cqw;border-radius:4.3cqw;corner-shape:squircle;text-align:left;color:inherit;font-size:4.2cqw;font-weight:500;
   background:var(--glass,linear-gradient(165deg,#ffffff3d,#ffffff29 50%,#ffffff1f));box-shadow:inset 0 0 0 .25cqw #ffffff47;transition:scale .25s}
 .trow:active{scale:.97;transition:scale .12s ease-out}
@@ -219,9 +235,16 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 .tnone{position:absolute;left:0;right:0;top:28cqw;text-align:center;opacity:.6;font-size:4cqw}
 .tnone small{display:block;margin:1.6cqw 8cqw 0;font-size:3.2cqw;line-height:1.35}
 .tadd{position:absolute;left:5cqw;right:5cqw;bottom:4cqw;display:none;gap:2cqw}
-.f-todo.adding .tadd{display:flex;animation:evin var(--sd) var(--spring) both}
-.tadd input{flex:1;min-width:0;height:11cqw;padding:0 4.5cqw;border:0;border-radius:9cqw;background:#ffffffd9;color:#1c1c1e;font:inherit;font-size:max(16px,4cqw)}
-.tadd button{flex:none;width:11cqw;height:11cqw;border-radius:50%;display:grid;place-items:center;background:#007aff;color:#fff;transition:scale .25s}
+.f-todo.adding .tadd{display:flex;animation:tadin .62s var(--spring,cubic-bezier(.22,1.2,.36,1)) backwards}
+.f-todo.adding .tadd button{animation:tbpop .6s var(--spring,cubic-bezier(.22,1.2,.36,1)) .16s backwards}
+@keyframes tadin{from{opacity:0;translate:0 8cqw;scale:.9}}
+@keyframes tbpop{from{scale:0;rotate:-90deg}}
+.perf .tadd,.perf .tadd button{animation:none!important}
+@media (prefers-reduced-motion:reduce){.tadd,.tadd button{animation:none!important}}
+.tadd input{transition:box-shadow .3s;flex:1;min-width:0;height:11cqw;padding:0 4.5cqw;border:0;border-radius:9cqw;background:#ffffffd9;color:#1c1c1e;font:inherit;font-size:max(16px,4cqw)}
+.tadd input:focus{outline:0;box-shadow:0 0 0 .8cqw color-mix(in srgb,var(--lc,#007aff) 55%,transparent)}
+.tadd button{flex:none;width:11cqw;height:11cqw;border-radius:50%;display:grid;place-items:center;background:var(--lc,#007aff);color:#fff;opacity:.5;transition:scale .25s,opacity .3s}
+.tadd.ready button{opacity:1}
 .tadd button:active{scale:.9;transition:scale .12s ease-out}
 .tadd svg{width:5.4cqw;height:5.4cqw;stroke-width:2.4}
 </style>`);
