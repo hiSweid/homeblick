@@ -4,7 +4,19 @@ import { tx } from './i18n.js';
 // Das Bild erscheint im übergebenen <video> (Ereignis „playing“). fail() meldet einen späteren Abbruch (ICE/HLS).
 // Eine WebRTC-Sitzung pro Kamera, geteilt zwischen Kachel/Face, Vollbild und „Vorhalten“ (Klingel): Öffnet man die Kamera, während schon eine Sitzung läuft, ist das Bild sofort da
 // o.go2rtc = { url, stream }: Livebild direkt von go2rtc (WHEP, ohne HA-Verbindung nutzbar); o.talk: Audio-Zeile sendrecv, damit talk() später das Mikrofon einhängen kann
-const shared = new Map(), CAPS = new Map();
+const shared = new Map(), CAPS = new Map(), CFGS = new Map();
+// Rückfragen an HA einmal pro Kamera vorab (parallel) und gemerkt; Fehlschläge nicht merken. Die Client-Konfiguration (STUN) ändert sich kaum → 5 min
+const once = (m, e, ttl, ask) => {
+  const c = m.get(e);
+  if (c && Date.now() - c.t < ttl) return c.p;
+  const p = ask(); m.set(e, { p, t: Date.now() });
+  p.catch(() => m.get(e)?.p === p && m.delete(e));
+  return p;
+};
+const capsOf = (conn, e) => once(CAPS, e, Infinity, () => conn.sendMessagePromise({ type: 'camera/capabilities', entity_id: e }).then(r => r?.frontend_stream_types || []));
+const cfgOf = (conn, e) => once(CFGS, e, 3e5, () => conn.sendMessagePromise({ type: 'camera/webrtc/get_client_config', entity_id: e }));
+// Vor dem Öffnen aufrufen (Kamera-Liste bekannt): Fähigkeiten + WebRTC-Konfiguration liegen bereit, wenn der Stream angefordert wird
+export const prep = (conn, es) => conn && es.forEach(e => capsOf(conn, e).then(c => c.includes('web_rtc') && cfgOf(conn, e)).catch(() => {}));
 export async function live(conn, e, video, hass = '', fail = () => {}, o = {}) {
   const release = n => () => { n.fails.delete(fail); video.srcObject = null; if (--n.n === 0) { n.stop(); shared.delete(e); } };
   const open = async start => {
@@ -18,8 +30,7 @@ export async function live(conn, e, video, hass = '', fail = () => {}, o = {}) {
   if (o.go2rtc?.url) {
     try { return await open((n, die) => whep(o.go2rtc, video, die, n, o.talk)); } catch (err) { console.warn('go2rtc', e, err?.message || err); if (!conn) throw err; }
   }
-  if (!CAPS.has(e)) CAPS.set(e, (await conn.sendMessagePromise({ type: 'camera/capabilities', entity_id: e }))?.frontend_stream_types || []);
-  const caps = CAPS.get(e);
+  const caps = await capsOf(conn, e);
   if (caps.includes('web_rtc')) {
     try { return await open((n, die) => webrtc(conn, e, video, die, n.ms)); } catch (err) { console.warn('WebRTC', e, err?.message || err); }
   }
@@ -60,7 +71,7 @@ export async function talk(e, on) {
 }
 
 async function webrtc(conn, e, video, fail, ms) {
-  const { configuration, dataChannel } = await conn.sendMessagePromise({ type: 'camera/webrtc/get_client_config', entity_id: e });
+  const { configuration, dataChannel } = await cfgOf(conn, e);
   const pc = new RTCPeerConnection(configuration);
   let sid, queue = [], unsub, dead = false;
   const stop = () => { dead = true; try { unsub?.(); } catch {} pc.close(); video.srcObject = null; };
@@ -89,8 +100,7 @@ async function hls(conn, e, video, hass, fail) {
   const { url } = await conn.sendMessagePromise({ type: 'camera/stream', entity_id: e });
   const src = hass + url;
   if (video.canPlayType('application/vnd.apple.mpegurl')) { video.src = src; return () => (video.removeAttribute('src'), video.load()); }
-  // ponytail: hls.js vom CDN (wie js-websocket); lokal bündeln, wenn Displays ohne Internet laufen sollen (F124)
-  const { default: Hls } = await import('https://cdn.jsdelivr.net/npm/hls.js@1/dist/hls.mjs');
+  const { default: Hls } = await import('./vendor/hls.mjs');   // hls.js 1.7.4 lokal gebündelt (Apache-2.0), erst beim ersten HLS-Bedarf geladen
   if (!Hls.isSupported()) throw new Error(tx('HLS nicht unterstützt'));
   const h = new Hls({ lowLatencyMode: true });
   h.on(Hls.Events.ERROR, (_, d) => d.fatal && fail(new Error('HLS: ' + d.details)));

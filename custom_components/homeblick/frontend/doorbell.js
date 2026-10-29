@@ -5,7 +5,7 @@
 // Wisch links/rechts = nächstes/voriges Face (zT8M0BsBO5k 56,35–56,95 s, STEUERUNG.md Zeile 18): Pager in index.html.
 // Klingeln weckt das Display und spielt einen Gong (Einstellung „Gong beim Klingeln“, Lautstärke = Antworten).
 
-import { live, talk } from './camplay.js';
+import { live, talk, prep } from './camplay.js';
 import { tx } from './i18n.js';
 
 // Kameras kommen aus der Konfiguration (Einstellungsseite → Face „Kameras“, sonst automatisch erkannt): camConfig({ list: [{ entity, name, light }], bell: { event, camera } })
@@ -34,6 +34,27 @@ function mjpeg(box, e, s, cb) {
 // Stream-Optionen einer Kamera: go2rtc-Adresse/-Stream (Konfiguration) und Sprechen (nur Klingelkamera)
 const opts = e => { const c = camOf(e); return { go2rtc: c.go2rtc ? { url: c.go2rtc, stream: c.stream || e.split('.')[1] } : null, talk: e === DOOR }; };
 const STILL = {};   // Kamera → { u: Data-URL des letzten Frames, t }
+// Standbilder aller Kameras einmal im Hintergrund holen (nacheinander, verkleinert), damit die Vorschau beim ersten Öffnen sofort da ist; nach Rückkehr in den Vordergrund neu, wenn älter als 10 min
+const pre = new Set();
+let preBusy = false;
+async function prefetch() {
+  if (preBusy || document.hidden) return;
+  preBusy = true;
+  try {
+    for (const c of LIST) {
+      const e = c.entity, pic = ents[e]?.attributes?.entity_picture;
+      if (pre.has(e) || !pic?.startsWith('/')) continue;
+      pre.add(e);
+      try {
+        const bmp = await createImageBitmap(await (await fetch(HASS + pic)).blob());
+        const cv = Object.assign(document.createElement('canvas'), { width: 640, height: Math.round(640 * bmp.height / bmp.width) });
+        cv.getContext('2d').drawImage(bmp, 0, 0, cv.width, cv.height); bmp.close();
+        if (!STILL[e] || Date.now() - STILL[e].t > 6e5) STILL[e] = { u: cv.toDataURL('image/jpeg', .7), t: Date.now() };
+      } catch {}   // Kamera ohne Standbild / anderes Ursprungsrecht: dann eben beim Öffnen
+    }
+  } finally { preBusy = false; }
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { for (const e of pre) if (!STILL[e] || Date.now() - STILL[e].t > 6e5) pre.delete(e); prefetch(); } });
 function grab(e, v) {
   try { const c = Object.assign(document.createElement('canvas'), { width: 640, height: Math.round(640 * v.videoHeight / v.videoWidth) }); c.getContext('2d').drawImage(v, 0, 0, c.width, c.height); STILL[e] = { u: c.toDataURL('image/jpeg', .7), t: Date.now() }; } catch {}
 }
@@ -235,6 +256,7 @@ function warmCheck() {
 export function doorbell(all) {
   ents = all;
   warmCheck();
+  prep(api.conn?.(), LIST.map(c => c.entity)); prefetch();
   const r = ents[RING]?.state;
   const neu = RING && r !== lastRing && Date.now() - Date.parse(r) < 30000;
   lastRing = r;   // vor ring(): open() rendert synchron und landet wieder hier
