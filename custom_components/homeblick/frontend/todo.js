@@ -69,7 +69,13 @@ const PAL = ['#0a84ff', '#ff9f0a', '#af52de', '#ff453a', '#32ade6', '#ff375f'];
 const lcolor = id => shop(id) ? '#34c759' : PAL[[...id].reduce((n, c) => n + c.charCodeAt(0), 0) % PAL.length];   // Einkaufsliste grün wie „Groceries“ bei Apple, andere Listen reihum
 const EASE = 'cubic-bezier(.22,1.2,.36,1)';
 const calm = el => el.closest('.perf') || matchMedia('(prefers-reduced-motion:reduce)').matches;
-const enter = (e, i = 0) => calm(e) || e.animate([{ opacity: 0, translate: '0 3cqw', scale: .96 }, { opacity: 1, translate: '0 0', scale: 1 }], { duration: 520, delay: Math.min(i, 12) * 40, easing: EASE, fill: 'backwards' });
+// Zeile erscheint: sie steigt mit leichter Drehung auf und federt, der Ring dreht sich aus dem Nichts ein, der Text gleitet von links nach (Endwerte offen, damit erledigte Zeilen bei ihrer Deckkraft bleiben)
+const appear = (e, delay = 0) => {
+  e.animate([{ opacity: 0, translate: '0 5cqw', scale: .92, rotate: '-1.4deg' }, { opacity: 1, translate: '0 0', scale: 1, rotate: '0deg' }], { duration: 640, delay, easing: EASE, fill: 'backwards' });
+  e.querySelector('.tck')?.animate([{ scale: 0, rotate: '-120deg' }, { scale: 1, rotate: '0deg' }], { duration: 600, delay: delay + 170, easing: EASE, fill: 'backwards' });
+  e.querySelector('span')?.animate([{ opacity: 0, translate: '-4cqw 0' }, { translate: '0 0' }], { duration: 560, delay: delay + 110, easing: EASE, fill: 'backwards' });
+};
+const enter = (e, i = 0) => calm(e) || appear(e, Math.min(i, 12) * 45);
 function leave(e, i = 0) {   // Zeile klappt zu (Höhe, Abstand, Deckkraft), dann weg; Schlüssel sofort frei, damit sie wiederkommen kann
   delete e.dataset.k; e.style.pointerEvents = 'none';
   if (calm(e) || e.classList.contains('tnone')) return void (calm(e) ? e.remove() : e.animate({ opacity: [1, 0] }, { duration: 160 }).onfinish = () => e.remove());
@@ -143,7 +149,7 @@ export function todoFace(el, f) {
   const inp = el.querySelector('input');
   new MutationObserver(m => {   // Ansicht kommt ins Bild (.act): Kopf und Zeilen federn nacheinander ein
     if (!m.some(r => r.oldValue?.split(' ').includes('act') === false && el.classList.contains('act')) || calm(el)) return;
-    el.querySelectorAll('header,.trow,.tsep').forEach((e, i) => e.animate([{ opacity: 0, translate: '0 3cqw', scale: .96 }, { opacity: 1, translate: '0 0', scale: 1 }], { duration: 560, delay: Math.min(i, 12) * 45, easing: EASE, fill: 'backwards' }));
+    el.querySelectorAll('header,.trow,.tsep').forEach((e, i) => appear(e, Math.min(i, 12) * 45));
   }).observe(el, { attributes: true, attributeFilter: ['class'], attributeOldValue: true });
   el.addEventListener('click', e => {
     const id = pick(el), L = lists.get(id), t = e.target;
