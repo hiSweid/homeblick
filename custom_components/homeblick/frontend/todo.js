@@ -76,13 +76,15 @@ const appear = (e, delay = 0) => {
   e.querySelector('span')?.animate([{ opacity: 0, translate: '-4cqw 0' }, { translate: '0 0' }], { duration: 560, delay: delay + 110, easing: EASE, fill: 'backwards' });
 };
 const enter = (e, i = 0) => calm(e) || appear(e, Math.min(i, 12) * 45);
-function leave(e, i = 0) {   // Zeile klappt zu (Höhe, Abstand, Deckkraft), dann weg; Schlüssel sofort frei, damit sie wiederkommen kann
+function leave(e, i = 0, sweep = false) {   // Zeile klappt zu (Höhe, Abstand, Deckkraft), dann weg; beim „Entfernen“ wischt sie erst nach rechts weg; Schlüssel sofort frei, damit sie wiederkommen kann
   delete e.dataset.k; e.style.pointerEvents = 'none';
   if (calm(e) || e.classList.contains('tnone')) return void (calm(e) ? e.remove() : e.animate({ opacity: [1, 0] }, { duration: 160 }).onfinish = () => e.remove());
   const c = getComputedStyle(e), gap = parseFloat(getComputedStyle(e.parentNode).rowGap) || 0, h = e.offsetHeight + 'px';
-  e.style.overflow = 'hidden';
-  e.animate([{ opacity: 1, height: h, minHeight: h, paddingTop: c.paddingTop, paddingBottom: c.paddingBottom, marginBottom: '0px', scale: 1 }, { opacity: 0, height: '0px', minHeight: '0px', paddingTop: '0px', paddingBottom: '0px', marginBottom: -gap + 'px', scale: .96 }],
-    { duration: 440, delay: Math.min(i, 8) * 35, easing: 'ease-in-out', fill: 'forwards' }).onfinish = () => e.remove();
+  e.style.overflow = sweep ? '' : 'hidden';
+  const k0 = { opacity: 1, height: h, minHeight: h, paddingTop: c.paddingTop, paddingBottom: c.paddingBottom, marginBottom: '0px', scale: 1 };
+  const k1 = { opacity: 0, height: '0px', minHeight: '0px', paddingTop: '0px', paddingBottom: '0px', marginBottom: -gap + 'px', scale: .96 };
+  const wipe = { translate: '35cqw 0', rotate: '4deg' };
+  e.animate(sweep ? [k0, { ...k0, ...wipe, opacity: 0, offset: .55 }, { ...k1, ...wipe }] : [k0, k1], { duration: sweep ? 800 : 440, delay: sweep ? Math.min(i, 8) * 70 : Math.min(i, 8) * 35, easing: 'ease-in-out', fill: 'forwards' }).onfinish = () => e.remove();
 }
 // Abgleich nach Schlüssel: vorhandene Elemente bleiben (Animationen laufen weiter), neue federn ein, fehlende klappen zu, verschobene gleiten (FLIP)
 function sync(body, specs) {
@@ -96,7 +98,8 @@ function sync(body, specs) {
     if ((prev ? prev.nextElementSibling : body.firstElementChild) !== e) body.insertBefore(e, prev ? prev.nextSibling : body.firstChild);
     prev = e;
   });
-  let n = 0; for (const [k, e] of old) if (!keep.has(k)) leave(e, n++);
+  let n = 0; for (const [k, e] of old) if (!keep.has(k)) leave(e, n++, body._sw);
+  if (n) body._sw = 0;
   for (const [e, i] of made) enter(e, fresh ? i : 0);
   if (!calm(body)) for (const [k, e] of old) if (keep.has(k)) { const dy = first.get(k) - e.getBoundingClientRect().top; if (Math.abs(dy) > 1) e.animate([{ translate: `0 ${dy}px` }, { translate: '0 0' }], { duration: 560, easing: EASE }); }
 }
@@ -126,6 +129,17 @@ function placePill(el, tc, id) {   // eine farbige Kapsel gleitet federnd zum ak
   const x = on.offsetLeft - (tc.clientWidth - on.offsetWidth) / 2; if (tc.scrollWidth > tc.clientWidth) tc.scrollTo({ left: Math.max(0, x), behavior: calm(el) || jump ? 'auto' : 'smooth' });   // aktiver Chip rückt in die Mitte
   if (!jump && !calm(el)) on.animate([{ scale: 1 }, { scale: 1.12, offset: .4 }, { scale: 1 }], { duration: 480, easing: EASE });
 }
+const CONF = [...PAL, '#34c759', '#ffd60a', '#fff'];
+function confetti(el) {   // Letzter Eintrag abgehakt: Konfetti fällt aus dem Kopf über die Liste
+  const box = document.createElement('div'); box.className = 'tconf'; el.append(box);
+  for (let i = 0; i < 30; i++) {
+    const p = document.createElement('i'), x = (Math.random() - .5) * 80, w = 1.1 + Math.random() * 1.3;
+    p.style.cssText = `left:50%;top:20cqw;width:${w}cqw;height:${w * 1.7}cqw;background:${CONF[i % CONF.length]}`; box.append(p);
+    p.animate([{ translate: '0 0', rotate: '0deg', opacity: 1 }, { translate: `${x}cqw ${-4 - Math.random() * 12}cqw`, rotate: `${Math.random() * 300}deg`, opacity: 1, offset: .25 }, { translate: `${x * 1.25}cqw ${55 + Math.random() * 30}cqw`, rotate: `${300 + Math.random() * 500}deg`, opacity: 0 }],
+      { duration: 1500 + Math.random() * 900, delay: Math.random() * 160, easing: 'cubic-bezier(.2,.6,.4,1)' }).onfinish = () => p.remove();
+  }
+  setTimeout(() => box.remove(), 2800);
+}
 function paintFace(el) {
   const id = pick(el), L = lists.get(id), a = api.ents()[id]?.attributes, sf = feat(id), all = sorted(), body = el.querySelector('.tbody');
   if (el._id !== id) { body.replaceChildren(); el._id = id; }   // andere Liste: nicht abgleichen, sondern neu aufbauen
@@ -145,10 +159,12 @@ function paintFace(el) {
   const tc = el.querySelector('.tchips');
   if (el._ch !== chips) { const fresh = !el._ch; el._ch = chips; tc.querySelectorAll('.tchip').forEach(c => c.remove()); tc.insertAdjacentHTML('beforeend', chips); if (chips && !fresh && !calm(el)) popChips(tc); }
   placePill(el, tc, id);
+  if (el._oid === id && el._open > 0 && !open && list.length && L?.got && !calm(el)) setTimeout(() => confetti(el), 550);   // nach dem Haken
+  el._oid = id; el._open = open;
   el.classList.toggle('alldone', !!list.length && !open && !!L?.got);   // Untertitel wird zur Listenfarbe, wenn alles erledigt ist
   const msg = !id ? `${tx('Keine Liste in Home Assistant')}<small>${tx('Füge die Integration „Einkaufsliste“ oder „Lokale Aufgaben“ hinzu')}</small>`
     : L?.err ? `${tx('Liste nicht lesbar')}<small>${tx('Home Assistant hat das Abonnement abgelehnt')}</small>`
-    : !L?.got ? `${tx('Lädt …')}`
+    : !L?.got ? '<i class="tsk"></i><i class="tsk"></i><i class="tsk"></i>'
     : !list.length ? `<svg class="tbig" viewBox="0 0 48 48"><circle cx="24" cy="24" r="21" pathLength="1"/><path pathLength="1" d="M14.5 25l6.5 6.5 12.5-14"/></svg>${tx('Nichts auf der Liste')}<small>${tx('Mit + etwas hinzufügen')}</small>` : '';
   const specs = msg ? [{ key: 'msg', make: () => Object.assign(document.createElement('p'), { className: 'tnone' }), upd: e => { if (e._h !== msg) { e._h = msg; e.innerHTML = msg; } } }]
     : list.flatMap((x, i) => {
@@ -182,7 +198,10 @@ export function todoFace(el, f) {
     }
     const chip = t.closest('.tchip'); if (chip) { el._sel = chip.dataset.list; subscribe(el._sel); todoSync(faces); return; }
     if (!L) return;
-    if (t.closest('[data-clear]')) return void svc(id, 'remove_completed_items').catch(e => fail(el, e));
+    if (t.closest('[data-clear]')) {
+      const body = el.querySelector('.tbody'); if (!calm(el)) { t.closest('[data-clear]').animate([{ scale: 1 }, { scale: .85, offset: .3 }, { scale: 1.08, offset: .65 }, { scale: 1 }], { duration: 480, easing: EASE }); body._sw = 1; clearTimeout(body._swt); body._swt = setTimeout(() => body._sw = 0, 4000); }   // erledigte Zeilen wischen nacheinander weg
+      return void svc(id, 'remove_completed_items').catch(e => { body._sw = 0; fail(el, e); });
+    }
     const row = t.closest('.trow'); if (!row || row.disabled) return;
     const x = items(id).find(y => y.uid === row.dataset.u); if (!x) return;
     const status = x.status === 'completed' ? 'needs_action' : 'completed';
@@ -199,7 +218,7 @@ export function todoFace(el, f) {
     if (!calm(el)) { const b = el.querySelector('.tadd button'); b.animate([{ scale: 1 }, { scale: .85, offset: .25 }, { scale: 1 }], { duration: 420, easing: EASE }); b.firstChild.animate([{ translate: '0 0', opacity: 1 }, { translate: '0 -160%', opacity: 0, offset: .45 }, { translate: '0 160%', opacity: 0, offset: .46 }, { translate: '0 0', opacity: 1 }], { duration: 560, easing: 'ease-in-out' }); }
     const tmp = { uid: 'neu' + Date.now(), summary: text, status: 'needs_action' }; L.tmp.push(tmp); paint(id);
     const body = el.querySelector('.tbody'), r = body.querySelector(`[data-k="r:${tmp.uid}"]`);   // neue Zeile ins Bild scrollen (nur der Listenbehälter, nicht die Ansichten)
-    if (r) { const need = r.offsetTop + r.offsetHeight - body.clientHeight + 12; if (need > body.scrollTop) body.scrollTo({ top: need, behavior: calm(el) ? 'auto' : 'smooth' }); }
+    if (r) { const need = r.offsetTop + r.offsetHeight - body.clientHeight + 12 + parseFloat(getComputedStyle(body).paddingBottom); if (need > body.scrollTop) body.scrollTo({ top: need, behavior: calm(el) ? 'auto' : 'smooth' }); }
     svc(id, 'add_item', { item: text }).catch(e => { L.tmp = L.tmp.filter(x => x !== tmp); paint(id); inp.value = text; el.querySelector('.tadd').classList.add('ready'); fail(el, e); });
   });
 }
@@ -227,7 +246,7 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 .f-todo.alldone header small{color:var(--lc);opacity:1;font-weight:600}
 .tprog{position:absolute;left:7cqw;right:7cqw;top:22.2cqw;height:.9cqw;border-radius:1cqw;background:#ffffff26;overflow:hidden}
 .tprog i{display:block;height:100%;width:0;border-radius:inherit;background:var(--lc,#fff);transition:width .7s var(--spring)}
-.tbody{position:absolute;left:5cqw;right:5cqw;top:25cqw;bottom:4cqw;display:flex;flex-direction:column;gap:2cqw;overflow-y:auto;scrollbar-width:none;touch-action:pan-y}
+.tbody{position:absolute;left:5cqw;right:5cqw;top:25cqw;bottom:4cqw;padding-bottom:4cqw;mask-image:linear-gradient(#000 calc(100% - 4cqw),#0000);display:flex;flex-direction:column;gap:2cqw;overflow-y:auto;overflow-x:hidden;scrollbar-width:none;touch-action:pan-y}
 .tbody::-webkit-scrollbar{display:none}
 .f-todo.multi .tbody{top:33cqw}
 .f-todo.adding .tbody{bottom:19cqw}
@@ -252,6 +271,20 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 .tbig :is(circle,path){stroke-dasharray:1;stroke-dashoffset:1;animation:tdraw 1s ease-out .1s forwards}.tbig path{animation-delay:.55s}
 @keyframes tdraw{to{stroke-dashoffset:0}}
 .perf .tbig :is(circle,path){stroke-dashoffset:0}
+.tnone:has(.tsk){top:25cqw;left:5cqw;right:5cqw;opacity:1}.f-todo.multi .tnone:has(.tsk){top:33cqw}
+.tsk{display:block;height:12.5cqw;margin-bottom:2cqw;border-radius:4.3cqw;corner-shape:squircle;background:linear-gradient(100deg,#ffffff1f 30%,#ffffff45 50%,#ffffff1f 70%) 100% 0/250% 100% no-repeat;animation:tshim 1.4s ease-in-out infinite}
+.tsk:nth-child(2){animation-delay:.15s;opacity:.75}.tsk:nth-child(3){animation-delay:.3s;opacity:.5}
+@keyframes tshim{to{background-position:0 0}}
+.perf .tsk{animation:none}
+.tbig{animation:tbigpop .9s var(--spring,cubic-bezier(.22,1.2,.36,1)) backwards}
+@keyframes tbigpop{from{scale:.3;rotate:-25deg;opacity:0}}
+.tnone small{animation:trise .6s .7s ease-out backwards}
+@keyframes trise{from{opacity:0;translate:0 2cqw}}
+.perf .tbig,.perf .tnone small{animation:none}
+@media (prefers-reduced-motion:reduce){.tbig,.tnone small,.tsk{animation:none}}
+.tconf{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:5}
+.tconf i{position:absolute;border-radius:.4cqw}
+.tsep button{transition:scale .2s}.tsep button:active{scale:.9}
 .tnone{position:absolute;left:0;right:0;top:28cqw;text-align:center;opacity:.6;font-size:4cqw}
 .tnone small{display:block;margin:1.6cqw 8cqw 0;font-size:3.2cqw;line-height:1.35}
 .tadd{position:absolute;left:5cqw;right:5cqw;bottom:4cqw;display:none;gap:2cqw}
