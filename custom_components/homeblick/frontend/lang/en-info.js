@@ -24,7 +24,7 @@ export default {
   'Keine Liste in Home Assistant': 'No list in Home Assistant', 'Füge die Integration „Einkaufsliste“ oder „Lokale Aufgaben“ hinzu': 'Add the “Shopping List” or “Local To-do” integration',
   'Liste nicht lesbar': 'List can’t be read', 'Home Assistant hat das Abonnement abgelehnt': 'Home Assistant rejected the subscription',
   'Lädt …': 'Loading…', 'Nichts auf der Liste': 'Nothing on the list', 'Mit + etwas hinzufügen': 'Tap + to add something',
-  'Erledigt': 'Done', 'Obst & Gemüse': 'Produce', 'Milch & Käse': 'Dairy', 'Brot & Backwaren': 'Bakery', 'Fleisch & Fisch': 'Meat & fish', 'Vorrat': 'Pantry', 'Getränke': 'Drinks', 'Haushalt': 'Household', 'Sonstiges': 'Other', 'Entfernen': 'Clear', 'Hinzufügen': 'Add', 'Neuer Eintrag': 'New item',
+  'Erledigt': 'Done', 'Entfernen': 'Clear', 'Hinzufügen': 'Add', 'Neuer Eintrag': 'New item',
   // check.js
   'Offen‖Zustand': 'Open', 'Öffnet': 'Opening', 'Schließt': 'Closing', 'Entriegelt': 'Unlocked', 'Klemmt': 'Jammed', 'Schließen': 'Close',
   'Haus-Check': 'House check', 'Wasser erkannt': 'Water detected', 'Alles zu': 'All closed', 'Keine Melder': 'No sensors',

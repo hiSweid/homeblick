@@ -19,23 +19,12 @@ export function todoInit(o) { api = o; }
 const shop = i => /einkauf|shopping/i.test(i);   // die Einkaufsliste ist die Standardliste
 const sorted = () => Object.keys(api.ents()).filter(i => i.startsWith('todo.')).sort((a, b) => shop(b) - shop(a) || (a < b ? -1 : 1));
 const pick = el => { const a = sorted(), f = el.dataset.todo; return (f && a.includes(f) ? f : a.includes(el._sel) ? el._sel : a[0]) || ''; };
-// Einkaufsliste: Artikel landen wie bei Apple Erinnerungen in Abschnitten (Stichwörter, deutsch + englisch); nichts erkannt → „Sonstiges“
-const CATS = [['Obst & Gemüse', '🥬', '#34c759', /apfel|äpfel|birne|banane|obst|gemüse|salat|tomate|gurke|paprika|zwiebel|kartoffel|karotte|möhre|zitrone|orange|beere|knoblauch|apple|banana|lettuce|tomato|potato|onion|carrot|lemon|fruit|vegetable/i],
-  ['Milch & Käse', '🧀', '#ffcc00', /milch|käse|joghurt|butter|sahne|quark|(?:^|\s)eier?(?:\s|$)|milk|cheese|yogh?urt|cream|eggs?\b/i],
-  ['Brot & Backwaren', '🥖', '#ff9f0a', /brot|brötchen|toast|mehl|kuchen|croissant|bread|bun|flour|cake/i],
-  ['Fleisch & Fisch', '🥩', '#ff453a', /fleisch|wurst|schinken|hähnchen|hack|lachs|fisch|salami|steak|meat|chicken|ham\b|fish|salmon|sausage/i],
-  ['Vorrat', '🍝', '#af52de', /nudel|reis|müsli|haferflocken|zucker|salz|(?:^|\s)öl(?:\s|$)|soße|sauce|konserve|pasta|rice|sugar|oil\b|cereal|tomatenmark/i],
-  ['Getränke', '🥤', '#32ade6', /wasser|saft|bier|wein|cola|kaffee|tee\b|limo|sprudel|water|juice|beer|wine|coffee|tea\b|soda/i],
-  ['Haushalt', '🧼', '#5ac8fa', /waschmittel|spül|klopapier|toilettenpapier|müllbeutel|putz|seife|shampoo|zahnpasta|küchenrolle|detergent|soap|toilet|trash|paper towel/i]];
-const OTHER = CATS.length, catOf = t => { const i = CATS.findIndex(c => c[3].test(t)); return i < 0 ? OTHER : i; };
 const feat = id => +api.ents()[id]?.attributes.supported_features || 0;
 
 function items(id) {   // Anzeige = Server-Stand mit lokalen Änderungen; offene zuerst, Reihenfolge der Liste bleibt. Eine eben abgehakte Zeile bleibt kurz in ihrer Gruppe (settle), damit man den Haken sieht, bevor sie wandert
   const L = lists.get(id); if (!L) return [];
   const all = [...L.items.map(x => (x.uid in L.pend ? { ...x, status: L.pend[x.uid] } : x)), ...L.tmp].map(x => ({ ...x, key: L.alias[x.uid] || x.uid, grp: (L.settle.get(x.uid)?.g ?? x.status) === 'completed' }));
-  const open = all.filter(x => !x.grp), done = all.filter(x => x.grp);
-  if (shop(id)) { for (const x of open) x.cat = catOf(x.summary); open.sort((a, b) => a.cat - b.cat); }   // stabil: innerhalb eines Abschnitts bleibt die Reihenfolge der Liste
-  return [...open, ...done];
+  return [...all.filter(x => !x.grp), ...all.filter(x => x.grp)];
 }
 // Neu angelegte Zeile bekommt vom Server eine echte uid: gleiche Schlüssel behalten, damit sie nicht aus- und wieder einblendet
 function adopt(L, prev, next) {
@@ -114,11 +103,6 @@ function burst(tck) {   // Funken beim Abhaken: Ring federt, acht Punkte fliegen
     d.animate([{ translate: '0 0', scale: 1, opacity: 1 }, { translate: `${Math.cos(a) * 5.6}cqw ${Math.sin(a) * 5.6}cqw`, scale: 0, opacity: 0 }], { duration: 560, delay: 80, easing: 'ease-out', fill: 'backwards' }).onfinish = () => d.remove();
   }
 }
-const catMake = () => { const d = document.createElement('div'); d.className = 'tsep tcat'; d.innerHTML = '<span><b class="tem"></b><i></i></span><small></small>'; return d; };
-function catUpd(e, c, n) {   // Symbol und Name einmal setzen; Zähler rollt bei Änderung wie der Listenkopf
-  if (e._c !== c) { e._c = c; const [name, em, col] = CATS[c] || ['Sonstiges', '🛒', '#8e8e93']; e.style.setProperty('--cc', col); e.firstChild.firstChild.textContent = em; e.firstChild.lastChild.textContent = tx(name); }
-  const s = e.lastChild; if (s.textContent !== String(n)) { const was = s.textContent; s.textContent = n; if (was && !calm(e)) s.animate([{ translate: '0 60%', opacity: 0 }, { translate: '0 0', opacity: 1 }], { duration: 420, easing: EASE }); }
-}
 function paintFace(el) {
   const id = pick(el), L = lists.get(id), a = api.ents()[id]?.attributes, sf = feat(id), all = sorted(), body = el.querySelector('.tbody');
   if (el._id !== id) { body.replaceChildren(); el._id = id; }   // andere Liste: nicht abgleichen, sondern neu aufbauen
@@ -137,12 +121,9 @@ function paintFace(el) {
     : L?.err ? `${tx('Liste nicht lesbar')}<small>${tx('Home Assistant hat das Abonnement abgelehnt')}</small>`
     : !L?.got ? `${tx('Lädt …')}`
     : !list.length ? `<svg class="tbig" viewBox="0 0 48 48"><circle cx="24" cy="24" r="21" pathLength="1"/><path pathLength="1" d="M14.5 25l6.5 6.5 12.5-14"/></svg>${tx('Nichts auf der Liste')}<small>${tx('Mit + etwas hinzufügen')}</small>` : '';
-  const grouped = shop(id) && list.some(x => !x.grp && x.cat < OTHER);   // erst gruppieren, wenn mindestens ein Artikel erkannt wurde
   const specs = msg ? [{ key: 'msg', make: () => Object.assign(document.createElement('p'), { className: 'tnone' }), upd: e => { if (e._h !== msg) { e._h = msg; e.innerHTML = msg; } } }]
     : list.flatMap((x, i) => {
-      const cnt = x.grp ? 0 : list.filter(y => !y.grp && y.cat === x.cat).length;
-      const sep = x.grp ? (i === 0 || !list[i - 1].grp ? [{ key: 'sep:done', make: () => Object.assign(document.createElement('div'), { className: 'tsep' }), upd: e => { const h = `<span>${tx('Erledigt')}</span>${sf & DELETE ? `<button data-clear>${tx('Entfernen')}</button>` : ''}`; if (e._h !== h) { e._h = h; e.innerHTML = h; } } }] : [])
-        : grouped && (i === 0 || list[i - 1].cat !== x.cat) ? [{ key: 'sep:' + x.cat, make: catMake, upd: e => catUpd(e, x.cat, cnt) }] : [];
+      const sep = x.grp && (i === 0 || !list[i - 1].grp) ? [{ key: 'sep', make: () => Object.assign(document.createElement('div'), { className: 'tsep' }), upd: e => { const h = `<span>${tx('Erledigt')}</span>${sf & DELETE ? `<button data-clear>${tx('Entfernen')}</button>` : ''}`; if (e._h !== h) { e._h = h; e.innerHTML = h; } } }] : [];
       return [...sep, { key: 'r:' + x.key, make: rowMake, upd: e => { e.dataset.u = x.uid; e.classList.toggle('done', x.status === 'completed'); e.disabled = !(sf & UPDATE); const t = e.lastChild.firstChild; if (t.textContent !== x.summary) t.textContent = x.summary; } }];
     });
   sync(body, specs);
@@ -176,7 +157,7 @@ export function todoFace(el, f) {
     const id = pick(el), L = lists.get(id), text = inp.value.trim(); if (!L || !text) return;
     inp.value = ''; const tmp = { uid: 'neu' + Date.now(), summary: text, status: 'needs_action' }; L.tmp.push(tmp); paint(id);
     const body = el.querySelector('.tbody'), r = body.querySelector(`[data-k="r:${tmp.uid}"]`);   // neue Zeile ins Bild scrollen (nur der Listenbehälter, nicht die Ansichten)
-    if (r) { const need = r.offsetTop + r.offsetHeight - body.clientHeight + 12; const top = r.offsetTop - 12; if (need > body.scrollTop || top < body.scrollTop) body.scrollTo({ top: need > body.scrollTop ? need : top, behavior: calm(el) ? 'auto' : 'smooth' }); }
+    if (r) { const need = r.offsetTop + r.offsetHeight - body.clientHeight + 12; if (need > body.scrollTop) body.scrollTo({ top: need, behavior: calm(el) ? 'auto' : 'smooth' }); }
     svc(id, 'add_item', { item: text }).catch(e => { L.tmp = L.tmp.filter(x => x !== tmp); paint(id); inp.value = text; fail(el, e); });
   });
 }
@@ -214,13 +195,6 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 .trow.done span{opacity:.5}.trow.done em{background-size:100% .3cqw}
 .trow.done .tck{box-shadow:inset 0 0 0 .5cqw var(--tfill,var(--lc,#34c759))}.trow.done .tck::before{scale:1}.trow.done .tck svg{stroke-dashoffset:0;transition-delay:.14s}
 .tsep{flex:none;display:flex;align-items:center;justify-content:space-between;padding:2cqw 2cqw 0 3cqw;font-size:3.4cqw;font-weight:600;opacity:.75;text-transform:uppercase;letter-spacing:.06em}
-.tcat{justify-content:space-between;opacity:1;text-transform:none;letter-spacing:0;font-size:3.8cqw;padding-top:3cqw}
-.tcat span{display:flex;align-items:center;gap:2.2cqw;min-width:0}.tcat i{font-style:normal;opacity:.85}
-.tem{flex:none;width:6.4cqw;height:6.4cqw;border-radius:50%;display:grid;place-items:center;font-size:3.6cqw;line-height:1;background:color-mix(in srgb,var(--cc,#34c759) 38%,transparent);box-shadow:inset 0 0 0 .25cqw color-mix(in srgb,var(--cc,#34c759) 55%,transparent);animation:tpop .7s var(--spring,cubic-bezier(.22,1.2,.36,1)) both}
-.tcat small{font-size:3.4cqw;opacity:.6;min-width:4cqw;text-align:right}
-@keyframes tpop{from{scale:.3;rotate:-25deg;opacity:0}60%{scale:1.25;rotate:8deg;opacity:1}to{scale:1;rotate:0deg}}
-.perf .tem{animation:none}
-@media (prefers-reduced-motion:reduce){.tem{animation:none}}
 .tsep button{color:inherit;font-size:3.4cqw;font-weight:600;letter-spacing:0;text-transform:none;padding:1.4cqw 3cqw;border-radius:9cqw;background:#ffffff26}
 .tbig{display:block;margin:0 auto 3cqw;width:16cqw;height:16cqw;fill:none;stroke:var(--lc,#fff);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;opacity:.85}
 .tbig :is(circle,path){stroke-dasharray:1;stroke-dashoffset:1;animation:tdraw 1s ease-out .1s forwards}.tbig path{animation-delay:.55s}
