@@ -32,11 +32,19 @@ export async function live(conn, e, video, hass = '', fail = () => {}, o = {}) {
   }
   const caps = await capsOf(conn, e);
   if (caps.includes('web_rtc')) {
-    try { return await open((n, die) => webrtc(conn, e, video, die, n.ms)); } catch (err) { console.warn('WebRTC', e, err?.message || err); }
+    try {
+      const rel = await open((n, die) => webrtc(conn, e, video, die, n.ms));
+      // Bleibt das Bild ohne Fehlermeldung aus (ICE/UDP zu HA blockiert), nach 6 s auf HLS wechseln statt bis zum Zeitlimit zu warten
+      if (!caps.includes('hls') || await flows(shared.get(e).ms, 6000)) return rel;
+      console.warn('WebRTC', e, 'kein Bild nach 6 s → HLS'); rel();
+    } catch (err) { console.warn('WebRTC', e, err?.message || err); }
   }
   if (caps.includes('hls')) return hls(conn, e, video, hass, fail);
   throw new Error(tx('Kamera bietet keinen Stream'));
 }
+
+// Kommen Daten an? Entfernte Spuren sind stumm, bis der erste RTP-Frame da ist
+const flows = async (ms, t) => { for (let i = 0; i < t / 200; i++) { if (ms.getTracks().some(x => !x.muted)) return true; await new Promise(r => setTimeout(r, 200)); } return false; };
 
 // go2rtc-WHEP: Angebot (ohne Trickle, LAN) per POST, Antwort kommt als SDP; n.tr = Audio-Transceiver (Sprechen)
 async function whep(g, video, die, n, talk) {
