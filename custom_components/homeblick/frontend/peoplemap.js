@@ -79,10 +79,12 @@ export async function mount(box, conn, base) {
     },
     async set(pts) {
       last = pts = pts.filter(valid); await fresh(conn).catch(() => {});
-      const w = box.clientWidth, cell = at, n = {}, slot = {};
+      const w = box.clientWidth, n = {}, slot = {};
+      const near = (a, b) => Math.hypot(a.lat - b.lat, (a.lon - b.lon) * Math.cos(a.lat * Math.PI / 180)) * 111e3 < 150;   // ≤150 m = Marker würden überlappen; Raster (at) trennte Nachbarn an der Zellkante
+      const lead = Object.fromEntries(pts.map(p => [p.id, pts.find(q => near(p, q)).id])), cell = p => lead[p.id];   // ponytail: greedy, nicht transitiv; bei Ketten >150 m genügt das
       for (const p of pts) n[cell(p)] = (n[cell(p)] || 0) + 1;
       for (const [id, m] of marks) if (!pts.some(p => p.id === id)) { m.remove(); marks.delete(id); }
-      for (const p of pts) {   // mehrere Personen am selben Ort (~10 m): nebeneinander statt übereinander
+      for (const p of pts) {   // mehrere Personen am selben Ort: nebeneinander statt übereinander
         const g = cell(p), i = slot[g] = (slot[g] ?? -1) + 1, off = (i - (n[g] - 1) / 2) * w * .2;
         let m = marks.get(p.id);
         if (!m) { const el = document.createElement('div'); el.className = 'pm'; m = new ml.Marker({ element: el, offset: [off, 0] }).setLngLat([p.lon, p.lat]).addTo(map); marks.set(p.id, m); }
