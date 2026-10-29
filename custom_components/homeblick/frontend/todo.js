@@ -94,14 +94,20 @@ function sync(body, specs) {
   for (const [e, i] of made) enter(e, fresh ? i : 0);
   if (!calm(body)) for (const [k, e] of old) if (keep.has(k)) { const dy = first.get(k) - e.getBoundingClientRect().top; if (Math.abs(dy) > 1) e.animate([{ translate: `0 ${dy}px` }, { translate: '0 0' }], { duration: 560, easing: EASE }); }
 }
-const rowMake = () => { const b = document.createElement('button'); b.className = 'trow'; b.innerHTML = '<i class="tck"><svg viewBox="0 0 24 24"><path pathLength="1" d="M6.8 12.6l3.4 3.4 7-7.6"/></svg></i><span><em></em></span>'; return b; };
-function burst(tck) {   // Funken beim Abhaken: Ring federt, acht Punkte fliegen nach außen
-  if (calm(tck)) return;
-  tck.animate([{ scale: 1 }, { scale: 1.24, offset: .35 }, { scale: 1 }], { duration: 440, easing: EASE });
-  for (let i = 0; i < 8; i++) {
-    const a = i * Math.PI / 4, d = document.createElement('b'); d.className = 'tdot'; tck.append(d);
-    d.animate([{ translate: '0 0', scale: 1, opacity: 1 }, { translate: `${Math.cos(a) * 5.6}cqw ${Math.sin(a) * 5.6}cqw`, scale: 0, opacity: 0 }], { duration: 560, delay: 80, easing: 'ease-out', fill: 'backwards' }).onfinish = () => d.remove();
+const rowMake = () => { const b = document.createElement('button'); b.className = 'trow'; b.innerHTML = '<b class="tsh"></b><i class="tck"><svg viewBox="0 0 24 24"><path pathLength="1" d="M6.8 12.6l3.4 3.4 7-7.6"/></svg></i><span><em></em></span>'; return b; };
+function burst(row) {   // Abhaken: Ring federt, Haken poppt, Welle läuft vom Ring aus, zehn Funken (Listenfarbe und weiß) fliegen heraus, Glanz streift über die Zeile, Rand leuchtet kurz
+  const tck = row.querySelector('.tck'); if (calm(tck)) return;
+  tck.animate([{ scale: 1 }, { scale: 1.3, offset: .3 }, { scale: .92, offset: .6 }, { scale: 1 }], { duration: 560, easing: EASE });
+  tck.querySelector('svg').animate([{ scale: .3 }, { scale: 1.3, offset: .6 }, { scale: 1 }], { duration: 480, delay: 140, easing: EASE, fill: 'backwards' });
+  const w = document.createElement('b'); w.className = 'tdot tpulse'; tck.append(w);
+  w.animate([{ scale: 1, opacity: .75 }, { scale: 2.6, opacity: 0 }], { duration: 640, easing: 'ease-out' }).onfinish = () => w.remove();
+  for (let i = 0; i < 10; i++) {
+    const a = (i + Math.random() * .6) * Math.PI / 5, r = 4.2 + Math.random() * 2.6, z = .8 + Math.random() * .9, d = document.createElement('b'); d.className = 'tdot'; tck.append(d);
+    d.style.cssText = `width:${z}cqw;height:${z}cqw;margin:${-z / 2}cqw 0 0 ${-z / 2}cqw` + (i % 2 ? ';background:#fff' : '');
+    d.animate([{ translate: '0 0', scale: 1, opacity: 1 }, { translate: `${Math.cos(a) * r}cqw ${Math.sin(a) * r}cqw`, scale: 0, opacity: 0 }], { duration: 520 + Math.random() * 240, delay: 90 + i * 12, easing: 'cubic-bezier(.1,.8,.3,1)', fill: 'backwards' }).onfinish = () => d.remove();
   }
+  row.querySelector('.tsh').animate({ backgroundPosition: ['100% 0', '0% 0'] }, { duration: 780, delay: 120, easing: 'ease-in-out' });
+  row.animate([{ boxShadow: 'inset 0 0 0 .25cqw #ffffff47' }, { boxShadow: 'inset 0 0 0 .4cqw color-mix(in srgb,var(--lc) 85%,transparent)', offset: .3 }, { boxShadow: 'inset 0 0 0 .25cqw #ffffff47' }], { duration: 900, easing: 'ease-out' });
 }
 function paintFace(el) {
   const id = pick(el), L = lists.get(id), a = api.ents()[id]?.attributes, sf = feat(id), all = sorted(), body = el.querySelector('.tbody');
@@ -149,7 +155,8 @@ export function todoFace(el, f) {
     const x = items(id).find(y => y.uid === row.dataset.u); if (!x) return;
     const status = x.status === 'completed' ? 'needs_action' : 'completed';
     L.pend[x.uid] = status; settle(L, x, status === 'completed' ? 950 : 380); paint(id);   // Zeile bleibt kurz stehen: Haken und Durchstreichen sind zu sehen, dann gleitet sie
-    if (status === 'completed') burst(row.querySelector('.tck'));
+    if (status === 'completed') burst(row);
+    else if (!calm(row)) row.querySelector('.tck').animate([{ scale: 1 }, { scale: .8, offset: .35 }, { scale: 1.1, offset: .7 }, { scale: 1 }], { duration: 420, easing: EASE });   // wieder öffnen: Ring wackelt kurz
     svc(id, 'update_item', { item: x.uid, status }).catch(e => { delete L.pend[x.uid]; clearTimeout(L.settle.get(x.uid)?.t); L.settle.delete(x.uid); paint(id); fail(el, e); });   // Erfolg: die nächste Meldung von HA ersetzt den lokalen Stand
   });
   el.querySelector('.tadd').addEventListener('submit', e => {
@@ -183,12 +190,15 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 .tbody::-webkit-scrollbar{display:none}
 .f-todo.multi .tbody{top:33cqw}
 .f-todo.adding .tbody{bottom:19cqw}
-.trow{flex:none;display:flex;align-items:center;gap:3.4cqw;min-height:12.5cqw;padding:2cqw 4cqw;border-radius:4.3cqw;corner-shape:squircle;text-align:left;color:inherit;font-size:4.2cqw;font-weight:500;
+.trow{position:relative;flex:none;display:flex;align-items:center;gap:3.4cqw;min-height:12.5cqw;padding:2cqw 4cqw;border-radius:4.3cqw;corner-shape:squircle;text-align:left;color:inherit;font-size:4.2cqw;font-weight:500;
   background:var(--glass,linear-gradient(165deg,#ffffff3d,#ffffff29 50%,#ffffff1f));box-shadow:inset 0 0 0 .25cqw #ffffff47;transition:scale .25s}
 .trow:active{scale:.97;transition:scale .12s ease-out}
 .trow span{flex:1;min-width:0;line-height:1.3;overflow-wrap:anywhere;transition:opacity .45s .1s}
 .trow em{font-style:normal;background:linear-gradient(currentColor,currentColor) 0 62%/0 .3cqw no-repeat;-webkit-box-decoration-break:clone;box-decoration-break:clone;transition:background-size .4s ease .12s}
-.tck{flex:none;position:relative;width:6.4cqw;height:6.4cqw;border-radius:50%;box-shadow:inset 0 0 0 .5cqw var(--tring,#ffffffb3);transition:box-shadow .3s}
+.tck{flex:none;position:relative;width:6.4cqw;height:6.4cqw;border-radius:50%;box-shadow:inset 0 0 0 .5cqw var(--tring,#ffffffb3);transition:box-shadow .3s,scale .2s}
+.trow:active .tck{scale:.86}
+.tsh{position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:linear-gradient(105deg,transparent 38%,#ffffff6b 50%,transparent 62%) 100% 0/250% 100% no-repeat}
+.tdot.tpulse{inset:0;width:100%;height:100%;margin:0;background:none;box-shadow:inset 0 0 0 .4cqw var(--tfill,var(--lc,#34c759))}
 .tck::before{content:"";position:absolute;inset:0;border-radius:50%;background:var(--tfill,var(--lc,#34c759));scale:0;transition:scale .45s var(--spring)}
 .tck svg{position:absolute;inset:0;width:100%;height:100%;fill:none;stroke:var(--tchk,#fff);stroke-width:2.7;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:1;stroke-dashoffset:1;transition:stroke-dashoffset .3s ease-out}
 .tdot{position:absolute;left:50%;top:50%;width:1.2cqw;height:1.2cqw;margin:-.6cqw 0 0 -.6cqw;border-radius:50%;background:var(--tfill,var(--lc,#34c759));pointer-events:none}
