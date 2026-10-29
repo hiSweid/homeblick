@@ -134,7 +134,7 @@ svg.i{width:1em;height:1em;flex:none;fill:none;stroke:currentColor;stroke-width:
 .tile[data-size="2x1"]:not(.thermo){flex-direction:row;justify-content:flex-start;gap:4cqw;padding:0 5cqw;text-align:left}
 /* Stil-Varianten (Ideen-Galerie), im Layout der Apple-Vorlage (Website highlights/dashboard): zentriert wie die Thermostat-Zahl 68 mit Titel/Untertitel darunter, Glas, weiße An-Fläche, Ring/Kreis nur als dünne weiße Linie.
    value = Messwert groß statt Symbol (Sensor), circle = Symbol im Kreis (Szene, Schalter, Ventilator …), fill = Licht als Dimmer (weiße Fläche steigt) */
-.tile:is([data-sv=value],[data-sv=spark]) .ico{display:none}.tile:is([data-sv=value],[data-sv=spark]) .big{flex:1;display:flex;flex-wrap:wrap;align-items:baseline;align-content:center;justify-content:center;font-size:8.5cqw;font-weight:500;letter-spacing:-.02em;line-height:1;white-space:nowrap;padding-top:1.5cqw}
+.tile:is([data-sv=value],[data-sv=spark]) .ico{display:none}.tile:is([data-sv=value],[data-sv=spark]) .big{flex:1;display:flex;flex-wrap:wrap;align-items:baseline;align-content:center;justify-content:center;min-width:0;max-width:100%;font-size:8.5cqw;font-weight:500;letter-spacing:-.02em;line-height:1;white-space:nowrap;padding-top:1.5cqw}
 .tile:is([data-sv=value],[data-sv=spark]) .big .tx{min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis}
 .tile:is([data-sv=value],[data-sv=spark]) .big small{font-size:.5em;font-weight:500;margin-left:.15em}
 .tile:is([data-sv=value],[data-sv=spark])[data-size="2x1"] .big{font-size:12cqw}.tile:is([data-sv=value],[data-sv=spark])[data-size="2x2"] .big{font-size:20cqw}.tile[data-sv=spark] .big{flex:1 1 0;padding-top:0;font-size:7.5cqw}
@@ -147,14 +147,14 @@ svg.i{width:1em;height:1em;flex:none;fill:none;stroke:currentColor;stroke-width:
 .tile:is([data-sv=fill],[data-sv=blind]) .fill::before{content:"";position:absolute;inset:0 0 auto;height:.25cqw;background:#fff}
 .tile:is([data-sv=fill],[data-sv=blind]).drag .fill{transition:none}
 .tile:is([data-sv=fill],[data-sv=blind]) .pct{position:absolute;right:2.6cqw;top:2.6cqw;font-size:2.6cqw;font-weight:600;transition:color .3s}
-.tile:is([data-sv=fill],[data-sv=blind]).hi .ttl,.tile:is([data-sv=fill],[data-sv=blind]).hi .pct{color:var(--ink)!important}.tile:is([data-sv=fill],[data-sv=blind]).hi .sub{color:var(--ink2)!important}.tile:is([data-sv=fill],[data-sv=blind]).full .ico{color:var(--ink)!important}
+.tile:is([data-sv=fill],[data-sv=blind]).hi .ttl,.tile[data-sv=fill].top .pct{color:var(--fi,var(--ink))!important}.tile:is([data-sv=fill],[data-sv=blind]).hi .sub{color:var(--fi2,var(--ink2))!important}.tile:is([data-sv=fill],[data-sv=blind]).full .ico{color:var(--fi,var(--ink))!important}
 .tile:is([data-sv=fill],[data-sv=blind])[data-size="2x2"] .pct{font-size:4.4cqw;right:5cqw;top:5cqw}
 /* Rollo: Lamellenpanzer schiebt sich von oben nach unten (Höhe = Schließgrad); Symbol/Prozent oben werden dunkel, sobald die Fläche sie erreicht (.full), der Titel unten erst bei fast zu (.hi) */
 .tile[data-sv=blind] .fill{inset:0 0 auto;background:repeating-linear-gradient(#fff 0 .3cqw,#f3f3f6 .3cqw 2.05cqw,#cdcdd5 2.05cqw 2.4cqw)}   /* Rolladenpanzer von oben nach unten: weiße Lamellen mit Lichtkante und Fuge, Abschlussschiene unten */
 .tile[data-sv=blind] .fill::before{inset:auto 0 0;height:.9cqw;background:linear-gradient(#c8c8d0,#a9a9b3)}
 .tile[data-sv=blind] .ttl,.tile[data-sv=blind] .sub{transition:color .3s}
-.tile[data-sv=blind].hi .ttl{color:var(--ink)!important}.tile[data-sv=blind].hi .sub{color:var(--ink2)!important}
-.tile[data-sv=blind].full .ico,.tile[data-sv=blind].full .pct{color:var(--ink)!important}
+.tile[data-sv=blind].hi .ttl{color:var(--fi,var(--ink))!important}.tile[data-sv=blind].hi .sub{color:var(--fi2,var(--ink2))!important}
+.tile[data-sv=blind].full .ico,.tile[data-sv=blind].full .pct{color:var(--fi,var(--ink))!important}
 /* Medien: Cover füllt die Kachel (Galerie „Cover-Vollbild“): dunkler Verlauf unten, Raum-Pille oben links, Titel/Interpret unten, Status-Symbol oben rechts; Pause = entsättigt + dunkler; ohne Cover Farbverlauf. Nicht aktiv = normale Kachel */
 .tile[data-sv=cover]{overflow:hidden}.tile[data-sv=cover]::before{display:none}
 .tile[data-sv=cover] .art{position:absolute;inset:0;z-index:-1;background:linear-gradient(145deg,#ff7a59,#c2185b 52%,#3b1c6e) center/cover;opacity:0;transition:opacity .4s,filter .4s}
@@ -197,9 +197,11 @@ svg.i{width:1em;height:1em;flex:none;fill:none;stroke:currentColor;stroke-width:
 .wxtile .tmp{position:absolute;left:5cqw;top:10cqw;font-size:22cqw;font-weight:300}
 .wxtile .wi{position:absolute;left:5cqw;bottom:5cqw;font-size:12cqw}
 .wxtile[data-size="1x1"] .tmp{font-size:10cqw;top:8cqw}.wxtile[data-size="1x1"] .wi{font-size:6cqw}
-.thermo .num{font-size:27cqw;margin-top:4.8cqw}   /* Ziffernmitte bei 43 % der Kachelhöhe (Frontalbild dashboard), Ziffernhöhe 19,8 % W */
+.thermo .num{font-size:27cqw;margin-top:4.8cqw;white-space:nowrap}   /* Ziffernmitte bei 43 % der Kachelhöhe (Frontalbild dashboard), Ziffernhöhe 19,8 % W */
 .thermo[data-size="2x1"] .num{font-size:13cqw;margin-top:4cqw}
 .thermo[data-size="1x1"] .num{font-size:10cqw;margin-top:5.5cqw}
+/* Bereichs-Sollwert „21–24“ (heat_cool): kleiner, damit es einzeilig in die Kachel passt */
+.thermo .num[data-rg]{font-size:12cqw}.thermo[data-size="2x1"] .num[data-rg]{font-size:8cqw}.thermo[data-size="1x1"] .num[data-rg]{font-size:5.5cqw}#climate .num[data-rg]{font-size:20cqw}
 /*: Titel/Untertitel im 2×2-Thermostat so groß wie bei 1×1, eine Zeile („Wohnzimmer • 20,5°“) */
 .thermo[data-size="2x2"] :is(.ttl,.sub){font-size:3cqw;line-height:1.36}
 .thermo .sub{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -1401,8 +1403,9 @@ try { const o = localStorage.getItem('homeview.v1'); if (o != null) { if (localS
 // Jedes Display hat seine Kennung (pro Gerät/Browser); in HA: eigenes Gerät mit Entities, eigene Faces und Einstellungen
 // ?display=kueche (einmal pro Gerät öffnen) legt die Kennung fest und merkt sie sich
 const DISPLAY = PREVIEW ? 'preview' : (() => {
-  const p = (new URLSearchParams(location.search).get('display') || '').toLowerCase().replace(/[^a-z0-9_-]/g, '');
-  try { if (p) localStorage.homeblickDisplay = p; return localStorage.homeblickDisplay ||= 'd' + Math.random().toString(36).slice(2, 8); } catch { return p || 'd0'; }
+  const norm = x => String(x || '').toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 64);   // wie der Server: [a-z0-9_-], höchstens 64 Zeichen
+  const p = norm(new URLSearchParams(location.search).get('display'));
+  try { if (p) localStorage.homeblickDisplay = p; return localStorage.homeblickDisplay = norm(localStorage.homeblickDisplay) || 'd' + Math.random().toString(36).slice(2, 8); } catch { return p || 'd0'; }
 })();
 let CONF;
 if (!PREVIEW) try { CONF = JSON.parse(localStorage.getItem(KEY)); } catch {}
@@ -1772,7 +1775,7 @@ function peopleFill() {
   const home = ents['zone.home']?.attributes, pts = [];
   const html = Object.keys(ents).filter(i => i.startsWith('person.')).sort().map(id => {
     const s = ents[id], a = s.attributes, name = a.friendly_name || id, bat = ents[a.source]?.attributes.battery_level;
-    const away = s.state === 'not_home', d = away && a.latitude != null && home?.latitude != null ? kmBetween(a.latitude, a.longitude, home.latitude, home.longitude) : null;
+    const away = s.state === 'not_home', d0 = away && a.latitude != null && home?.latitude != null && Math.abs(a.latitude) <= 90 && Math.abs(a.longitude) <= 180 ? kmBetween(a.latitude, a.longitude, home.latitude, home.longitude) : null, d = Number.isFinite(d0) ? d0 : null;   // ungültige Koordinaten (>90°, Text, NaN): ohne Entfernung
     const where = s.state === 'home' ? tx('Zuhause') : away ? tx('Unterwegs') + (d != null ? ` • ${d < 10 ? d.toLocaleString(LOC, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : Math.round(d)} km` : '') : s.state === 'unknown' || s.state === 'unavailable' ? tx('Unbekannt') : s.state;
     const av = `<div class="pav">${abs(a.entity_picture) ? `<img src="${esc(abs(a.entity_picture))}" alt="">` : esc(name.trim()[0] || '?').toUpperCase()}</div>`;
     const at = a.latitude != null ? a : s.state === 'home' && home?.latitude != null ? home : null;   // ohne GPS steht, wer „Zuhause“ ist, auf der Home-Zone
@@ -1868,7 +1871,7 @@ const dialIO = new IntersectionObserver(es => { for (const e of es) if (!e.targe
 function roll(el, txt, dir = 0) {
   const old = el.lastElementChild, n = document.createElement('span');
   n.textContent = txt; el.append(n);
-  if (el.closest('#climate')) n.classList.toggle('dec', txt.includes(','));   // Klima: Dezimalzahl kleiner – nur an der neuen Zahl, die ausrollende alte behält ihre Größe
+  if (el.closest('#climate')) n.classList.toggle('dec', txt.includes(',') && !el.dataset.rg);   // Klima: Dezimalzahl kleiner – nur an der neuen Zahl, die ausrollende alte behält ihre Größe
   if (!dir || !old) { old?.remove(); return; }
   // Apple (STEUERUNG.md P2-5): nur die geänderte Ziffer rollt, 55 % Zeichenhöhe, Blur, ~300 ms; sinkt der Wert: alt nach unten, neu von oben
   const out = { transform: `translateY(${-dir * 55}%)`, opacity: 0, filter: 'blur(.8cqw)' }, inn = { transform: `translateY(${dir * 55}%)`, opacity: 0, filter: 'blur(.8cqw)' }, id = { transform: 'none', opacity: 1, filter: 'none' };
@@ -2027,7 +2030,9 @@ function fillModes(c) {
 }
 const modeMenu = on => { $('#climate').classList.toggle('mo', on); $('#climate .hm').classList.toggle('open', on); };
 const T = {};   // Soll-Temperatur je Klima-Entity
-function setTemp(id, v, dir = 0) { T[id] = v; for (const el of $$(`[data-temp="${id}"]`)) roll(el, fmt(v), dir); }
+function setTemp(id, v, dir = 0) { T[id] = v; delete R[id]; for (const el of $$(`[data-temp="${id}"]`)) { el.removeAttribute('data-rg'); roll(el, fmt(v), dir); } }
+const R = {};   // Bereichs-Sollwert (heat_cool) je Klima-Entity: [niedrig, hoch]
+function setRange(id, r, dir = 0) { R[id] = r; for (const el of $$(`[data-temp="${id}"]`)) { el.dataset.rg = 1; roll(el, `${fmt(r[0])}–${fmt(r[1])}`, dir); } }
 const S = { light: 0 };
 // Füllhöhe ≈ Wert + 6 Punkte (Gerade durch drei Messpunkte 33/37/80 %, bei 100 % geklammert; Enden unbelegt, STEUERUNG F7)
 function setShade(c) { S.shade = 100 - c; $('#shade').style.setProperty('--f', c / 100); $('#shade').classList.toggle('lo', c >= 14); bind('shade', 100 - c); }   // c = Schließgrad
@@ -2147,12 +2152,13 @@ function liveTile(t, s) {   // Kamera-Livebild: Pille (Live/Offline) + Bewegungs
   const mid = t._t.motion || t._mid;
   t.classList.toggle('mv', !!mid && ents[mid]?.state === 'on');
 }
+const ttlOf = (t, s) => (t._v || t._t).title?.trim() || s.attributes.friendly_name || '';   // leerer Titel → Name der Entity
 function coverTile(t, s) {   // Medien-Kachel mit Cover-Vollbild
   const a = s.attributes, act = /^(playing|buffering|paused)$/.test(s.state) && !!(a.media_title || a.entity_picture), pic = a.entity_picture ? abs(a.entity_picture) : '';
   t.classList.toggle('art-on', act); t.classList.toggle('paused', s.state === 'paused');
   const art = $('.art', t); if (t._pic !== pic) { t._pic = pic; art.style.backgroundImage = pic ? `url("${pic}")` : ''; }
   const set = (sel, v) => { const n = $(sel, t); if (n && n.innerHTML !== v) n.innerHTML = v; };
-  set('.ttl', esc(act ? a.media_title || (t._v || t._t).title : (t._v || t._t).title)); set('.sub', esc(act ? a.media_artist || a.media_album_name || '' : t._sub || ''));
+  set('.ttl', esc(act ? a.media_title || ttlOf(t, s) : ttlOf(t, s))); set('.sub', esc(act ? a.media_artist || a.media_album_name || '' : t._sub || ''));
   set('.cvr .pp', act ? svg(s.state === 'paused' ? 'play' : 'pause') : '');
 }
 function statusSub(t, d, s) {
@@ -2186,6 +2192,7 @@ function render() {
     t.classList.toggle('na', s.state === 'unavailable');
     if (!held(id)) t.classList.toggle(FILL.test(t.dataset.sv) || t.dataset.sv === 'cover' ? 'lit' : 'on', !!ON[d]?.(s));
     if (t.dataset.sv === 'cover') coverTile(t, s);
+    else if (t.dataset.ti != null && !(t._v || t._t).title?.trim()) { const n = $('.ttl', t), v = ttlOf(t, s); if (n && n.textContent !== v) n.textContent = v; }
     if (t.dataset.sv === 'live') liveTile(t, s);
     if (FILL.test(t.dataset.sv) && !t._drag && !held(id)) {   // Füllhöhe = Helligkeit bzw. Schließgrad; in der Vorschau (nicht Bearbeiten) bei „aus“/offen eine Beispielhöhe zur Ansicht
       const blind = t.dataset.sv === 'blind', p0 = blind ? closedPct(s) : pct(s), demo = PREVIEW && !root.classList.contains('pvedit') && (blind ? !p0 : s.state !== 'on'), p = demo ? (blind ? 55 : 70) : p0;
@@ -2226,8 +2233,8 @@ function render() {
     if (sub) { const txt = [(th._v || th._t).sub, c != null && th.dataset.size !== '1x1' && fmt(c) + '°'].filter(Boolean).join(' • '); if (sub.textContent !== txt) sub.textContent = txt; }
     if (!held(id) && v != null && v !== T[id]) setTemp(id, v, T[id] == null ? 0 : Math.sign(v - T[id]));
     else if (v == null && !held(id)) {
-      const a = st(id).attributes, r = a.target_temp_low != null && a.target_temp_high != null ? `${fmt(a.target_temp_low)}–${fmt(a.target_temp_high)}` : '–';   // Bereichs-Sollwert (heat_cool) nur anzeigen, Chevrons bleiben ohne Wirkung
-      delete T[id]; if (el.textContent !== r) { el.replaceChildren(); roll(el, r); }
+      const a = st(id).attributes, r = a.target_temp_low != null && a.target_temp_high != null ? `${fmt(a.target_temp_low)}–${fmt(a.target_temp_high)}` : '–';   // Bereichs-Sollwert (heat_cool): Chevrons schieben beide Grenzen gemeinsam (bump)
+      delete T[id]; delete R[id]; el.toggleAttribute('data-rg', r.length > 1); if (el.textContent !== r) { el.replaceChildren(); roll(el, r); }
     }   // Sollwert weg (aus/unavailable): keine veraltete Zahl, „–“ statt leerem Feld, Chevron sendet nichts
     else if (!el.firstChild && T[id] != null) roll(el, fmt(T[id]));
   }
@@ -2728,13 +2735,13 @@ function sendTemp(id) {
   holdFor(id, 3000);
   $$(`[data-e="${id}"]`).forEach(t => t.classList.add('on'));
   clearTimeout(tempT[id]);
-  tempT[id] = setTimeout(() => call('climate', 'set_temperature', { entity_id: id, temperature: T[id] }), 600);
+  tempT[id] = setTimeout(() => call('climate', 'set_temperature', { entity_id: id, ...(R[id] ? { target_temp_low: R[id][0], target_temp_high: R[id][1] } : { temperature: T[id] }) }), 600);
 }
-// Symbol dunkel (full), sobald die weiße Fläche es erreicht
+// Symbol dunkel (full), sobald die weiße Fläche es erreicht; Prozentzahl oben (top) erst bei fast voller Füllung
 const fillSet = (t, p) => {
   t.style.setProperty('--p', p);
   if (t.dataset.sv === 'blind') { t.classList.toggle('full', p >= 22); t.classList.toggle('hi', p >= (t.dataset.size === '2x2' ? 85 : 78)); }
-  else { t.classList.toggle('hi', p >= 25); t.classList.toggle('full', p >= (t.dataset.size === '2x2' ? 85 : 55)); }
+  else { t.classList.toggle('top', p >= (t.dataset.size === '2x2' ? 90 : 88)); t.classList.toggle('hi', p >= 25); t.classList.toggle('full', p >= (t.dataset.size === '2x2' ? 85 : 55)); }
   const x = $('.pct', t); if (x) x.textContent = p ? (t.dataset.sv === 'blind' ? 100 - p : p) + ' %' : '';
 };
 // Licht „Füllstand“: senkrecht ziehen dimmt (relativ wie der Dimmer), die Füllung folgt dem Finger, HA bekommt höchstens alle 200 ms einen Wert; ein Tipp schaltet weiter
@@ -2992,8 +2999,9 @@ function rerender(i) {
   const settle = () => spin(Math.round(faces.scrollLeft / STEP()) * STEP());   // Tipp/senkrechte Geste im Auslauf: down() hat die Feder gestoppt, auf die nächste Seite einrasten
   faces.go = (i, instant) => { const x = Math.max(0, Math.min(faces.children.length - 1, i)) * STEP(); instant ? (cancelAnimationFrame(raf), faces.scrollLeft = x) : spin(x); };
   faces.addEventListener('focusin', e => { const i = [...faces.children].indexOf(e.target.closest('#faces > *')); if (i >= 0) faces.go(i); });   // Tab-Fokus scrollt den overflow:hidden-Pager sonst zwischen zwei Seiten
-  let pw = faces.clientWidth;
-  addEventListener('resize', () => { const w = faces.clientWidth; if (pw && w && w !== pw) faces.go(Math.round(faces.scrollLeft / (pw * 1.025)), true); pw = w; });   // Drehen/Fenstergröße: auf der Seite bleiben statt zwischen zwei
+  let pw = faces.clientWidth, pi = 0;   // pi = Seite vor der Größenänderung (der Browser klemmt scrollLeft beim Verkleinern schon vor dem resize-Ereignis)
+  faces.addEventListener('scroll', () => { if (faces.clientWidth === pw) pi = Math.round(faces.scrollLeft / STEP()); });
+  addEventListener('resize', () => { const w = faces.clientWidth; if (pw && w && w !== pw) faces.go(pi, true); pw = w; });   // Drehen/Fenstergröße: auf der Seite bleiben statt zwischen zwei
   const down = e => {
     const cam = cur?.view.id === 'cam' && e.currentTarget.id === 'cam';
     if (e.button || !e.isPrimary || (cur && !cam) || (!cam && e.target.closest('.prog,.pop,input,.lyrics,#pull,.whours'))) return;
@@ -3029,8 +3037,14 @@ function rerender(i) {
 // ---------- Gesten ----------
 function bump(b) {
   const id = b.closest('[data-e]')?.dataset.e || cur?.e, a = st(id).attributes, d = b.dataset.act === 'up' ? 1 : -1, now = T[id] ?? a.temperature;
+  const sp = a.target_temp_step || .5;
+  if (now == null && a.target_temp_low != null && a.target_temp_high != null) {   // Bereichs-Sollwert: beide Grenzen um einen Schritt schieben, nur wenn beide im Bereich bleiben
+    const [lo, hi] = R[id] || [a.target_temp_low, a.target_temp_high], l = +(lo + d * sp).toFixed(2), h = +(hi + d * sp).toFixed(2);
+    if (l >= (a.min_temp ?? 5) && h <= (a.max_temp ?? 35)) { setRange(id, [l, h], d); sendTemp(id); }
+    return;
+  }
   if (now == null) return;
-  const sp = a.target_temp_step || .5, v = +Math.min(a.max_temp ?? 35, Math.max(a.min_temp ?? 5, Math.round((now + d * sp) / sp) * sp)).toFixed(2);   // auf Schrittweite runden (kein 22.70000000000001)
+  const v = +Math.min(a.max_temp ?? 35, Math.max(a.min_temp ?? 5, Math.round((now + d * sp) / sp) * sp)).toFixed(2);   // auf Schrittweite runden (kein 22.70000000000001)
   if (v !== now) { setTemp(id, v, d); sendTemp(id); }
 }
 // Eigene Aktion einer Kachel (Einstellungsseite: tap/hold = { do: toggle | service | face | none, service, data, face }); default/fehlt = Standard
@@ -3147,7 +3161,7 @@ document.addEventListener('click', e => {
   else if (act === 'edet') { energyDetail(b.dataset.v, b); open(b, 'edet'); }   // Energie-Kachel → Detail-Vollbild (FLIP wie Klima/Licht)
   else if (act === 'toggle') st(b.dataset.e).state === 'unavailable' ? shake(b) : TAP[b.dataset.e.split('.')[0]]?.(b, b.dataset.e);   // Licht im Klingel-Bild / Kameras-Face
   else if (act === 'avatars') { const g = b.closest('.greet'); g.classList.toggle('fan'); g._fanAt = Date.now(); }
-  else if (act === 'avpick') { if (Date.now() - (b.closest('.greet')._fanAt || 0) < 300) return;   // Doppeltipp im Aufklappen (Buttons liegen noch gestapelt) wählt keine Person
+  else if (act === 'avpick') { const g = b.closest('.greet'); if (Date.now() - (g._fanAt || 0) < 450 + 40 * $$('.avf', g).length) return;   // Doppeltipp im Aufklappen (Buttons liegen noch gestapelt, Sperre = Feder + Staffelung) wählt keine Person
     who = b.dataset.v; try { localStorage.hb_person = who; } catch {} b.closest('.greet').classList.remove('fan'); render(); }
   else if (act === 'go') { const i = CONF.faces.findIndex(f => f.type === b.dataset.v); if (i >= 0) faces.go(i); }
   else if (act === 'play') {   // 300 ms Sperre: Doppeltipp würde sonst Pause und Play auslösen und sich aufheben; ausgeschaltet → einschalten
@@ -3681,14 +3695,15 @@ if (LIVE) {
     const subWx = () => {
       wxUn.forEach(u => u.then(f => f()).catch(() => 0)); const id = CFG.weather;
       wxUn = [conn.subscribeMessage(f => { if (id === CFG.weather) { forecast = f.forecast?.[0]; schedule(); } }, { type: 'weather/subscribe_forecast', forecast_type: 'daily', entity_id: id }),
-        conn.subscribeMessage(f => { if (id === CFG.weather) weatherHours(f.forecast); }, { type: 'weather/subscribe_forecast', forecast_type: 'hourly', entity_id: id })];
+        conn.subscribeMessage(f => { if (id === CFG.weather) weatherHours(f.forecast || []); }, { type: 'weather/subscribe_forecast', forecast_type: 'hourly', entity_id: id })];
+      wxUn[1] = wxUn[1].catch(e => { if (id === CFG.weather) weatherHours([]); throw e; });   // Entity ohne hourly-Abo: jetzt erst den Hinweis zeigen
       wxUn.forEach(u => u.catch(console.warn));
     };
     pickPlace = id => {   // Ort-Wahl am Listenknopf: Entity + Name wechseln, Vorhersage neu abonnieren, Faces neu aufbauen
       wxOver = id === HOME.weather ? null : { id, name: ents[id]?.attributes.friendly_name || id };
       try { wxOver ? localStorage.hbwx = JSON.stringify(wxOver) : localStorage.removeItem('hbwx'); } catch { }
       [CFG.weather, CFG.place] = wxOver ? [wxOver.id, wxOver.name] : [HOME.weather, HOME.place];
-      forecast = undefined; weatherHours([]); subWx(); renderAll(curIdx());
+      forecast = undefined; weatherHours(null); subWx(); renderAll(curIdx());
     };
     hello.then(subWx);   // Stundenleiste (Stil „Bedingungen“); Wetter ohne hourly → Fehler, Leiste bleibt leer
   } catch (err) {

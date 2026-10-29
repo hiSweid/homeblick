@@ -131,7 +131,7 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 .ew i{display:flex;align-items:center;gap:.2cqw;flex:none;height:7cqw;padding:0 1.6cqw;border-radius:9cqw;background:var(--btn)}
 .ew svg.bin{width:4.4cqw;height:4.4cqw;fill:currentColor;stroke:none;filter:drop-shadow(0 0 .25cqw #0007)}
 .ew span{min-width:0;overflow:hidden;text-overflow:ellipsis}
-.ew.m span{font-size:3.2cqw;line-height:1.05;white-space:normal}   /* mehrere Tonnen: zweizeilig statt „Rest + …“ */
+.ew.m span{font-size:3.2cqw;line-height:1.05;white-space:normal;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2}   /* mehrere Tonnen: höchstens zwei Zeilen (Chip 7 cqw hoch), danach „…“ */
 #events .x{background:#0000000f}
 #events .top{font-size:3.8cqw}
 .evl{position:absolute;inset:15cqw 0 0;overflow-y:auto;scrollbar-width:none;touch-action:pan-y;overscroll-behavior:contain;padding:0 4.4cqw 8cqw}

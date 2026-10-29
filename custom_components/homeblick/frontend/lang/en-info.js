@@ -5,7 +5,7 @@ export default {
   'Teilweise bewölkt': 'Partly cloudy', 'Starkregen': 'Heavy rain', 'Regen': 'Rain', 'Schnee': 'Snow', 'Schneeregen': 'Sleet',
   'Sonnig': 'Sunny', 'Windig': 'Windy', 'Windig, bewölkt': 'Windy and cloudy',
   'Wind': 'Wind', 'Feuchte': 'Humidity',
-  'Temperatur (°C)': 'Temperature (°C)', 'Niederschlag (%)': 'Precipitation (%)', 'Wind (km/h)': 'Wind (km/h)',
+  'Temperatur (°C)': 'Temperature (°C)', 'Niederschlag': 'Precipitation', 'Wind (km/h)': 'Wind (km/h)',
   'Orte': 'Places', 'Bedingungen': 'Conditions', 'Keine Stundenvorhersage': 'No hourly forecast', 'Jetzt': 'Now',
   ' Uhr‖Stunde': ':00', 'H‖Höchsttemperatur': 'H', 'T‖Tiefsttemperatur': 'L',
   'Untergang': 'Sunset', 'Aufgang': 'Sunrise',

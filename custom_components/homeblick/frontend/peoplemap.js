@@ -39,6 +39,7 @@ export async function mount(box, conn, base) {
       return !url.startsWith(base + '/api/map_tiles/') ? undefined : same ? { url, headers: { 'X-Map-Tiles-Token': token } } : { url: url + (url.includes('?') ? '&' : '?') + 'token=' + token };
     },
   });
+  box.addEventListener('click', e => { const a = e.target.closest?.('.maplibregl-ctrl-attrib a'); if (a) { e.preventDefault(); open(a.href, '_blank', 'noopener'); } });   // Quellenangabe bleibt sichtbar, öffnet aber im neuen Tab statt das Display aus der App zu navigieren
   let onErr;   // TileJSON-Fehler (z. B. Tile-Proxy ohne Internet) zählt für MapLibre trotzdem als „geladen“ → hier abbrechen, damit die Liste stehen bleibt
   await new Promise((ok, no) => { map.once('load', ok); map.on('error', onErr = e => e.sourceId && !e.tile && no(e.error || new Error('Kartenquelle'))); setTimeout(() => no(new Error('Karte lädt nicht')), 10000); })
     .finally(() => map.off('error', onErr)).catch(e => { map.remove(); throw e; });

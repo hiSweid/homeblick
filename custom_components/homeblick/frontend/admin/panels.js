@@ -134,7 +134,7 @@ export function alerts(el) {
       if (!list.length) { res.textContent = tx('Dieses Display ist nicht geöffnet.'); return; }
       const title = $('#try-title', el).value.trim(), message = $('#try-msg', el).value.trim() || tx('Die Mitteilung funktioniert.'), dur = Math.max(0, Math.min(3600, +$('#try-dur', el).value || 0));
       res.textContent = tx('Sende …');
-      try { await Promise.all(list.map(x => call('command', { display: x.id, action: 'notify', ...(title && { title }), message, ...(dur >= 1 && { duration: dur }) }))); res.textContent = list.length > 1 ? tx('Gesendet an {n} Displays.', { n: list.length }) : tx('Gesendet an {n} Display.', { n: list.length }); }
+      try { await Promise.all(list.map(x => call('command', { display: x.id, action: 'notify', ...(title && { title }), message, ...(dur !== "" && +dur >= 0 && { duration: Math.min(+dur, 3600) }) }))); res.textContent = list.length > 1 ? tx('Gesendet an {n} Displays.', { n: list.length }) : tx('Gesendet an {n} Display.', { n: list.length }); }
       catch (er) { res.textContent = er?.message || tx('Fehler'); }
     }
   });
@@ -162,7 +162,8 @@ export function newDisplay(el, route) {
   draw(); paintNote();
   // 5-s-Aktualisierung: neu angemeldetes Display erscheint von selbst; das angezeigte Formular bleibt unangetastet, solange sein Display noch wartet
   let busy = false;
-  const off = on('list', () => { if (busy) return; const form = !!$('#go', el); if (form !== pending().length > 0 || (form && !pending().some(x => x.id === id))) { draw(); paintNote(); } });
+  // zweites wartendes Display: neuer Chip, der getippte Name bleibt erhalten (names)
+  const off = on('list', () => { if (busy) return; const form = !!$('#go', el), n = pending().length; if (form !== n > 0 || (form && (!pending().some(x => x.id === id) || $$('[data-d]', el).length !== (n > 1 ? n : 0)))) { if (form) names[id] = $('#wn', el).value; draw(); paintNote(); } });
   el.addEventListener('click', async e => {
     const x = e.target.closest('[data-d]'), a = e.target.closest('[data-a]'), t = e.target.closest('[data-t]');
     if (x) { names[id] = $('#wn', el).value; id = x.dataset.d; draw(); return paintNote(); }

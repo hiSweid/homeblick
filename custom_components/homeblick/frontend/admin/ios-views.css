@@ -103,3 +103,9 @@ img.shot{display:block;width:calc(100% - 32px);max-width:300px;aspect-ratio:1;ob
   .home-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:22px 16px}.tab{min-width:84px;padding:8px 10px 6px}
   .nav{padding:0 10px}
 }
+
+/* Lange Namen ohne Leerzeichen (Display, Ansicht, Kachel) sprengen weder Raster noch Hinweise */
+.large,.alert p,.toast span,.srow .s-label,.set-hero small{overflow-wrap:anywhere}.toast span{min-width:0}
+.home-card,.home-meta,.pgc .t{grid-template-columns:minmax(0,1fr)}.home-meta{min-width:0}
+.home-meta strong,.set-hero b,.pgc .t b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}.pgc .t{min-width:0}
+.chip.pick{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis}

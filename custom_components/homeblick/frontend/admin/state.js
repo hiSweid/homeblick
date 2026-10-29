@@ -122,8 +122,12 @@ export function redo() {
   const r = S.redo.pop(); if (!r) return;
   S.undo.push({ label: r.label, json: snapOf(S.cfg) }); S.cfg = JSON.parse(r.json); lastKey = ''; S.justSaved = false; emit('doc', 'undo');
 }
+// Konfiguration ohne Schlüsselreihenfolge und ohne 'kiosk' (das streicht der Server) vergleichbar machen
+const canon = ({ kiosk, ...c }) => JSON.stringify(c, (k, v) => v && typeof v === 'object' && !Array.isArray(v) ? Object.fromEntries(Object.entries(v).sort(([a], [b]) => a < b ? -1 : 1)) : v);
+/** Sendet den Entwurf; true = wirklich gesendet (false: Neu laden im Konflikt, Abbruch, Fehler). */
 export async function save() {
-  if (!S.cfg || S.busy) return;
+  if (!S.cfg || S.busy) return false;
+  let ok = false;
   const id = S.sel, sent = snapOf(S.cfg);   // gesendeter Stand: Änderungen während des Sendens bleiben „nicht gesendet“
   S.busy = true; emit('doc');
   try {
@@ -131,17 +135,21 @@ export async function save() {
     const send = base_rev => Promise.race([call('admin_config', { display: id, config: JSON.parse(sent), base_rev }), slow()]);
     const r = await guard(send(S.rev).catch(async e => {   // base_rev: Stand beim Öffnen; jemand anderes hat inzwischen gesendet
       if (e?.code !== 'conflict') throw e;
+      const c = await call('get_config', { display: id }).catch(() => null);   // Zeitüberschreitung: die erste Anfrage kann später doch angenommen worden sein, das ist dann kein fremder Konflikt
+      if (c?.config?.faces && canon(c.config) === canon(JSON.parse(sent))) return { rev: c.rev ?? 0 };
       const a = await ask(tx('Die Konfiguration dieses Displays wurde inzwischen von jemand anderem geändert. Überschreiben löscht diese Änderungen, Neu laden verwirft deinen Entwurf.'), { alt: tx('Neu laden'), ok: tx('Überschreiben'), danger: true });
       if (a === 'alt') await openDoc(id);
       return a === true ? send(undefined) : false;   // ohne base_rev: bewusst überschreiben
     }));
     if (r !== false) {   // false: Konflikt, nicht gesendet
+      ok = true;
       if (S.sel === id) { S.saved = sent; S.rev = r?.rev ?? S.rev; S.justSaved = !dirty(); }
       setTimeout(() => snap(id), 2500);
     }
   }
   catch { /* guard zeigt den Fehler */ }
   S.busy = false; emit('doc');
+  return ok;
 }
 export function discard() { if (S.saved) { S.cfg = JSON.parse(S.saved); S.undo = []; S.redo = []; emit('doc', 'undo'); } }
 /** Konfiguration nach Import/Übernehmen neu laden. */

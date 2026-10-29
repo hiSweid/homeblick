@@ -62,7 +62,7 @@ async function next(el, tries = 3) {
       p.i = (p.i + 1) % p.list.length;
       const u = await url(p.list[p.i]).catch(() => null);
       if (!u) continue;
-      const ok = await new Promise(res => { const im = new Image(), t = setTimeout(() => { im.src = ''; res(false); }, 10000); im.onload = () => { clearTimeout(t); res(true); }; im.onerror = () => { clearTimeout(t); res(false); }; im.src = u; });   // Timeout: hängender Server hält sonst busy ewig
+      const ok = await new Promise(res => { const im = new Image(), t = setTimeout(() => { im.src = ''; res(false); }, 30000); im.onload = () => { clearTimeout(t); res(true); }; im.onerror = () => { clearTimeout(t); res(false); }; im.src = u; });   // Timeout: hängender Server hält sonst busy ewig
       if (!ok) continue;
       const ls = el.querySelectorAll('.pl'), nx = ls[p.top ^ 1];
       for (const q of nx.children) q.style.backgroundImage = `url(${JSON.stringify(u)})`;

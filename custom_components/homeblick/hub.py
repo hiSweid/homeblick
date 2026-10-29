@@ -99,7 +99,7 @@ class Hub:
                 add(factory(self, d))
             self.watch_timers(d)
             await self._save()
-        return self.displays[id]
+        return self.displays.get(id) or await self.ensure(id, name)   # remove hat es während des Speicherns wieder gelöscht: neu anlegen statt KeyError
 
     async def remove(self, id: str) -> None:
         self.unwatch_timers(id)

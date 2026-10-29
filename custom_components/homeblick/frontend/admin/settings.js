@@ -158,7 +158,7 @@ export function mount(el, route) {
   el.addEventListener('click', async e => {
     const q = c => e.target.closest(c);
     const sc = q('[data-sec]'); if (sc) return open(sc.dataset.sec);
-    if (q('.save-btn')) { await save(); if (!dirty()) toast(cur().connected ? tx('Gesendet. Dein Display wird aktualisiert.') : tx('Gespeichert. Das Display übernimmt es beim nächsten Öffnen.')); return; }
+    if (q('.save-btn')) { if (await save() && !dirty()) toast(cur().connected ? tx('Gesendet. Dein Display wird aktualisiert.') : tx('Gespeichert. Das Display übernimmt es beim nächsten Öffnen.')); return; }
     const c = q('[data-cmd]');
     if (c) {
       const k = c.dataset.cmd;

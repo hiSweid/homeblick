@@ -62,7 +62,7 @@ export async function mount(el, route) {
   const offs = [on('doc', paint), on('doc', persist), on('list', paint)];
   const stor = e => { if (e.key === DK && e.newValue && !warned && dirty()) { warned = true; toast(tx('Dieses Display wird auch in einem anderen Tab bearbeitet. Wer zuletzt sendet, überschreibt.'), { bad: true }); } };
   addEventListener('storage', stor);
-  const doSave = async () => { document.activeElement?.blur?.(); if (!dirty() || S.busy) return; await save(); if (!dirty()) toast(cur().connected ? tx('Gesendet. Dein Display wird aktualisiert.') : tx('Gespeichert. Das Display übernimmt es beim nächsten Öffnen.')); };
+  const doSave = async () => { document.activeElement?.blur?.(); if (!dirty() || S.busy) return; if (await save() && !dirty()) toast(cur().connected ? tx('Gesendet. Dein Display wird aktualisiert.') : tx('Gespeichert. Das Display übernimmt es beim nächsten Öffnen.')); };
   el.addEventListener('click', e => {
     const q = c => e.target.closest(c);
     if (q('#save')) return doSave();

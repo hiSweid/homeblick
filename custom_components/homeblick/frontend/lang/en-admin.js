@@ -66,6 +66,7 @@ export default {
   'am Gerät': 'on device',
   'Das Display ist offline': 'The display is offline',
   'Fehler': 'Error',
+  'Ungültiger Wert': 'Invalid value',
   'Bildschirmfoto': 'Screenshot',
   'Bildschirmfoto aktualisiert': 'Screenshot updated',
   'Änderungen verwerfen': 'Discard changes',

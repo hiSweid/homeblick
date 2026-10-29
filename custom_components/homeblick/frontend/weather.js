@@ -256,8 +256,8 @@ export function weatherFace(el, f, place = '') {
 // Stil „Bedingungen“ (Vorlage product-viewer/display_endframe, frames/pv-display_1…5): Ort, große Temperatur, Zustand, H/T mittig;
 // darunter Glaskarte mit Segment Temperatur/Niederschlag/Wind und horizontal scrollender Stundenleiste (HA-Vorhersage hourly).
 // Abweichung: Vorlage lässt die Karte unten aus dem Bild laufen → hier ganz sichtbar (Rand 4,3 cqw wie seitlich, Werte unter den Icons), Ort/Temperatur/Zustand dafür 3 cqw höher
-const MODES = { t: [tx('Temperatur (°C)'), `<svg viewBox="0 2 28 24">${behind('<circle cx="20" cy="11.3" r="4.2"/>', CL(0, 3.5, 1))}</svg>`], p: [tx('Niederschlag (%)'), '<svg viewBox="0 0 28 24"><path d="M14 2.5s-6.5 8-6.5 12.6a6.5 6.5 0 0 0 13 0C20.5 10.5 14 2.5 14 2.5z"/></svg>'], w: [tx('Wind (km/h)'), FOOT.wind] };
-let hours = [], far = false;   // far: Fern-Ansicht (nur Text), sonst Nah mit Karte
+const MODES = { t: [tx('Temperatur (°C)'), `<svg viewBox="0 2 28 24">${behind('<circle cx="20" cy="11.3" r="4.2"/>', CL(0, 3.5, 1))}</svg>`], p: [tx('Niederschlag'), '<svg viewBox="0 0 28 24"><path d="M14 2.5s-6.5 8-6.5 12.6a6.5 6.5 0 0 0 13 0C20.5 10.5 14 2.5 14 2.5z"/></svg>'], w: [tx('Wind (km/h)'), FOOT.wind] };
+let hours = null, far = false;   // hours: null = Vorhersage noch nicht geladen (kein Hinweis „Keine Stundenvorhersage“); far: Fern-Ansicht (nur Text), sonst Nah mit Karte
 const setFar = (el, v) => { if (el.closest('.gallery,.custom')) return; el.toggleAttribute('data-far', v); };
 // Aus index.html: Präsenzmelder an → Nah, aus → Fern; ohne Melder bleibt Nah (Tipp wechselt immer)
 export function weatherNear(on) { far = !on; for (const e of $$('.wcond')) setFar(e, far); }
@@ -302,6 +302,7 @@ function nightAt(t) {
 }
 function fillHours(row, anim) {
   const m = row.closest('.wcond').dataset.m, cut = Date.now() - 3600e3;
+  if (!hours) { row.innerHTML = ''; return; }
   const list = hours.filter(h => Date.parse(h.datetime) > cut).slice(0, 24);
   if (!list.length) { row.innerHTML = `<p class="wnone">${tx('Keine Stundenvorhersage')}</p>`; return; }   // Entity ohne hourly-Abo
   row.innerHTML = list.map((h, i) => {
@@ -313,7 +314,7 @@ function fillHours(row, anim) {
 }
 // Aus index.html: Stundenvorhersage (weather/subscribe_forecast hourly)
 // nur Wetter-Karten, nicht die Stundenleisten im Energie-Detail (gleiche Klasse)
-export function weatherHours(list) { hours = list || []; for (const r of $$('.wcond .whours')) fillHours(r); }
+export function weatherHours(list) { hours = list ?? null; for (const r of $$('.wcond .whours')) fillHours(r); }
 
 const LIST = [...Object.keys(COND).filter(c => c !== 'clear-night').map(c => [c, 'day']), ['clear-night', 'night'],
   ['partlycloudy', 'night'], ['cloudy', 'night'], ['rainy', 'night'], ['snowy', 'night'], ['lightning-rainy', 'night'], ['sunny', 'dusk'], ['partlycloudy', 'dusk'], ['rainy', 'dusk']];

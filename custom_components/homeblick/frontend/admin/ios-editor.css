@@ -116,6 +116,10 @@
   .ed.has-insp .ed-main{padding-bottom:calc(min(64vh,560px) + 12px)}.ed.has-insp .deck-meta,.ed.has-insp .notices{display:none}.ed.has-insp .dock{opacity:0;pointer-events:none;transform:translate(-50%,40px)}
   .insp-bar::before{content:"";position:absolute;top:6px;left:50%;width:38px;height:5px;margin-left:-19px;border-radius:3px;background:var(--fill-3)}
   .dock{transition:opacity .25s,transform .5s var(--spring)}
+  /* Ansichten-Modus: Dock („Neue Ansicht“, „Fertig“) bleibt bedienbar, die Karte endet darüber */
+  .ed.pages-mode.has-insp .dock{opacity:1;pointer-events:auto;transform:translateX(-50%);z-index:30}
+  .ed.pages-mode .inspector{bottom:calc(96px + var(--sb));height:min(52vh,480px)}
+  .ed.pages-mode.has-insp .ed-main{padding-bottom:calc(min(52vh,480px) + 108px)}
 }
 @media (max-width:640px){
   .ed-bar{grid-template-columns:auto minmax(0,1fr) auto;padding-left:10px;padding-right:10px}.ed-title{max-width:none;min-width:0;overflow:hidden;padding:2px 4px}.ed-bar .back span{display:none}.back{padding:0 10px 0 6px}

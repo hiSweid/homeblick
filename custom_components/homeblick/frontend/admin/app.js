@@ -9,16 +9,18 @@ import * as panels from './panels.js';
 import { collapse, gbtn, page } from './nav.js';
 
 // ---- Adresse: #/ · #/d/<id>[/settings[/<abschnitt>]] · #/new[/<id>] · #/settings · #/alerts ----
-export function parse() {
-  const [a, b, c, d] = location.hash.replace(/^#\/?/, '').split('/').map(s => { try { return decodeURIComponent(s); } catch { return s; } });   // kaputter %-Code (von Hand getippt) darf die Seite nicht kippen
+export function parse(h = location.hash) {
+  const [a, b, c, d] = h.replace(/^#\/?/, '').split('/').map(s => { try { return decodeURIComponent(s); } catch { return s; } });   // kaputter %-Code (von Hand getippt) darf die Seite nicht kippen
   if (a === 'd' && b) return { name: 'screen', id: b, tab: c === 'settings' ? 'settings' : 'layout', section: d || '' };
   if (a === 'new') return { name: 'new', id: b || '' };
   if (a === 'settings' || a === 'alerts') return { name: a };
   return { name: 'home' };
 }
 export const href = r => r.name === 'home' ? '#/' : r.name === 'screen' ? `#/d/${encodeURIComponent(r.id)}${r.tab === 'settings' ? '/settings' + (r.section ? '/' + r.section : '') : ''}` : r.name === 'new' ? `#/new${r.id ? '/' + encodeURIComponent(r.id) : ''}` : `#/${r.name}`;
-export const go = r => { const h = typeof r === 'string' ? r : href(r); if (location.hash === h) navigate(); else location.hash = h; };
 let route = parse(), lastHash = location.hash, unmount = null;
+const leaves = next => route.name === 'screen' && (next.name !== 'screen' || next.id !== route.id);
+// Link-Klick: ungesendete Änderungen VOR dem Wechsel klären, sonst bliebe nach „Abbrechen“ ein doppelter Verlaufseintrag (Zurück/Vor klärt doNavigate nachträglich)
+export const go = async r => { const h = typeof r === 'string' ? r : href(r); if (location.hash === h) return navigate(); if (dirty() && leaves(parse(h)) && !(await settle())) return; location.hash = h; };
 export const here = () => route;
 
 // ---- Gerüst: Ansicht + schwebende Tab-Leiste ----
@@ -75,16 +77,21 @@ const VIEWS = { home, screen: screen.mount, settings: panels.settings, alerts: p
 // Wechsel laufen nacheinander: ein zweiter Hash-Wechsel mitten im await der ersten Ansicht ließe sonst deren Abbau und Listener verwaisen
 let queue = Promise.resolve();
 const navigate = () => (queue = queue.catch(() => {}).then(doNavigate));
+// Zurück/Vor: Eintrag behalten und den Bildschirm neu davor setzen; Link-Klick (nur ohne go): den neuen Eintrag ersetzen
+const stay = () => history[history.state?.hb ? 'pushState' : 'replaceState']({ hb: 1 }, '', lastHash || '#/');
+// Ungesendeten Entwurf klären: true = weiter (gesendet oder verworfen), false = bleiben
+async function settle() {
+  if (!dirty()) return true;
+  const online = S.displays.find(d => d.id === S.sel)?.connected;
+  const r = await ask(tx('Es gibt Änderungen, die noch nicht an das Display gesendet sind.'), { ok: tx('Verwerfen'), danger: true, alt: tx('Senden') });
+  if (!r) return false;
+  if (r === 'alt') { const sent = await save(); if (dirty()) return false; if (sent) toast(online ? tx('Gesendet. Dein Display wird aktualisiert.') : tx('Gespeichert. Das Display übernimmt es beim nächsten Öffnen.')); }   // Senden fehlgeschlagen: bleiben, guard zeigt den Fehler
+  else discard();
+  return true;
+}
 async function doNavigate() {
-  const next = parse(), leaving = route.name === 'screen' && (next.name !== 'screen' || next.id !== route.id);
-  if (leaving && dirty()) {
-    const stay = () => history[history.state?.hb ? 'pushState' : 'replaceState']({ hb: 1 }, '', lastHash || '#/'),   // Zurück/Vor: Eintrag behalten und den Bildschirm neu davor setzen; Link-Klick: den neuen Eintrag ersetzen
-      online = S.displays.find(d => d.id === S.sel)?.connected;
-    const r = await ask(tx('Es gibt Änderungen, die noch nicht an das Display gesendet sind.'), { ok: tx('Verwerfen'), danger: true, alt: tx('Senden') });
-    if (!r) return stay();
-    if (r === 'alt') { await save(); if (dirty()) return stay(); toast(online ? tx('Gesendet. Dein Display wird aktualisiert.') : tx('Gespeichert. Das Display übernimmt es beim nächsten Öffnen.')); }   // Senden fehlgeschlagen: bleiben, guard zeigt den Fehler
-    else discard();
-  }
+  const next = parse(), leaving = leaves(next);
+  if (leaving && !(await settle())) return stay();
   unmount?.(); unmount = null;   // erst die Ansicht abbauen, dann den Entwurf schließen (sonst zeichnet sie auf leerem Stand)
   if (leaving) closeDoc();
   lastHash = location.hash; route = next;

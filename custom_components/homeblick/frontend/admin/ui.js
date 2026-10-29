@@ -23,8 +23,9 @@ export function toast(text, o = {}) {
   el.querySelector('button')?.addEventListener('click', e => { if (e.timeStamp - t0 < 350) return; off(); o.run?.(); });
   document.body.append(el); tt = setTimeout(off, o.action ? 8000 : 5000);
 }
-// Speichern mit Rückmeldung: Fehler als Hinweis, danach wieder werfen
-export const guard = (p, ok) => p.then(r => (ok && toast(ok), r), e => (toast(e?.message || tx('Fehler'), { bad: true }), Promise.reject(e)));
+// Speichern mit Rückmeldung: Fehler als Hinweis, danach wieder werfen; vom Server abgelehnte Werte (Schema) ohne den rohen englischen Text, der steht in der Konsole
+const errText = e => e?.code === 'invalid_format' ? (console.warn('Homeblick:', e.message), tx('Ungültiger Wert')) : e?.message || tx('Fehler');
+export const guard = (p, ok) => p.then(r => (ok && toast(ok), r), e => (toast(errText(e), { bad: true }), Promise.reject(e)));
 
 // ---- Rückfragen als Alert: erst Abbrechen im Fokus, Escape bricht ab, Klick daneben tut nichts ----
 const queue = [];

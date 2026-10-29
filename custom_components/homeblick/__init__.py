@@ -35,12 +35,19 @@ def _int(lo: int, hi: int):
 
 
 def _config(v):
-    """Konfiguration eines Displays: Dict, faces eine Liste von Dicts mit mindestens einem bekannten Typ, als JSON speicherbar (Leser und Store verlassen sich darauf)."""
+    """Konfiguration eines Displays: Dict, faces eine Liste von Dicts (leer ist erlaubt: Editor ohne Ansichten, frisches Display), nicht leer mit mindestens einem bekannten Typ; face-ids eindeutig und unbedenklich; als JSON speicherbar (Leser und Store verlassen sich darauf)."""
     if not isinstance(v, dict):
         raise vol.Invalid("expected dict")
-    vol.Schema({vol.Required("faces"): [dict]}, extra=vol.ALLOW_EXTRA)(v)
-    if not any(f.get("type") in FACES for f in v["faces"]):   # ohne ein bekanntes Face übernimmt kein Display die Konfiguration
+    vol.Schema({vol.Required("faces"): [dict], vol.Optional("off"): [dict]}, extra=vol.ALLOW_EXTRA)(v)
+    if v["faces"] and not any(f.get("type") in FACES for f in v["faces"]):   # nur Unbrauchbares ergäbe ein schwarzes Display
         raise vol.Invalid("no known face")
+    seen = set()
+    for f in v["faces"] + v.get("off", []):   # id dient als Adresse (#id, Befehl face) und Schlüssel im Frontend: nur beim Schreiben prüfen, gespeicherte Altlasten bleiben ladbar
+        if "id" in f:
+            i = FACE_ID(f["id"])
+            if i in seen or i in ("__proto__", "constructor", "prototype"):
+                raise vol.Invalid(f"invalid or duplicate face id {i}")
+            seen.add(i)
     try:
         json_bytes(v)
     except (TypeError, ValueError) as err:   # z. B. zu tief verschachtelt
@@ -126,7 +133,7 @@ def timer(hass, connection, msg):
         connection.send_result(msg["id"], hass.data[DOMAIN].timer_act(d, msg["timer"], msg["action"]))   # False: schon abgelaufen/abgebrochen, kein Fehler
 
 
-@websocket_api.websocket_command({vol.Required("type"): "homeblick/shot", **DISPLAY, vol.Required("image"): vol.All(str, vol.Length(max=400_000), vol.Match(r"^data:image/jpeg;base64,[A-Za-z0-9+/=]*\Z"))})
+@websocket_api.websocket_command({vol.Required("type"): "homeblick/shot", **DISPLAY, vol.Required("image"): vol.All(str, vol.Length(max=400_000), vol.Match(r"^data:image/jpeg;base64,[A-Za-z0-9+/=]{100,}\Z"))})
 @callback
 def shot(hass, connection, msg):
     """Display liefert sein Bildschirmfoto (Antwort auf den Befehl „screenshot“)."""
@@ -304,12 +311,14 @@ async def setup_display(hass, connection, msg):
 
 
 @websocket_api.require_admin
-@websocket_api.websocket_command({vol.Required("type"): "homeblick/command", **DISPLAY, vol.Required("action"): vol.In(["face", "reload", "screensaver", "wake", "assist", "screenshot", "announce", "notify", "stop", "navigate", "clean"]), vol.Optional("face"): FACE_ID, vol.Optional("duration"): _int(1, 3600), vol.Optional("path"): vol.All(str, vol.Match(r"^/(?![/\\])[^\x00-\x20\\]*\Z"), vol.Length(max=300)), vol.Optional("message"): vol.All(str, vol.Length(min=1, max=300)), vol.Optional("title"): vol.All(str, vol.Length(max=80))})
+@websocket_api.websocket_command({vol.Required("type"): "homeblick/command", **DISPLAY, vol.Required("action"): vol.In(["face", "reload", "screensaver", "wake", "assist", "screenshot", "announce", "notify", "stop", "navigate", "clean"]), vol.Optional("face"): FACE_ID, vol.Optional("duration"): _int(0, 3600), vol.Optional("path"): vol.All(str, vol.Match(r"^/(?![/\\])[^\x00-\x20\\]*\Z"), vol.Length(max=300)), vol.Optional("message"): vol.All(str, vol.Length(min=1, max=300)), vol.Optional("title"): vol.All(str, vol.Length(max=80))})
 @callback
 def command(hass, connection, msg):
     if d := _display(hass, connection, msg):
         if not d.connected:   # push läuft sonst still ins Leere
             return connection.send_error(msg["id"], "not_connected", "Display not connected")
+        if msg.get("duration") == 0 and msg["action"] != "notify":   # 0 ("wartet auf Tippen") gibt es nur bei der Benachrichtigung
+            return connection.send_error(msg["id"], "invalid_format", "duration must be at least 1")
         if msg["action"] == "notify" and "message" not in msg:
             return connection.send_error(msg["id"], "invalid_format", "message required for notify")
         hass.data[DOMAIN].push(d, {k: msg[k] for k in ("action", "face", "message", "title", "path", "duration") if k in msg})
@@ -325,7 +334,7 @@ async def remove(hass, connection, msg):
         hub = hass.data[DOMAIN]
         await hub.remove(msg["display"])
         if dev := hub.device(msg["display"]):   # Gerät samt Entities aus der Registry nehmen (HA räumt die Entities mit ab), sonst bleiben Geister mit altem Zustand
-            dr.async_get(hass).async_update_device(dev.id, remove_config_entry_id=hub.entry_id)
+            dr.async_get(hass).async_remove_device(dev.id)   # remove_config_entry_id in async_update_device ist veraltet (ab HA 2027.8 Fehler)
         connection.send_result(msg["id"])
 
 
