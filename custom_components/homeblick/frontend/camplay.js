@@ -33,15 +33,17 @@ export async function live(conn, e, video, hass = '', fail = () => {}, o = {}) {
     try { return await open((n, die) => whep(o.go2rtc, video, die, n, o.talk)); } catch (err) { console.warn('go2rtc', e, err?.message || err); if (!conn) throw err; }
   }
   const caps = await capsOf(conn, e); console.warn('DIAG caps', e, caps + '');   // DIAG
-  if (caps.includes('web_rtc')) {
+  // WebRTC scheitert je nach Netz (UDP zu HA gesperrt, Kamera lehnt zweite RTSP-Verbindung ab): dann 10 min lang direkt HLS
+  const bad = `hbNoRtc:${e}`, skip = () => { try { return Date.now() - localStorage[bad] < 6e5; } catch { return false; } };
+  if (caps.includes('web_rtc') && !(caps.includes('hls') && skip())) {
     try {
-      const bad = caps.includes('hls') ? new Promise(r => probe = err => r(console.warn('WebRTC', e, err?.message || err))) : null;
+      const t0 = Date.now(), abort = caps.includes('hls') ? new Promise(r => probe = err => r(console.warn('WebRTC', e, err?.message || err))) : null;
       const rel = await open((n, die) => webrtc(conn, e, video, die, n.ms));
-      // Bleibt das Bild aus (Fehlermeldung der Kamera oder ICE/UDP blockiert), nach höchstens 6 s auf HLS wechseln statt bis zum Zeitlimit zu warten
-      const ok = !bad || await Promise.race([flows(shared.get(e).ms, 6000), bad.then(() => false)]);
+      // Bleibt das Bild aus (Fehlermeldung der Kamera oder ICE blockiert), nach höchstens 5 s ab Start auf HLS wechseln
+      const ok = !abort || await Promise.race([flows(shared.get(e).ms, Math.max(500, 5000 - (Date.now() - t0))), abort.then(() => false)]);
       probe = null;
-      console.warn('DIAG flows', e, ok);   // DIAG
       if (ok) return rel;
+      try { localStorage[bad] = Date.now(); } catch {}
       rel();
     } catch (err) { console.warn('WebRTC', e, err?.message || err); }
   }

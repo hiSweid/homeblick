@@ -76,7 +76,7 @@ async function feed(box, e, s, cb) {
   const fallback = why => { if (!alive()) return; console.warn('Kamera', e, why?.message || why); end(); v.remove(); mjpeg(box, e, ents[e] || s, cb); };
   box._stop = end;
   const w = setInterval(() => { if (box._tag !== tag || !box.isConnected) end(); }, 3000);   // Box verschwunden (Face neu gebaut, Ansicht zu) → Stream beenden
-  const t = setTimeout(() => fallback('kein Bild nach 15 s'), 15000);
+  const t = setTimeout(() => fallback('kein Bild nach 25 s'), 25000);
   v.addEventListener('playing', () => { clearTimeout(t); v.style.opacity = ''; box.querySelectorAll('img').forEach(i => i.remove()); cb(tx('Live')); setTimeout(() => alive() && grab(e, v), 800); });
   try { real = await live(conn, e, v, HASS, fallback, o); } catch (err) { return fallback(err); }
   if (box._tag !== tag) end();
