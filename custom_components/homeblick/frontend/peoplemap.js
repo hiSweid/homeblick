@@ -34,6 +34,8 @@ async function loadStyle(base) {
   for (const k in s.sources) if (s.sources[k].url) s.sources[k].url = abs(s.sources[k].url);
   for (const l of s.layers) {
     for (const k in l.paint) if (k.includes('color')) l.paint[k] = APPLE[l.paint[k]] ?? l.paint[k].replace?.(/^rgb\((\d+),(\d+),(\d+)\)$/, (m, r, g, b) => r - b > 6 ? rgb(...[r, g].map(v => Math.round(+b + (v - b) * .4)), b) : m);   // Rest (Fußwege, Tunnel, Bahn …): Beige zu Grau entsättigen
+    const late = /^(tunnel-)?way-/.test(l.id) || l.id.startsWith('marking-') ? 16 : /^street-(service|track|pedestrian|livingstreet|bus)/.test(l.id) ? 15 : 0;   // ruhiger: Fußwege/Markierungen erst ab 16, Neben-/Servicewege ab 15
+    if (late) l.minzoom = late;
     const w = /^street-/.test(l.id) && l.paint['line-width'];   // Straßen ~25 % breiter, wie bei Apple klar lesbar
     if (w?.[0] === 'interpolate') l.paint['line-width'] = w.map((v, i) => i > 3 && i % 2 === 0 && typeof v === 'number' ? +(v * 1.25).toFixed(2) : v);
     if (/^label-place-(neighbourhood|quarter|suburb|hamlet|village|town|city|statecapital|capital)/.test(l.id)) l.layout['text-font'] = ['noto_sans_bold'];   // Ortsnamen fett wie bei Apple
@@ -73,7 +75,7 @@ export async function mount(box, conn, base) {
   return {
     focus(id) {
       foc = id || null; const p = last.find(p => p.id === foc);
-      if (p) fk = at(p), map.easeTo({ center: [p.lon, p.lat], zoom: 15, duration: move() ? 800 : 0 }); else if (last.length) fit(last);
+      if (p) fk = at(p), map.easeTo({ center: [p.lon, p.lat], zoom: 16, duration: move() ? 800 : 0 }); else if (last.length) fit(last);
     },
     async set(pts) {
       last = pts = pts.filter(valid); await fresh(conn).catch(() => {});
