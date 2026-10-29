@@ -30,8 +30,8 @@ html[data-th] :is(.prow,.chero,.crow,.trow,.tplus){box-shadow:var(--th-rim)}
 html[data-th] .prow.home,html[data-th] .tchip.on{background:var(--th-on);color:var(--th-onink)}
 html[data-th] .tchip{background:var(--th-fill)}
 html[data-th] .pav{background:var(--th-fill)}
-html[data-th] .tck{box-shadow:inset 0 0 0 .5cqw var(--th-sub)}
-html[data-th] .trow.done .tck{background:var(--th-ink)}html[data-th] .trow.done .tck::after{border-color:var(--th-blk,var(--th-paper,#fff))}
+html[data-th] .f-todo{--tring:var(--th-sub);--tfill:var(--th-ink);--tchk:var(--th-blk,var(--th-paper,#fff))}   /* Aufgaben: Ring/Fläche/Haken folgen dem Theme statt der Listenfarbe */
+html[data-th] .tprog i{background:var(--th-ink)}
 html[data-th] :is(.crow button,.tadd button){background:var(--th-accent);color:var(--th-accink)}
 html[data-th] .tadd input{background:var(--th-on);color:var(--th-onink)}
 html[data-th] .tsep button{background:var(--th-fill)}
