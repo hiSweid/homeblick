@@ -34,6 +34,46 @@ def _int(lo: int, hi: int):
     return vol.All(check, vol.Range(min=lo, max=hi))
 
 
+_ICONS = frozenset({"bulb", "pendant", "lock", "unlock", "garage", "blind", "video", "fan", "timer", "sun", "moon", "house", "power", "play", "thermo", "drop", "wind", "cloud", "intercom", "note"})   # Spiegelt frontend/admin/meta.js ICONS
+
+
+def _bg(v):
+    """Hintergrund eines Face: Zahl (Farbton) | bekannte Zeichenkette ('auto', 'flow:…', …) | {photo, blur, fg} mit reinen Zeichenketten (kein Objekt/Array, das im Frontend ungeprüft in Attribute und innerHTML landet)."""
+    if isinstance(v, dict):
+        for k in ("photo", "blur", "fg"):
+            if k in v and not isinstance(v[k], str):
+                raise vol.Invalid(f"bg.{k} must be a string")
+        return v
+    if isinstance(v, (int, str)) and not isinstance(v, bool):
+        return v
+    raise vol.Invalid("invalid bg")
+
+
+def _tile_action(v):
+    """tap/hold einer Kachel: do + (bei service) ein echter <domain>.<dienst> und data als Dict (kein beliebiger String/HTML in einem Dienstaufruf, den die Kachel ungeprüft ausführt)."""
+    if not isinstance(v, dict):
+        raise vol.Invalid("expected dict")
+    do = v.get("do", "default")
+    if do not in ("default", "toggle", "service", "face", "none"):
+        raise vol.Invalid(f"unknown action {do}")
+    if do == "service":
+        if not isinstance(v.get("service"), str):
+            raise vol.Invalid("service required")
+        cv.service(v["service"])
+        if "data" in v and not isinstance(v["data"], dict):
+            raise vol.Invalid("service data must be a dict")
+    return v
+
+
+def _tile(t):
+    """Icon nur aus der bekannten Liste (sonst landet ein beliebiger String ungeprüft in einem <use href>), tap/hold validiert."""
+    if "icon" in t and t["icon"] not in _ICONS:
+        raise vol.Invalid(f"unknown icon {t['icon']}")
+    for k in ("tap", "hold"):
+        if k in t:
+            _tile_action(t[k])
+
+
 def _config(v):
     """Konfiguration eines Displays: Dict, faces eine Liste von Dicts (leer ist erlaubt: Editor ohne Ansichten, frisches Display), nicht leer mit mindestens einem bekannten Typ; face-ids eindeutig und unbedenklich; als JSON speicherbar (Leser und Store verlassen sich darauf)."""
     if not isinstance(v, dict):
@@ -48,6 +88,11 @@ def _config(v):
             if i in seen or i in ("__proto__", "constructor", "prototype"):
                 raise vol.Invalid(f"invalid or duplicate face id {i}")
             seen.add(i)
+        if "bg" in f:
+            _bg(f["bg"])
+        for t in f.get("tiles", []):
+            if isinstance(t, dict):
+                _tile(t)
     try:
         json_bytes(v)
     except (TypeError, ValueError) as err:   # z. B. zu tief verschachtelt
@@ -89,6 +134,7 @@ async def register(hass, connection, msg):
     connection.send_result(msg["id"], {"config": hub.config(d.id), "kiosk": d.kiosk(), "device_id": hub.device_id(d), "version": hub.version, "cameras": hub.cameras(), "timers": hub.timers(d), "new": d.new, "name": d.name})
 
 
+@websocket_api.require_admin   # Schreibrecht wie admin_config: jede eingeloggte Session konnte sonst das Layout jedes Displays überschreiben (dort liegen Dienstaufrufe, die später mit den Rechten laufen, wer sie antippt bzw. im Admin-Editor öffnet)
 @websocket_api.websocket_command({vol.Required("type"): "homeblick/set_config", **DISPLAY, vol.Required("config"): _config})
 @websocket_api.async_response
 async def set_config(hass, connection, msg):

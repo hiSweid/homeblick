@@ -307,7 +307,7 @@ function fillHours(row, anim) {
   if (!list.length) { row.innerHTML = `<p class="wnone">${tx('Keine Stundenvorhersage')}</p>`; return; }   // Entity ohne hourly-Abo
   row.innerHTML = list.map((h, i) => {
     const t = Date.parse(h.datetime), n = nightAt(t), c = h.condition === 'sunny' && n ? 'clear-night' : h.condition;
-    const v = m === 't' ? (h.temperature == null ? '–' : Math.round(h.temperature) + '°') : m === 'p' ? (h.precipitation_probability != null ? h.precipitation_probability + '<small> %</small>' : h.precipitation != null ? (+h.precipitation).toFixed(1) + '<small> mm</small>' : '–') : h.wind_speed == null ? '–' : Math.round(h.wind_speed) + '';
+    const v = m === 't' ? (h.temperature == null ? '–' : Math.round(h.temperature) + '°') : m === 'p' ? (h.precipitation_probability != null ? Math.round(h.precipitation_probability) + '<small> %</small>' : h.precipitation != null ? (+h.precipitation).toFixed(1) + '<small> mm</small>' : '–') : h.wind_speed == null ? '–' : Math.round(h.wind_speed) + '';
     return `<div><b>${i ? new Date(t).getHours() + '<small>' + tx(' Uhr‖Stunde') + '</small>' : tx('Jetzt')}</b><i class="wi">${icon(c in ICON ? c : 'cloudy', n, 1)}</i><span>${v}</span></div>`;
   }).join('');
   if (anim) row.querySelectorAll('span').forEach((x, i) => x.animate([{ opacity: 0, transform: 'translateY(40%)' }, { opacity: 1, transform: 'none' }], { duration: 500, delay: i * 25, easing: getComputedStyle(document.documentElement).getPropertyValue('--spring') || 'ease-out', fill: 'backwards' }));

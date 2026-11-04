@@ -1666,10 +1666,10 @@ function depthHTML(f) {
     // Glaskante als Filter (Alpha minus erodiertes Alpha) statt stroke: die variable Schrift hat überlappende Konturen (Querbalken der 4)
     return `<svg class="dsvg" style="animation-delay:${k * 100}ms" viewBox="0 0 100 100" preserveAspectRatio="none"><clipPath id="${id}">${t('')}</clipPath>`
       + glassEdge(id + 'g')
-      + (src ? `<g clip-path="url(#${id})"><image class="dpan" href="${src}" x="-8" y="-8" width="116" height="116" preserveAspectRatio="none"/></g>` : '')
+      + (src ? `<g clip-path="url(#${id})"><image class="dpan" href="${esc(src)}" x="-8" y="-8" width="116" height="116" preserveAspectRatio="none"/></g>` : '')
       + t(' dg').replace('<text', `<text filter="url(#${id}g)"`) + `</svg>`;
   };
-  return [0, 1, 2, 3].map(layer).join('') + (f.bg?.fg ? `<div class="dfg" style="background-image:url(${f.bg.fg})"></div>` : '');
+  return [0, 1, 2, 3].map(layer).join('') + (f.bg?.fg ? `<div class="dfg" style="background-image:url(${esc(f.bg.fg)})"></div>` : '');
 }
 // Watchfaces (watchfaces.js): Farbe/Modus aus dem Hintergrund des Face; „auto“ nachts = dunkel
 function wfFace(el, f) {

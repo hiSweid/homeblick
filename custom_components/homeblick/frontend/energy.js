@@ -259,7 +259,7 @@ const BOLT = '<path d="M13.5 2.5 5.5 13.5h5.8l-1.3 8 8-11h-5.8z" fill="currentCo
 const SP = { now: tx('Jetzt'), day: tx('Heute'), week: tx('Woche'), month: tx('Monat') }, SPL = { day: tx('Autarkie heute'), week: tx('Autarkie diese Woche'), month: tx('Autarkie diesen Monat') };
 let dk = null, sg = 'home', sp = 'now', hold = {}, drag = null;   // offenes Detail, Segment Verbrauch, lokale Werte bis HA nachzieht (Modus/Limit), Limit-Ziehen
 const $d = () => document.getElementById('edet');
-const hx = (v, s) => `${v}<small> ${s}</small>`;
+const hx = (v, s) => `${v}<small> ${esc(s)}</small>`;
 // Stundenbalken: mind. eine Balkenbreite hoch (2,8 von 13 cqw), sonst schneidet die Rundung der .hb ein Oval; „0,0“ (< 50 Wh) → kein Balken
 const hv = (w, max, c) => w >= 50 ? `<i class="${c}" style="--v:${Math.max(w / max, .215).toFixed(3)}"></i>` : '';
 const chart = (g, svg) => `<div class="ech"><div class="cv"><div class="cvi"><svg viewBox="0 0 100 30" preserveAspectRatio="none"><defs><linearGradient id="${g}" x2="0" y2="1"><stop offset="0" style="stop-color:var(--c);stop-opacity:.55"/><stop offset="1" style="stop-color:var(--c);stop-opacity:0"/></linearGradient></defs>${svg.replaceAll('#G', `url(#${g})`)}</svg></div></div><div class="ax"></div></div>`;
@@ -465,7 +465,7 @@ function detail(force) {
     sub(a || st('carMode') ? tx('Lademodus und Ladelimit') : '');
     const ms = st('carMode'), md = held('mode') ?? ms?.state, op = ms?.attributes.options || [];
     const sg2 = $('.emode', view); sg2.style.display = op.length ? '' : 'none';
-    setH(sg2, op.map(o => `<button data-mode="${o}"${o === md ? ' class="on"' : ''}>${MODE[o] || o}</button>`).join(''));
+    setH(sg2, op.map(o => `<button data-mode="${esc(o)}"${o === md ? ' class="on"' : ''}>${esc(MODE[o] || o)}</button>`).join(''));
     const sl = $('.sl', view); sl.style.display = a ? '' : 'none';
     if (a) { sl.style.setProperty('--f', c01((lim - a.min) / (a.max - a.min))); sl.setAttribute('aria-valuenow', lim); bd('d_lim', tx('{v} %', { v: Math.round(lim) })); }
     const pu = st('sesPrice')?.attributes.unit_of_measurement || '€';

@@ -2,7 +2,7 @@
 // Läuft nur, solange die Seite offen ist und das Mikrofon freigegeben wurde (https/localhost).
 import { openMic } from './voice.js';
 
-const ORT = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/';   // ponytail: CDN; für Offline-Betrieb lokal ablegen
+const ORT = new URL('./vendor/', import.meta.url).href;   // onnxruntime-web 1.20.1 lokal gebündelt (MIT), wie hls.js/MapLibre
 const CHUNK = 1280, WIN = CHUNK + 480;   // 80 ms neu, 3 Mel-Frames Vorlauf
 
 // threshold: Funktion (live änderbar); onWake(score) → Promise optional; solange es läuft, ist die Erkennung pausiert (Antwort/TTS soll nicht erneut auslösen)
