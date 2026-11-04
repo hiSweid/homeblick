@@ -78,6 +78,9 @@
       "chime": {
         "name": "Gong beim Klingeln"
       },
+      "lyrics": {
+        "name": "Liedtext-Suche (lrclib.net)"
+      },
       "black": {
         "name": "Screensaver schwarz"
       },

@@ -2326,7 +2326,7 @@ const DEMO_LINES = Array.from({ length: 52 }, (_, k) => ({ t: +(2 + k * 4.2).toF
 let lyr = { key: null, title: '', lines: [], msg: '' }, lyrIdx, lyrT;
 async function loadLyrics(a) {
   const key = `${a.media_title}|${a.media_artist}`;
-  lyr = { key, title: a.media_title || '', lines: !a.media_title || (LIVE && (!a.media_artist || /^(movie|tvshow|video|episode|podcast|channel)$/.test(a.media_content_type))) ? [] : LIVE ? null : a.media_duration ? DEMO_LINES : [] };   // ohne Interpret bzw. Film/Podcast: keine Suche, nichts geht an LRCLIB
+  lyr = { key, title: a.media_title || '', lines: !a.media_title || (LIVE && (!a.media_artist || /^(movie|tvshow|video|episode|podcast|channel)$/.test(a.media_content_type) || !CONF.kiosk?.lyrics)) ? [] : LIVE ? null : a.media_duration ? DEMO_LINES : [] };   // ohne Interpret, Film/Podcast oder abgeschaltet (Einstellung „lyrics“, Standard aus): keine Suche, nichts geht an LRCLIB
   fillLyrics();
   if (lyr.lines) return;
   let lines = [], msg = '';

@@ -240,6 +240,7 @@ SETTINGS = vol.Schema({
     vol.Optional("lux"): vol.Any("", vol.Match(r"^sensor\.\w+\Z")),
     vol.Optional("presence"): vol.Any("", vol.Match(r"^(binary_sensor|input_boolean)\.\w+\Z")),
     vol.Optional("place"): vol.All(str, vol.Length(max=40)),
+    vol.Optional("lyrics"): bool,
 })
 assert set(DEFAULTS) == {k.schema for k in SETTINGS.schema}
 

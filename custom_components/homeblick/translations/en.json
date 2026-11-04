@@ -78,6 +78,9 @@
       "chime": {
         "name": "Doorbell chime"
       },
+      "lyrics": {
+        "name": "Lyrics lookup (lrclib.net)"
+      },
       "black": {
         "name": "Screensaver black"
       },
